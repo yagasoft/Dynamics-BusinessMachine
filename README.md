@@ -6,7 +6,8 @@ Revolutionize your Dynamics 365 experience. Empower developers with an intuitive
 
 ## Usage
 
-Install by importing the latest solution from the 'releases' page.
+First import the solution found at [Dynamics365-YsCommonSolution](https://github.com/yagasoft/Dynamics365-YsCommonSolution).
+Next, import the latest solution from the 'releases' page.
 
 You can read a quick overview of the solution and its functionality [here](https://blog.yagasoft.com/2024/11/dynamics-business-machine-business-automation-framework-mage-series).
 
