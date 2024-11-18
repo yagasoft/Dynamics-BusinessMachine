@@ -1,0 +1,39 @@
+<div id="editor-wrapper" class="fill">
+	<p-splitter [panelSizes]="[27, 73]" class="fill">
+		<ng-template pTemplate>
+			<div class="fill stretch">
+				<p-toolbar>
+					<div class="button-group p-toolbar-group-start">
+						<p-button id="add-property-button" [text]="true" [plain]="true" label="Add Property"
+							[icon]="PrimeIcons.PLUS" (click)="addProperty()"></p-button>
+						<p-button id="add-relation-button" [text]="true" [plain]="true" label="Add Relation (soon)"
+							[icon]="PrimeIcons.PLUS" [disabled]="true" (click)="addRelation()"></p-button>
+					</div>
+					<div class="button-group p-toolbar-group-center">
+					</div>
+					<div class="button-group p-toolbar-group-end">
+						<p-button id="remove-button" [text]="true" [plain]="true" label="Remove"
+							[icon]="PrimeIcons.TRASH" (click)="removeEntry()"></p-button>
+					</div>
+				</p-toolbar>
+				<p-tree [value]="treeEntries" selectionMode="single" [(selection)]="selectedTreeEntry" class="fill overflow" [styleClass]="'fill'">
+					<ng-template let-node pTemplate="default">
+						{{ node.data.id }}
+					</ng-template>
+				</p-tree>
+			</div>
+		</ng-template>
+		<ng-template pTemplate>
+			<div id="editor-wrapper" class="fill stretch">
+				@if (selectedTreeEntry?.data && selectedTreeEntry?.children == null) {
+				<input class="entry-id" type="text" pInputText [(ngModel)]="entryId" />
+				<ys-js-editor id="editor" [(code)]="selectedTreeEntry.data.code"
+					(codeChange)="codeUpdated();"></ys-js-editor>
+				}
+				@else {
+				<label id="app-placeholder">Please select an entry on the left.</label>
+				}
+			</div>
+		</ng-template>
+	</p-splitter>
+</div>

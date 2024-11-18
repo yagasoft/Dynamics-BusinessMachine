@@ -1,0 +1,10 @@
+<?xml version="1" encoding="utf-8" standalone="yes"?>
+<DVDT>
+  <WebResources>
+    <Resource Id="7a180f06-cdf8-ee11-a1fe-0022489f971b" dvDisplayName="DBM Object - Main Form JS" dvFilePath="ys_/dbm-object/forms/main.js" localFileName="main-form.js" localFilePath="//src/object/forms/main-form.js"></Resource>
+    <Resource Id="d0279397-e2f9-ee11-a1fe-0022489f971b" dvDisplayName="DBM Common Library JS" dvFilePath="ys_/dbm/libs/common.js" localFileName="dbm-common.js" localFilePath="//src/common/dbm-common.js"></Resource>
+    <Resource Id="f1bce850-e3f9-ee11-a1fe-0022489f971b" dvDisplayName="YS Common Library JS" dvFilePath="ys_/generic/libs/common.js" localFileName="ys-common.js" localFilePath="//src/common/ys-common.js"></Resource>
+    <Resource Id="5207ac13-38fb-ee11-a1fe-0022489f971b" dvDisplayName="DBM Script - Main Form JS" dvFilePath="ys_/dbm-script/forms/main.js" localFileName="main-form.js" localFilePath="//src/script/forms/main-form.js"></Resource>
+  </WebResources>
+  <Settings></Settings>
+</DVDT>

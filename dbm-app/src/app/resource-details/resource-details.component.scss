@@ -1,0 +1,41 @@
+#app-wrapper {
+	.web-resource-info-wrapper {
+	display: grid;
+	grid-template-columns: auto 1fr;
+	grid-template-rows: max-content max-content;
+	gap: 2px 2px;
+	grid-auto-flow: row;
+	grid-template-areas:
+		". ."
+		". .";
+	align-items: center;
+
+	.web-resource-info-label {
+		padding: 3px;
+		color: var(--text-color);
+	}
+
+	#web-resource-name-wrapper {
+		display: flex;
+		align-items: center;
+
+		#web-resource-name {
+			width: 100%;
+		}
+	}
+}
+
+	#app-placeholder {
+		opacity: 0.5;
+		font-style: italic;
+	}
+
+	#entries-wrapper {
+		margin: 10px;
+
+		.editor {
+			width: 100%;
+			font-family: Monaco, Menlo, "Ubuntu Mono", Consolas, source-code-pro, monospace !important;
+		}
+	}
+}

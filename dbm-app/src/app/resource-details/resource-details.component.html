@@ -1,0 +1,49 @@
+<div id="app-wrapper" class="fill stretch">
+	<p-toolbar>
+		<div class="button-group p-toolbar-group-start button-template">
+				<button pButton id="save-button" [text]="true" [plain]="true" [icon]="isSaving ? null : PrimeIcons.SAVE"
+				[disabled]="!isSaveEnabled" (click)="saveResource()">
+				@if (isSaving)
+				{
+					<p-progressSpinner [styleClass]="'spinner'"	strokeWidth="7" fill="var(--surface-overlay)" animationDuration="2s" />
+				}
+				<span class="label">Save</span>
+			</button>
+		</div>
+		<div class="button-group p-toolbar-group-center">
+		</div>
+		<div class="button-group p-toolbar-group-end">
+		</div>
+	</p-toolbar>
+	<p-fieldset legend="Web resource info">
+		<div class="web-resource-info-wrapper">
+			<label class="web-resource-info-label" for="webResourceName">Name:</label>
+			<span id="web-resource-name-wrapper">
+				<label class="web-resource-name-label" for="webResourceName" (click)="editName()">ys_/dbm/data/</label>
+				<label class="web-resource-name-label" [hidden]="isEditName"
+					(click)="editName()">{{webResourceNameTrunc}}</label>
+				<input id="web-resource-name" name="webResourceName" type="text" pInputText [hidden]="!isEditName"
+					[(ngModel)]="webResourceNameTemp" #nameEditorElement />
+				<p-button id="confirm-name-button" [text]="true" [plain]="true" label="Confirm"
+					[icon]="PrimeIcons.CHECK" [hidden]="!isEditName" (click)="confirmName()"></p-button>
+				<p-button id="cancel-name-button" [text]="true" [plain]="true" label="Cancel" [icon]="PrimeIcons.TIMES"
+					[hidden]="!isEditName" (click)="cancelName()"></p-button>
+			</span>
+			<label class="web-resource-info-label" for="webResourceLabel">Label:</label>
+			<input name="webResourceLabel" type="text" pInputText [(ngModel)]="webResourceDisplayname" />
+		</div>
+	</p-fieldset>
+	<div id="editor-wrapper" class="editor-wrapper fill">
+		@switch (webResource?.content?.type) {
+		@case ('js') {
+		<ys-js-editor id="editor" [(code)]="codeAsString" (codeChange)="codeUpdated();" class="fill"></ys-js-editor>
+		}
+		@case ("json") {
+		<ys-json-editor id="editor" [(code)]="codeAsProp" (codeChange)="codeUpdated();" class="fill"></ys-json-editor>
+		}
+		@default {
+		<label id="app-placeholder">Please use a supported file extension.</label>
+		}
+		}
+	</div>
+</div>

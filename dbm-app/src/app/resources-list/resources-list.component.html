@@ -1,0 +1,39 @@
+<div id="app-wrapper" class="fill">
+	<p-splitter [panelSizes]="[15, 85]" class="fill">
+		<ng-template pTemplate>
+			<div class="fill stretch">
+				<p-toolbar>
+					<div class="button-group p-toolbar-group-start">
+						<p-button id="add-folder-button" [text]="true" [plain]="true" label="Add Folder"
+							[icon]="PrimeIcons.PLUS" (click)="addFolder()"></p-button>
+						<p-button id="add-resource-button" [text]="true" [plain]="true" label="Add Resource"
+							[icon]="PrimeIcons.PLUS" (click)="addResource()"></p-button>
+					</div>
+					<div class="button-group p-toolbar-group-center">
+						<p-button id="refresh-button" [text]="true" [plain]="true" label="Refresh"
+							[icon]="PrimeIcons.REPLAY" (click)="refresh()"></p-button>
+					</div>
+					<div class="button-group p-toolbar-group-end">
+						<p-button id="remove-button" [text]="true" [plain]="true" label="Remove"
+							[icon]="PrimeIcons.TRASH" (click)="removeEntry()"></p-button>
+					</div>
+				</p-toolbar>
+				<p-tree [value]="treeEntries" selectionMode="single" [(selection)]="selectedTreeEntry" class="fill overflow" [styleClass]="'fill'">
+					<ng-template let-node pTemplate="default">
+						{{ node.data.label }}
+					</ng-template>
+				</p-tree>
+			</div>
+		</ng-template>
+		<ng-template pTemplate>
+			<div id="editor-wrapper" class="fill">
+				@if (!isClearView && selectedTreeEntry?.data && selectedTreeEntry?.children == null) {
+				<ys-resource-details id="entryTree" [webResourceName]="selectedTreeEntry.data.name" [(webResourceDisplayname)]="selectedTreeEntry.data.label" class="fill"></ys-resource-details>
+				}
+				@else {
+				<label id="app-placeholder">Please select a resource on the left.</label>
+				}
+			</div>
+		</ng-template>
+	</p-splitter>
+</div>

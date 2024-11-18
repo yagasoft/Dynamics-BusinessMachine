@@ -1,0 +1,23 @@
+﻿<?xml version="1.0" encoding="utf-8" ?>
+<Project xmlns="http://schemas.microsoft.com/developer/msbuild/2003">
+  <Target Name="ILRepacker" AfterTargets="Build">
+    <ItemGroup>
+      <InputAssemblies Include="$(OutputPath)$(TargetName)$(TargetExt)" />
+      <InputAssemblies Include="$(OutputPath)Acornima.dll" />
+      <InputAssemblies Include="$(OutputPath)Jint.dll" />
+    </ItemGroup>
+    <ILRepack
+        Parallel="true"
+        Internalize="false"
+        InternalizeExclude="@(DoNotInternalizeAssemblies)"
+        InputAssemblies="@(InputAssemblies)"
+        LibraryPath="$(OutputPath)"
+        Wildcards="false"
+        TargetKind="SameAsPrimaryAssembly"
+        DebugInfo="false"
+        KeyFile="key.snk"
+        OutputFile="$(OutputPath)Merged\$(AssemblyName).dll"
+        LogFile="$(OutputPath)Merged\ILRepack.log"
+    />
+  </Target>
+</Project>

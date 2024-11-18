@@ -61,6 +61,7 @@ BenchmarkDotNet.Artifacts/
 project.lock.json
 project.fragment.lock.json
 artifacts/
+**/Properties/launchSettings.json
 
 # ASP.NET Scaffolding
 ScaffoldingReadMe.txt
@@ -131,6 +132,9 @@ $tf/
 _ReSharper*/
 *.[Rr]e[Ss]harper
 *.DotSettings.user
+
+# JustCode is a .NET coding add-in
+.JustCode
 
 # TeamCity is a build add-in
 _TeamCity*
@@ -240,7 +244,7 @@ ClientBin/
 *.publishsettings
 orleans.codegen.cs
 
-# Including strong name files can present a security risk
+# Including strong name files can present a security risk 
 # (https://github.com/github/gitignore/pull/2483#issue-259490424)
 #*.snk
 
@@ -320,6 +324,10 @@ paket-files/
 # FAKE - F# Make
 .fake/
 
+# JetBrains Rider
+.idea/
+*.sln.iml
+
 # CodeRush personal settings
 .cr/personal
 
@@ -346,7 +354,7 @@ __pycache__/
 # OpenCover UI analysis results
 OpenCover/
 
-# Azure Stream Analytics local run output
+# Azure Stream Analytics local run output 
 ASALocalRun/
 
 # MSBuild Binary and Structured Log
@@ -355,7 +363,7 @@ ASALocalRun/
 # NVidia Nsight GPU debugger configuration file
 *.nvuser
 
-# MFractors (Xamarin productivity tool) working folder
+# MFractors (Xamarin productivity tool) working folder 
 .mfractor/
 
 # Local History for Visual Studio
@@ -376,12 +384,80 @@ MigrationBackup/
 # Fody - auto-generated XML schema
 FodyWeavers.xsd
 
+*.obj
+*.exe
+*.pdb
+*.user
+*.aps
+*.pch
+*.vspscc
+*_i.c
+*_p.c
+*.ncb
+*.suo
+*.tlb
+*.tlh
+*.bak
+*.cache
+*.ilk
+*.log
+*.lib
+*.sbr
+*.scc
+*.rdl.data
+[Bb]in
+[Db]ebug*/
+obj/
+[Rr]elease*/
+_ReSharper*/
+[Tt]est[Rr]esult*
+[Bb]uild[Ll]og.*
+*.[Pp]ublish.xml
+
+# windows system files
+thumbs.db
+
+# diskstation system file
+.DS_Store
+
+# emacs backup files
+*~
+
+#NuGet Ignore packages  be sure to enable NuGet Package restore in Visual Studio and on your Solution
+packages*/
+/.vs/CrmCodeGenerator/v15/Server/sqlite3
+/UpgradeLog.htm
+/.vs/CrmCodeGenerator/v15/sqlite3
+/Backup
+/Backup1
+/UpgradeLog2.htm
+/UpgradeLog3.htm
+/.vs/CrmCodeGenerator/DesignTimeBuild
+
+
+### Angular
+
+# See http://help.github.com/ignore-files/ for more about ignoring files.
+
+# compiled output
+/dist
+/tmp
+/out-tsc
+
+# dependencies
+/node_modules
+
+# IDEs and editors
+/.idea
+.project
+.classpath
+.c9/
+*.launch
+.settings/
+*.sublime-workspace
+
 # VS Code files for those working on multiple tools
-.vscode/*
-!.vscode/settings.json
-!.vscode/tasks.json
-!.vscode/launch.json
-!.vscode/extensions.json
+.vscode
 *.code-workspace
 
 # Local History for Visual Studio Code
@@ -396,3 +472,66 @@ FodyWeavers.xsd
 
 # JetBrains Rider
 *.sln.iml
+
+# misc
+/.sass-cache
+/connect.lock
+/coverage
+/libpeerconnection.log
+npm-debug.log
+testem.log
+/typings
+
+# e2e
+/e2e/*.js
+/e2e/*.map
+
+# System Files
+.DS_Store
+Thumbs.db
+
+# Created by https://www.gitignore.io/api/angular
+
+# compiled output
+/app/**/*.js
+/app/**/*.js.map
+
+# dependencies
+/bower_components
+
+# End of https://www.gitignore.io/api/angular
+
+
+
+# Secrets
+nuget-access-key.txt
+*.snk
+#*.dat
+WebResLink.dat
+
+# Tests
+
+
+# Tools
+*.exe
+*.bat
+*.lnk
+/tools
+
+# Logs
+log.csv
+
+# tools
+.ys
+CrmSchema-Connection.dat
+PluginRegExt-Connection.dat
+XrmDefinitelyTyped
+
+#Resharper
+*.DotSettings
+
+/**/XrmToolBox
+/**/lib/ILMerge
+bundle/
+/DbmSolution/ConsoleApp1
+/**/environments/environment.*.ts

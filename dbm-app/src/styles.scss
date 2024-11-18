@@ -1,0 +1,101 @@
+/* You can add global styles to this file, and also import other style files */
+@import "primeng/resources/themes/bootstrap4-light-blue/theme.css";
+@import "primeicons/primeicons.css";
+@import "primeng/resources/primeng.css";
+
+html,
+body {
+	height: 100%;
+	margin: 0;
+	padding: 2px;
+}
+
+.p-toolbar {
+	background: none;
+	padding: 2px;
+}
+
+.p-divider {
+	margin: 5px 0 5px 0;
+}
+
+.p-splitter {
+	height: 100%;
+}
+
+.p-fieldset {
+	.p-fieldset-legend {
+		padding: 2px;
+		border: unset;
+		background: unset;
+	}
+
+	.p-fieldset-content {
+		padding: 2px;
+	}
+}
+
+.button-group {
+	display: flex;
+	flex-wrap: wrap;
+}
+
+.fill {
+	height: 100%;
+	width: 100%;
+}
+
+.stretch {
+	display: flex;
+	flex-direction: column;
+	align-items: stretch;
+
+	height: 100%;
+}
+
+.fill-height {
+	height: 100%;
+}
+
+.fill-width {
+	width: 100%;
+}
+
+.relative
+{
+	position: relative;
+}
+
+.absolute
+{
+	position: absolute;
+}
+
+.overflow {
+	overflow: auto;
+}
+
+.editor-wrapper {
+	padding: 10px;
+
+	#editor {
+		width: 100%;
+	}
+
+	#app-placeholder {
+		opacity: 0.5;
+		font-style: italic;
+	}
+}
+
+.button-template {
+	.label {
+		margin-left: 3px;
+	}
+
+	.spinner {
+		width: 1.1rem;
+		height: 1.1rem;
+		vertical-align: text-bottom;
+	}
+}

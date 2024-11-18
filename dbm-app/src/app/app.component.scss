@@ -1,0 +1,24 @@
+#app-wrapper {
+	display: flex;
+	flex-direction: column;
+
+	position: absolute;
+    top: 2px;
+    bottom: 2px;
+    right: 2px;
+    left: 2px;
+
+	#app-placeholder {
+		opacity: 0.5;
+		font-style: italic;
+	}
+
+	#entries-wrapper {
+		margin: 10px;
+
+		.editor {
+			width: 100%;
+			font-family: Monaco, Menlo, "Ubuntu Mono", Consolas, source-code-pro, monospace !important;
+		}
+	}
+}

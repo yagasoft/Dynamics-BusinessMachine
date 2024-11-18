@@ -1,0 +1,56 @@
+.entry-id {
+	margin: 0 0 5px 0;
+	width: 100%;
+}
+
+.editor-wrapper {
+	display: flex;
+	flex-direction: row;
+
+	font-family: Monaco, Menlo, "Ubuntu Mono", Consolas, source-code-pro, monospace !important;
+
+	.ys-code-editor {
+		margin: 0;
+		padding: 0;
+
+		width: 50%;
+		// height: 100%;
+		min-height: 55px;
+
+		border: 1px solid lightgray;
+	}
+
+	.buttons-wrapper {
+		display: flex;
+		flex-direction: column;
+
+		width: 3rem;
+		font-family: var(--font-family);
+		font-size: 0.7rem;
+		padding: 0;
+
+		.button {
+			background-color: var(--surface-card);
+			color: var(--text-color-secondary);
+			border: 1px solid var(--surface-border);
+			border-radius: var(--border-radius);
+			height: 100%;
+
+			.replace {
+				font-size: 0.55rem;
+			}
+
+			.apply {
+				color: green;
+			}
+
+			.reject {
+				color: red;
+			}
+		}
+	}
+
+	.ys-ck-editor {
+		width: 50%;
+	}
+}

@@ -1,0 +1,31 @@
+﻿<?xml version="1.0"?>
+
+<package>
+  <metadata>
+    <id>Yagasoft.DynamicsDbmXtbPlugin</id>
+    <title>Dynamics Business Machine - XTB</title>
+    <version>1.1.1.1</version>
+    <authors>Ahmed Elsawalhy</authors>
+    <owners>Ahmed Elsawalhy</owners>
+    <projectUrl>https://github.com/yagasoft/Dynamics-DynamicsDbmXtbPlugin</projectUrl>
+    <iconUrl>https://blog.yagasoft.com/wp-content/uploads/dbm-xtb-plugin-logo.png</iconUrl>
+    <licenseUrl>https://raw.githubusercontent.com/yagasoft/Dynamics-DynamicsDbmXtbPlugin/master/LICENSE</licenseUrl>
+    <requireLicenseAcceptance>false</requireLicenseAcceptance>
+    <summary>Dynamics Business Machine - XTB</summary>
+    <description>
+      An XrmToolBox plugin that can be used to promote a solution patch. Sets its version higher than all other patches of the same parent solution.
+    </description>
+    <copyright>Copyright Ahmed Elsawalhy</copyright>
+    <tags>XrmToolBox,tool,CRM,Dynamics,365,yagasoft,xrm,plugin,business,process,machine,flow,editor,designer,platform</tags>
+    <releaseNotes>
+      * 1.1.1.1
+      Initial release
+    </releaseNotes>
+    <dependencies>
+      <dependency id="XrmToolBox" version="1.2022.10.58" />
+    </dependencies>
+  </metadata>
+  <files>
+    <file src="bin\Release\Yagasoft.DynamicsDbmXtbPlugin.dll" target="lib\net462\Plugins" />
+  </files>
+</package>

@@ -1,0 +1,19 @@
+<div id="app-wrapper">
+	@if (isFullApp)
+	{
+		@if(isReady)
+		{
+			<ys-resources-list class="fill"></ys-resources-list>
+		}
+		@else
+		{
+				<input id="org-base-url" name="orgBaseUrl" type="text" pInputText [(ngModel)]="baseUrl" #nameEditorElement />
+				<p-button id="confirm-name-button" [text]="true" [plain]="true" label="Confirm" [icon]="PrimeIcons.CHECK" (click)="loginPopup()"></p-button>
+
+		}
+	}
+</div>
+<!--This is to avoid reload during acquireTokenSilent() because of hidden iframe -->
+@if (!isIframe) {
+<router-outlet></router-outlet>
+}

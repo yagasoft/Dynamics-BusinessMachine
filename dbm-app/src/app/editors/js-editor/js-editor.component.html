@@ -1,0 +1,28 @@
+<div class="editor-wrapper fill stretch">
+	<div id="{{id}}" [style.width]="isRichEditor ? '50%' : '100%'" class="fill-height relative overflow">
+		<div #codeEditorElement class="fill-width absolute"></div>
+	</div>
+	<div class="buttons-wrapper fill-height">
+		<button class="button" [hidden]="isConfirm" (click)="toggleRichEditor()">
+			<i class="{{isRichEditor ? PrimeIcons.ANGLE_LEFT : PrimeIcons.ANGLE_RIGHT}}"></i>
+			<div>Rich Editor</div>
+		</button>
+		<button class="button" [hidden]="!isConfirm">
+			<i class="{{PrimeIcons.QUESTION_CIRCLE}}"></i>
+			<div class="replace">Replace</div>
+		</button>
+		<button class="button" [hidden]="!isConfirm" (click)="updateFromRichEditor(true)">
+			<i class="{{PrimeIcons.CHECK}} apply"></i>
+			<div>Yes</div>
+		</button>
+		<button class="button" [hidden]="!isConfirm" (click)="updateFromRichEditor(false)">
+			<i class="{{PrimeIcons.TIMES}} reject"></i>
+			<div>No</div>
+		</button>
+	</div>
+	<div class="ys-ck-editor" [hidden]="!isRichEditor" class="fill-height">
+	<div class="fill absolute">
+		<ys-html-editor [(code)]="html" class="fill-width"></ys-html-editor>
+	</div>
+	</div>
+</div>

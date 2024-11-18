@@ -1,0 +1,11 @@
+<?xml version="1" encoding="utf-8" standalone="yes"?>
+<DVDT>
+  <WebResources>
+    <Resource Id="3abcc44d-aef8-ee11-a1fe-0022489f971b" dvDisplayName="DBM Editor App - PrimeIcons SVG" dvFilePath="ys_/dbm/apps/editor/primeicons.svg" localFileName="primeicons.svg" localFilePath="//bundle/primeicons.svg"></Resource>
+    <Resource Id="6d574ac0-acf8-ee11-a1fe-0022489f971b" dvDisplayName="DBM Editor App - Bundle JS" dvFilePath="ys_/dbm/apps/editor/bundle.js" localFileName="bundle.js" localFilePath="//bundle/bundle.js"></Resource>
+    <Resource Id="af4523f7-acf8-ee11-a1fe-0022489f971b" dvDisplayName="DBM Editor App - Hue PNG" dvFilePath="ys_/dbm/apps/editor/hue.png" localFileName="hue.png" localFilePath="//bundle/hue.png"></Resource>
+    <Resource Id="aadd6d78-aaf8-ee11-a1fe-0022489f971b" dvDisplayName="DBM Editor App - HTML" dvFilePath="ys_/dbm/apps/editor/index.html" localFileName="index.html" localFilePath="//bundle/index.html"></Resource>
+    <Resource Id="41467dda-acf8-ee11-a1fe-0022489f971b" dvDisplayName="DBM Editor App - Color PNG" dvFilePath="ys_/dbm/apps/editor/color.png" localFileName="color.png" localFilePath="//bundle/color.png"></Resource>
+  </WebResources>
+  <Settings></Settings>
+</DVDT>

@@ -1,0 +1,27 @@
+<input class="entry-id" type="text" pInputText [(ngModel)]="entryId" />
+<div class="editor-wrapper">
+	<div id="{{id}}" [style.width]="isRichEditor ? '50%' : '100%'">
+		<div #codeEditorElement></div>
+	</div>
+	<div class="buttons-wrapper">
+		<button class="button" [hidden]="isConfirm" (click)="toggleRichEditor()">
+			<i class="{{isRichEditor ? PrimeIcons.ANGLE_LEFT : PrimeIcons.ANGLE_RIGHT}}"></i>
+			<div>Rich Editor</div>
+		</button>
+		<button class="button" [hidden]="!isConfirm">
+			<i class="{{PrimeIcons.QUESTION_CIRCLE}}"></i>
+			<div class="replace">Replace</div>
+		</button>
+		<button class="button" [hidden]="!isConfirm" (click)="updateFromRichEditor(true)">
+			<i class="{{PrimeIcons.CHECK}} apply"></i>
+			<div>Yes</div>
+		</button>
+		<button class="button" [hidden]="!isConfirm" (click)="updateFromRichEditor(false)">
+			<i class="{{PrimeIcons.TIMES}} reject"></i>
+			<div>No</div>
+		</button>
+	</div>
+	<div class="ys-ck-editor" [hidden]="!isRichEditor">
+		<div #richEditorElement></div>
+	</div>
+</div>
