@@ -37,10 +37,11 @@
     <LangVersion>latest</LangVersion>
   </PropertyGroup>
   <PropertyGroup>
-    <SignAssembly>true</SignAssembly>
-  </PropertyGroup>
-  <PropertyGroup>
-    <AssemblyOriginatorKeyFile>key.snk</AssemblyOriginatorKeyFile>
+    <DbmSignAssembly Condition="'$(DbmSignAssembly)' == '' and Exists('$(MSBuildProjectDirectory)\\key.snk')">true</DbmSignAssembly>
+    <DbmSignAssembly Condition="'$(DbmSignAssembly)' == '' and !Exists('$(MSBuildProjectDirectory)\\key.snk')">false</DbmSignAssembly>
+    <SignAssembly>$(DbmSignAssembly)</SignAssembly>
+    <AssemblyOriginatorKeyFile Condition="'$(DbmAssemblyKeyFile)' != ''">$(DbmAssemblyKeyFile)</AssemblyOriginatorKeyFile>
+    <AssemblyOriginatorKeyFile Condition="'$(DbmAssemblyKeyFile)' == '' and Exists('$(MSBuildProjectDirectory)\\key.snk')">key.snk</AssemblyOriginatorKeyFile>
   </PropertyGroup>
   <ItemGroup>
     <Reference Include="Acornima, Version=1.1.0.0, Culture=neutral, PublicKeyToken=496b38436bb9edeb, processorArchitecture=MSIL">
@@ -139,7 +140,7 @@
   <ItemGroup>
     <None Include="app.config" />
     <None Include="CrmSchema-Config.json" />
-    <None Include="key.snk" />
+    <None Include="key.snk" Condition="Exists('key.snk')" />
     <None Include="packages.config" />
   </ItemGroup>
   <ItemGroup>

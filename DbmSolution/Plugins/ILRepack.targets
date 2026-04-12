@@ -1,6 +1,10 @@
 ﻿<?xml version="1.0" encoding="utf-8" ?>
 <Project xmlns="http://schemas.microsoft.com/developer/msbuild/2003">
-  <Target Name="ILRepacker" AfterTargets="Build">
+  <Target Name="EnsureLegacyPackagingSigningInput" BeforeTargets="ILRepacker" Condition="'$(DbmEnableLegacyPackaging)' == 'true'">
+    <Error Condition="'$(DbmAssemblyKeyFile)' == ''" Text="DbmAssemblyKeyFile must be set when DbmEnableLegacyPackaging=true." />
+    <Error Condition="!Exists('$(DbmAssemblyKeyFile)')" Text="DbmAssemblyKeyFile does not exist: '$(DbmAssemblyKeyFile)'." />
+  </Target>
+  <Target Name="ILRepacker" AfterTargets="Build" Condition="'$(DbmEnableLegacyPackaging)' == 'true'">
     <ItemGroup>
       <InputAssemblies Include="$(OutputPath)$(TargetName)$(TargetExt)" />
       <InputAssemblies Include="$(OutputPath)Acornima.dll" />
@@ -15,7 +19,7 @@
         Wildcards="false"
         TargetKind="SameAsPrimaryAssembly"
         DebugInfo="false"
-        KeyFile="key.snk"
+        KeyFile="$(DbmAssemblyKeyFile)"
         OutputFile="$(OutputPath)Merged\$(AssemblyName).dll"
         LogFile="$(OutputPath)Merged\ILRepack.log"
     />

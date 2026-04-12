@@ -22,10 +22,10 @@
       Initial release
     </releaseNotes>
     <dependencies>
-      <dependency id="XrmToolBox" version="1.2022.10.58" />
+      <dependency id="XrmToolBox" version="1.2023.10.67" />
     </dependencies>
   </metadata>
   <files>
-    <file src="bin\Release\Yagasoft.DynamicsDbmXtbPlugin.dll" target="lib\net462\Plugins" />
+    <file src="bin\Release\Yagasoft.DynamicsDbmXtbPlugin.dll" target="lib\net48\Plugins" />
   </files>
 </package>

@@ -4,7 +4,7 @@
 	{
 		public const string AppName = "Promote Solution Patch";
 		public const string AppId = "Yagasoft.XrmToolBox.PromoteSolutionPatchPlugin";
-		public const string AppVersion = "1.1.1.1";
+		public static readonly string AppVersion = typeof(Constants).Assembly.GetName().Version?.ToString() ?? "0.2.0.0";
 
 		//public const string SettingsVersion = "1.1.1.1";
 
