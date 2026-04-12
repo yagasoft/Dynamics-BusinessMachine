@@ -70,6 +70,8 @@ jobs:
         shell: pwsh
         env:
           ARTIFACT_NAME: release-candidate-${{ inputs.artifact_version }}
+          GITHUB_REPOSITORY: ${{ github.repository }}
+          GITHUB_TOKEN: ${{ github.token }}
         run: |
           $artifactRoot = .\eng\scripts\Get-GitHubArtifact.ps1 -ArtifactName $env:ARTIFACT_NAME -OutputRoot (Join-Path $PWD 'artifacts\download')
           Add-Content -Path $env:GITHUB_OUTPUT -Value "path=$artifactRoot"
