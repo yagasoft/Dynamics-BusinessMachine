@@ -24,4 +24,7 @@
         LogFile="$(OutputPath)Merged\ILRepack.log"
     />
   </Target>
+  <Target Name="PromoteMergedAssemblyForDataversePackaging" AfterTargets="ILRepacker" Condition="'$(DbmEnableLegacyPackaging)' == 'true'">
+    <Copy SourceFiles="$(OutputPath)Merged\$(AssemblyName).dll" DestinationFiles="$(OutputPath)$(AssemblyName).dll" OverwriteReadOnlyFiles="true" />
+  </Target>
 </Project>

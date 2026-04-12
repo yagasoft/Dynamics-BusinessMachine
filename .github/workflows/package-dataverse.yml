@@ -129,6 +129,13 @@ jobs:
         with:
           pac-version-override: 2.4.1
 
+      - name: Authenticate to Azure
+        uses: azure/login@v2
+        with:
+          client-id: ${{ vars.AZURE_CLIENT_ID }}
+          tenant-id: ${{ vars.AZURE_TENANT_ID }}
+          subscription-id: ${{ vars.AZURE_SUBSCRIPTION_ID }}
+
       - name: Resolve version
         id: version
         shell: pwsh
@@ -142,9 +149,31 @@ jobs:
         shell: pwsh
         run: .\eng\scripts\Restore-LegacyPackages.ps1
 
+      - name: Materialize app signing key
+        id: signing
+        shell: pwsh
+        run: |
+          $secretValue = az keyvault secret show --vault-name "${{ vars.AZURE_KEYVAULT_NAME }}" --name 'app-signing-key' --query value -o tsv
+          if ($LASTEXITCODE -ne 0 -or [string]::IsNullOrWhiteSpace($secretValue)) {
+            throw "Required release packaging secret 'app-signing-key' is missing from Key Vault '${{ vars.AZURE_KEYVAULT_NAME }}'."
+          }
+
+          Write-Host "::add-mask::$secretValue"
+
+          try {
+            $keyBytes = [System.Convert]::FromBase64String($secretValue.Trim())
+          }
+          catch {
+            throw "Key Vault secret 'app-signing-key' must contain a base64-encoded SNK payload."
+          }
+
+          $keyPath = Join-Path $env:RUNNER_TEMP 'dbm-app-signing-key.snk'
+          [System.IO.File]::WriteAllBytes($keyPath, $keyBytes)
+          Add-Content -Path $env:GITHUB_OUTPUT -Value "path=$keyPath"
+
       - name: Build legacy .NET solution
         shell: pwsh
-        run: .\eng\scripts\Build-DotNet.ps1
+        run: .\eng\scripts\Build-DotNet.ps1 -EnableLegacyPackaging -AssemblyKeyFile "${{ steps.signing.outputs.path }}"
 
       - name: Authenticate PAC with GitHub federation
         shell: pwsh
