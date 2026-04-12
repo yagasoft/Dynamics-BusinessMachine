@@ -31,6 +31,8 @@ bld/
 [Oo]bj/
 [Ll]og/
 [Ll]ogs/
+!dbm-script-lib/src/log/
+!dbm-script-lib/src/log/logger.ts
 
 # Visual Studio 2015/2017 cache/options directory
 .vs/
@@ -535,3 +537,7 @@ XrmDefinitelyTyped
 bundle/
 /DbmSolution/ConsoleApp1
 /**/environments/environment.*.ts
+!dbm-app/src/environments/environment.dev.ts
+!dbm-app/src/environments/environment.prod.ts
+!docs/releases/
+!docs/releases/**

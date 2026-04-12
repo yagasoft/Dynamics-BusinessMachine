@@ -1,0 +1,9 @@
+{
+  "environment": "Prod",
+  "deploymentMode": "validation",
+  "dataverseUrl": "https://ldv-rd.crm4.dynamics.com/",
+  "dataverseEnvironmentId": "429af025-56fe-e6d6-aaae-4ea413e32657",
+  "azureClientId": "cadf75c9-c496-4538-8fa2-989757a2dd83",
+  "resourceGroup": "rg-yagasoft-dbm-prod",
+  "keyVaultName": "yagasoft-dbm-prod-kv"
+}

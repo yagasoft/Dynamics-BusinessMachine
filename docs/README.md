@@ -23,7 +23,7 @@ Do not use this area for temporary execution notes, scratch work, or private pla
 - `releases/`
   - release governance, quality gates, and release-note template
 - `runbooks/`
-  - deployment and rollback runbook templates
+  - deployment, rollback, bootstrap, and identity runbooks
 
 ## Reading order
 

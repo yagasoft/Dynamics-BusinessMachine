@@ -1,0 +1,100 @@
+name: release-candidate
+
+on:
+  push:
+    branches:
+      - release/**
+  workflow_dispatch:
+
+concurrency:
+  group: release-candidate-${{ github.ref }}
+  cancel-in-progress: true
+
+permissions:
+  contents: read
+
+jobs:
+  version:
+    runs-on: windows-latest
+    outputs:
+      semVer: ${{ steps.version.outputs.semVer }}
+      tag: ${{ steps.version.outputs.tag }}
+      solutionVersion: ${{ steps.version.outputs.solutionVersion }}
+    steps:
+      - name: Checkout
+        uses: actions/checkout@v4
+
+      - name: Resolve version
+        id: version
+        shell: pwsh
+        run: .\eng\scripts\Get-DbmVersion.ps1 -AsGitHubOutput
+
+  package-dataverse:
+    needs: version
+    uses: ./.github/workflows/package-dataverse.yml
+    permissions:
+      contents: read
+      id-token: write
+    with:
+      artifact_name: dataverse-${{ needs.version.outputs.semVer }}
+      run_solution_check: true
+
+  azure-contract:
+    needs: version
+    runs-on: windows-latest
+    steps:
+      - name: Checkout
+        uses: actions/checkout@v4
+
+      - name: Validate Azure contract
+        shell: pwsh
+        run: .\eng\scripts\Test-AzureContract.ps1
+
+  bundle-release-candidate:
+    needs:
+      - version
+      - package-dataverse
+      - azure-contract
+    runs-on: windows-latest
+    steps:
+      - name: Checkout
+        uses: actions/checkout@v4
+
+      - name: Download Dataverse artifact
+        uses: actions/download-artifact@v4
+        with:
+          name: dataverse-${{ needs.version.outputs.semVer }}
+          path: artifacts/input/dataverse
+
+      - name: Assemble release-candidate bundle
+        shell: pwsh
+        env:
+          DBM_SEMVER: ${{ needs.version.outputs.semVer }}
+          DBM_TAG: ${{ needs.version.outputs.tag }}
+          DBM_SOLUTION_VERSION: ${{ needs.version.outputs.solutionVersion }}
+        run: |
+          $bundleRoot = Join-Path $PWD "artifacts\release-candidate\$env:DBM_SEMVER"
+          $dataverseRoot = Join-Path $bundleRoot 'dataverse'
+          $azureConfigRoot = Join-Path $bundleRoot 'azure-config'
+          New-Item -ItemType Directory -Path $dataverseRoot -Force | Out-Null
+          New-Item -ItemType Directory -Path $azureConfigRoot -Force | Out-Null
+
+          Copy-Item -Path (Join-Path $PWD 'artifacts\input\dataverse\*') -Destination $dataverseRoot -Recurse -Force
+          Copy-Item -Path (Join-Path $PWD 'azure\config\*') -Destination $azureConfigRoot -Recurse -Force
+          Copy-Item -Path (Join-Path $PWD 'power-platform\manifests\webresources.yml') -Destination (Join-Path $bundleRoot 'webresources.yml') -Force
+
+          $checksums = Get-ChildItem -Path $bundleRoot -Recurse -File |
+            Get-FileHash -Algorithm SHA256 |
+            ForEach-Object {
+              '{0}  {1}' -f $_.Hash.ToLowerInvariant(), [IO.Path]::GetRelativePath($bundleRoot, $_.Path)
+            }
+
+          Set-Content -Path (Join-Path $bundleRoot 'checksums.sha256') -Value $checksums -Encoding UTF8
+          .\eng\scripts\New-ReleaseEvidence.ps1 -OutputPath (Join-Path $bundleRoot 'release-evidence.json') -WorkflowRunId $env:GITHUB_RUN_ID | Out-Host
+
+      - name: Upload release-candidate bundle
+        uses: actions/upload-artifact@v4
+        with:
+          name: release-candidate-${{ needs.version.outputs.semVer }}
+          path: artifacts/release-candidate/${{ needs.version.outputs.semVer }}
+          if-no-files-found: error

@@ -1,0 +1,90 @@
+{
+  "schemaVersion": "1.0",
+  "exceptions": [
+    {
+      "scope": "dbm-app",
+      "advisory": "GHSA-58c5-g7wp-6w37",
+      "packages": [
+        "@angular/common",
+        "@angular/forms",
+        "@angular/platform-browser",
+        "@angular/platform-browser-dynamic",
+        "@angular/router",
+        "primeng"
+      ],
+      "rationale": "Release 0 closes on the revived Angular 18 and PrimeNG 17 editor baseline while the coordinated Angular 21 dependency remediation is tracked as post-R0 work.",
+      "ownerRole": "platform owner",
+      "openedDate": "2026-04-12",
+      "hardExpiry": "2026-05-31"
+    },
+    {
+      "scope": "dbm-app",
+      "advisory": "GHSA-g93w-mfhg-p222",
+      "packages": [
+        "@angular/animations",
+        "@angular/common",
+        "@angular/compiler",
+        "@angular/core",
+        "@angular/forms",
+        "@angular/platform-browser",
+        "@angular/platform-browser-dynamic",
+        "@angular/router",
+        "primeng"
+      ],
+      "rationale": "Release 0 closes on the revived Angular 18 and PrimeNG 17 editor baseline while the coordinated Angular 21 dependency remediation is tracked as post-R0 work.",
+      "ownerRole": "platform owner",
+      "openedDate": "2026-04-12",
+      "hardExpiry": "2026-05-31"
+    },
+    {
+      "scope": "dbm-app",
+      "advisory": "GHSA-jrmj-c5cx-3cw6",
+      "packages": [
+        "@angular/animations",
+        "@angular/common",
+        "@angular/compiler",
+        "@angular/core",
+        "@angular/forms",
+        "@angular/platform-browser",
+        "@angular/platform-browser-dynamic",
+        "@angular/router",
+        "primeng"
+      ],
+      "rationale": "Release 0 closes on the revived Angular 18 and PrimeNG 17 editor baseline while the coordinated Angular 21 dependency remediation is tracked as post-R0 work.",
+      "ownerRole": "platform owner",
+      "openedDate": "2026-04-12",
+      "hardExpiry": "2026-05-31"
+    },
+    {
+      "scope": "dbm-app",
+      "advisory": "GHSA-prjf-86w9-mfqv",
+      "packages": [
+        "@angular/animations",
+        "@angular/common",
+        "@angular/compiler",
+        "@angular/core",
+        "@angular/forms",
+        "@angular/platform-browser",
+        "@angular/platform-browser-dynamic",
+        "@angular/router",
+        "primeng"
+      ],
+      "rationale": "Release 0 closes on the revived Angular 18 and PrimeNG 17 editor baseline while the coordinated Angular 21 dependency remediation is tracked as post-R0 work.",
+      "ownerRole": "platform owner",
+      "openedDate": "2026-04-12",
+      "hardExpiry": "2026-05-31"
+    },
+    {
+      "scope": "dbm-app",
+      "advisory": "GHSA-v4hv-rgfq-gp49",
+      "packages": [
+        "@angular/compiler",
+        "@angular/platform-browser-dynamic"
+      ],
+      "rationale": "Release 0 closes on the revived Angular 18 and PrimeNG 17 editor baseline while the coordinated Angular 21 dependency remediation is tracked as post-R0 work.",
+      "ownerRole": "platform owner",
+      "openedDate": "2026-04-12",
+      "hardExpiry": "2026-05-31"
+    }
+  ]
+}

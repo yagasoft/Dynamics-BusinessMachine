@@ -17,3 +17,6 @@ ADRs capture durable product and delivery decisions that are important enough to
 - [0002-designer-first-and-host-strategy.md](0002-designer-first-and-host-strategy.md)
 - [0003-runtime-and-pcf-strategy.md](0003-runtime-and-pcf-strategy.md)
 - [0004-secrets-environments-and-ci-cd.md](0004-secrets-environments-and-ci-cd.md)
+- [0005-versioning-and-release-branch-policy.md](0005-versioning-and-release-branch-policy.md)
+- [0006-dataverse-alm-source-and-packaging-model.md](0006-dataverse-alm-source-and-packaging-model.md)
+- [0007-github-oidc-key-vault-and-federated-delivery.md](0007-github-oidc-key-vault-and-federated-delivery.md)

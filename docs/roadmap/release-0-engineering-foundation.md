@@ -33,6 +33,10 @@ Must define:
 Output:
 - release-ready source-control operating model
 
+Implementation baseline:
+- [Release Governance](../releases/release-governance.md)
+- [ADR-0005: Versioning And Release-Branch Policy](../adr/0005-versioning-and-release-branch-policy.md)
+
 Must define:
 - `main` as the integration branch
 - short-lived feature branch model
@@ -47,22 +51,49 @@ Must define:
 Output:
 - green baseline pipeline able to build and promote artifacts without secrets in Git
 
+Implementation baseline:
+- `.github/workflows/validate.yml`
+- `.github/workflows/security.yml`
+- `.github/workflows/package-dataverse.yml`
+- `.github/workflows/release-candidate.yml`
+- `.github/workflows/deploy-dataverse.yml`
+- `.github/workflows/deploy-azure.yml`
+- `eng/security/npm-audit-exceptions.json`
+- [ADR-0006: Dataverse ALM Source And Packaging Model](../adr/0006-dataverse-alm-source-and-packaging-model.md)
+- [ADR-0007: GitHub OIDC, Key Vault, And Federated Delivery](../adr/0007-github-oidc-key-vault-and-federated-delivery.md)
+- [Runbook Index](../runbooks/README.md)
+
 Must include:
 - GitHub Actions for .NET, TypeScript, docs, Dataverse packaging, and Azure deployment
 - GitHub Environments for `Dev`, `UAT`, and `Prod`
 - Azure Key Vault integration
 - secret scanning and dependency scanning
+- a tracked, time-boxed exception path for explicitly approved npm audit findings
 
 ### R0.4 Environment and recovery baseline
 
 Output:
 - repeatable deployment path with smoke tests and rollback proof
 
+Implementation baseline:
+- `azure/config/dev.json`
+- `azure/config/uat.json`
+- `azure/config/prod.json`
+- `eng/scripts/Test-EnvironmentBaseline.ps1`
+- `eng/scripts/Test-DataverseSmoke.ps1`
+- `.github/workflows/deploy-dataverse.yml`
+- `.github/workflows/deploy-azure.yml`
+- [Dev Deployment Runbook](../runbooks/dev-deployment-runbook.md)
+- [UAT Promotion Runbook](../runbooks/uat-promotion-runbook.md)
+- [Prod Promotion Runbook](../runbooks/prod-promotion-runbook.md)
+- [Rollback Runbook](../runbooks/rollback-runbook.md)
+
 Must include:
 - target environment baseline for `Dev`, `UAT`, and `Prod`
 - connected Dataverse and Azure deployment targets
 - promotion validation
 - rollback rehearsal
+- rollback re-promotion evidence
 - current PoC redeployed as known baseline
 
 ## Exit criteria
@@ -70,5 +101,7 @@ Must include:
 - the tracked documentation set is approved as the source of truth
 - the branch and version model is documented and usable
 - baseline CI/CD can build the current solution and docs
+- release-blocking security checks are green, with any temporary npm audit waiver tracked and unexpired
 - secrets are externalized
 - the current PoC is recoverable and promotable through formal environments
+- UAT rollback rehearsal and re-promotion evidence have been retained for R0 close-out

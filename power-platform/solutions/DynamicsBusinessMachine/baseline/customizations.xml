@@ -1,0 +1,273 @@
+<ImportExportXml xmlns:xsi="http://www.w3.org/2001/XMLSchema-instance" OrganizationVersion="9.2.24103.216" OrganizationSchemaType="Standard" CRMServerServiceabilityVersion="9.2.24103.00216">
+  <Entities></Entities>
+  <Roles></Roles>
+  <Workflows></Workflows>
+  <FieldSecurityProfiles></FieldSecurityProfiles>
+  <Templates />
+  <EntityMaps />
+  <EntityRelationships />
+  <OrganizationSettings />
+  <optionsets />
+  <WebResources>
+    <WebResource>
+      <WebResourceId>{a7b23fee-0ef0-ee11-af4b-00155d016516}</WebResourceId>
+      <Name>ys_/dbm/libs/core.js</Name>
+      <DisplayName>DBM Core Library JS</DisplayName>
+      <WebResourceType>3</WebResourceType>
+      <IntroducedVersion>1.1.1.1</IntroducedVersion>
+      <IsEnabledForMobileClient>0</IsEnabledForMobileClient>
+      <IsAvailableForMobileOffline>0</IsAvailableForMobileOffline>
+      <DependencyXml>&lt;Dependencies&gt;&lt;Dependency componentType="WebResource"/&gt;&lt;/Dependencies&gt;</DependencyXml>
+      <IsCustomizable>1</IsCustomizable>
+      <CanBeDeleted>1</CanBeDeleted>
+      <IsHidden>0</IsHidden>
+      <FileName>/WebResources/ys_dbmlibscorejsA7B23FEE-0EF0-EE11-AF4B-00155D016516</FileName>
+    </WebResource>
+    <WebResource>
+      <WebResourceId>{47578132-b2a5-ef11-8a6a-0022489cf64b}</WebResourceId>
+      <Name>ys_/dbm/icons/dbmicon128.png</Name>
+      <DisplayName>DBM Icon 128 PNG</DisplayName>
+      <WebResourceType>5</WebResourceType>
+      <IntroducedVersion>1.1.1.1</IntroducedVersion>
+      <IsEnabledForMobileClient>0</IsEnabledForMobileClient>
+      <IsAvailableForMobileOffline>0</IsAvailableForMobileOffline>
+      <IsCustomizable>1</IsCustomizable>
+      <CanBeDeleted>1</CanBeDeleted>
+      <IsHidden>0</IsHidden>
+      <FileName>/WebResources/ys_dbmiconsdbmicon128png47578132-B2A5-EF11-8A6A-0022489CF64B</FileName>
+    </WebResource>
+    <WebResource>
+      <WebResourceId>{308b1c74-bba5-ef11-8a6a-0022489cf64b}</WebResourceId>
+      <Name>ys_/dbm/icons/dbm-logo.svg</Name>
+      <DisplayName>DBM Logo SVG</DisplayName>
+      <LanguageCode>0</LanguageCode>
+      <WebResourceType>11</WebResourceType>
+      <IntroducedVersion>1.1.1.1</IntroducedVersion>
+      <IsEnabledForMobileClient>0</IsEnabledForMobileClient>
+      <IsAvailableForMobileOffline>0</IsAvailableForMobileOffline>
+      <IsCustomizable>1</IsCustomizable>
+      <CanBeDeleted>1</CanBeDeleted>
+      <IsHidden>0</IsHidden>
+      <FileName>/WebResources/ys_dbmiconsdbm-logosvg308B1C74-BBA5-EF11-8A6A-0022489CF64B</FileName>
+    </WebResource>
+    <WebResource>
+      <WebResourceId>{aadd6d78-aaf8-ee11-a1fe-0022489f971b}</WebResourceId>
+      <Name>ys_/dbm/apps/editor/index.html</Name>
+      <DisplayName>DBM Editor App - HTML</DisplayName>
+      <WebResourceType>1</WebResourceType>
+      <IntroducedVersion>1.1.1.1</IntroducedVersion>
+      <IsEnabledForMobileClient>0</IsEnabledForMobileClient>
+      <IsAvailableForMobileOffline>0</IsAvailableForMobileOffline>
+      <IsCustomizable>1</IsCustomizable>
+      <CanBeDeleted>1</CanBeDeleted>
+      <IsHidden>0</IsHidden>
+      <FileName>/WebResources/ys_dbmappseditorindexhtmlAADD6D78-AAF8-EE11-A1FE-0022489F971B</FileName>
+    </WebResource>
+    <WebResource>
+      <WebResourceId>{6d574ac0-acf8-ee11-a1fe-0022489f971b}</WebResourceId>
+      <Name>ys_/dbm/apps/editor/bundle.js</Name>
+      <DisplayName>DBM Editor App - Bundle JS</DisplayName>
+      <WebResourceType>3</WebResourceType>
+      <IntroducedVersion>1.1.1.1</IntroducedVersion>
+      <IsEnabledForMobileClient>0</IsEnabledForMobileClient>
+      <IsAvailableForMobileOffline>0</IsAvailableForMobileOffline>
+      <IsCustomizable>1</IsCustomizable>
+      <CanBeDeleted>1</CanBeDeleted>
+      <IsHidden>0</IsHidden>
+      <FileName>/WebResources/ys_dbmappseditorbundlejs6D574AC0-ACF8-EE11-A1FE-0022489F971B</FileName>
+    </WebResource>
+    <WebResource>
+      <WebResourceId>{41467dda-acf8-ee11-a1fe-0022489f971b}</WebResourceId>
+      <Name>ys_/dbm/apps/editor/color.png</Name>
+      <DisplayName>DBM Editor App - Color PNG</DisplayName>
+      <WebResourceType>5</WebResourceType>
+      <IntroducedVersion>1.1.1.1</IntroducedVersion>
+      <IsEnabledForMobileClient>0</IsEnabledForMobileClient>
+      <IsAvailableForMobileOffline>0</IsAvailableForMobileOffline>
+      <IsCustomizable>1</IsCustomizable>
+      <CanBeDeleted>1</CanBeDeleted>
+      <IsHidden>0</IsHidden>
+      <FileName>/WebResources/ys_dbmappseditorcolorpng41467DDA-ACF8-EE11-A1FE-0022489F971B</FileName>
+    </WebResource>
+    <WebResource>
+      <WebResourceId>{af4523f7-acf8-ee11-a1fe-0022489f971b}</WebResourceId>
+      <Name>ys_/dbm/apps/editor/hue.png</Name>
+      <DisplayName>DBM Editor App - Hue PNG</DisplayName>
+      <WebResourceType>5</WebResourceType>
+      <IntroducedVersion>1.1.1.1</IntroducedVersion>
+      <IsEnabledForMobileClient>0</IsEnabledForMobileClient>
+      <IsAvailableForMobileOffline>0</IsAvailableForMobileOffline>
+      <IsCustomizable>1</IsCustomizable>
+      <CanBeDeleted>1</CanBeDeleted>
+      <IsHidden>0</IsHidden>
+      <FileName>/WebResources/ys_dbmappseditorhuepngAF4523F7-ACF8-EE11-A1FE-0022489F971B</FileName>
+    </WebResource>
+    <WebResource>
+      <WebResourceId>{3abcc44d-aef8-ee11-a1fe-0022489f971b}</WebResourceId>
+      <Name>ys_/dbm/apps/editor/primeicons.svg</Name>
+      <DisplayName>DBM Editor App - PrimeIcons SVG</DisplayName>
+      <WebResourceType>11</WebResourceType>
+      <IntroducedVersion>1.0</IntroducedVersion>
+      <IsEnabledForMobileClient>0</IsEnabledForMobileClient>
+      <IsAvailableForMobileOffline>0</IsAvailableForMobileOffline>
+      <IsCustomizable>1</IsCustomizable>
+      <CanBeDeleted>1</CanBeDeleted>
+      <IsHidden>0</IsHidden>
+      <FileName>/WebResources/ys_dbmappseditorprimeiconssvg3ABCC44D-AEF8-EE11-A1FE-0022489F971B</FileName>
+    </WebResource>
+    <WebResource>
+      <WebResourceId>{d0279397-e2f9-ee11-a1fe-0022489f971b}</WebResourceId>
+      <Name>ys_/dbm/libs/common.js</Name>
+      <DisplayName>DBM Common Library JS</DisplayName>
+      <WebResourceType>3</WebResourceType>
+      <IntroducedVersion>1.0</IntroducedVersion>
+      <IsEnabledForMobileClient>0</IsEnabledForMobileClient>
+      <IsAvailableForMobileOffline>0</IsAvailableForMobileOffline>
+      <DependencyXml>&lt;Dependencies&gt;&lt;Dependency componentType="WebResource"&gt;&lt;Library name="ys_/generic/libs/common.js" displayName="YS Common Library JS" languagecode="" description="" libraryUniqueId="{3d97ea5d-aa3b-d778-ce81-ba9a48bddbc1}"/&gt;&lt;/Dependency&gt;&lt;/Dependencies&gt;</DependencyXml>
+      <IsCustomizable>1</IsCustomizable>
+      <CanBeDeleted>1</CanBeDeleted>
+      <IsHidden>0</IsHidden>
+      <FileName>/WebResources/ys_dbmlibscommonjsD0279397-E2F9-EE11-A1FE-0022489F971B</FileName>
+    </WebResource>
+    <WebResource>
+      <WebResourceId>{f1bce850-e3f9-ee11-a1fe-0022489f971b}</WebResourceId>
+      <Name>ys_/generic/libs/common.js</Name>
+      <DisplayName>YS Common Library JS</DisplayName>
+      <WebResourceType>3</WebResourceType>
+      <IntroducedVersion>1.0</IntroducedVersion>
+      <IsEnabledForMobileClient>0</IsEnabledForMobileClient>
+      <IsAvailableForMobileOffline>0</IsAvailableForMobileOffline>
+      <IsCustomizable>1</IsCustomizable>
+      <CanBeDeleted>1</CanBeDeleted>
+      <IsHidden>0</IsHidden>
+      <FileName>/WebResources/ys_genericlibscommonjsF1BCE850-E3F9-EE11-A1FE-0022489F971B</FileName>
+    </WebResource>
+    <WebResource>
+      <WebResourceId>{a6230f14-13fa-ee11-a1fe-0022489f971b}</WebResourceId>
+      <Name>ys_/dbm/apps/editor/primeicons.eot</Name>
+      <DisplayName>DBM Editor App - PrimeIcons EOT</DisplayName>
+      <WebResourceType>2</WebResourceType>
+      <IntroducedVersion>1.1.1.1</IntroducedVersion>
+      <IsEnabledForMobileClient>0</IsEnabledForMobileClient>
+      <IsAvailableForMobileOffline>0</IsAvailableForMobileOffline>
+      <DependencyXml>&lt;Dependencies&gt;&lt;Dependency componentType="WebResource"/&gt;&lt;/Dependencies&gt;</DependencyXml>
+      <IsCustomizable>1</IsCustomizable>
+      <CanBeDeleted>1</CanBeDeleted>
+      <IsHidden>0</IsHidden>
+      <FileName>/WebResources/ys_dbmappseditorprimeiconseotA6230F14-13FA-EE11-A1FE-0022489F971B</FileName>
+    </WebResource>
+    <WebResource>
+      <WebResourceId>{981bbb43-13fa-ee11-a1fe-0022489f971b}</WebResourceId>
+      <Name>ys_/dbm/apps/editor/primeicons.ttf</Name>
+      <DisplayName>DBM Editor App - PrimeIcons TTF</DisplayName>
+      <WebResourceType>2</WebResourceType>
+      <IntroducedVersion>1.1.1.1</IntroducedVersion>
+      <IsEnabledForMobileClient>0</IsEnabledForMobileClient>
+      <IsAvailableForMobileOffline>0</IsAvailableForMobileOffline>
+      <DependencyXml>&lt;Dependencies&gt;&lt;Dependency componentType="WebResource"/&gt;&lt;/Dependencies&gt;</DependencyXml>
+      <IsCustomizable>1</IsCustomizable>
+      <CanBeDeleted>1</CanBeDeleted>
+      <IsHidden>0</IsHidden>
+      <FileName>/WebResources/ys_dbmappseditorprimeiconsttf981BBB43-13FA-EE11-A1FE-0022489F971B</FileName>
+    </WebResource>
+    <WebResource>
+      <WebResourceId>{60ec2068-13fa-ee11-a1fe-0022489f971b}</WebResourceId>
+      <Name>ys_/dbm/apps/editor/primeicons.woff</Name>
+      <DisplayName>DBM Editor App - PrimeIcons WOFF</DisplayName>
+      <WebResourceType>2</WebResourceType>
+      <IntroducedVersion>1.1.1.1</IntroducedVersion>
+      <IsEnabledForMobileClient>0</IsEnabledForMobileClient>
+      <IsAvailableForMobileOffline>0</IsAvailableForMobileOffline>
+      <DependencyXml>&lt;Dependencies&gt;&lt;Dependency componentType="WebResource"/&gt;&lt;/Dependencies&gt;</DependencyXml>
+      <IsCustomizable>1</IsCustomizable>
+      <CanBeDeleted>1</CanBeDeleted>
+      <IsHidden>0</IsHidden>
+      <FileName>/WebResources/ys_dbmappseditorprimeiconswoff60EC2068-13FA-EE11-A1FE-0022489F971B</FileName>
+    </WebResource>
+    <WebResource>
+      <WebResourceId>{4116a87c-13fa-ee11-a1fe-0022489f971b}</WebResourceId>
+      <Name>ys_/dbm/apps/editor/primeicons.woff2</Name>
+      <DisplayName>DBM Editor App - PrimeIcons WOFF 2</DisplayName>
+      <WebResourceType>2</WebResourceType>
+      <IntroducedVersion>1.1.1.1</IntroducedVersion>
+      <IsEnabledForMobileClient>0</IsEnabledForMobileClient>
+      <IsAvailableForMobileOffline>0</IsAvailableForMobileOffline>
+      <DependencyXml>&lt;Dependencies&gt;&lt;Dependency componentType="WebResource"/&gt;&lt;/Dependencies&gt;</DependencyXml>
+      <IsCustomizable>1</IsCustomizable>
+      <CanBeDeleted>1</CanBeDeleted>
+      <IsHidden>0</IsHidden>
+      <FileName>/WebResources/ys_dbmappseditorprimeiconswoff24116A87C-13FA-EE11-A1FE-0022489F971B</FileName>
+    </WebResource>
+  </WebResources>
+  <CustomControls />
+  <SolutionPluginAssemblies>
+    <PluginAssembly FullName="Yagasoft.Dbm.Plugins, Version=1.0.9088.31941, Culture=neutral, PublicKeyToken=bcdf1e34c5296dde" PluginAssemblyId="30b3a8b1-6fd2-44ac-8749-c46b7b725e52" CustomizationLevel="1">
+      <IsolationMode>2</IsolationMode>
+      <SourceType>0</SourceType>
+      <IntroducedVersion>1.0</IntroducedVersion>
+      <FileName>/PluginAssemblies/YagasoftDbmPlugins-30B3A8B1-6FD2-44AC-8749-C46B7B725E52/YagasoftDbmPlugins.dll</FileName>
+      <PluginTypes>
+        <PluginType AssemblyQualifiedName="Yagasoft.Dbm.Plugins.Evaluation.Steps.DbmEvaluateScript, Yagasoft.Dbm.Plugins, Version=1.0.9088.31941, Culture=neutral, PublicKeyToken=bcdf1e34c5296dde" PluginTypeId="e3d5f956-8cad-455a-894b-c516a52a0b5b" Name="Yagasoft.Dbm.Plugins.Evaluation.Steps.DbmEvaluateScript">
+          <FriendlyName>9f6c8c60-a4ec-4b6b-8e42-57547e84724b</FriendlyName>
+          <WorkflowActivityGroupName>Yagasoft.Dbm.Plugins (1.0.9088.31941)</WorkflowActivityGroupName>
+        </PluginType>
+      </PluginTypes>
+    </PluginAssembly>
+  </SolutionPluginAssemblies>
+  <AppModuleSiteMaps>
+    <AppModuleSiteMap>
+      <SiteMapUniqueName>ys_YSCommon</SiteMapUniqueName>
+      <EnableCollapsibleGroups>False</EnableCollapsibleGroups>
+      <ShowHome>True</ShowHome>
+      <ShowPinned>True</ShowPinned>
+      <ShowRecents>True</ShowRecents>
+      <SiteMap IntroducedVersion="7.0.0.0">
+        <Area Id="area_dbm" ResourceId="SitemapDesigner.NewTitle" DescriptionResourceId="SitemapDesigner.NewTitle" ShowGroups="true" IntroducedVersion="7.0.0.0" ordinalvalue="3" solutionaction="Added">
+          <Titles>
+            <Title LCID="1033" Title="Dynamics Business Machine" />
+          </Titles>
+          <Group Id="group_cd2e3929" ResourceId="SitemapDesigner.NewGroup" DescriptionResourceId="SitemapDesigner.NewGroup" IntroducedVersion="7.0.0.0" IsProfile="false" ToolTipResourseId="SitemapDesigner.Unknown" ordinalvalue="0">
+            <Titles>
+              <Title LCID="1033" Title="Apps" />
+            </Titles>
+            <SubArea Id="subarea_70298910" ResourceId="SitemapDesigner.NewSubArea" VectorIcon="/WebResources/ys_/dbm/icons/dbm-logo.svg" Icon="/WebResources/ys_/dbm/icons/dbm-logo.svg" Url="$webresource:ys_/dbm/apps/editor/index.html" Client="All,Outlook,OutlookLaptopClient,OutlookWorkstationClient,Web" AvailableOffline="false" PassParams="true" Sku="All,OnPremise,Live,SPLA" ordinalvalue="0">
+              <Titles>
+                <Title LCID="1033" Title="DBM App" ordinalvalue="0" />
+              </Titles>
+            </SubArea>
+          </Group>
+        </Area>
+      </SiteMap>
+      <LocalizedNames>
+        <LocalizedName description="Yagasoft" languagecode="1033" />
+      </LocalizedNames>
+    </AppModuleSiteMap>
+  </AppModuleSiteMaps>
+  <AppModules>
+    <AppModule>
+      <UniqueName>ys_YSCommon</UniqueName>
+      <IntroducedVersion>2.1.1.0</IntroducedVersion>
+      <WebResourceId>953b9fac-1e5e-e611-80d6-00155ded156f</WebResourceId>
+      <OptimizedFor></OptimizedFor>
+      <statecode>0</statecode>
+      <statuscode>1</statuscode>
+      <FormFactor>1</FormFactor>
+      <ClientType>4</ClientType>
+      <NavigationType>0</NavigationType>
+      <AppModuleComponents>
+        <AppModuleComponent type="1" schemaName="ys_dbmobject" solutionaction="Added" />
+        <AppModuleComponent type="1" schemaName="ys_dbmscript" solutionaction="Added" />
+      </AppModuleComponents>
+      <LocalizedNames>
+        <LocalizedName description="Yagasoft" languagecode="1033" />
+      </LocalizedNames>
+      <Descriptions>
+        <Description description="Please refer to Yagasoft.com (Ahmed Elsawalhy) for support." languagecode="1033" />
+      </Descriptions>
+    </AppModule>
+  </AppModules>
+  <EntityDataProviders />
+  <Languages>
+    <Language>1033</Language>
+  </Languages>
+</ImportExportXml>

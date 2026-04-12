@@ -1,0 +1,109 @@
+{
+  "files": [
+    {
+      "componentType": "webresource",
+      "name": "ys_/dbm/apps/editor/bundle.js",
+      "displayName": "DBM Editor App - Bundle JS",
+      "source": "dbm-app/bundle/bundle.js",
+      "stagePath": "WebResources/ys_dbmappseditorbundlejs6D574AC0-ACF8-EE11-A1FE-0022489F971B"
+    },
+    {
+      "componentType": "webresource",
+      "name": "ys_/dbm/apps/editor/index.html",
+      "displayName": "DBM Editor App - HTML",
+      "source": "dbm-app/bundle/index.html",
+      "stagePath": "WebResources/ys_dbmappseditorindexhtmlAADD6D78-AAF8-EE11-A1FE-0022489F971B"
+    },
+    {
+      "componentType": "webresource",
+      "name": "ys_/dbm/apps/editor/color.png",
+      "displayName": "DBM Editor App - Color PNG",
+      "source": "dbm-app/bundle/color.png",
+      "stagePath": "WebResources/ys_dbmappseditorcolorpng41467DDA-ACF8-EE11-A1FE-0022489F971B"
+    },
+    {
+      "componentType": "webresource",
+      "name": "ys_/dbm/apps/editor/hue.png",
+      "displayName": "DBM Editor App - Hue PNG",
+      "source": "dbm-app/bundle/hue.png",
+      "stagePath": "WebResources/ys_dbmappseditorhuepngAF4523F7-ACF8-EE11-A1FE-0022489F971B"
+    },
+    {
+      "componentType": "webresource",
+      "name": "ys_/dbm/apps/editor/primeicons.eot",
+      "displayName": "DBM Editor App - PrimeIcons EOT",
+      "source": "dbm-app/bundle/primeicons.eot",
+      "stagePath": "WebResources/ys_dbmappseditorprimeiconseotA6230F14-13FA-EE11-A1FE-0022489F971B"
+    },
+    {
+      "componentType": "webresource",
+      "name": "ys_/dbm/apps/editor/primeicons.svg",
+      "displayName": "DBM Editor App - PrimeIcons SVG",
+      "source": "dbm-app/bundle/primeicons.svg",
+      "stagePath": "WebResources/ys_dbmappseditorprimeiconssvg3ABCC44D-AEF8-EE11-A1FE-0022489F971B"
+    },
+    {
+      "componentType": "webresource",
+      "name": "ys_/dbm/apps/editor/primeicons.ttf",
+      "displayName": "DBM Editor App - PrimeIcons TTF",
+      "source": "dbm-app/bundle/primeicons.ttf",
+      "stagePath": "WebResources/ys_dbmappseditorprimeiconsttf981BBB43-13FA-EE11-A1FE-0022489F971B"
+    },
+    {
+      "componentType": "webresource",
+      "name": "ys_/dbm/apps/editor/primeicons.woff",
+      "displayName": "DBM Editor App - PrimeIcons WOFF",
+      "source": "dbm-app/bundle/primeicons.woff",
+      "stagePath": "WebResources/ys_dbmappseditorprimeiconswoff60EC2068-13FA-EE11-A1FE-0022489F971B"
+    },
+    {
+      "componentType": "webresource",
+      "name": "ys_/dbm/apps/editor/primeicons.woff2",
+      "displayName": "DBM Editor App - PrimeIcons WOFF 2",
+      "source": "dbm-app/bundle/primeicons.woff2",
+      "stagePath": "WebResources/ys_dbmappseditorprimeiconswoff24116A87C-13FA-EE11-A1FE-0022489F971B"
+    },
+    {
+      "componentType": "webresource",
+      "name": "ys_/dbm/icons/dbm-logo.svg",
+      "displayName": "DBM Logo SVG",
+      "source": "power-platform/assets/legacy/webresources/ys_dbmiconsdbm-logosvg308B1C74-BBA5-EF11-8A6A-0022489CF64B",
+      "stagePath": "WebResources/ys_dbmiconsdbm-logosvg308B1C74-BBA5-EF11-8A6A-0022489CF64B"
+    },
+    {
+      "componentType": "webresource",
+      "name": "ys_/dbm/icons/dbmicon128.png",
+      "displayName": "DBM Icon 128 PNG",
+      "source": "power-platform/assets/legacy/webresources/ys_dbmiconsdbmicon128png47578132-B2A5-EF11-8A6A-0022489CF64B",
+      "stagePath": "WebResources/ys_dbmiconsdbmicon128png47578132-B2A5-EF11-8A6A-0022489CF64B"
+    },
+    {
+      "componentType": "webresource",
+      "name": "ys_/dbm/libs/common.js",
+      "displayName": "DBM Common Library JS",
+      "source": "dbm-web-resources/src/common/dbm-common.js",
+      "stagePath": "WebResources/ys_dbmlibscommonjsD0279397-E2F9-EE11-A1FE-0022489F971B"
+    },
+    {
+      "componentType": "webresource",
+      "name": "ys_/dbm/libs/core.js",
+      "displayName": "DBM Core Library JS",
+      "source": "dbm-script-lib/bin/dbm-lib.js",
+      "stagePath": "WebResources/ys_dbmlibscorejsA7B23FEE-0EF0-EE11-AF4B-00155D016516"
+    },
+    {
+      "componentType": "webresource",
+      "name": "ys_/generic/libs/common.js",
+      "displayName": "YS Common Library JS",
+      "source": "dbm-web-resources/src/common/ys-common.js",
+      "stagePath": "WebResources/ys_genericlibscommonjsF1BCE850-E3F9-EE11-A1FE-0022489F971B"
+    },
+    {
+      "componentType": "pluginassembly",
+      "name": "Yagasoft.Dbm.Plugins",
+      "source": "DbmSolution/Plugins/bin/Release/Yagasoft.Dbm.Plugins.dll",
+      "stagePath": "PluginAssemblies/YagasoftDbmPlugins-30B3A8B1-6FD2-44AC-8749-C46B7B725E52/YagasoftDbmPlugins.dll",
+      "pluginTypeName": "Yagasoft.Dbm.Plugins.Evaluation.Steps.DbmEvaluateScript"
+    }
+  ]
+}

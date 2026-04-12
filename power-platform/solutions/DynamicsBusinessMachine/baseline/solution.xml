@@ -1,0 +1,183 @@
+<ImportExportXml version="9.2.24103.216" SolutionPackageVersion="9.2" languagecode="1033" generatedBy="CrmLive" xmlns:xsi="http://www.w3.org/2001/XMLSchema-instance" OrganizationVersion="9.2.24103.216" OrganizationSchemaType="Standard" CRMServerServiceabilityVersion="9.2.24103.00216">
+  <SolutionManifest>
+    <UniqueName>DynamicsBusinessMachine</UniqueName>
+    <LocalizedNames>
+      <LocalizedName description="Dynamics Business Machine" languagecode="1033" />
+    </LocalizedNames>
+    <Descriptions>
+      <Description description="Refer to Yagasoft.com (Ahmed Elsawalhy) for support." languagecode="1033" />
+    </Descriptions>
+    <Version>0.1.1.1</Version>
+    <Managed>0</Managed>
+    <Publisher>
+      <UniqueName>yagasoft</UniqueName>
+      <LocalizedNames>
+        <LocalizedName description="Yagasoft" languagecode="1033" />
+      </LocalizedNames>
+      <Descriptions />
+      <EMailAddress>mail@yagasoft.com</EMailAddress>
+      <SupportingWebsiteUrl>http://yagasoft.com</SupportingWebsiteUrl>
+      <CustomizationPrefix>ys</CustomizationPrefix>
+      <CustomizationOptionValuePrefix>71786</CustomizationOptionValuePrefix>
+      <Addresses>
+        <Address>
+          <AddressNumber>1</AddressNumber>
+          <AddressTypeCode>1</AddressTypeCode>
+          <City xsi:nil="true"></City>
+          <County xsi:nil="true"></County>
+          <Country xsi:nil="true"></Country>
+          <Fax xsi:nil="true"></Fax>
+          <FreightTermsCode xsi:nil="true"></FreightTermsCode>
+          <ImportSequenceNumber xsi:nil="true"></ImportSequenceNumber>
+          <Latitude xsi:nil="true"></Latitude>
+          <Line1 xsi:nil="true"></Line1>
+          <Line2 xsi:nil="true"></Line2>
+          <Line3 xsi:nil="true"></Line3>
+          <Longitude xsi:nil="true"></Longitude>
+          <Name xsi:nil="true"></Name>
+          <PostalCode xsi:nil="true"></PostalCode>
+          <PostOfficeBox xsi:nil="true"></PostOfficeBox>
+          <PrimaryContactName xsi:nil="true"></PrimaryContactName>
+          <ShippingMethodCode>1</ShippingMethodCode>
+          <StateOrProvince xsi:nil="true"></StateOrProvince>
+          <Telephone1 xsi:nil="true"></Telephone1>
+          <Telephone2 xsi:nil="true"></Telephone2>
+          <Telephone3 xsi:nil="true"></Telephone3>
+          <TimeZoneRuleVersionNumber xsi:nil="true"></TimeZoneRuleVersionNumber>
+          <UPSZone xsi:nil="true"></UPSZone>
+          <UTCOffset xsi:nil="true"></UTCOffset>
+          <UTCConversionTimeZoneCode xsi:nil="true"></UTCConversionTimeZoneCode>
+        </Address>
+        <Address>
+          <AddressNumber>2</AddressNumber>
+          <AddressTypeCode>1</AddressTypeCode>
+          <City xsi:nil="true"></City>
+          <County xsi:nil="true"></County>
+          <Country xsi:nil="true"></Country>
+          <Fax xsi:nil="true"></Fax>
+          <FreightTermsCode xsi:nil="true"></FreightTermsCode>
+          <ImportSequenceNumber xsi:nil="true"></ImportSequenceNumber>
+          <Latitude xsi:nil="true"></Latitude>
+          <Line1 xsi:nil="true"></Line1>
+          <Line2 xsi:nil="true"></Line2>
+          <Line3 xsi:nil="true"></Line3>
+          <Longitude xsi:nil="true"></Longitude>
+          <Name xsi:nil="true"></Name>
+          <PostalCode xsi:nil="true"></PostalCode>
+          <PostOfficeBox xsi:nil="true"></PostOfficeBox>
+          <PrimaryContactName xsi:nil="true"></PrimaryContactName>
+          <ShippingMethodCode>1</ShippingMethodCode>
+          <StateOrProvince xsi:nil="true"></StateOrProvince>
+          <Telephone1 xsi:nil="true"></Telephone1>
+          <Telephone2 xsi:nil="true"></Telephone2>
+          <Telephone3 xsi:nil="true"></Telephone3>
+          <TimeZoneRuleVersionNumber xsi:nil="true"></TimeZoneRuleVersionNumber>
+          <UPSZone xsi:nil="true"></UPSZone>
+          <UTCOffset xsi:nil="true"></UTCOffset>
+          <UTCConversionTimeZoneCode xsi:nil="true"></UTCConversionTimeZoneCode>
+        </Address>
+      </Addresses>
+    </Publisher>
+    <RootComponents>
+      <RootComponent type="61" schemaName="ys_/dbm/apps/editor/bundle.js" behavior="0" />
+      <RootComponent type="61" schemaName="ys_/dbm/apps/editor/color.png" behavior="0" />
+      <RootComponent type="61" schemaName="ys_/dbm/apps/editor/hue.png" behavior="0" />
+      <RootComponent type="61" schemaName="ys_/dbm/apps/editor/index.html" behavior="0" />
+      <RootComponent type="61" schemaName="ys_/dbm/apps/editor/primeicons.eot" behavior="0" />
+      <RootComponent type="61" schemaName="ys_/dbm/apps/editor/primeicons.svg" behavior="0" />
+      <RootComponent type="61" schemaName="ys_/dbm/apps/editor/primeicons.ttf" behavior="0" />
+      <RootComponent type="61" schemaName="ys_/dbm/apps/editor/primeicons.woff" behavior="0" />
+      <RootComponent type="61" schemaName="ys_/dbm/apps/editor/primeicons.woff2" behavior="0" />
+      <RootComponent type="61" schemaName="ys_/dbm/icons/dbm-logo.svg" behavior="0" />
+      <RootComponent type="61" schemaName="ys_/dbm/icons/dbmicon128.png" behavior="0" />
+      <RootComponent type="61" schemaName="ys_/dbm/libs/common.js" behavior="0" />
+      <RootComponent type="61" schemaName="ys_/dbm/libs/core.js" behavior="0" />
+      <RootComponent type="61" schemaName="ys_/generic/libs/common.js" behavior="0" />
+      <RootComponent type="62" schemaName="ys_YSCommon" behavior="0" />
+      <RootComponent type="80" schemaName="ys_YSCommon" behavior="0" />
+      <RootComponent type="91" id="{30b3a8b1-6fd2-44ac-8749-c46b7b725e52}" schemaName="Yagasoft.Dbm.Plugins, Version=1.0.9088.31941, Culture=neutral, PublicKeyToken=bcdf1e34c5296dde" behavior="0" />
+    </RootComponents>
+    <MissingDependencies>
+      <MissingDependency>
+        <Required type="1" schemaName="ys_customjob" displayName="Custom Job" solution="YSCommonSolution (5.3.1.4)" />
+        <Dependent type="62" schemaName="ys_YSCommon" />
+      </MissingDependency>
+      <MissingDependency>
+        <Required type="1" schemaName="ys_customjob" displayName="Custom Job" solution="YSCommonSolution (5.3.1.4)" />
+        <Dependent type="80" schemaName="ys_YSCommon" displayName="Yagasoft" />
+      </MissingDependency>
+      <MissingDependency>
+        <Required type="1" schemaName="ys_customjobengine" displayName="Custom Job Engine" solution="YSCommonSolution (5.3.1.4)" />
+        <Dependent type="62" schemaName="ys_YSCommon" />
+      </MissingDependency>
+      <MissingDependency>
+        <Required type="1" schemaName="ys_customjobengine" displayName="Custom Job Engine" solution="YSCommonSolution (5.3.1.4)" />
+        <Dependent type="80" schemaName="ys_YSCommon" displayName="Yagasoft" />
+      </MissingDependency>
+      <MissingDependency>
+        <Required type="1" schemaName="ys_customjobrecurrence" displayName="Custom Job Recurrence" solution="YSCommonSolution (5.3.1.4)" />
+        <Dependent type="80" schemaName="ys_YSCommon" displayName="Yagasoft" />
+      </MissingDependency>
+      <MissingDependency>
+        <Required type="1" schemaName="ys_custommessage" displayName="Custom Message" solution="YSCommonSolution (5.3.1.4)" />
+        <Dependent type="62" schemaName="ys_YSCommon" />
+      </MissingDependency>
+      <MissingDependency>
+        <Required type="1" schemaName="ys_custommessage" displayName="Custom Message" solution="YSCommonSolution (5.3.1.4)" />
+        <Dependent type="80" schemaName="ys_YSCommon" displayName="Yagasoft" />
+      </MissingDependency>
+      <MissingDependency>
+        <Required type="1" schemaName="ys_dbmobject" displayName="DBM Object" solution="Active" />
+        <Dependent type="80" schemaName="ys_YSCommon" displayName="Yagasoft" />
+      </MissingDependency>
+      <MissingDependency>
+        <Required type="1" schemaName="ys_dbmscript" displayName="DBM Script" solution="Active" />
+        <Dependent type="80" schemaName="ys_YSCommon" displayName="Yagasoft" />
+      </MissingDependency>
+      <MissingDependency>
+        <Required type="1" schemaName="ys_genericconfiguration" displayName="Common Configuration" solution="YSCommonSolution (5.3.1.4)" />
+        <Dependent type="62" schemaName="ys_YSCommon" />
+      </MissingDependency>
+      <MissingDependency>
+        <Required type="1" schemaName="ys_genericconfiguration" displayName="Common Configuration" solution="YSCommonSolution (5.3.1.4)" />
+        <Dependent type="80" schemaName="ys_YSCommon" displayName="Yagasoft" />
+      </MissingDependency>
+      <MissingDependency>
+        <Required type="1" schemaName="ys_keyvalue" displayName="Key-Value" solution="YSCommonSolution (5.3.1.4)" />
+        <Dependent type="62" schemaName="ys_YSCommon" />
+      </MissingDependency>
+      <MissingDependency>
+        <Required type="1" schemaName="ys_keyvalue" displayName="Key-Value" solution="YSCommonSolution (5.3.1.4)" />
+        <Dependent type="80" schemaName="ys_YSCommon" displayName="Yagasoft" />
+      </MissingDependency>
+      <MissingDependency>
+        <Required type="1" schemaName="ys_log" displayName="Log" solution="YSCommonSolution (5.3.1.4)" />
+        <Dependent type="62" schemaName="ys_YSCommon" />
+      </MissingDependency>
+      <MissingDependency>
+        <Required type="1" schemaName="ys_log" displayName="Log" solution="YSCommonSolution (5.3.1.4)" />
+        <Dependent type="80" schemaName="ys_YSCommon" displayName="Yagasoft" />
+      </MissingDependency>
+      <MissingDependency>
+        <Required type="1" schemaName="ys_roleconfiguration" displayName="Role Configuration" solution="YSCommonSolution (5.3.1.4)" />
+        <Dependent type="62" schemaName="ys_YSCommon" />
+      </MissingDependency>
+      <MissingDependency>
+        <Required type="1" schemaName="ys_roleconfiguration" displayName="Role Configuration" solution="YSCommonSolution (5.3.1.4)" />
+        <Dependent type="80" schemaName="ys_YSCommon" displayName="Yagasoft" />
+      </MissingDependency>
+      <MissingDependency>
+        <Required type="61" schemaName="msdyn_/Images/AppModule_Default_Icon.png" displayName="msdyn_/Images/AppModule_Default_Icon.png" solution="AppModuleWebResources (2.5)" />
+        <Dependent type="80" schemaName="ys_YSCommon" displayName="Yagasoft" />
+      </MissingDependency>
+      <MissingDependency>
+        <Required type="62" schemaName="ys_YSCommon" solution="YSCommonSolution (5.3.1.4)" />
+        <Dependent type="62" schemaName="ys_YSCommon" />
+      </MissingDependency>
+      <MissingDependency>
+        <Required type="DVTableSearch" solution="Active" id="{fc5f26cf-59f1-ee11-904c-000d3ad7a5a5}" />
+        <Dependent type="DVTableSearchEntity" id="{ef96b1d5-cef8-ee11-a1fe-000d3ada8fb0}" />
+      </MissingDependency>
+    </MissingDependencies>
+  </SolutionManifest>
+</ImportExportXml>

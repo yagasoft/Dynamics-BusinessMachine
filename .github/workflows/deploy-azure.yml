@@ -1,0 +1,125 @@
+name: deploy-azure
+
+on:
+  workflow_call:
+    inputs:
+      target_environment:
+        description: GitHub environment and Azure configuration target.
+        required: true
+        type: string
+  workflow_dispatch:
+    inputs:
+      target_environment:
+        description: GitHub environment and Azure configuration target.
+        required: true
+        type: choice
+        options:
+          - Dev
+          - UAT
+          - Prod
+
+permissions:
+  contents: read
+  id-token: write
+
+jobs:
+  deploy-azure:
+    runs-on: windows-latest
+    environment: ${{ inputs.target_environment }}
+
+    steps:
+      - name: Checkout
+        uses: actions/checkout@v4
+
+      - name: Enforce deployment ref policy
+        shell: pwsh
+        run: .\eng\scripts\Test-DeploymentRefPolicy.ps1 -EnvironmentName "${{ inputs.target_environment }}"
+
+      - name: Validate tracked environment baseline
+        shell: pwsh
+        run: |
+          .\eng\scripts\Test-EnvironmentBaseline.ps1 `
+            -EnvironmentName "${{ inputs.target_environment }}" `
+            -DataverseUrl "${{ vars.DATAVERSE_URL }}" `
+            -DataverseEnvironmentId "${{ vars.DATAVERSE_ENVIRONMENT_ID }}" `
+            -AzureClientId "${{ vars.AZURE_CLIENT_ID }}" `
+            -AzureKeyVaultName "${{ vars.AZURE_KEYVAULT_NAME }}" `
+            -AzureResourceGroup "${{ vars.AZURE_RESOURCE_GROUP }}" `
+            -DbmSolutionName "${{ vars.DBM_SOLUTION_NAME }}" `
+            -RequireEnvironmentVariables `
+            -OutputPath (Join-Path $PWD 'artifacts\azure-deployment-evidence\environment-baseline.json') | Out-Host
+
+      - name: Authenticate to Azure
+        uses: azure/login@v2
+        with:
+          client-id: ${{ vars.AZURE_CLIENT_ID }}
+          tenant-id: ${{ vars.AZURE_TENANT_ID }}
+          subscription-id: ${{ vars.AZURE_SUBSCRIPTION_ID }}
+
+      - name: Pull optional Key Vault secrets
+        shell: pwsh
+        run: |
+          $secretNames = @(
+            'app-signing-key',
+            'applicationinsights-connection-string',
+            'powerpages-client-secret',
+            'servicebus-connection-string'
+          )
+
+          foreach ($secretName in $secretNames) {
+            $value = az keyvault secret show --vault-name "${{ vars.AZURE_KEYVAULT_NAME }}" --name $secretName --query value -o tsv 2>$null
+            if ($LASTEXITCODE -eq 0 -and -not [string]::IsNullOrWhiteSpace($value)) {
+              Write-Host "::add-mask::$value"
+            }
+          }
+
+      - name: Validate Azure delivery contract
+        shell: pwsh
+        run: .\eng\scripts\Test-AzureContract.ps1
+
+      - name: Detect deployable Azure app assets
+        id: assets
+        shell: pwsh
+        run: |
+          $hasDeployableAssets = (Get-ChildItem -Path (Join-Path $PWD 'azure\apps') -Recurse -File |
+            Where-Object { $_.Name -notin @('README.md', '.gitkeep') }).Count -gt 0
+          Add-Content -Path $env:GITHUB_OUTPUT -Value "has_assets=$hasDeployableAssets"
+
+      - name: Validate Azure infrastructure deployment
+        if: steps.assets.outputs.has_assets == 'True'
+        shell: pwsh
+        run: |
+          az deployment group validate `
+            --resource-group "${{ vars.AZURE_RESOURCE_GROUP }}" `
+            --template-file (Join-Path $PWD 'azure\infra\main.bicep')
+
+      - name: No-op Azure deployment
+        if: steps.assets.outputs.has_assets != 'True'
+        shell: pwsh
+        run: Write-Host 'No deployable Azure application assets exist yet. Azure workflow passed as a contract validation no-op.'
+
+      - name: Write Azure deployment summary
+        shell: pwsh
+        env:
+          TARGET_ENVIRONMENT: ${{ inputs.target_environment }}
+          HAS_DEPLOYABLE_ASSETS: ${{ steps.assets.outputs.has_assets }}
+        run: |
+          $hasDeployableAssets = [System.Convert]::ToBoolean($env:HAS_DEPLOYABLE_ASSETS)
+          $summary = [ordered]@{
+            targetEnvironment = $env:TARGET_ENVIRONMENT
+            gitRef = $env:GITHUB_REF
+            workflowRunId = $env:GITHUB_RUN_ID
+            azureResourceGroup = "${{ vars.AZURE_RESOURCE_GROUP }}"
+            azureKeyVaultName = "${{ vars.AZURE_KEYVAULT_NAME }}"
+            hasDeployableAssets = $hasDeployableAssets
+            mode = if ($hasDeployableAssets) { 'validate-or-deploy' } else { 'no-op-contract-validation' }
+          }
+
+          $summary | ConvertTo-Json -Depth 5 | Set-Content -Path (Join-Path $PWD 'artifacts\azure-deployment-evidence\deployment-summary.json') -Encoding UTF8
+
+      - name: Upload Azure deployment evidence
+        uses: actions/upload-artifact@v4
+        with:
+          name: azure-deployment-${{ inputs.target_environment }}-${{ github.run_id }}
+          path: artifacts/azure-deployment-evidence
+          if-no-files-found: error
