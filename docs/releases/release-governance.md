@@ -120,7 +120,7 @@ Required repository workflows:
   - secret scanning
   - npm dependency audit
   - repo-tracked temporary npm audit exceptions with expiry-aware enforcement
-  - CodeQL for C# and JS/TS
+  - CodeQL for C# and JS/TS on `release/*` and `hotfix/*` pushes, plus scheduled or manual runs
 - `package-dataverse`
   - build release inputs
   - package unmanaged and managed Dataverse solution artifacts
@@ -133,10 +133,12 @@ Required repository workflows:
   - immutable release-candidate bundle with checksums and evidence
 - `deploy-dataverse`
   - manual, environment-gated Dataverse promotion from immutable artifacts
+  - successful `security.yml` gate required for the exact commit before `UAT` or `Prod` deployment starts
   - tracked environment-baseline validation
   - post-deploy smoke evidence
 - `deploy-azure`
   - manual or reusable, environment-gated Azure contract validation and deployment
+  - successful `security.yml` gate required for the exact commit before `UAT` or `Prod` deployment starts
   - tracked environment-baseline validation and evidence
 
 Required checks on `main` and `release/*`:
@@ -356,4 +358,5 @@ The release train does not move forward unless the following are true:
 - Dataverse deployment uses GitHub federation and does not depend on a stored Dataverse client secret
 - Azure deployment uses OIDC and validates successfully even when there are no deployable Azure workloads yet
 - secret scanning, dependency review, npm audit, and CodeQL are release-blocking, with npm exceptions allowed only through the tracked expiry-aware manifest
+- CodeQL is intentionally moved off the day-to-day Dev PR path and must be green on the release or hotfix commit before `UAT` or `Prod` deployment
 - release evidence is attached to the release-candidate or promotion run

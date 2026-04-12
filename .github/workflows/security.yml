@@ -75,6 +75,13 @@ jobs:
           if-no-files-found: error
 
   codeql:
+    if: |
+      github.event_name == 'schedule' ||
+      github.event_name == 'workflow_dispatch' ||
+      (github.event_name == 'push' && (
+        startsWith(github.ref, 'refs/heads/release/') ||
+        startsWith(github.ref, 'refs/heads/hotfix/')
+      ))
     runs-on: windows-latest
     permissions:
       actions: read

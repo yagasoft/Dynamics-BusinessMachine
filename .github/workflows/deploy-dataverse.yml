@@ -39,6 +39,19 @@ jobs:
         shell: pwsh
         run: .\eng\scripts\Test-DeploymentRefPolicy.ps1 -EnvironmentName "${{ inputs.target_environment }}"
 
+      - name: Enforce pre-UAT or Prod security gate
+        if: ${{ inputs.target_environment != 'Dev' }}
+        shell: pwsh
+        env:
+          GITHUB_TOKEN: ${{ github.token }}
+          GITHUB_REPOSITORY: ${{ github.repository }}
+          GITHUB_SHA: ${{ github.sha }}
+          GITHUB_API_URL: ${{ github.api_url }}
+        run: |
+          .\eng\scripts\Test-WorkflowGate.ps1 `
+            -WorkflowFileName 'security.yml' `
+            -HeadSha "${{ github.sha }}"
+
       - name: Validate tracked environment baseline
         shell: pwsh
         run: |
