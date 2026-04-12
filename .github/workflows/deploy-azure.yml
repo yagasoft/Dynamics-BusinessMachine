@@ -57,6 +57,7 @@ jobs:
             -DataverseUrl "${{ vars.DATAVERSE_URL }}" `
             -DataverseEnvironmentId "${{ vars.DATAVERSE_ENVIRONMENT_ID }}" `
             -AzureClientId "${{ vars.AZURE_CLIENT_ID }}" `
+            -AzureTenantId "${{ vars.AZURE_TENANT_ID }}" `
             -AzureKeyVaultName "${{ vars.AZURE_KEYVAULT_NAME }}" `
             -AzureResourceGroup "${{ vars.AZURE_RESOURCE_GROUP }}" `
             -DbmSolutionName "${{ vars.DBM_SOLUTION_NAME }}" `

@@ -33,6 +33,9 @@ if (-not $pacPath) {
     throw 'pac must be available on PATH or via POWERPLATFORMTOOLS_PACPATH to deploy Dataverse solution artifacts.'
 }
 
+$pacProfileSelection = & (Join-Path $PSScriptRoot 'Use-DbmPacProfile.ps1') -TargetEnvironment $TargetEnvironment -DataverseUrl $DataverseUrl
+$selectedPacProfileName = if ($pacProfileSelection -and $pacProfileSelection.profileName) { [string]$pacProfileSelection.profileName } else { $null }
+
 function Get-DbmPropertyValue {
     param(
         [Parameter(Mandatory = $true)]
@@ -287,6 +290,9 @@ if (-not $package) {
 
 $settingsFile = Join-Path $PackageRoot 'SampleDeploymentSettings.json'
 New-Item -ItemType Directory -Path $EvidenceRoot -Force | Out-Null
+if (-not [string]::IsNullOrWhiteSpace($selectedPacProfileName)) {
+    Set-Content -Path (Join-Path $EvidenceRoot 'pac-profile.txt') -Value $selectedPacProfileName -Encoding UTF8
+}
 $remediationEvidencePath = Join-Path $EvidenceRoot 'deployment-remediation.json'
 $pluginAssembliesBeforeCleanupPath = Join-Path $EvidenceRoot 'plugin-assemblies-before-cleanup.json'
 $pluginAssembliesAfterCleanupPath = Join-Path $EvidenceRoot 'plugin-assemblies-after-cleanup.json'
@@ -299,6 +305,10 @@ if ($LASTEXITCODE -ne 0) {
 
 Set-Content -Path $beforeListPath -Value $beforeSolutionsRaw -Encoding UTF8
 $beforeSolutions = $beforeSolutionsRaw | ConvertFrom-Json
+$existingSolution = $beforeSolutions | Where-Object {
+    $uniqueName = Get-DbmPropertyValue -InputObject $_ -Names @('UniqueName', 'uniquename', 'SolutionUniqueName', 'solutionuniquename')
+    $uniqueName -eq $SolutionName
+} | Select-Object -First 1
 $existingSolutionVersion = Get-DbmSolutionVersionFromList -Solutions $beforeSolutions -SolutionName $SolutionName
 
 $importArguments = @(

@@ -8,6 +8,7 @@ param(
     [string]$DataverseUrl = $env:DATAVERSE_URL,
     [string]$DataverseEnvironmentId = $env:DATAVERSE_ENVIRONMENT_ID,
     [string]$AzureClientId = $env:AZURE_CLIENT_ID,
+    [string]$AzureTenantId = $env:AZURE_TENANT_ID,
     [string]$AzureKeyVaultName = $env:AZURE_KEYVAULT_NAME,
     [string]$AzureResourceGroup = $env:AZURE_RESOURCE_GROUP,
     [string]$DbmSolutionName = $env:DBM_SOLUTION_NAME,
@@ -121,6 +122,7 @@ foreach ($name in $selectedEnvironments) {
         dataverseUrl = [string]$config.dataverseUrl
         dataverseEnvironmentId = [string]$config.dataverseEnvironmentId
         azureClientId = [string]$config.azureClientId
+        azureTenantId = [string]$config.azureTenantId
         resourceGroup = [string]$config.resourceGroup
         keyVaultName = [string]$config.keyVaultName
     }
@@ -140,6 +142,7 @@ foreach ($name in $selectedEnvironments) {
         dataverseUrl = [string]$config.dataverseUrl
         dataverseEnvironmentId = [string]$config.dataverseEnvironmentId
         azureClientId = [string]$config.azureClientId
+        azureTenantId = [string]$config.azureTenantId
         azureResourceGroup = [string]$config.resourceGroup
         azureKeyVaultName = [string]$config.keyVaultName
         dbmSolutionName = [string]$version.solutionName
@@ -151,6 +154,7 @@ foreach ($name in $selectedEnvironments) {
                 DATAVERSE_URL = $DataverseUrl
                 DATAVERSE_ENVIRONMENT_ID = $DataverseEnvironmentId
                 AZURE_CLIENT_ID = $AzureClientId
+                AZURE_TENANT_ID = $AzureTenantId
                 AZURE_KEYVAULT_NAME = $AzureKeyVaultName
                 AZURE_RESOURCE_GROUP = $AzureResourceGroup
                 DBM_SOLUTION_NAME = $DbmSolutionName
@@ -171,6 +175,10 @@ foreach ($name in $selectedEnvironments) {
 
         if (-not [string]::IsNullOrWhiteSpace($AzureClientId)) {
             Assert-Match -Expected $config.azureClientId -Actual $AzureClientId -Label 'AZURE_CLIENT_ID' -Normalizer ${function:Normalize-DbmLowerText}
+        }
+
+        if (-not [string]::IsNullOrWhiteSpace($AzureTenantId)) {
+            Assert-Match -Expected $config.azureTenantId -Actual $AzureTenantId -Label 'AZURE_TENANT_ID' -Normalizer ${function:Normalize-DbmLowerText}
         }
 
         if (-not [string]::IsNullOrWhiteSpace($AzureKeyVaultName)) {
@@ -229,6 +237,7 @@ $results | ForEach-Object {
     "dataverseUrl=$($_.dataverseUrl)"
     "dataverseEnvironmentId=$($_.dataverseEnvironmentId)"
     "azureClientId=$($_.azureClientId)"
+    "azureTenantId=$($_.azureTenantId)"
     "azureResourceGroup=$($_.azureResourceGroup)"
     "azureKeyVaultName=$($_.azureKeyVaultName)"
     "dbmSolutionName=$($_.dbmSolutionName)"

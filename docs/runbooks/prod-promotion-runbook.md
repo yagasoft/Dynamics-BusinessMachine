@@ -9,7 +9,7 @@ Promote a DBM release into `Prod` using a tagged formal release or an approved p
 - the candidate has already succeeded in `Dev` and `UAT`
 - the source ref is a tag `v*` or a `hotfix/*` branch
 - the `Prod` GitHub Environment gate, reviewer, and wait timer are configured
-- a production Dataverse backup or restore point has been captured immediately before promotion
+- the operator can create a Dataverse backup for `Prod`, preferably through `.\eng\scripts\Invoke-DataverseBackup.ps1`
 - the tracked environment baseline in [`../../azure/config/prod.json`](../../azure/config/prod.json) is current
 - the `Prod` delivery identity can read the referenced Key Vault
 - the `Prod` delivery identity exists as a Dataverse application user
@@ -32,7 +32,8 @@ GitHub Environment variables must match [`../../azure/config/prod.json`](../../a
 
 1. Confirm the production ref and tagged version.
 2. Confirm successful `Dev` and `UAT` evidence for the same candidate line or approved hotfix.
-3. Record the production backup reference.
+3. Create the pre-promotion backup record, preferably with:
+   - `.\eng\scripts\Invoke-DataverseBackup.ps1 -TargetEnvironment Prod -ArtifactVersion <version>`
 4. Run `.github/workflows/deploy-dataverse.yml` with:
    - `artifact_version` set to the approved candidate version
    - `target_environment` set to `Prod`
@@ -43,6 +44,7 @@ GitHub Environment variables must match [`../../azure/config/prod.json`](../../a
 ## Expected technical behavior
 
 - the managed solution package is imported
+- the pre-promotion backup reference is retained with the promotion record
 - `--publish-changes` and `--skip-lower-version` are always used
 - `--stage-and-upgrade` is used when the solution already exists in `Prod`
 - workflow evidence is uploaded before the release is considered complete
@@ -69,7 +71,8 @@ GitHub Environment variables must match [`../../azure/config/prod.json`](../../a
 ## Evidence to retain
 
 - tagged release reference
-- production backup reference
+- `backup-reference.json`
+- `backup-summary.md`
 - Dataverse deployment evidence
 - `environment-baseline.json`
 - `smoke-test-results.json`

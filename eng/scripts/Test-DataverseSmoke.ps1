@@ -30,6 +30,9 @@ if (-not $pacPath) {
     throw 'pac must be available on PATH or via POWERPLATFORMTOOLS_PACPATH to run Dataverse smoke validation.'
 }
 
+$pacProfileSelection = & (Join-Path $PSScriptRoot 'Use-DbmPacProfile.ps1') -TargetEnvironment $TargetEnvironment -DataverseUrl $DataverseUrl
+$selectedPacProfileName = if ($pacProfileSelection -and $pacProfileSelection.profileName) { [string]$pacProfileSelection.profileName } else { $null }
+
 function Get-DbmPropertyValue {
     param(
         [Parameter(Mandatory = $true)]
@@ -83,6 +86,9 @@ function Get-DbmSolutionVersionFromList {
 }
 
 New-Item -ItemType Directory -Path $EvidenceRoot -Force | Out-Null
+if (-not [string]::IsNullOrWhiteSpace($selectedPacProfileName)) {
+    Set-Content -Path (Join-Path $EvidenceRoot 'pac-profile.txt') -Value $selectedPacProfileName -Encoding UTF8
+}
 
 $solutionsRaw = & $pacPath solution list --environment $DataverseUrl --json
 if ($LASTEXITCODE -ne 0) {

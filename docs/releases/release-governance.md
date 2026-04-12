@@ -147,6 +147,27 @@ Required checks on `main` and `release/*`:
 - `security`
 - `package-dataverse`
 
+## Local Dev rapid deploy
+
+Repo-tracked local inner-loop command:
+
+- `eng/scripts/Invoke-DevRapidDeploy.ps1`
+
+Tracked component registry:
+
+- `eng/dev-rapid-deploy.components.json`
+
+Rules:
+
+- local rapid deploy is allowed only for `Dev`
+- it packages and imports the current working tree into `Dev` for fast validation
+- it may build only the affected local component set before packaging, using the tracked component registry
+- it must still use the tracked Dataverse staging and import scripts
+- it is not valid release evidence
+- it must not be used for `UAT` or `Prod`
+- once a fix is kept, it must still move through the normal PR, `package-dataverse`, and `release-candidate` flow
+- if the working tree contains unrelated deployable changes, the rapid path must stop rather than silently excluding them
+
 ## GitHub Environments
 
 Formal delivery uses three GitHub Environments:
@@ -184,6 +205,7 @@ These files are the repo-tracked source of truth for target metadata:
 - Dataverse URL
 - Dataverse environment ID
 - shared Azure client ID
+- shared Azure tenant ID
 - Azure resource group
 - Azure Key Vault
 
@@ -252,6 +274,7 @@ Stable secret names across vaults:
 - `nuget-api-key`
 - `app-signing-key`
 - `applicationinsights-connection-string`
+- `powerplatform-admin-client-secret`
 - `powerpages-client-secret`
 - `servicebus-connection-string`
 
@@ -290,6 +313,8 @@ Promotion rules:
 - `Dev` imports unmanaged only
 - `UAT` imports managed only
 - `Prod` imports managed only
+- formal `UAT` and `Prod` promotions must have a pre-promotion Dataverse backup or restore point recorded before import starts
+- the preferred automation path for that backup record is `eng/scripts/Invoke-DataverseBackup.ps1`
 - all imports must use `--publish-changes`
 - all imports must use `--skip-lower-version`
 - managed promotions use `--stage-and-upgrade` only when the target already has the solution installed
@@ -297,11 +322,13 @@ Promotion rules:
 - that destructive replace path must never be used for `Prod`
 - `UAT` may use the destructive replace path only after a pre-promotion backup or restore point has been captured
 - manual upload through Dataverse UI is recovery-only and is not valid release evidence
+- local Dev rapid deploy is allowed only through `eng/scripts/Invoke-DevRapidDeploy.ps1` and is not valid release evidence
 
 Rollback rules:
 
 - lower-version managed re-import is not the primary rollback path
 - before every UAT or Prod promotion, capture a restorable Dataverse backup or equivalent platform restore point
+- the preferred operator automation path for that record is `eng/scripts/Invoke-DataverseBackup.ps1`
 - the preferred rollback path is:
   - forward-fix hotfix with a higher version when practical
   - environment restore to the pre-promotion backup when a forward fix is not acceptable inside the release window
@@ -339,6 +366,7 @@ Every formal release candidate or production promotion must keep:
 - Dataverse solution-check output
 - deployment evidence and timestamps
 - `environment-baseline.json` from validation or deployment workflows
+- `backup-reference.json` and `backup-summary.md` when `eng/scripts/Invoke-DataverseBackup.ps1` is used for the promotion record
 - `smoke-test-results.json` and `smoke-test-summary.md` for Dataverse promotions
 - `deployment-remediation.json` when deployment uses or attempts a non-standard remediation path
 - Azure deployment summary evidence when Azure workflow runs

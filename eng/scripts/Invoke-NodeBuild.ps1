@@ -1,16 +1,30 @@
 [CmdletBinding()]
 param(
-    [string]$RepoRoot = (Resolve-Path (Join-Path $PSScriptRoot '..\..')).Path
+    [string]$RepoRoot = (Resolve-Path (Join-Path $PSScriptRoot '..\..')).Path,
+    [string[]]$Projects
 )
 
 $nodeProjects = @(
-    @{ Path = 'dbm-app'; OutputPaths = @('dist', 'bundle'); Commands = @('npm ci', 'npm run build', 'npm run bundle') },
-    @{ Path = 'dbm-script-lib'; OutputPaths = @('bin'); Commands = @('npm ci', 'npx webpack --config webpack.config.js') },
-    @{ Path = 'dbm-js-vm'; OutputPaths = @('bin'); Commands = @('npm ci', 'npx webpack --config webpack.config.js') },
-    @{ Path = 'dbm-web-resources'; OutputPaths = @(); Commands = @('npm ci', 'npx tsc -p tsconfig.json') }
+    @{ Name = 'dbm-app'; Path = 'dbm-app'; OutputPaths = @('dist', 'bundle'); Commands = @('npm ci', 'npm run build', 'npm run bundle') },
+    @{ Name = 'dbm-script-lib'; Path = 'dbm-script-lib'; OutputPaths = @('bin'); Commands = @('npm ci', 'npx webpack --config webpack.config.js') },
+    @{ Name = 'dbm-js-vm'; Path = 'dbm-js-vm'; OutputPaths = @('bin'); Commands = @('npm ci', 'npx webpack --config webpack.config.js') },
+    @{ Name = 'dbm-web-resources'; Path = 'dbm-web-resources'; OutputPaths = @(); Commands = @('npm ci', 'npx tsc -p tsconfig.json') }
 )
 
-foreach ($project in $nodeProjects) {
+$availableProjects = $nodeProjects | ForEach-Object { $_.Name }
+$selectedProjects = if ($Projects -and $Projects.Count -gt 0) {
+    $invalidProjects = @($Projects | Where-Object { $_ -notin $availableProjects } | Select-Object -Unique)
+    if ($invalidProjects.Count -gt 0) {
+        throw "Unknown Node build project(s): $($invalidProjects -join ', '). Valid values: $($availableProjects -join ', ')"
+    }
+
+    @($nodeProjects | Where-Object { $_.Name -in $Projects })
+}
+else {
+    $nodeProjects
+}
+
+foreach ($project in $selectedProjects) {
     $projectPath = Join-Path $RepoRoot $project.Path
     foreach ($outputPath in $project.OutputPaths) {
         $fullOutputPath = Join-Path $projectPath $outputPath
