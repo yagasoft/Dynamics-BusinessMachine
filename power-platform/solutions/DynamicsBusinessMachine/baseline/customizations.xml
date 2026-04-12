@@ -255,8 +255,6 @@
       <ClientType>4</ClientType>
       <NavigationType>0</NavigationType>
       <AppModuleComponents>
-        <AppModuleComponent type="1" schemaName="ys_dbmobject" solutionaction="Added" />
-        <AppModuleComponent type="1" schemaName="ys_dbmscript" solutionaction="Added" />
       </AppModuleComponents>
       <LocalizedNames>
         <LocalizedName description="Yagasoft" languagecode="1033" />

@@ -35,6 +35,7 @@ Define the approved rollback paths for DBM when a Dataverse or Azure promotion c
 
 1. Identify the failed promotion run and target environment.
 2. Locate the recorded backup or restore-point reference.
+   For formal GitHub promotions, prefer `backup-reference.json` from the deployment evidence artifact.
 3. Confirm rollback authority.
 4. Pause any other deployments into the target environment.
 5. Execute the Dataverse restore using the platform-approved restore mechanism.
@@ -63,7 +64,7 @@ Define the approved rollback paths for DBM when a Dataverse or Azure promotion c
 
 - failed release reference
 - rollback decision owner
-- backup or restore-point reference
+- `backup-reference.json` or equivalent platform restore-point reference
 - `environment-baseline.json` from the failed promotion when available
 - `deployment-remediation.json` from the failed promotion when available
 - `smoke-test-results.json` and `smoke-test-summary.md` from the failed promotion when available

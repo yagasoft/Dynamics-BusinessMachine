@@ -81,6 +81,7 @@ Implementation baseline:
 - `azure/config/prod.json`
 - `eng/scripts/Test-EnvironmentBaseline.ps1`
 - `eng/scripts/Test-DataverseSmoke.ps1`
+- `eng/scripts/Invoke-DataverseBackup.ps1`
 - `.github/workflows/deploy-dataverse.yml`
 - `.github/workflows/deploy-azure.yml`
 - [Dev Deployment Runbook](../runbooks/dev-deployment-runbook.md)
@@ -91,6 +92,7 @@ Implementation baseline:
 Must include:
 - target environment baseline for `Dev`, `UAT`, and `Prod`
 - connected Dataverse and Azure deployment targets
+- operator-automated pre-promotion backup capture for formal `UAT` and `Prod` Dataverse promotions
 - promotion validation
 - rollback rehearsal
 - rollback re-promotion evidence

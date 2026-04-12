@@ -219,7 +219,6 @@ jobs:
             (Get-Command pac -ErrorAction Stop).Source
           }
 
-          & $pacPath auth clear | Out-Host
           & $pacPath auth create --githubFederated --applicationId "${{ vars.AZURE_CLIENT_ID }}" --tenant "${{ vars.AZURE_TENANT_ID }}" --environment "${{ vars.DATAVERSE_URL }}"
 
       - name: Package Dataverse artifacts

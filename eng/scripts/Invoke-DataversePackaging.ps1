@@ -2,6 +2,8 @@
 param(
     [string]$RepoRoot = (Resolve-Path (Join-Path $PSScriptRoot '..\..')).Path,
     [string]$OutputRoot = (Join-Path (Resolve-Path (Join-Path $PSScriptRoot '..\..')).Path 'artifacts\dataverse'),
+    [ValidateSet('Full', 'UnmanagedOnly')]
+    [string]$PackageSet = 'Full',
     [switch]$RunSolutionCheck = $true,
     [switch]$GenerateSettings = $true
 )
@@ -26,6 +28,7 @@ $version = & (Join-Path $PSScriptRoot 'Get-DbmVersion.ps1') -AsJson | ConvertFro
 $solutionName = $version.solutionName
 $sourceRoot = & (Join-Path $PSScriptRoot 'New-DataverseSolutionSource.ps1') -RepoRoot $RepoRoot -OutputRoot (Join-Path $OutputRoot 'staging')
 $managedSourceRoot = Join-Path $OutputRoot 'staging-managed\src'
+$settingsFile = Join-Path $OutputRoot 'SampleDeploymentSettings.json'
 
 New-Item -ItemType Directory -Path $OutputRoot -Force | Out-Null
 $unmanagedZip = Join-Path $OutputRoot "$solutionName-$($version.solutionVersion)-unmanaged.zip"
@@ -37,21 +40,32 @@ if ($LASTEXITCODE -ne 0) {
     throw "pac solution pack failed for $unmanagedZip"
 }
 
-if (Test-Path $managedSourceRoot) {
-    Remove-Item -Path $managedSourceRoot -Recurse -Force
+if ($PackageSet -eq 'Full') {
+    if (Test-Path $managedSourceRoot) {
+        Remove-Item -Path $managedSourceRoot -Recurse -Force
+    }
+
+    New-Item -ItemType Directory -Path $managedSourceRoot -Force | Out-Null
+    Copy-Item -Path (Join-Path $sourceRoot '*') -Destination $managedSourceRoot -Recurse -Force
+
+    $managedSolutionXmlPath = Join-Path $managedSourceRoot 'Other\Solution.xml'
+    $managedSolutionXml = [xml](Get-Content -Path $managedSolutionXmlPath -Raw)
+    $managedSolutionXml.ImportExportXml.SolutionManifest.Managed = '1'
+    $managedSolutionXml.Save($managedSolutionXmlPath)
+
+    & $pacPath solution pack --folder $managedSourceRoot --zipfile $managedZip --packagetype Managed --allowWrite --allowDelete
+    if ($LASTEXITCODE -ne 0) {
+        throw "pac solution pack failed for $managedZip"
+    }
 }
+else {
+    if (Test-Path $managedSourceRoot) {
+        Remove-Item -Path $managedSourceRoot -Recurse -Force
+    }
 
-New-Item -ItemType Directory -Path $managedSourceRoot -Force | Out-Null
-Copy-Item -Path (Join-Path $sourceRoot '*') -Destination $managedSourceRoot -Recurse -Force
-
-$managedSolutionXmlPath = Join-Path $managedSourceRoot 'Other\Solution.xml'
-$managedSolutionXml = [xml](Get-Content -Path $managedSolutionXmlPath -Raw)
-$managedSolutionXml.ImportExportXml.SolutionManifest.Managed = '1'
-$managedSolutionXml.Save($managedSolutionXmlPath)
-
-& $pacPath solution pack --folder $managedSourceRoot --zipfile $managedZip --packagetype Managed --allowWrite --allowDelete
-if ($LASTEXITCODE -ne 0) {
-    throw "pac solution pack failed for $managedZip"
+    if (Test-Path $managedZip) {
+        Remove-Item -Path $managedZip -Force
+    }
 }
 
 if ($RunSolutionCheck) {
@@ -65,12 +79,17 @@ if ($RunSolutionCheck) {
     }
 }
 
-if ($GenerateSettings) {
-    & $pacPath solution create-settings --solution-zip $managedZip --settings-file (Join-Path $OutputRoot 'SampleDeploymentSettings.json')
+if ($PackageSet -eq 'Full' -and $GenerateSettings) {
+    & $pacPath solution create-settings --solution-zip $managedZip --settings-file $settingsFile
     if ($LASTEXITCODE -ne 0) {
         throw 'pac solution create-settings failed.'
     }
 }
+elseif (Test-Path $settingsFile) {
+    Remove-Item -Path $settingsFile -Force
+}
 
 Write-Host "Unmanaged package: $unmanagedZip"
-Write-Host "Managed package: $managedZip"
+if ($PackageSet -eq 'Full') {
+    Write-Host "Managed package: $managedZip"
+}

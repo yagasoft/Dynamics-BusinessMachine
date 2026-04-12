@@ -8,6 +8,8 @@ This section defines how DBM releases are governed and documented.
   - branch, versioning, environment, and quality-gate rules
 - [release-note-template.md](release-note-template.md)
   - standard release-note structure
+- [r0-close-out-0.2.0.md](r0-close-out-0.2.0.md)
+  - formal R0 close-out record for the `0.2.0` line
 
 ## Usage
 

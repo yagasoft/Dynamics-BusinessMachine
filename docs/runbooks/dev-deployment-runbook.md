@@ -4,6 +4,8 @@
 
 Promote the current DBM release candidate into the `Dev` Dataverse environment for integration validation.
 
+For local inner-loop validation without release evidence, use [dev-rapid-deploy.md](dev-rapid-deploy.md). This runbook remains the formal GitHub release-candidate path for `Dev`.
+
 ## Preconditions
 
 - the source commit is on `main`, `release/*`, or `hotfix/*`

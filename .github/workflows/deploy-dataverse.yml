@@ -39,6 +39,19 @@ jobs:
         shell: pwsh
         run: .\eng\scripts\Test-DeploymentRefPolicy.ps1 -EnvironmentName "${{ inputs.target_environment }}"
 
+      - name: Enforce pre-UAT or Prod security gate
+        if: ${{ inputs.target_environment != 'Dev' }}
+        shell: pwsh
+        env:
+          GITHUB_TOKEN: ${{ github.token }}
+          GITHUB_REPOSITORY: ${{ github.repository }}
+          GITHUB_SHA: ${{ github.sha }}
+          GITHUB_API_URL: ${{ github.api_url }}
+        run: |
+          .\eng\scripts\Test-WorkflowGate.ps1 `
+            -WorkflowFileName 'security.yml' `
+            -HeadSha "${{ github.sha }}"
+
       - name: Validate tracked environment baseline
         shell: pwsh
         run: |
@@ -47,6 +60,7 @@ jobs:
             -DataverseUrl "${{ vars.DATAVERSE_URL }}" `
             -DataverseEnvironmentId "${{ vars.DATAVERSE_ENVIRONMENT_ID }}" `
             -AzureClientId "${{ vars.AZURE_CLIENT_ID }}" `
+            -AzureTenantId "${{ vars.AZURE_TENANT_ID }}" `
             -AzureKeyVaultName "${{ vars.AZURE_KEYVAULT_NAME }}" `
             -AzureResourceGroup "${{ vars.AZURE_RESOURCE_GROUP }}" `
             -DbmSolutionName "${{ vars.DBM_SOLUTION_NAME }}" `
@@ -133,7 +147,6 @@ jobs:
             (Get-Command pac -ErrorAction Stop).Source
           }
 
-          & $pacPath auth clear | Out-Host
           & $pacPath auth create --githubFederated --applicationId "${{ vars.AZURE_CLIENT_ID }}" --tenant "${{ vars.AZURE_TENANT_ID }}" --environment "${{ vars.DATAVERSE_URL }}"
 
       - name: Deploy Dataverse solution
