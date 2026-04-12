@@ -160,6 +160,8 @@ jobs:
         env:
           APP_SIGNING_KEY_B64: ${{ secrets.APP_SIGNING_KEY_B64 }}
         run: |
+          $keyVaultSecret = $null
+          $keyVaultSecretExitCode = 0
           $secretValue = $null
           $secretSource = $null
 
@@ -167,12 +169,13 @@ jobs:
           $PSNativeCommandUseErrorActionPreference = $false
           try {
             $keyVaultSecret = az keyvault secret show --vault-name "${{ vars.AZURE_KEYVAULT_NAME }}" --name 'app-signing-key' --query value -o tsv 2>$null
+            $keyVaultSecretExitCode = $LASTEXITCODE
           }
           finally {
             $PSNativeCommandUseErrorActionPreference = $previousNativePreference
           }
 
-          if ($LASTEXITCODE -eq 0 -and -not [string]::IsNullOrWhiteSpace($keyVaultSecret)) {
+          if ($keyVaultSecretExitCode -eq 0 -and -not [string]::IsNullOrWhiteSpace($keyVaultSecret)) {
             $secretValue = $keyVaultSecret.Trim()
             $secretSource = "Azure Key Vault '${{ vars.AZURE_KEYVAULT_NAME }}'"
           }
@@ -187,6 +190,9 @@ jobs:
             throw "Required release packaging signing key is unavailable. Seed Key Vault secret 'app-signing-key' in '${{ vars.AZURE_KEYVAULT_NAME }}' or set GitHub Actions secret 'APP_SIGNING_KEY_B64'."
           }
 
+          # The optional Key Vault probe can legitimately miss. Clear its handled native exit code
+          # so the GitHub PowerShell wrapper does not fail the step after fallback succeeds.
+          $global:LASTEXITCODE = 0
           Write-Host "Using signing key from $secretSource."
 
           try {
