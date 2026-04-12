@@ -31,6 +31,8 @@ bld/
 [Oo]bj/
 [Ll]og/
 [Ll]ogs/
+!dbm-script-lib/src/log/
+!dbm-script-lib/src/log/logger.ts
 
 # Visual Studio 2015/2017 cache/options directory
 .vs/
