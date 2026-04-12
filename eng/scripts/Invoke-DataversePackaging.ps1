@@ -6,9 +6,20 @@ param(
     [switch]$GenerateSettings = $true
 )
 
-$pac = Get-Command pac -ErrorAction SilentlyContinue
-if (-not $pac) {
-    throw 'pac must be available on PATH to package Dataverse solution artifacts.'
+$pacPath = $null
+
+if (-not [string]::IsNullOrWhiteSpace($env:POWERPLATFORMTOOLS_PACPATH) -and (Test-Path $env:POWERPLATFORMTOOLS_PACPATH)) {
+    $pacPath = (Resolve-Path $env:POWERPLATFORMTOOLS_PACPATH).Path
+}
+else {
+    $pac = Get-Command pac -ErrorAction SilentlyContinue
+    if ($pac) {
+        $pacPath = $pac.Source
+    }
+}
+
+if (-not $pacPath) {
+    throw 'pac must be available on PATH or via POWERPLATFORMTOOLS_PACPATH to package Dataverse solution artifacts.'
 }
 
 $version = & (Join-Path $PSScriptRoot 'Get-DbmVersion.ps1') -AsJson | ConvertFrom-Json
@@ -21,7 +32,7 @@ $unmanagedZip = Join-Path $OutputRoot "$solutionName-$($version.solutionVersion)
 $managedZip = Join-Path $OutputRoot "$solutionName-$($version.solutionVersion)-managed.zip"
 $checkOutput = Join-Path $OutputRoot 'solution-check'
 
-& $pac.Source solution pack --folder $sourceRoot --zipfile $unmanagedZip --packagetype Unmanaged --allowWrite --allowDelete
+& $pacPath solution pack --folder $sourceRoot --zipfile $unmanagedZip --packagetype Unmanaged --allowWrite --allowDelete
 if ($LASTEXITCODE -ne 0) {
     throw "pac solution pack failed for $unmanagedZip"
 }
@@ -38,7 +49,7 @@ $managedSolutionXml = [xml](Get-Content -Path $managedSolutionXmlPath -Raw)
 $managedSolutionXml.ImportExportXml.SolutionManifest.Managed = '1'
 $managedSolutionXml.Save($managedSolutionXmlPath)
 
-& $pac.Source solution pack --folder $managedSourceRoot --zipfile $managedZip --packagetype Managed --allowWrite --allowDelete
+& $pacPath solution pack --folder $managedSourceRoot --zipfile $managedZip --packagetype Managed --allowWrite --allowDelete
 if ($LASTEXITCODE -ne 0) {
     throw "pac solution pack failed for $managedZip"
 }
@@ -48,14 +59,14 @@ if ($RunSolutionCheck) {
         Remove-Item -Path $checkOutput -Recurse -Force
     }
 
-    & $pac.Source solution check --path $unmanagedZip --outputDirectory $checkOutput --geo UnitedStates
+    & $pacPath solution check --path $unmanagedZip --outputDirectory $checkOutput --geo UnitedStates
     if ($LASTEXITCODE -ne 0) {
         throw 'pac solution check failed.'
     }
 }
 
 if ($GenerateSettings) {
-    & $pac.Source solution create-settings --solution-zip $managedZip --settings-file (Join-Path $OutputRoot 'SampleDeploymentSettings.json')
+    & $pacPath solution create-settings --solution-zip $managedZip --settings-file (Join-Path $OutputRoot 'SampleDeploymentSettings.json')
     if ($LASTEXITCODE -ne 0) {
         throw 'pac solution create-settings failed.'
     }
