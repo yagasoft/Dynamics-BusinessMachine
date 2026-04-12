@@ -291,6 +291,9 @@ Promotion rules:
 - all imports must use `--publish-changes`
 - all imports must use `--skip-lower-version`
 - managed promotions use `--stage-and-upgrade` only when the target already has the solution installed
+- a one-time solution delete and retry is allowed only for `Dev` or `UAT` when import fails specifically because the target still carries the pre-R0 plugin assembly strong-name identity
+- that destructive replace path must never be used for `Prod`
+- `UAT` may use the destructive replace path only after a pre-promotion backup or restore point has been captured
 - manual upload through Dataverse UI is recovery-only and is not valid release evidence
 
 Rollback rules:
@@ -335,6 +338,7 @@ Every formal release candidate or production promotion must keep:
 - deployment evidence and timestamps
 - `environment-baseline.json` from validation or deployment workflows
 - `smoke-test-results.json` and `smoke-test-summary.md` for Dataverse promotions
+- `deployment-remediation.json` when deployment uses or attempts a non-standard remediation path
 - Azure deployment summary evidence when Azure workflow runs
 - smoke-test results
 - rollback reference and backup reference

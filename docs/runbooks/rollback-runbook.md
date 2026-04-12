@@ -17,6 +17,7 @@ Define the approved rollback paths for DBM when a Dataverse or Azure promotion c
 - import corruption or missing solution components
 - production regression with unacceptable business impact
 - security or configuration failure requiring immediate reversal
+- non-Prod destructive replace path was required to overcome legacy plugin assembly identity drift and did not complete cleanly
 
 ## Decision tree
 
@@ -40,6 +41,7 @@ Define the approved rollback paths for DBM when a Dataverse or Azure promotion c
 6. Re-run minimal smoke tests after restore.
 7. Record the restored solution version and restore completion time.
 8. If this rollback was a planned R0 close-out rehearsal, re-run the original UAT promotion from the same immutable candidate artifact.
+9. If the failed promotion used the one-time plugin-identity replace path, retain `deployment-remediation.json` with the rollback evidence.
 
 ## Azure rollback steps
 
@@ -63,6 +65,7 @@ Define the approved rollback paths for DBM when a Dataverse or Azure promotion c
 - rollback decision owner
 - backup or restore-point reference
 - `environment-baseline.json` from the failed promotion when available
+- `deployment-remediation.json` from the failed promotion when available
 - `smoke-test-results.json` and `smoke-test-summary.md` from the failed promotion when available
 - restore job or workflow reference
 - re-promotion workflow reference when the rollback was a planned rehearsal

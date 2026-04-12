@@ -35,6 +35,7 @@ GitHub Environment variables must match [`../../azure/config/uat.json`](../../az
 3. Capture the UAT backup reference and record it in the release notes or promotion record.
 4. Run `.github/workflows/deploy-dataverse.yml` with:
    - `artifact_version` set to the approved candidate version
+   - `allow_destructive_replace` set to `true` only if a pre-promotion backup has been captured and the target still contains the legacy plugin assembly identity from before R0
    - `target_environment` set to `UAT`
 5. Approve the GitHub Environment gate.
 6. If deployable Azure assets exist, run `.github/workflows/deploy-azure.yml` for `UAT`.
@@ -55,12 +56,14 @@ When `UAT` is being used as formal R0 close-out evidence:
 - the managed solution package is imported
 - `--publish-changes` and `--skip-lower-version` are always used
 - `--stage-and-upgrade` is used only when the solution already exists in `UAT`
+- when explicitly enabled, a one-time solution delete and retry may be used only to remediate legacy plugin assembly identity drift after the backup reference has been recorded
 - optional runtime secrets are read from `yagasoft-dbm-uat-kv` only after the environment gate is approved
 
 ## Smoke tests
 
 - UAT deployment completed successfully
 - `environment-baseline.json` confirms workflow variables matched the tracked baseline
+- `deployment-remediation.json` is retained when the deployment needed the one-time plugin-identity replace path
 - the solution online version matches or exceeds the expected candidate version
 - `smoke-test-results.json` shows automated solution and version checks passed
 - `smoke-test-summary.md` is retained with any manual follow-up notes
@@ -81,6 +84,7 @@ When `UAT` is being used as formal R0 close-out evidence:
 - backup or restore-point reference
 - Dataverse deployment evidence artifact
 - `environment-baseline.json`
+- `deployment-remediation.json` when the replace path is enabled
 - `smoke-test-results.json`
 - `smoke-test-summary.md`
 - Azure deployment evidence if applicable
