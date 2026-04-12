@@ -14,9 +14,20 @@ param(
 
 $ErrorActionPreference = 'Stop'
 
-$pac = Get-Command pac -ErrorAction SilentlyContinue
-if (-not $pac) {
-    throw 'pac must be available on PATH to run Dataverse smoke validation.'
+$pacPath = $null
+
+if (-not [string]::IsNullOrWhiteSpace($env:POWERPLATFORMTOOLS_PACPATH) -and (Test-Path $env:POWERPLATFORMTOOLS_PACPATH)) {
+    $pacPath = (Resolve-Path $env:POWERPLATFORMTOOLS_PACPATH).Path
+}
+else {
+    $pac = Get-Command pac -ErrorAction SilentlyContinue
+    if ($pac) {
+        $pacPath = $pac.Source
+    }
+}
+
+if (-not $pacPath) {
+    throw 'pac must be available on PATH or via POWERPLATFORMTOOLS_PACPATH to run Dataverse smoke validation.'
 }
 
 function Get-DbmPropertyValue {
@@ -52,7 +63,7 @@ function Convert-ToVersionOrNull {
 
 New-Item -ItemType Directory -Path $EvidenceRoot -Force | Out-Null
 
-$solutionsRaw = & $pac.Source solution list --environment $DataverseUrl --json
+$solutionsRaw = & $pacPath solution list --environment $DataverseUrl --json
 if ($LASTEXITCODE -ne 0) {
     throw 'pac solution list failed during Dataverse smoke validation.'
 }
@@ -67,7 +78,7 @@ if (-not $solution) {
     throw "Dataverse smoke validation could not find solution '$SolutionName' in '$DataverseUrl'."
 }
 
-$onlineVersionRaw = & $pac.Source solution online-version --solution-name $SolutionName --environment $DataverseUrl
+$onlineVersionRaw = & $pacPath solution online-version --solution-name $SolutionName --environment $DataverseUrl
 if ($LASTEXITCODE -ne 0) {
     throw "pac solution online-version failed for '$SolutionName'."
 }

@@ -122,8 +122,14 @@ jobs:
       - name: Authenticate PAC with GitHub federation
         shell: pwsh
         run: |
-          pac auth clear | Out-Host
-          pac auth create --githubFederated --applicationId "${{ vars.AZURE_CLIENT_ID }}" --tenant "${{ vars.AZURE_TENANT_ID }}" --environment "${{ vars.DATAVERSE_URL }}"
+          $pacPath = if (-not [string]::IsNullOrWhiteSpace($env:POWERPLATFORMTOOLS_PACPATH) -and (Test-Path $env:POWERPLATFORMTOOLS_PACPATH)) {
+            (Resolve-Path $env:POWERPLATFORMTOOLS_PACPATH).Path
+          } else {
+            (Get-Command pac -ErrorAction Stop).Source
+          }
+
+          & $pacPath auth clear | Out-Host
+          & $pacPath auth create --githubFederated --applicationId "${{ vars.AZURE_CLIENT_ID }}" --tenant "${{ vars.AZURE_TENANT_ID }}" --environment "${{ vars.DATAVERSE_URL }}"
 
       - name: Deploy Dataverse solution
         shell: pwsh
