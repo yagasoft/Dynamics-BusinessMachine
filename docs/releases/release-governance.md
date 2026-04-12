@@ -51,7 +51,8 @@ Repo-tracked controls for this policy:
 GitHub admin follow-up required outside Git:
 
 - apply branch protection rules for `main`, `release/*`, and `hotfix/*`
-- set required checks to `validate`, `security`, and `package-dataverse`
+- set required pull-request check to `validate`
+- keep `security` and `package-dataverse` as protected-branch push or release-line gates rather than PR gates
 - disable merge-commit and rebase-merge on the repository
 - leave squash merge enabled
 
@@ -108,6 +109,7 @@ Rules:
 Required repository workflows:
 
 - `validate`
+  - the only required PR workflow for protected-branch pull requests
   - repo hygiene
   - docs validation
   - tracked environment-baseline validation
@@ -116,12 +118,15 @@ Required repository workflows:
   - Dataverse source staging smoke test
   - Azure delivery-contract validation
 - `security`
-  - dependency review on PRs
+  - does not run on feature-branch pushes or protected-branch PRs
+  - runs on protected-branch pushes plus scheduled or manual invocations
   - secret scanning
   - npm dependency audit
   - repo-tracked temporary npm audit exceptions with expiry-aware enforcement
   - CodeQL for C# and JS/TS on `release/*` and `hotfix/*` pushes, plus scheduled or manual runs
 - `package-dataverse`
+  - does not run on feature-branch pushes or protected-branch PRs
+  - runs on protected-branch pushes and reusable or manual packaging flows
   - build release inputs
   - package unmanaged and managed Dataverse solution artifacts
   - generate deployment settings template
@@ -141,7 +146,11 @@ Required repository workflows:
   - successful `security.yml` gate required for the exact commit before `UAT` or `Prod` deployment starts
   - tracked environment-baseline validation and evidence
 
-Required checks on `main` and `release/*`:
+Protected-branch PR check:
+
+- `validate`
+
+Protected-branch push and release-line gates:
 
 - `validate`
 - `security`
