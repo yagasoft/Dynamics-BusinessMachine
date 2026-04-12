@@ -12,7 +12,8 @@ param(
 
     [string]$SolutionName = 'DynamicsBusinessMachine',
     [string]$ExpectedSolutionVersion,
-    [string]$EvidenceRoot = (Join-Path $PackageRoot 'deployment-evidence')
+    [string]$EvidenceRoot = (Join-Path $PackageRoot 'deployment-evidence'),
+    [switch]$AllowSolutionReplaceOnPluginIdentityChange
 )
 
 $pacPath = $null
@@ -62,6 +63,21 @@ function Convert-ToVersionOrNull {
     }
 }
 
+function Get-DbmImportFailureMessage {
+    param(
+        [Parameter(Mandatory = $true)]
+        [System.Management.Automation.ErrorRecord]$ErrorRecord
+    )
+
+    $message = $ErrorRecord.Exception.Message
+
+    if ($ErrorRecord.ScriptStackTrace) {
+        return "$message`n$($ErrorRecord.ScriptStackTrace)"
+    }
+
+    return $message
+}
+
 $packageType = if ($TargetEnvironment -eq 'Dev') { 'unmanaged' } else { 'managed' }
 $package = Get-ChildItem -Path $PackageRoot -Filter "*-$packageType.zip" -File |
     Sort-Object LastWriteTimeUtc -Descending |
@@ -73,6 +89,7 @@ if (-not $package) {
 
 $settingsFile = Join-Path $PackageRoot 'SampleDeploymentSettings.json'
 New-Item -ItemType Directory -Path $EvidenceRoot -Force | Out-Null
+$remediationEvidencePath = Join-Path $EvidenceRoot 'deployment-remediation.json'
 
 $beforeListPath = Join-Path $EvidenceRoot 'solution-list-before.json'
 $beforeSolutionsRaw = & $pacPath solution list --environment $DataverseUrl --json
@@ -86,6 +103,12 @@ $existingSolution = $beforeSolutions | Where-Object {
     $uniqueName = Get-DbmPropertyValue -InputObject $_ -Names @('UniqueName', 'uniquename', 'SolutionUniqueName', 'solutionuniquename')
     $uniqueName -eq $SolutionName
 } | Select-Object -First 1
+$existingSolutionVersion = if ($existingSolution) {
+    Get-DbmPropertyValue -InputObject $existingSolution -Names @('Version', 'version', 'SolutionVersion', 'solutionversion')
+}
+else {
+    $null
+}
 
 $importArguments = @(
     '--log-to-console',
@@ -106,9 +129,61 @@ if ($TargetEnvironment -ne 'Dev' -and $existingSolution) {
     $importArguments += '--stage-and-upgrade'
 }
 
-& $pacPath @importArguments
-if ($LASTEXITCODE -ne 0) {
-    throw "pac solution import failed for '$($package.FullName)'."
+$remediation = [ordered]@{
+    generatedUtc = (Get-Date).ToUniversalTime().ToString('o')
+    targetEnvironment = $TargetEnvironment
+    solutionName = $SolutionName
+    packagePath = $package.FullName
+    existingSolutionVersion = $existingSolutionVersion
+    allowSolutionReplaceOnPluginIdentityChange = [bool]$AllowSolutionReplaceOnPluginIdentityChange
+    usedSolutionReplaceOnPluginIdentityChange = $false
+    reason = $null
+    initialImportFailure = $null
+}
+
+try {
+    & $pacPath @importArguments
+    if ($LASTEXITCODE -ne 0) {
+        throw "pac solution import failed for '$($package.FullName)'."
+    }
+}
+catch {
+    $failureMessage = Get-DbmImportFailureMessage -ErrorRecord $_
+    $remediation.initialImportFailure = $failureMessage
+
+    $isPluginIdentityChange = $failureMessage -like '*Plugin Assembly fully qualified name has changed*'
+    $canReplaceSolution = $AllowSolutionReplaceOnPluginIdentityChange -and $TargetEnvironment -ne 'Prod' -and $existingSolution
+
+    if (-not ($isPluginIdentityChange -and $canReplaceSolution)) {
+        $remediation | ConvertTo-Json -Depth 6 | Set-Content -Path $remediationEvidencePath -Encoding UTF8
+        throw
+    }
+
+    Write-Warning "Detected plugin assembly identity drift for '$SolutionName' in '$TargetEnvironment'. Deleting the existing solution and retrying import."
+    $remediation.usedSolutionReplaceOnPluginIdentityChange = $true
+    $remediation.reason = 'plugin-assembly-identity-change'
+    $remediation.deleteAttemptedUtc = (Get-Date).ToUniversalTime().ToString('o')
+
+    & $pacPath --log-to-console solution delete --environment $DataverseUrl --solution-name $SolutionName
+    if ($LASTEXITCODE -ne 0) {
+        $remediation.deleteSucceeded = $false
+        $remediation | ConvertTo-Json -Depth 6 | Set-Content -Path $remediationEvidencePath -Encoding UTF8
+        throw "pac solution delete failed while remediating plugin assembly identity drift for '$SolutionName'."
+    }
+
+    $remediation.deleteSucceeded = $true
+    $remediation.retryAttemptedUtc = (Get-Date).ToUniversalTime().ToString('o')
+
+    $retryImportArguments = @($importArguments | Where-Object { $_ -ne '--stage-and-upgrade' })
+    & $pacPath @retryImportArguments
+    if ($LASTEXITCODE -ne 0) {
+        $remediation.retrySucceeded = $false
+        $remediation | ConvertTo-Json -Depth 6 | Set-Content -Path $remediationEvidencePath -Encoding UTF8
+        throw "pac solution import retry failed for '$($package.FullName)' after deleting '$SolutionName'."
+    }
+
+    $remediation.retrySucceeded = $true
+    $remediation | ConvertTo-Json -Depth 6 | Set-Content -Path $remediationEvidencePath -Encoding UTF8
 }
 
 & $pacPath --log-to-console solution publish --environment $DataverseUrl

@@ -7,6 +7,11 @@ on:
         description: SemVer release-candidate artifact version to deploy, for example 0.2.0 or 0.2.0-rc.1.
         required: true
         type: string
+      allow_destructive_replace:
+        description: Allow a one-time non-Prod solution delete and retry when plugin assembly identity drift blocks import.
+        required: false
+        default: false
+        type: boolean
       target_environment:
         description: Dataverse environment to deploy to.
         required: true
@@ -135,15 +140,18 @@ jobs:
         shell: pwsh
         env:
           ARTIFACT_ROOT: ${{ steps.artifact.outputs.path }}
+          ALLOW_DESTRUCTIVE_REPLACE: ${{ inputs.allow_destructive_replace }}
         run: |
           $packageRoot = Join-Path $env:ARTIFACT_ROOT 'dataverse'
+          $allowDestructiveReplace = [System.Convert]::ToBoolean($env:ALLOW_DESTRUCTIVE_REPLACE)
           .\eng\scripts\Invoke-DataverseDeployment.ps1 `
             -TargetEnvironment "${{ inputs.target_environment }}" `
             -PackageRoot $packageRoot `
             -DataverseUrl "${{ vars.DATAVERSE_URL }}" `
             -SolutionName "${{ vars.DBM_SOLUTION_NAME }}" `
             -ExpectedSolutionVersion "${{ steps.candidate.outputs.solutionVersion }}" `
-            -EvidenceRoot (Join-Path $PWD 'artifacts\deployment-evidence')
+            -EvidenceRoot (Join-Path $PWD 'artifacts\deployment-evidence') `
+            -AllowSolutionReplaceOnPluginIdentityChange:$allowDestructiveReplace
 
       - name: Run Dataverse smoke validation
         shell: pwsh
@@ -156,13 +164,17 @@ jobs:
             -EvidenceRoot (Join-Path $PWD 'artifacts\deployment-evidence')
 
       - name: Write deployment summary
+        if: ${{ always() }}
         shell: pwsh
         env:
           ARTIFACT_VERSION: ${{ inputs.artifact_version }}
+          ALLOW_DESTRUCTIVE_REPLACE: ${{ inputs.allow_destructive_replace }}
           TARGET_ENVIRONMENT: ${{ inputs.target_environment }}
         run: |
+          New-Item -ItemType Directory -Path (Join-Path $PWD 'artifacts\deployment-evidence') -Force | Out-Null
           $summary = [ordered]@{
             artifactVersion = $env:ARTIFACT_VERSION
+            allowDestructiveReplace = [System.Convert]::ToBoolean($env:ALLOW_DESTRUCTIVE_REPLACE)
             targetEnvironment = $env:TARGET_ENVIRONMENT
             gitRef = $env:GITHUB_REF
             workflowRunId = $env:GITHUB_RUN_ID
@@ -171,6 +183,7 @@ jobs:
           $summary | ConvertTo-Json -Depth 5 | Set-Content -Path (Join-Path $PWD 'artifacts\deployment-evidence\deployment-summary.json') -Encoding UTF8
 
       - name: Upload deployment evidence
+        if: ${{ always() }}
         uses: actions/upload-artifact@v4
         with:
           name: dataverse-deployment-${{ inputs.target_environment }}-${{ inputs.artifact_version }}
