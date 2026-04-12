@@ -45,8 +45,9 @@
     <AssemblyOriginatorKeyFile Condition="'$(DbmAssemblyKeyFile)' == '' and Exists('$(MSBuildProjectDirectory)\\key.snk')">key.snk</AssemblyOriginatorKeyFile>
   </PropertyGroup>
   <ItemGroup>
-    <Reference Include="Acornima, Version=1.1.0.0, Culture=neutral, PublicKeyToken=496b38436bb9edeb, processorArchitecture=MSIL">
-      <HintPath>..\packages\Acornima.1.1.0\lib\net462\Acornima.dll</HintPath>
+    <Reference Include="Acornima, Version=1.4.0.0, Culture=neutral, PublicKeyToken=496b38436bb9edeb">
+      <HintPath>..\packages\Acornima.1.4.0\lib\net462\Acornima.dll</HintPath>
+      <Private>True</Private>
     </Reference>
     <Reference Include="Jint, Version=4.1.0.0, Culture=neutral, PublicKeyToken=2e92ba9c8d81157f, processorArchitecture=MSIL">
       <HintPath>..\packages\Jint.4.1.0\lib\net462\Jint.dll</HintPath>
