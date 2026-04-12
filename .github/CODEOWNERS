@@ -1,0 +1,9 @@
+# DBM default ownership
+* @yagasoft
+
+# Governance and delivery controls
+.github/** @yagasoft
+docs/** @yagasoft
+power-platform/** @yagasoft
+azure/** @yagasoft
+eng/** @yagasoft

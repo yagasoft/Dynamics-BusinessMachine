@@ -1,0 +1,90 @@
+name: validate
+
+on:
+  pull_request:
+    branches:
+      - main
+      - release/**
+      - hotfix/**
+  push:
+    branches:
+      - main
+      - release/**
+      - hotfix/**
+  workflow_dispatch:
+
+concurrency:
+  group: validate-${{ github.ref }}
+  cancel-in-progress: true
+
+permissions:
+  contents: read
+
+jobs:
+  validate:
+    runs-on: windows-latest
+
+    steps:
+      - name: Checkout
+        uses: actions/checkout@v4
+
+      - name: Setup Node.js
+        uses: actions/setup-node@v4
+        with:
+          node-version: 20
+          cache: npm
+          cache-dependency-path: |
+            dbm-app/package-lock.json
+            dbm-script-lib/package-lock.json
+            dbm-js-vm/package-lock.json
+            dbm-web-resources/package-lock.json
+
+      - name: Setup MSBuild
+        uses: microsoft/setup-msbuild@v2
+
+      - name: Setup NuGet
+        uses: NuGet/setup-nuget@v2
+
+      - name: Resolve version
+        id: version
+        shell: pwsh
+        run: .\eng\scripts\Get-DbmVersion.ps1 -AsGitHubOutput
+
+      - name: Validate repo hygiene
+        shell: pwsh
+        run: .\eng\scripts\Test-RepoHygiene.ps1
+
+      - name: Validate docs
+        shell: pwsh
+        run: .\eng\scripts\Test-Docs.ps1
+
+      - name: Validate tracked environment baseline
+        shell: pwsh
+        run: .\eng\scripts\Test-EnvironmentBaseline.ps1 -OutputPath (Join-Path $PWD 'artifacts\validate\environment-baseline.json') | Out-Host
+
+      - name: Build Node assets
+        shell: pwsh
+        run: .\eng\scripts\Invoke-NodeBuild.ps1
+
+      - name: Restore legacy NuGet packages
+        shell: pwsh
+        run: .\eng\scripts\Restore-LegacyPackages.ps1
+
+      - name: Build legacy .NET solution
+        shell: pwsh
+        run: .\eng\scripts\Build-DotNet.ps1
+
+      - name: Smoke-stage Dataverse solution source
+        shell: pwsh
+        run: .\eng\scripts\New-DataverseSolutionSource.ps1 -OutputRoot (Join-Path $PWD 'artifacts\validate\power-platform') | Out-Host
+
+      - name: Validate Azure delivery contract
+        shell: pwsh
+        run: .\eng\scripts\Test-AzureContract.ps1
+
+      - name: Upload validation staging artifacts
+        uses: actions/upload-artifact@v4
+        with:
+          name: validate-${{ steps.version.outputs.semVer }}
+          path: artifacts/validate
+          if-no-files-found: error

@@ -1,0 +1,181 @@
+name: package-dataverse
+
+on:
+  pull_request:
+    branches:
+      - main
+      - release/**
+      - hotfix/**
+  push:
+    branches:
+      - main
+      - release/**
+      - hotfix/**
+  workflow_call:
+    inputs:
+      artifact_name:
+        description: Artifact name override.
+        required: false
+        type: string
+        default: ""
+      run_solution_check:
+        description: Run authenticated solution check after packaging.
+        required: false
+        type: boolean
+        default: true
+  workflow_dispatch:
+
+permissions:
+  contents: read
+  id-token: write
+
+jobs:
+  package-dataverse:
+    if: github.event_name != 'workflow_call'
+    runs-on: windows-latest
+
+    steps:
+      - name: Checkout
+        uses: actions/checkout@v4
+
+      - name: Setup Node.js
+        uses: actions/setup-node@v4
+        with:
+          node-version: 20
+          cache: npm
+          cache-dependency-path: |
+            dbm-app/package-lock.json
+            dbm-script-lib/package-lock.json
+            dbm-js-vm/package-lock.json
+            dbm-web-resources/package-lock.json
+
+      - name: Setup .NET for PAC CLI
+        uses: actions/setup-dotnet@v4
+        with:
+          dotnet-version: 10.0.x
+
+      - name: Setup MSBuild
+        uses: microsoft/setup-msbuild@v2
+
+      - name: Setup NuGet
+        uses: NuGet/setup-nuget@v2
+
+      - name: Install Power Platform CLI
+        uses: microsoft/powerplatform-actions/actions-install@v1
+        with:
+          pac-version-override: 2.4.1
+
+      - name: Resolve version
+        id: version
+        shell: pwsh
+        run: .\eng\scripts\Get-DbmVersion.ps1 -AsGitHubOutput
+
+      - name: Build Node assets
+        shell: pwsh
+        run: .\eng\scripts\Invoke-NodeBuild.ps1
+
+      - name: Restore legacy NuGet packages
+        shell: pwsh
+        run: .\eng\scripts\Restore-LegacyPackages.ps1
+
+      - name: Build legacy .NET solution
+        shell: pwsh
+        run: .\eng\scripts\Build-DotNet.ps1
+
+      - name: Package Dataverse artifacts
+        shell: pwsh
+        run: .\eng\scripts\Invoke-DataversePackaging.ps1 -RunSolutionCheck:$false -GenerateSettings:$true
+
+      - name: Upload Dataverse package artifacts
+        uses: actions/upload-artifact@v4
+        with:
+          name: dataverse-${{ steps.version.outputs.semVer }}
+          path: artifacts/dataverse
+          if-no-files-found: error
+
+  package-dataverse-call:
+    if: github.event_name == 'workflow_call'
+    runs-on: windows-latest
+    environment: Dev
+
+    steps:
+      - name: Checkout
+        uses: actions/checkout@v4
+
+      - name: Setup Node.js
+        uses: actions/setup-node@v4
+        with:
+          node-version: 20
+          cache: npm
+          cache-dependency-path: |
+            dbm-app/package-lock.json
+            dbm-script-lib/package-lock.json
+            dbm-js-vm/package-lock.json
+            dbm-web-resources/package-lock.json
+
+      - name: Setup .NET for PAC CLI
+        uses: actions/setup-dotnet@v4
+        with:
+          dotnet-version: 10.0.x
+
+      - name: Setup MSBuild
+        uses: microsoft/setup-msbuild@v2
+
+      - name: Setup NuGet
+        uses: NuGet/setup-nuget@v2
+
+      - name: Install Power Platform CLI
+        uses: microsoft/powerplatform-actions/actions-install@v1
+        with:
+          pac-version-override: 2.4.1
+
+      - name: Resolve version
+        id: version
+        shell: pwsh
+        run: .\eng\scripts\Get-DbmVersion.ps1 -AsGitHubOutput
+
+      - name: Build Node assets
+        shell: pwsh
+        run: .\eng\scripts\Invoke-NodeBuild.ps1
+
+      - name: Restore legacy NuGet packages
+        shell: pwsh
+        run: .\eng\scripts\Restore-LegacyPackages.ps1
+
+      - name: Build legacy .NET solution
+        shell: pwsh
+        run: .\eng\scripts\Build-DotNet.ps1
+
+      - name: Authenticate PAC with GitHub federation
+        shell: pwsh
+        run: |
+          pac auth clear | Out-Host
+          pac auth create --githubFederated --applicationId "${{ vars.AZURE_CLIENT_ID }}" --tenant "${{ vars.AZURE_TENANT_ID }}" --environment "${{ vars.DATAVERSE_URL }}"
+
+      - name: Package Dataverse artifacts
+        shell: pwsh
+        env:
+          DBM_RUN_SOLUTION_CHECK: ${{ inputs.run_solution_check }}
+        run: |
+          $runSolutionCheck = [System.Convert]::ToBoolean($env:DBM_RUN_SOLUTION_CHECK)
+          .\eng\scripts\Invoke-DataversePackaging.ps1 -RunSolutionCheck:$runSolutionCheck -GenerateSettings:$true
+
+      - name: Resolve artifact name
+        id: artifact
+        shell: pwsh
+        env:
+          INPUT_ARTIFACT_NAME: ${{ inputs.artifact_name }}
+        run: |
+          $artifactName = if ([string]::IsNullOrWhiteSpace($env:INPUT_ARTIFACT_NAME)) {
+            "dataverse-${{ steps.version.outputs.semVer }}"
+          } else {
+            $env:INPUT_ARTIFACT_NAME
+          }
+          Add-Content -Path $env:GITHUB_OUTPUT -Value "name=$artifactName"
+
+      - name: Upload Dataverse package artifacts
+        uses: actions/upload-artifact@v4
+        with:
+          name: ${{ steps.artifact.outputs.name }}
+          path: artifacts/dataverse
+          if-no-files-found: error

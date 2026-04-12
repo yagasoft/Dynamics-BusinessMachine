@@ -1,0 +1,26 @@
+<Project>
+  <Target Name="GenerateDbmVersionInfo" BeforeTargets="BeforeCompile">
+    <ItemGroup>
+      <DbmAssemblyAttributes Include="System.Reflection.AssemblyVersionAttribute">
+        <_Parameter1>$(DbmAssemblyVersion)</_Parameter1>
+      </DbmAssemblyAttributes>
+      <DbmAssemblyAttributes Include="System.Reflection.AssemblyFileVersionAttribute">
+        <_Parameter1>$(DbmFileVersion)</_Parameter1>
+      </DbmAssemblyAttributes>
+      <DbmAssemblyAttributes Include="System.Reflection.AssemblyInformationalVersionAttribute">
+        <_Parameter1>$(DbmInformationalVersion)</_Parameter1>
+      </DbmAssemblyAttributes>
+    </ItemGroup>
+
+    <WriteCodeFragment Language="C#"
+                       AssemblyAttributes="@(DbmAssemblyAttributes)"
+                       OutputFile="$(IntermediateOutputPath)DbmVersionInfo.g.cs" />
+  </Target>
+
+  <ItemGroup Condition="'$(MSBuildProjectExtension)' == '.csproj'">
+    <Compile Include="$(IntermediateOutputPath)DbmVersionInfo.g.cs"
+             AutoGen="True"
+             DesignTime="True"
+             Visible="False" />
+  </ItemGroup>
+</Project>

@@ -1,13 +1,21 @@
 # Runbooks
 
-This section holds operational templates and runbooks that support delivery, promotion, rollback, and support readiness.
+This section holds operational runbooks that support delivery, promotion, rollback, secret rotation, and local engineering bootstrap.
 
 ## Files
 
+- [local-bootstrap-and-build.md](local-bootstrap-and-build.md)
+- [dev-deployment-runbook.md](dev-deployment-runbook.md)
+- [uat-promotion-runbook.md](uat-promotion-runbook.md)
+- [prod-promotion-runbook.md](prod-promotion-runbook.md)
+- [rollback-runbook.md](rollback-runbook.md)
+- [secret-rotation-and-identity-recovery.md](secret-rotation-and-identity-recovery.md)
 - [deployment-promotion-runbook-template.md](deployment-promotion-runbook-template.md)
 - [rollback-runbook-template.md](rollback-runbook-template.md)
 
 ## Usage
 
-- Promote a template into a release-specific runbook when the process becomes real.
-- Keep runbooks explicit enough that another engineer can execute them safely.
+- Use the real runbooks for Release 0 operations.
+- Treat `azure/config/*.json` as the non-secret source of truth for environment target metadata.
+- Keep templates only for future runbook patterns that do not yet have an operational version.
+- Keep runbooks explicit enough that another engineer can execute them safely without making new release or security decisions.

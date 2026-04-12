@@ -535,3 +535,7 @@ XrmDefinitelyTyped
 bundle/
 /DbmSolution/ConsoleApp1
 /**/environments/environment.*.ts
+!dbm-app/src/environments/environment.dev.ts
+!dbm-app/src/environments/environment.prod.ts
+!docs/releases/
+!docs/releases/**

@@ -1,0 +1,17 @@
+<Project>
+  <PropertyGroup>
+    <DbmVersionPrefix Condition="'$(DbmVersionPrefix)' == ''">0.2.0</DbmVersionPrefix>
+    <DbmBuildNumber Condition="'$(DbmBuildNumber)' == ''">0</DbmBuildNumber>
+    <DbmVersionSuffix Condition="'$(DbmVersionSuffix)' == ''"></DbmVersionSuffix>
+    <SourceRevisionId Condition="'$(SourceRevisionId)' == ''">local</SourceRevisionId>
+
+    <DbmSemanticVersion Condition="'$(DbmSemanticVersion)' == '' and '$(DbmVersionSuffix)' != ''">$(DbmVersionPrefix)-$(DbmVersionSuffix)</DbmSemanticVersion>
+    <DbmSemanticVersion Condition="'$(DbmSemanticVersion)' == '' and '$(DbmVersionSuffix)' == ''">$(DbmVersionPrefix)</DbmSemanticVersion>
+    <DbmAssemblyVersion Condition="'$(DbmAssemblyVersion)' == ''">$(DbmVersionPrefix).$(DbmBuildNumber)</DbmAssemblyVersion>
+    <DbmFileVersion Condition="'$(DbmFileVersion)' == ''">$(DbmVersionPrefix).$(DbmBuildNumber)</DbmFileVersion>
+    <DbmInformationalVersion Condition="'$(DbmInformationalVersion)' == ''">$(DbmSemanticVersion)+$(SourceRevisionId)</DbmInformationalVersion>
+
+    <Deterministic>true</Deterministic>
+    <ContinuousIntegrationBuild Condition="'$(CI)' == 'true'">true</ContinuousIntegrationBuild>
+  </PropertyGroup>
+</Project>
