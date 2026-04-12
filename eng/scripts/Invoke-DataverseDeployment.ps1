@@ -78,6 +78,29 @@ function Get-DbmImportFailureMessage {
     return $message
 }
 
+function Invoke-DbmPacCommand {
+    param(
+        [Parameter(Mandatory = $true)]
+        [string]$PacPath,
+
+        [Parameter(Mandatory = $true)]
+        [string[]]$Arguments
+    )
+
+    $output = & $PacPath @Arguments 2>&1
+    $exitCode = $LASTEXITCODE
+
+    foreach ($line in @($output)) {
+        $line | Out-Host
+    }
+
+    return [pscustomobject]@{
+        ExitCode = $exitCode
+        Output = @($output)
+        OutputText = (@($output) | Out-String).Trim()
+    }
+}
+
 $packageType = if ($TargetEnvironment -eq 'Dev') { 'unmanaged' } else { 'managed' }
 $package = Get-ChildItem -Path $PackageRoot -Filter "*-$packageType.zip" -File |
     Sort-Object LastWriteTimeUtc -Descending |
@@ -104,7 +127,7 @@ $existingSolution = $beforeSolutions | Where-Object {
     $uniqueName -eq $SolutionName
 } | Select-Object -First 1
 $existingSolutionVersion = if ($existingSolution) {
-    Get-DbmPropertyValue -InputObject $existingSolution -Names @('Version', 'version', 'SolutionVersion', 'solutionversion')
+    Get-DbmPropertyValue -InputObject $existingSolution -Names @('Version', 'version', 'SolutionVersion', 'solutionversion', 'VersionNumber', 'versionnumber')
 }
 else {
     $null
@@ -142,9 +165,16 @@ $remediation = [ordered]@{
 }
 
 try {
-    & $pacPath @importArguments
-    if ($LASTEXITCODE -ne 0) {
-        throw "pac solution import failed for '$($package.FullName)'."
+    $importResult = Invoke-DbmPacCommand -PacPath $pacPath -Arguments $importArguments
+    if ($importResult.ExitCode -ne 0) {
+        $message = if ([string]::IsNullOrWhiteSpace($importResult.OutputText)) {
+            "pac solution import failed for '$($package.FullName)'."
+        }
+        else {
+            $importResult.OutputText
+        }
+
+        throw $message
     }
 }
 catch {
@@ -175,9 +205,12 @@ catch {
     $remediation.retryAttemptedUtc = (Get-Date).ToUniversalTime().ToString('o')
 
     $retryImportArguments = @($importArguments | Where-Object { $_ -ne '--stage-and-upgrade' })
-    & $pacPath @retryImportArguments
-    if ($LASTEXITCODE -ne 0) {
+    $retryImportResult = Invoke-DbmPacCommand -PacPath $pacPath -Arguments $retryImportArguments
+    if ($retryImportResult.ExitCode -ne 0) {
         $remediation.retrySucceeded = $false
+        if (-not [string]::IsNullOrWhiteSpace($retryImportResult.OutputText)) {
+            $remediation.retryImportFailure = $retryImportResult.OutputText
+        }
         $remediation | ConvertTo-Json -Depth 6 | Set-Content -Path $remediationEvidencePath -Encoding UTF8
         throw "pac solution import retry failed for '$($package.FullName)' after deleting '$SolutionName'."
     }
