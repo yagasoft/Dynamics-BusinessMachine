@@ -163,7 +163,15 @@ jobs:
           $secretValue = $null
           $secretSource = $null
 
-          $keyVaultSecret = az keyvault secret show --vault-name "${{ vars.AZURE_KEYVAULT_NAME }}" --name 'app-signing-key' --query value -o tsv 2>$null
+          $previousNativePreference = $PSNativeCommandUseErrorActionPreference
+          $PSNativeCommandUseErrorActionPreference = $false
+          try {
+            $keyVaultSecret = az keyvault secret show --vault-name "${{ vars.AZURE_KEYVAULT_NAME }}" --name 'app-signing-key' --query value -o tsv 2>$null
+          }
+          finally {
+            $PSNativeCommandUseErrorActionPreference = $previousNativePreference
+          }
+
           if ($LASTEXITCODE -eq 0 -and -not [string]::IsNullOrWhiteSpace($keyVaultSecret)) {
             $secretValue = $keyVaultSecret.Trim()
             $secretSource = "Azure Key Vault '${{ vars.AZURE_KEYVAULT_NAME }}'"
