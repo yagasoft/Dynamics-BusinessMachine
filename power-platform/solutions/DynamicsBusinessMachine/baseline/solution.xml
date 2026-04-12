@@ -127,14 +127,6 @@
         <Dependent type="80" schemaName="ys_YSCommon" displayName="Yagasoft" />
       </MissingDependency>
       <MissingDependency>
-        <Required type="1" schemaName="ys_dbmobject" displayName="DBM Object" solution="Active" />
-        <Dependent type="80" schemaName="ys_YSCommon" displayName="Yagasoft" />
-      </MissingDependency>
-      <MissingDependency>
-        <Required type="1" schemaName="ys_dbmscript" displayName="DBM Script" solution="Active" />
-        <Dependent type="80" schemaName="ys_YSCommon" displayName="Yagasoft" />
-      </MissingDependency>
-      <MissingDependency>
         <Required type="1" schemaName="ys_genericconfiguration" displayName="Common Configuration" solution="YSCommonSolution (5.3.1.4)" />
         <Dependent type="62" schemaName="ys_YSCommon" />
       </MissingDependency>
@@ -173,10 +165,6 @@
       <MissingDependency>
         <Required type="62" schemaName="ys_YSCommon" solution="YSCommonSolution (5.3.1.4)" />
         <Dependent type="62" schemaName="ys_YSCommon" />
-      </MissingDependency>
-      <MissingDependency>
-        <Required type="DVTableSearch" solution="Active" id="{fc5f26cf-59f1-ee11-904c-000d3ad7a5a5}" />
-        <Dependent type="DVTableSearchEntity" id="{ef96b1d5-cef8-ee11-a1fe-000d3ada8fb0}" />
       </MissingDependency>
     </MissingDependencies>
   </SolutionManifest>
