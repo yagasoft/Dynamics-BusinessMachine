@@ -1,7 +1,7 @@
 {
   "devDependencies": {
     "fs": "^0.0.1-security",
-    "glob": "^10.3.10",
+    "glob": "^13.0.6",
     "ts-loader": "^9.5.1",
     "types-webpack-bundler": "^1.0.2",
     "typescript": "^5.4.3",
