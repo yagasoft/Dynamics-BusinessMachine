@@ -37,6 +37,7 @@ jobs:
       id-token: write
     with:
       artifact_name: dataverse-${{ needs.version.outputs.semVer }}
+      release_mode: true
       run_solution_check: true
 
   azure-contract:
