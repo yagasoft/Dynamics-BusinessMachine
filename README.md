@@ -30,6 +30,18 @@ Below is the high-level roadmap planned for DBM.
 (click to enlarge)
 [<img src="https://blog.yagasoft.com/wp-content/uploads/dbm-roadmap.jpg" height="500">](https://blog.yagasoft.com/wp-content/uploads/dbm-roadmap.jpg)
 
+## Documentation
+
+Official tracked product documentation now lives under [docs/](docs/README.md).
+
+Start with:
+
+- [docs/architecture/product-principles.md](docs/architecture/product-principles.md)
+- [docs/architecture/current-state-baseline.md](docs/architecture/current-state-baseline.md)
+- [docs/roadmap/release-plan.md](docs/roadmap/release-plan.md)
+
+Local planning drafts, execution notes, and working material remain outside Git in `_codex/`.
+
 ## Usage
 
 First import the solution found at [Dynamics365-YsCommonSolution](https://github.com/yagasoft/Dynamics365-YsCommonSolution).
