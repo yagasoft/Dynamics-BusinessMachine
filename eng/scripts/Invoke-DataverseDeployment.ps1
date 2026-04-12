@@ -339,26 +339,35 @@ catch {
     $remediation.initialImportFailure = $failureMessage
 
     $isPluginIdentityChange = $failureMessage -like '*Plugin Assembly fully qualified name has changed*'
-    $canReplaceSolution = $AllowSolutionReplaceOnPluginIdentityChange -and $TargetEnvironment -ne 'Prod' -and $existingSolution
+    $canReplaceSolution = $AllowSolutionReplaceOnPluginIdentityChange -and $TargetEnvironment -ne 'Prod'
 
     if (-not ($isPluginIdentityChange -and $canReplaceSolution)) {
         $remediation | ConvertTo-Json -Depth 6 | Set-Content -Path $remediationEvidencePath -Encoding UTF8
         throw
     }
 
-    Write-Warning "Detected plugin assembly identity drift for '$SolutionName' in '$TargetEnvironment'. Deleting the existing solution and retrying import."
+    Write-Warning "Detected plugin assembly identity drift for '$SolutionName' in '$TargetEnvironment'. Cleaning stale registrations and retrying import."
     $remediation.usedSolutionReplaceOnPluginIdentityChange = $true
     $remediation.reason = 'plugin-assembly-identity-change'
-    $remediation.deleteAttemptedUtc = (Get-Date).ToUniversalTime().ToString('o')
+    $remediation.solutionFoundBeforeCleanup = [bool]$existingSolution
 
-    & $pacPath --log-to-console solution delete --environment $DataverseUrl --solution-name $SolutionName
-    if ($LASTEXITCODE -ne 0) {
-        $remediation.deleteSucceeded = $false
-        $remediation | ConvertTo-Json -Depth 6 | Set-Content -Path $remediationEvidencePath -Encoding UTF8
-        throw "pac solution delete failed while remediating plugin assembly identity drift for '$SolutionName'."
+    if ($existingSolution) {
+        $remediation.deleteAttemptedUtc = (Get-Date).ToUniversalTime().ToString('o')
+
+        & $pacPath --log-to-console solution delete --environment $DataverseUrl --solution-name $SolutionName
+        if ($LASTEXITCODE -ne 0) {
+            $remediation.deleteSucceeded = $false
+            $remediation | ConvertTo-Json -Depth 6 | Set-Content -Path $remediationEvidencePath -Encoding UTF8
+            throw "pac solution delete failed while remediating plugin assembly identity drift for '$SolutionName'."
+        }
+
+        $remediation.deleteSucceeded = $true
+    }
+    else {
+        Write-Warning "Solution '$SolutionName' is already absent in '$TargetEnvironment'. Skipping solution delete and cleaning stale plugin assembly registrations directly."
+        $remediation.deleteSkippedBecauseSolutionMissing = $true
     }
 
-    $remediation.deleteSucceeded = $true
     $remediation.retryAttemptedUtc = (Get-Date).ToUniversalTime().ToString('o')
 
     $dataverseAccessToken = Get-DbmDataverseAccessToken -DataverseUrl $DataverseUrl
