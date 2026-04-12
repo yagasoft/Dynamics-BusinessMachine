@@ -11,6 +11,7 @@ param(
     [string]$DataverseUrl,
 
     [string]$SolutionName = 'DynamicsBusinessMachine',
+    [string]$PluginAssemblyName = 'Yagasoft.Dbm.Plugins',
     [string]$ExpectedSolutionVersion,
     [string]$EvidenceRoot = (Join-Path $PackageRoot 'deployment-evidence'),
     [switch]$AllowSolutionReplaceOnPluginIdentityChange
@@ -101,6 +102,159 @@ function Invoke-DbmPacCommand {
     }
 }
 
+function Get-DbmDataverseApiBaseUrl {
+    param(
+        [Parameter(Mandatory = $true)]
+        [string]$DataverseUrl
+    )
+
+    return "$($DataverseUrl.TrimEnd('/'))/api/data/v9.2"
+}
+
+function Get-DbmDataverseAccessToken {
+    param(
+        [Parameter(Mandatory = $true)]
+        [string]$DataverseUrl
+    )
+
+    $az = Get-Command az -ErrorAction SilentlyContinue
+    if (-not $az) {
+        throw 'Azure CLI must be available to query Dataverse Web API during deployment remediation.'
+    }
+
+    $resource = $DataverseUrl.TrimEnd('/')
+    $token = & $az.Source account get-access-token --resource $resource --query accessToken -o tsv 2>$null
+    if ($LASTEXITCODE -ne 0 -or [string]::IsNullOrWhiteSpace($token)) {
+        throw "Failed to acquire a Dataverse access token for '$resource' from Azure CLI."
+    }
+
+    return $token.Trim()
+}
+
+function Invoke-DbmDataverseRequest {
+    param(
+        [Parameter(Mandatory = $true)]
+        [ValidateSet('GET', 'DELETE')]
+        [string]$Method,
+
+        [Parameter(Mandatory = $true)]
+        [string]$Uri,
+
+        [Parameter(Mandatory = $true)]
+        [string]$AccessToken
+    )
+
+    $headers = @{
+        Authorization  = "Bearer $AccessToken"
+        Accept         = 'application/json'
+        'OData-Version' = '4.0'
+        'OData-MaxVersion' = '4.0'
+    }
+
+    return Invoke-RestMethod -Method $Method -Uri $Uri -Headers $headers
+}
+
+function Get-DbmPluginAssemblyRegistrations {
+    param(
+        [Parameter(Mandatory = $true)]
+        [string]$DataverseUrl,
+
+        [Parameter(Mandatory = $true)]
+        [string]$PluginAssemblyName,
+
+        [Parameter(Mandatory = $true)]
+        [string]$AccessToken
+    )
+
+    $escapedPluginAssemblyName = $PluginAssemblyName.Replace("'", "''")
+    $filter = [System.Uri]::EscapeDataString("name eq '$escapedPluginAssemblyName'")
+    $uri = "$(Get-DbmDataverseApiBaseUrl -DataverseUrl $DataverseUrl)/pluginassemblies?`$select=pluginassemblyid,name,version,culture,publickeytoken&`$filter=$filter"
+    $response = Invoke-DbmDataverseRequest -Method GET -Uri $uri -AccessToken $AccessToken
+
+    return @($response.value)
+}
+
+function ConvertTo-DbmPluginAssemblyEvidence {
+    param(
+        [Parameter(Mandatory = $true)]
+        [object[]]$PluginAssemblies
+    )
+
+    return @(
+        $PluginAssemblies | ForEach-Object {
+            [ordered]@{
+                pluginassemblyid = Get-DbmPropertyValue -InputObject $_ -Names @('pluginassemblyid')
+                name = Get-DbmPropertyValue -InputObject $_ -Names @('name')
+                version = Get-DbmPropertyValue -InputObject $_ -Names @('version')
+                culture = Get-DbmPropertyValue -InputObject $_ -Names @('culture')
+                publickeytoken = Get-DbmPropertyValue -InputObject $_ -Names @('publickeytoken')
+            }
+        }
+    )
+}
+
+function Remove-DbmPluginAssemblyRegistrations {
+    param(
+        [Parameter(Mandatory = $true)]
+        [string]$DataverseUrl,
+
+        [Parameter(Mandatory = $true)]
+        [object[]]$PluginAssemblies,
+
+        [Parameter(Mandatory = $true)]
+        [string]$AccessToken
+    )
+
+    $baseUrl = Get-DbmDataverseApiBaseUrl -DataverseUrl $DataverseUrl
+    $removed = New-Object System.Collections.Generic.List[object]
+    $failures = New-Object System.Collections.Generic.List[object]
+
+    foreach ($pluginAssembly in $PluginAssemblies) {
+        $pluginAssemblyId = Get-DbmPropertyValue -InputObject $pluginAssembly -Names @('pluginassemblyid')
+        $pluginAssemblyName = Get-DbmPropertyValue -InputObject $pluginAssembly -Names @('name')
+        $pluginAssemblyVersion = Get-DbmPropertyValue -InputObject $pluginAssembly -Names @('version')
+        $pluginAssemblyToken = Get-DbmPropertyValue -InputObject $pluginAssembly -Names @('publickeytoken')
+
+        if ([string]::IsNullOrWhiteSpace($pluginAssemblyId)) {
+            $failures.Add([ordered]@{
+                name = $pluginAssemblyName
+                version = $pluginAssemblyVersion
+                publickeytoken = $pluginAssemblyToken
+                error = 'Missing pluginassemblyid.'
+            }) | Out-Null
+            continue
+        }
+
+        $normalizedPluginAssemblyId = ([guid]$pluginAssemblyId).Guid
+        $deleteUri = "$baseUrl/pluginassemblies($normalizedPluginAssemblyId)"
+
+        try {
+            Invoke-DbmDataverseRequest -Method DELETE -Uri $deleteUri -AccessToken $AccessToken | Out-Null
+            Write-Warning "Deleted stale plugin assembly registration '$pluginAssemblyName' version '$pluginAssemblyVersion' token '$pluginAssemblyToken'."
+            $removed.Add([ordered]@{
+                pluginassemblyid = $normalizedPluginAssemblyId
+                name = $pluginAssemblyName
+                version = $pluginAssemblyVersion
+                publickeytoken = $pluginAssemblyToken
+            }) | Out-Null
+        }
+        catch {
+            $failures.Add([ordered]@{
+                pluginassemblyid = $normalizedPluginAssemblyId
+                name = $pluginAssemblyName
+                version = $pluginAssemblyVersion
+                publickeytoken = $pluginAssemblyToken
+                error = $_.Exception.Message
+            }) | Out-Null
+        }
+    }
+
+    return [pscustomobject]@{
+        Removed = @($removed)
+        Failures = @($failures)
+    }
+}
+
 $packageType = if ($TargetEnvironment -eq 'Dev') { 'unmanaged' } else { 'managed' }
 $package = Get-ChildItem -Path $PackageRoot -Filter "*-$packageType.zip" -File |
     Sort-Object LastWriteTimeUtc -Descending |
@@ -113,6 +267,8 @@ if (-not $package) {
 $settingsFile = Join-Path $PackageRoot 'SampleDeploymentSettings.json'
 New-Item -ItemType Directory -Path $EvidenceRoot -Force | Out-Null
 $remediationEvidencePath = Join-Path $EvidenceRoot 'deployment-remediation.json'
+$pluginAssembliesBeforeCleanupPath = Join-Path $EvidenceRoot 'plugin-assemblies-before-cleanup.json'
+$pluginAssembliesAfterCleanupPath = Join-Path $EvidenceRoot 'plugin-assemblies-after-cleanup.json'
 
 $beforeListPath = Join-Path $EvidenceRoot 'solution-list-before.json'
 $beforeSolutionsRaw = & $pacPath solution list --environment $DataverseUrl --json
@@ -156,6 +312,7 @@ $remediation = [ordered]@{
     generatedUtc = (Get-Date).ToUniversalTime().ToString('o')
     targetEnvironment = $TargetEnvironment
     solutionName = $SolutionName
+    pluginAssemblyName = $PluginAssemblyName
     packagePath = $package.FullName
     existingSolutionVersion = $existingSolutionVersion
     allowSolutionReplaceOnPluginIdentityChange = [bool]$AllowSolutionReplaceOnPluginIdentityChange
@@ -203,6 +360,45 @@ catch {
 
     $remediation.deleteSucceeded = $true
     $remediation.retryAttemptedUtc = (Get-Date).ToUniversalTime().ToString('o')
+
+    $dataverseAccessToken = Get-DbmDataverseAccessToken -DataverseUrl $DataverseUrl
+    $pluginAssembliesBeforeCleanup = Get-DbmPluginAssemblyRegistrations -DataverseUrl $DataverseUrl -PluginAssemblyName $PluginAssemblyName -AccessToken $dataverseAccessToken
+    $pluginAssemblyEvidenceBeforeCleanup = ConvertTo-DbmPluginAssemblyEvidence -PluginAssemblies $pluginAssembliesBeforeCleanup
+    $pluginAssemblyEvidenceBeforeCleanup | ConvertTo-Json -Depth 6 | Set-Content -Path $pluginAssembliesBeforeCleanupPath -Encoding UTF8
+    $remediation.pluginAssembliesBeforeCleanup = $pluginAssemblyEvidenceBeforeCleanup
+
+    if ($pluginAssembliesBeforeCleanup.Count -gt 0) {
+        Write-Warning "Found $($pluginAssembliesBeforeCleanup.Count) stale plugin assembly registration(s) for '$PluginAssemblyName' after deleting '$SolutionName'. Removing them before retry."
+        $remediation.pluginAssemblyCleanupAttemptedUtc = (Get-Date).ToUniversalTime().ToString('o')
+
+        $pluginAssemblyCleanupResult = Remove-DbmPluginAssemblyRegistrations -DataverseUrl $DataverseUrl -PluginAssemblies $pluginAssembliesBeforeCleanup -AccessToken $dataverseAccessToken
+        $remediation.pluginAssembliesRemoved = @($pluginAssemblyCleanupResult.Removed)
+        $remediation.pluginAssemblyCleanupFailures = @($pluginAssemblyCleanupResult.Failures)
+
+        if ($pluginAssemblyCleanupResult.Failures.Count -gt 0) {
+            $remediation.pluginAssemblyCleanupSucceeded = $false
+            $remediation | ConvertTo-Json -Depth 6 | Set-Content -Path $remediationEvidencePath -Encoding UTF8
+            throw "Failed to remove one or more stale plugin assembly registrations for '$PluginAssemblyName'."
+        }
+    }
+    else {
+        $remediation.pluginAssembliesRemoved = @()
+        $remediation.pluginAssemblyCleanupFailures = @()
+        $remediation.pluginAssemblyCleanupSucceeded = $true
+    }
+
+    $pluginAssembliesAfterCleanup = Get-DbmPluginAssemblyRegistrations -DataverseUrl $DataverseUrl -PluginAssemblyName $PluginAssemblyName -AccessToken $dataverseAccessToken
+    $pluginAssemblyEvidenceAfterCleanup = ConvertTo-DbmPluginAssemblyEvidence -PluginAssemblies $pluginAssembliesAfterCleanup
+    $pluginAssemblyEvidenceAfterCleanup | ConvertTo-Json -Depth 6 | Set-Content -Path $pluginAssembliesAfterCleanupPath -Encoding UTF8
+    $remediation.pluginAssembliesAfterCleanup = $pluginAssemblyEvidenceAfterCleanup
+
+    if ($pluginAssembliesAfterCleanup.Count -gt 0) {
+        $remediation.pluginAssemblyCleanupSucceeded = $false
+        $remediation | ConvertTo-Json -Depth 6 | Set-Content -Path $remediationEvidencePath -Encoding UTF8
+        throw "Stale plugin assembly registrations remain for '$PluginAssemblyName' after cleanup."
+    }
+
+    $remediation.pluginAssemblyCleanupSucceeded = $true
 
     $retryImportArguments = @($importArguments | Where-Object { $_ -ne '--stage-and-upgrade' })
     $retryImportResult = Invoke-DbmPacCommand -PacPath $pacPath -Arguments $retryImportArguments
