@@ -15,9 +15,20 @@ param(
     [string]$EvidenceRoot = (Join-Path $PackageRoot 'deployment-evidence')
 )
 
-$pac = Get-Command pac -ErrorAction SilentlyContinue
-if (-not $pac) {
-    throw 'pac must be available on PATH to deploy Dataverse solution artifacts.'
+$pacPath = $null
+
+if (-not [string]::IsNullOrWhiteSpace($env:POWERPLATFORMTOOLS_PACPATH) -and (Test-Path $env:POWERPLATFORMTOOLS_PACPATH)) {
+    $pacPath = (Resolve-Path $env:POWERPLATFORMTOOLS_PACPATH).Path
+}
+else {
+    $pac = Get-Command pac -ErrorAction SilentlyContinue
+    if ($pac) {
+        $pacPath = $pac.Source
+    }
+}
+
+if (-not $pacPath) {
+    throw 'pac must be available on PATH or via POWERPLATFORMTOOLS_PACPATH to deploy Dataverse solution artifacts.'
 }
 
 function Get-DbmPropertyValue {
@@ -64,7 +75,7 @@ $settingsFile = Join-Path $PackageRoot 'SampleDeploymentSettings.json'
 New-Item -ItemType Directory -Path $EvidenceRoot -Force | Out-Null
 
 $beforeListPath = Join-Path $EvidenceRoot 'solution-list-before.json'
-$beforeSolutionsRaw = & $pac.Source solution list --environment $DataverseUrl --json
+$beforeSolutionsRaw = & $pacPath solution list --environment $DataverseUrl --json
 if ($LASTEXITCODE -ne 0) {
     throw 'pac solution list failed before import.'
 }
@@ -95,24 +106,24 @@ if ($TargetEnvironment -ne 'Dev' -and $existingSolution) {
     $importArguments += '--stage-and-upgrade'
 }
 
-& $pac.Source @importArguments
+& $pacPath @importArguments
 if ($LASTEXITCODE -ne 0) {
     throw "pac solution import failed for '$($package.FullName)'."
 }
 
-& $pac.Source --log-to-console solution publish --environment $DataverseUrl
+& $pacPath --log-to-console solution publish --environment $DataverseUrl
 if ($LASTEXITCODE -ne 0) {
     throw 'pac solution publish failed after import.'
 }
 
 $afterListPath = Join-Path $EvidenceRoot 'solution-list-after.json'
-$afterSolutionsRaw = & $pac.Source solution list --environment $DataverseUrl --json
+$afterSolutionsRaw = & $pacPath solution list --environment $DataverseUrl --json
 if ($LASTEXITCODE -ne 0) {
     throw 'pac solution list failed after import.'
 }
 
 Set-Content -Path $afterListPath -Value $afterSolutionsRaw -Encoding UTF8
-$onlineVersionRaw = & $pac.Source solution online-version --solution-name $SolutionName --environment $DataverseUrl
+$onlineVersionRaw = & $pacPath solution online-version --solution-name $SolutionName --environment $DataverseUrl
 if ($LASTEXITCODE -ne 0) {
     throw "pac solution online-version failed for '$SolutionName'."
 }
