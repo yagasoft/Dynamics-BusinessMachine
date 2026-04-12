@@ -68,10 +68,17 @@ jobs:
 
           foreach ($secretName in $secretNames) {
             $value = az keyvault secret show --vault-name "${{ vars.AZURE_KEYVAULT_NAME }}" --name $secretName --query value -o tsv 2>$null
-            if ($LASTEXITCODE -eq 0 -and -not [string]::IsNullOrWhiteSpace($value)) {
+            $secretExitCode = $LASTEXITCODE
+
+            if ($secretExitCode -eq 0 -and -not [string]::IsNullOrWhiteSpace($value)) {
               Write-Host "::add-mask::$value"
             }
+            elseif ($secretExitCode -ne 0) {
+              Write-Host "Optional secret '$secretName' was not available or could not be read from Key Vault '${{ vars.AZURE_KEYVAULT_NAME }}'; continuing."
+            }
           }
+
+          exit 0
 
       - name: Validate Azure delivery contract
         shell: pwsh
