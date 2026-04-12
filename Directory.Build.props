@@ -12,6 +12,7 @@
     <DbmInformationalVersion Condition="'$(DbmInformationalVersion)' == ''">$(DbmSemanticVersion)+$(SourceRevisionId)</DbmInformationalVersion>
 
     <Deterministic>true</Deterministic>
-    <ContinuousIntegrationBuild Condition="'$(CI)' == 'true'">true</ContinuousIntegrationBuild>
+    <!-- Legacy non-SDK projects in DbmSolution do not support CI source-root mapping reliably on hosted runners. -->
+    <ContinuousIntegrationBuild Condition="'$(CI)' == 'true' and '$(UsingMicrosoftNETSdk)' == 'true'">true</ContinuousIntegrationBuild>
   </PropertyGroup>
 </Project>
