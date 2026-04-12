@@ -61,6 +61,27 @@ function Convert-ToVersionOrNull {
     }
 }
 
+function Get-DbmSolutionVersionFromList {
+    param(
+        [Parameter(Mandatory = $true)]
+        [object[]]$Solutions,
+
+        [Parameter(Mandatory = $true)]
+        [string]$SolutionName
+    )
+
+    $solution = $Solutions | Where-Object {
+        $uniqueName = Get-DbmPropertyValue -InputObject $_ -Names @('UniqueName', 'uniquename', 'SolutionUniqueName', 'solutionuniquename')
+        $uniqueName -eq $SolutionName
+    } | Select-Object -First 1
+
+    if (-not $solution) {
+        return $null
+    }
+
+    return Get-DbmPropertyValue -InputObject $solution -Names @('Version', 'version', 'SolutionVersion', 'solutionversion', 'VersionNumber', 'versionnumber')
+}
+
 New-Item -ItemType Directory -Path $EvidenceRoot -Force | Out-Null
 
 $solutionsRaw = & $pacPath solution list --environment $DataverseUrl --json
@@ -78,12 +99,15 @@ if (-not $solution) {
     throw "Dataverse smoke validation could not find solution '$SolutionName' in '$DataverseUrl'."
 }
 
-$onlineVersionRaw = & $pacPath solution online-version --solution-name $SolutionName --environment $DataverseUrl
-if ($LASTEXITCODE -ne 0) {
-    throw "pac solution online-version failed for '$SolutionName'."
-}
+$onlineVersion = Get-DbmSolutionVersionFromList -Solutions $solutions -SolutionName $SolutionName
+if ([string]::IsNullOrWhiteSpace($onlineVersion)) {
+    $onlineVersionRaw = & $pacPath solution online-version --solution-name $SolutionName --environment $DataverseUrl
+    if ($LASTEXITCODE -ne 0) {
+        throw "Unable to resolve online version for '$SolutionName' from the solution list, and pac solution online-version also failed."
+    }
 
-$onlineVersion = ($onlineVersionRaw | Select-Object -Last 1).Trim()
+    $onlineVersion = ($onlineVersionRaw | Select-Object -Last 1).Trim()
+}
 if ([string]::IsNullOrWhiteSpace($onlineVersion)) {
     throw "Dataverse smoke validation returned an empty online version for '$SolutionName'."
 }
