@@ -253,6 +253,10 @@ Stable secret names across vaults:
 - `powerpages-client-secret`
 - `servicebus-connection-string`
 
+GitHub Environment bootstrap secret:
+
+- `APP_SIGNING_KEY_B64`
+
 Ownership rules:
 
 - platform owner provisions vaults, rotation policies, and federated identities
@@ -273,7 +277,8 @@ Packaging rules:
 - build outputs from `dbm-app`, `dbm-script-lib`, `dbm-js-vm`, and `dbm-web-resources` are assembled into a temporary solution source tree
 - the baseline solution metadata is version-stamped during packaging
 - plugin assembly metadata is refreshed from the built assembly before packaging
-- the release-candidate packaging lane reads `app-signing-key` from Azure Key Vault, enables legacy packaging, and promotes the signed merged plugin assembly onto `DbmSolution/Plugins/bin/Release/Yagasoft.Dbm.Plugins.dll`
+- the release-candidate packaging lane prefers `app-signing-key` from Azure Key Vault and may fall back to GitHub Environment secret `APP_SIGNING_KEY_B64` during bootstrap or recovery
+- the release-candidate packaging lane enables legacy packaging and promotes the signed merged plugin assembly onto `DbmSolution/Plugins/bin/Release/Yagasoft.Dbm.Plugins.dll`
 - `pac solution pack` produces unmanaged and managed ZIP artifacts
 - `pac solution create-settings` generates the deployment settings template
 - solution check is required in the release-candidate lane before a formal candidate is promoted

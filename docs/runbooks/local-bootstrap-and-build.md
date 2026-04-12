@@ -28,7 +28,7 @@ Provide the minimum reproducible local setup for engineers working on Release 0.
 - strong-name signing material is not kept in Git
 - legacy plugin merge/sign packaging is opt-in and requires `DbmAssemblyKeyFile`
 - legacy packaging side effects in `DynamicsDbmXtbPlugin` are disabled by default through `DbmEnableLegacyPackaging=false`
-- hosted release packaging hydrates `app-signing-key` from Azure Key Vault and promotes the signed merged plugin assembly onto the standard Dataverse package source path
+- hosted release packaging prefers `app-signing-key` from Azure Key Vault and may fall back to GitHub Environment secret `APP_SIGNING_KEY_B64` during bootstrap or recovery before promoting the signed merged plugin assembly onto the standard Dataverse package source path
 
 ## First-time bootstrap
 
