@@ -2,7 +2,7 @@
   "devDependencies": {
     "fs": "^0.0.1-security",
     "glob": "^10.3.10",
-    "ts-loader": "^9.5.1",
+    "ts-loader": "^9.5.7",
     "types-webpack-bundler": "^1.0.2",
     "typescript": "^5.4.3",
     "webpack": "^5.91.0",
