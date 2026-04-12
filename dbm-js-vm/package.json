@@ -2,7 +2,7 @@
 	"devDependencies": {
 		"@types/jquery": "^3.5.29",
 		"fs": "^0.0.1-security",
-		"glob": "^10.3.10",
+		"glob": "^13.0.6",
 		"ts-loader": "^9.5.1",
 		"typescript": "^5.4.3",
 		"webpack": "^5.91.0",
