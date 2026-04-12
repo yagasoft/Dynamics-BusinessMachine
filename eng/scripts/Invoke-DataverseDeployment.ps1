@@ -64,6 +64,27 @@ function Convert-ToVersionOrNull {
     }
 }
 
+function Get-DbmSolutionVersionFromList {
+    param(
+        [Parameter(Mandatory = $true)]
+        [object[]]$Solutions,
+
+        [Parameter(Mandatory = $true)]
+        [string]$SolutionName
+    )
+
+    $solution = $Solutions | Where-Object {
+        $uniqueName = Get-DbmPropertyValue -InputObject $_ -Names @('UniqueName', 'uniquename', 'SolutionUniqueName', 'solutionuniquename')
+        $uniqueName -eq $SolutionName
+    } | Select-Object -First 1
+
+    if (-not $solution) {
+        return $null
+    }
+
+    return Get-DbmPropertyValue -InputObject $solution -Names @('Version', 'version', 'SolutionVersion', 'solutionversion', 'VersionNumber', 'versionnumber')
+}
+
 function Get-DbmImportFailureMessage {
     param(
         [Parameter(Mandatory = $true)]
@@ -278,16 +299,7 @@ if ($LASTEXITCODE -ne 0) {
 
 Set-Content -Path $beforeListPath -Value $beforeSolutionsRaw -Encoding UTF8
 $beforeSolutions = $beforeSolutionsRaw | ConvertFrom-Json
-$existingSolution = $beforeSolutions | Where-Object {
-    $uniqueName = Get-DbmPropertyValue -InputObject $_ -Names @('UniqueName', 'uniquename', 'SolutionUniqueName', 'solutionuniquename')
-    $uniqueName -eq $SolutionName
-} | Select-Object -First 1
-$existingSolutionVersion = if ($existingSolution) {
-    Get-DbmPropertyValue -InputObject $existingSolution -Names @('Version', 'version', 'SolutionVersion', 'solutionversion', 'VersionNumber', 'versionnumber')
-}
-else {
-    $null
-}
+$existingSolutionVersion = Get-DbmSolutionVersionFromList -Solutions $beforeSolutions -SolutionName $SolutionName
 
 $importArguments = @(
     '--log-to-console',
@@ -436,12 +448,18 @@ if ($LASTEXITCODE -ne 0) {
 }
 
 Set-Content -Path $afterListPath -Value $afterSolutionsRaw -Encoding UTF8
-$onlineVersionRaw = & $pacPath solution online-version --solution-name $SolutionName --environment $DataverseUrl
-if ($LASTEXITCODE -ne 0) {
-    throw "pac solution online-version failed for '$SolutionName'."
+$afterSolutions = $afterSolutionsRaw | ConvertFrom-Json
+$onlineVersion = Get-DbmSolutionVersionFromList -Solutions $afterSolutions -SolutionName $SolutionName
+
+if ([string]::IsNullOrWhiteSpace($onlineVersion)) {
+    $onlineVersionRaw = & $pacPath solution online-version --solution-name $SolutionName --environment $DataverseUrl
+    if ($LASTEXITCODE -ne 0) {
+        throw "Unable to resolve deployed solution version for '$SolutionName' from post-import solution list, and pac solution online-version also failed."
+    }
+
+    $onlineVersion = ($onlineVersionRaw | Select-Object -Last 1).Trim()
 }
 
-$onlineVersion = ($onlineVersionRaw | Select-Object -Last 1).Trim()
 Set-Content -Path (Join-Path $EvidenceRoot 'online-version.txt') -Value $onlineVersion -Encoding UTF8
 
 if (-not [string]::IsNullOrWhiteSpace($ExpectedSolutionVersion)) {
