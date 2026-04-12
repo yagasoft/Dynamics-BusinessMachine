@@ -31,7 +31,7 @@ Each environment vault keeps the same secret names:
 - `powerpages-client-secret`
 - `servicebus-connection-string`
 
-GitHub Environment bootstrap secret:
+GitHub Actions bootstrap secret:
 
 - `APP_SIGNING_KEY_B64`
 
@@ -43,7 +43,7 @@ Vault names:
 
 `app-signing-key` stores the base64-encoded contents of the approved DBM strong-name `.snk` file used for release packaging.
 
-`APP_SIGNING_KEY_B64` is a GitHub Environment secret containing the same base64-encoded `.snk` payload. It exists only as a bootstrap or recovery fallback when the matching Key Vault secret has not yet been seeded or temporarily cannot be read.
+`APP_SIGNING_KEY_B64` is a GitHub Actions secret containing the same base64-encoded `.snk` payload. It exists only as a bootstrap or recovery fallback when the matching Key Vault secret has not yet been seeded or temporarily cannot be read.
 
 ## Ownership model
 
@@ -61,7 +61,7 @@ Vault names:
 2. Confirm the tracked baseline file for that environment is still correct.
 3. Confirm current GitHub Environment variables still point to the correct vault and identity.
 4. Create the new secret version in the matching Key Vault.
-5. If Key Vault seeding is temporarily blocked, set GitHub Environment secret `APP_SIGNING_KEY_B64` to the same payload as a documented fallback and remove the fallback once Key Vault is seeded.
+5. If Key Vault seeding is temporarily blocked, set GitHub Actions secret `APP_SIGNING_KEY_B64` to the same payload as a documented fallback and remove the fallback once Key Vault is seeded.
 6. Validate the consuming system outside production first when practical.
 7. Run the relevant deployment workflow against `Dev` or the lowest safe environment.
 8. If validation is successful, repeat the rotation for the next environment.

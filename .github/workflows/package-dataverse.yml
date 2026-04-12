@@ -171,12 +171,12 @@ jobs:
 
           if ([string]::IsNullOrWhiteSpace($secretValue) -and -not [string]::IsNullOrWhiteSpace($env:APP_SIGNING_KEY_B64)) {
             $secretValue = $env:APP_SIGNING_KEY_B64.Trim()
-            $secretSource = "GitHub Environment secret 'APP_SIGNING_KEY_B64'"
-            Write-Warning "Falling back to GitHub Environment signing key secret because Key Vault secret 'app-signing-key' was not available."
+            $secretSource = "GitHub Actions secret 'APP_SIGNING_KEY_B64'"
+            Write-Warning "Falling back to GitHub Actions signing key secret because Key Vault secret 'app-signing-key' was not available."
           }
 
           if ([string]::IsNullOrWhiteSpace($secretValue)) {
-            throw "Required release packaging signing key is unavailable. Seed Key Vault secret 'app-signing-key' in '${{ vars.AZURE_KEYVAULT_NAME }}' or set GitHub Environment secret 'APP_SIGNING_KEY_B64'."
+            throw "Required release packaging signing key is unavailable. Seed Key Vault secret 'app-signing-key' in '${{ vars.AZURE_KEYVAULT_NAME }}' or set GitHub Actions secret 'APP_SIGNING_KEY_B64'."
           }
 
           Write-Host "::add-mask::$secretValue"

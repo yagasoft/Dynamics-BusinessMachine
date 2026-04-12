@@ -35,6 +35,7 @@ jobs:
     permissions:
       contents: read
       id-token: write
+    secrets: inherit
     with:
       artifact_name: dataverse-${{ needs.version.outputs.semVer }}
       release_mode: true
