@@ -43,3 +43,19 @@ if ($resolvedAssemblyKeyFile) {
 if ($LASTEXITCODE -ne 0) {
     throw "MSBuild failed for $fullSolutionPath"
 }
+
+if ($EnableLegacyPackaging) {
+    $pluginAssemblyPath = Join-Path $RepoRoot 'DbmSolution\Plugins\bin\Release\Yagasoft.Dbm.Plugins.dll'
+    if (-not (Test-Path $pluginAssemblyPath)) {
+        throw "Legacy packaging completed without producing the expected plugin assembly: $pluginAssemblyPath"
+    }
+
+    $pluginAssemblyName = [System.Reflection.AssemblyName]::GetAssemblyName($pluginAssemblyPath)
+    $publicKeyToken = [System.BitConverter]::ToString($pluginAssemblyName.GetPublicKeyToken()).Replace('-', '').ToLowerInvariant()
+    if ([string]::IsNullOrWhiteSpace($publicKeyToken)) {
+        throw "Legacy packaging was requested, but '$pluginAssemblyPath' is still unsigned."
+    }
+
+    Write-Host "Signed Dataverse plugin assembly: $pluginAssemblyPath"
+    Write-Host "Plugin public key token: $publicKeyToken"
+}

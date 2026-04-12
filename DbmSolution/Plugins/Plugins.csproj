@@ -37,6 +37,7 @@
     <LangVersion>latest</LangVersion>
   </PropertyGroup>
   <PropertyGroup>
+    <DbmSignAssembly Condition="'$(DbmSignAssembly)' == '' and '$(DbmAssemblyKeyFile)' != ''">true</DbmSignAssembly>
     <DbmSignAssembly Condition="'$(DbmSignAssembly)' == '' and Exists('$(MSBuildProjectDirectory)\\key.snk')">true</DbmSignAssembly>
     <DbmSignAssembly Condition="'$(DbmSignAssembly)' == '' and !Exists('$(MSBuildProjectDirectory)\\key.snk')">false</DbmSignAssembly>
     <SignAssembly>$(DbmSignAssembly)</SignAssembly>

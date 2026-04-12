@@ -37,6 +37,8 @@ Vault names:
 - `yagasoft-dbm-uat-kv`
 - `yagasoft-dbm-prod-kv`
 
+`app-signing-key` stores the base64-encoded contents of the approved DBM strong-name `.snk` file used for release packaging.
+
 ## Ownership model
 
 - platform owner:
