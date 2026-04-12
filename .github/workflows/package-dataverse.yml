@@ -157,19 +157,36 @@ jobs:
       - name: Materialize app signing key
         id: signing
         shell: pwsh
+        env:
+          APP_SIGNING_KEY_B64: ${{ secrets.APP_SIGNING_KEY_B64 }}
         run: |
-          $secretValue = az keyvault secret show --vault-name "${{ vars.AZURE_KEYVAULT_NAME }}" --name 'app-signing-key' --query value -o tsv
-          if ($LASTEXITCODE -ne 0 -or [string]::IsNullOrWhiteSpace($secretValue)) {
-            throw "Required release packaging secret 'app-signing-key' is missing from Key Vault '${{ vars.AZURE_KEYVAULT_NAME }}'."
+          $secretValue = $null
+          $secretSource = $null
+
+          $keyVaultSecret = az keyvault secret show --vault-name "${{ vars.AZURE_KEYVAULT_NAME }}" --name 'app-signing-key' --query value -o tsv 2>$null
+          if ($LASTEXITCODE -eq 0 -and -not [string]::IsNullOrWhiteSpace($keyVaultSecret)) {
+            $secretValue = $keyVaultSecret.Trim()
+            $secretSource = "Azure Key Vault '${{ vars.AZURE_KEYVAULT_NAME }}'"
+          }
+
+          if ([string]::IsNullOrWhiteSpace($secretValue) -and -not [string]::IsNullOrWhiteSpace($env:APP_SIGNING_KEY_B64)) {
+            $secretValue = $env:APP_SIGNING_KEY_B64.Trim()
+            $secretSource = "GitHub Environment secret 'APP_SIGNING_KEY_B64'"
+            Write-Warning "Falling back to GitHub Environment signing key secret because Key Vault secret 'app-signing-key' was not available."
+          }
+
+          if ([string]::IsNullOrWhiteSpace($secretValue)) {
+            throw "Required release packaging signing key is unavailable. Seed Key Vault secret 'app-signing-key' in '${{ vars.AZURE_KEYVAULT_NAME }}' or set GitHub Environment secret 'APP_SIGNING_KEY_B64'."
           }
 
           Write-Host "::add-mask::$secretValue"
+          Write-Host "Using signing key from $secretSource."
 
           try {
-            $keyBytes = [System.Convert]::FromBase64String($secretValue.Trim())
+            $keyBytes = [System.Convert]::FromBase64String($secretValue)
           }
           catch {
-            throw "Key Vault secret 'app-signing-key' must contain a base64-encoded SNK payload."
+            throw "$secretSource must contain a base64-encoded SNK payload."
           }
 
           $keyPath = Join-Path $env:RUNNER_TEMP 'dbm-app-signing-key.snk'
