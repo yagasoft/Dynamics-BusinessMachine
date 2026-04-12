@@ -49,4 +49,4 @@ if (Test-Path $extractRoot) {
 
 Expand-Archive -Path $archivePath -DestinationPath $extractRoot -Force
 
-Write-Host $extractRoot
+Write-Output $extractRoot
