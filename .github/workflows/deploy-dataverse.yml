@@ -60,6 +60,7 @@ jobs:
             -DataverseUrl "${{ vars.DATAVERSE_URL }}" `
             -DataverseEnvironmentId "${{ vars.DATAVERSE_ENVIRONMENT_ID }}" `
             -AzureClientId "${{ vars.AZURE_CLIENT_ID }}" `
+            -AzureTenantId "${{ vars.AZURE_TENANT_ID }}" `
             -AzureKeyVaultName "${{ vars.AZURE_KEYVAULT_NAME }}" `
             -AzureResourceGroup "${{ vars.AZURE_RESOURCE_GROUP }}" `
             -DbmSolutionName "${{ vars.DBM_SOLUTION_NAME }}" `
@@ -146,7 +147,6 @@ jobs:
             (Get-Command pac -ErrorAction Stop).Source
           }
 
-          & $pacPath auth clear | Out-Host
           & $pacPath auth create --githubFederated --applicationId "${{ vars.AZURE_CLIENT_ID }}" --tenant "${{ vars.AZURE_TENANT_ID }}" --environment "${{ vars.DATAVERSE_URL }}"
 
       - name: Deploy Dataverse solution

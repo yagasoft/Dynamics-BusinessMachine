@@ -5,6 +5,7 @@ This section holds operational runbooks that support delivery, promotion, rollba
 ## Files
 
 - [local-bootstrap-and-build.md](local-bootstrap-and-build.md)
+- [dev-rapid-deploy.md](dev-rapid-deploy.md)
 - [dev-deployment-runbook.md](dev-deployment-runbook.md)
 - [uat-promotion-runbook.md](uat-promotion-runbook.md)
 - [prod-promotion-runbook.md](prod-promotion-runbook.md)
@@ -16,6 +17,7 @@ This section holds operational runbooks that support delivery, promotion, rollba
 ## Usage
 
 - Use the real runbooks for Release 0 operations.
+- Use [dev-rapid-deploy.md](dev-rapid-deploy.md) only for local `Dev` inner-loop validation.
 - Treat `azure/config/*.json` as the non-secret source of truth for environment target metadata.
 - Keep templates only for future runbook patterns that do not yet have an operational version.
 - Keep runbooks explicit enough that another engineer can execute them safely without making new release or security decisions.

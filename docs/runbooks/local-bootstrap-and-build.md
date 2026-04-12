@@ -58,6 +58,34 @@ To produce Dataverse artifacts locally:
 
 Use `-RunSolutionCheck:$true` only when PAC auth has already been established and the environment is meant to support solution checking.
 
+To package only the unmanaged artifact for local `Dev` rapid deploy:
+
+```powershell
+.\eng\scripts\Invoke-DataversePackaging.ps1 -PackageSet UnmanagedOnly -RunSolutionCheck:$false -GenerateSettings:$false
+```
+
+To run the local `Dev` rapid deploy path:
+
+```powershell
+.\eng\scripts\Invoke-DevRapidDeploy.ps1
+```
+
+Use `-Components` to force a scoped local build and `-InteractiveLogin` if PAC needs a local interactive sign-in for `Dev`.
+
+Preferred one-time local PAC profile setup:
+
+```powershell
+pac auth create --name dbm-dev  --deviceCode --environment https://ldv-rd-min.crm4.dynamics.com/
+pac auth create --name dbm-uat  --deviceCode --environment https://ldv-rd-min-3.crm4.dynamics.com/
+pac auth create --name dbm-prod --deviceCode --environment https://ldv-rd.crm4.dynamics.com/
+```
+
+Local Dataverse scripts prefer these profile names automatically outside GitHub Actions:
+
+- `dbm-dev`
+- `dbm-uat`
+- `dbm-prod`
+
 To opt into legacy plugin merge/sign packaging locally:
 
 ```powershell
@@ -80,3 +108,4 @@ Legacy XrmToolBox package outputs are written to `DbmSolution\artifacts\legacy-p
 - if .NET build fails, confirm `msbuild` is available on `PATH`
 - if npm audit fails, review `artifacts\security\npm-audit\summary.md` and confirm every exception in `eng/security/npm-audit-exceptions.json` is still valid
 - if PAC commands fail, confirm .NET 10 is installed before installing PAC CLI 2.x
+- if Dev rapid deploy reports conflicting deployable changes, isolate the working tree or widen the `-Components` selection before re-running

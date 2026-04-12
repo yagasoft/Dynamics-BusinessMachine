@@ -1,0 +1,86 @@
+{
+  "schemaVersion": "1.0",
+  "components": [
+    {
+      "name": "Plugins",
+      "description": "Legacy .NET plugin assembly changes.",
+      "sourcePatterns": [
+        "DbmSolution/*"
+      ],
+      "nodeProjects": [],
+      "requiresDotNetBuild": true,
+      "deployable": true
+    },
+    {
+      "name": "DbmApp",
+      "description": "Angular editor application web resources.",
+      "sourcePatterns": [
+        "dbm-app/*"
+      ],
+      "nodeProjects": [
+        "dbm-app"
+      ],
+      "requiresDotNetBuild": false,
+      "deployable": true
+    },
+    {
+      "name": "ScriptLib",
+      "description": "Shared DBM script library web resource.",
+      "sourcePatterns": [
+        "dbm-script-lib/*"
+      ],
+      "nodeProjects": [
+        "dbm-script-lib"
+      ],
+      "requiresDotNetBuild": false,
+      "deployable": true
+    },
+    {
+      "name": "JsVm",
+      "description": "Standalone JavaScript VM library.",
+      "sourcePatterns": [
+        "dbm-js-vm/*"
+      ],
+      "nodeProjects": [
+        "dbm-js-vm"
+      ],
+      "requiresDotNetBuild": false,
+      "deployable": false,
+      "notes": "This library is not currently staged into Dataverse artifacts."
+    },
+    {
+      "name": "WebResources",
+      "description": "Compiled raw web resources.",
+      "sourcePatterns": [
+        "dbm-web-resources/*"
+      ],
+      "nodeProjects": [
+        "dbm-web-resources"
+      ],
+      "requiresDotNetBuild": false,
+      "deployable": true
+    },
+    {
+      "name": "SolutionAssets",
+      "description": "Files that affect Dataverse solution staging or package metadata.",
+      "sourcePatterns": [
+        "power-platform/*",
+        "eng/version.json",
+        "eng/scripts/Build-DotNet.ps1",
+        "eng/scripts/Restore-LegacyPackages.ps1",
+        "eng/scripts/Invoke-NodeBuild.ps1",
+        "eng/scripts/New-DataverseSolutionSource.ps1",
+        "eng/scripts/Invoke-DataversePackaging.ps1"
+      ],
+      "nodeProjects": [
+        "dbm-app",
+        "dbm-script-lib",
+        "dbm-js-vm",
+        "dbm-web-resources"
+      ],
+      "requiresDotNetBuild": true,
+      "deployable": true,
+      "forceFullBuild": true
+    }
+  ]
+}

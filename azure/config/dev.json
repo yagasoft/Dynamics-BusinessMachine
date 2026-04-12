@@ -4,6 +4,7 @@
   "dataverseUrl": "https://ldv-rd-min.crm4.dynamics.com/",
   "dataverseEnvironmentId": "29ab0789-9fe1-e82c-ac57-537037942650",
   "azureClientId": "cadf75c9-c496-4538-8fa2-989757a2dd83",
+  "azureTenantId": "b084031b-cdb1-422e-a76a-a6510cdb17f8",
   "resourceGroup": "rg-yagasoft-dbm-dev",
   "keyVaultName": "yagasoft-dbm-dev-kv"
 }
