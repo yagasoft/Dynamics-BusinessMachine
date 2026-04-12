@@ -206,8 +206,8 @@ function Remove-DbmPluginAssemblyRegistrations {
     )
 
     $baseUrl = Get-DbmDataverseApiBaseUrl -DataverseUrl $DataverseUrl
-    $removed = New-Object System.Collections.Generic.List[object]
-    $failures = New-Object System.Collections.Generic.List[object]
+    $removed = @()
+    $failures = @()
 
     foreach ($pluginAssembly in $PluginAssemblies) {
         $pluginAssemblyId = Get-DbmPropertyValue -InputObject $pluginAssembly -Names @('pluginassemblyid')
@@ -216,12 +216,12 @@ function Remove-DbmPluginAssemblyRegistrations {
         $pluginAssemblyToken = Get-DbmPropertyValue -InputObject $pluginAssembly -Names @('publickeytoken')
 
         if ([string]::IsNullOrWhiteSpace($pluginAssemblyId)) {
-            $failures.Add([ordered]@{
+            $failures += [pscustomobject]@{
                 name = $pluginAssemblyName
                 version = $pluginAssemblyVersion
                 publickeytoken = $pluginAssemblyToken
                 error = 'Missing pluginassemblyid.'
-            }) | Out-Null
+            }
             continue
         }
 
@@ -231,21 +231,21 @@ function Remove-DbmPluginAssemblyRegistrations {
         try {
             Invoke-DbmDataverseRequest -Method DELETE -Uri $deleteUri -AccessToken $AccessToken | Out-Null
             Write-Warning "Deleted stale plugin assembly registration '$pluginAssemblyName' version '$pluginAssemblyVersion' token '$pluginAssemblyToken'."
-            $removed.Add([ordered]@{
+            $removed += [pscustomobject]@{
                 pluginassemblyid = $normalizedPluginAssemblyId
                 name = $pluginAssemblyName
                 version = $pluginAssemblyVersion
                 publickeytoken = $pluginAssemblyToken
-            }) | Out-Null
+            }
         }
         catch {
-            $failures.Add([ordered]@{
+            $failures += [pscustomobject]@{
                 pluginassemblyid = $normalizedPluginAssemblyId
                 name = $pluginAssemblyName
                 version = $pluginAssemblyVersion
                 publickeytoken = $pluginAssemblyToken
                 error = $_.Exception.Message
-            }) | Out-Null
+            }
         }
     }
 
