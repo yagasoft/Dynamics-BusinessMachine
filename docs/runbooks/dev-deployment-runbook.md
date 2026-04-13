@@ -18,7 +18,7 @@ For local inner-loop validation without release evidence, use [dev-rapid-deploy.
 
 ## Required GitHub Environment variables
 
-GitHub Environment variables must match [`../../azure/config/dev.json`](../../azure/config/dev.json), and `DBM_SOLUTION_NAME` must match `eng/version.json`.
+GitHub Environment variables must match [`../../azure/config/dev.json`](../../azure/config/dev.json), and `DBM_SOLUTION_NAME` must match the core solution name in `eng/version.json`.
 
 - `DATAVERSE_URL`
 - `DATAVERSE_ENVIRONMENT_ID`
@@ -48,7 +48,10 @@ GitHub Environment variables must match [`../../azure/config/dev.json`](../../az
 ## Expected technical behavior
 
 - Dataverse auth uses `pac auth create --githubFederated`
-- the `Dev` deployment imports the unmanaged package only
+- the `Dev` deployment imports unmanaged packages only
+- import order is:
+  1. `DynamicsBusinessMachine`
+  2. `DynamicsBusinessMachineGeneratedMetadata`
 - import uses `--publish-changes` and `--skip-lower-version`
 - deployment evidence is uploaded by the workflow
 
@@ -56,8 +59,8 @@ GitHub Environment variables must match [`../../azure/config/dev.json`](../../az
 
 - Dataverse deployment workflow completed successfully
 - `environment-baseline.json` confirms workflow variables matched the tracked baseline
-- `online-version.txt` in deployment evidence matches or exceeds the expected solution version
-- `smoke-test-results.json` shows automated solution and version checks passed
+- `core/online-version.txt` and `generated-metadata/online-version.txt` in deployment evidence match or exceed the expected solution version
+- `smoke-test-results.json` shows automated checks passed for both solutions and generated metadata drift validation
 - `smoke-test-summary.md` is retained with any manual follow-up notes
 - basic designer entry flow and one representative runtime action load successfully
 

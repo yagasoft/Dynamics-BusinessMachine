@@ -64,6 +64,9 @@ Current component names:
 - `ScriptLib`
 - `JsVm`
 - `WebResources`
+- `DbmContract`
+- `DbmDesignerCore`
+- `DbmDataverseSynthesis`
 - `SolutionAssets`
 
 Rules:
@@ -77,8 +80,8 @@ Rules:
 
 - validates the tracked `Dev` environment baseline
 - builds only the required local component set
-- packages an unmanaged-only Dataverse artifact from the current working tree
-- imports that unmanaged package into `Dev`
+- packages an unmanaged-only Dataverse artifact set from the current working tree
+- imports `DynamicsBusinessMachine` and then `DynamicsBusinessMachineGeneratedMetadata` into `Dev`
 - runs the normal Dataverse smoke validation locally
 - writes evidence under `artifacts/dev-rapid-deploy/<timestamp>/`
 

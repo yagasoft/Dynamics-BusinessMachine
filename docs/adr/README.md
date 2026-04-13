@@ -22,3 +22,4 @@ ADRs capture durable product and delivery decisions that are important enough to
 - [0007-github-oidc-key-vault-and-federated-delivery.md](0007-github-oidc-key-vault-and-federated-delivery.md)
 - [0008-canonical-contract-authority-and-format.md](0008-canonical-contract-authority-and-format.md)
 - [0009-dbm-process-ui-portal-state-projection-and-generated-dataverse-artifacts.md](0009-dbm-process-ui-portal-state-projection-and-generated-dataverse-artifacts.md)
+- [0010-dataverse-metadata-synthesis-and-layered-generated-solution-strategy.md](0010-dataverse-metadata-synthesis-and-layered-generated-solution-strategy.md)

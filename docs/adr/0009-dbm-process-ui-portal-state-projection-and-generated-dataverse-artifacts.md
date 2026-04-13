@@ -36,7 +36,8 @@ The product now needs to lock:
 ## Consequences
 
 - `R1.2.1` must align the executable canonical contract, schema, fixtures, and example model to the expanded process semantics.
-- `R1.2.3` must own generated Dataverse authoring for forms and columns.
+- `R1.2.3a` must own generated Dataverse tables, columns, relationships, and synthesis layering.
+- `R1.2.3b` must own generated Dataverse forms and same-table form-state behavior.
 - `R1.3` must deliver the first DBM-owned model-driven runtime experience rather than delegating the business-process experience to native BPF.
 - `R2` delivers the live Power Pages runtime on top of the portal projection semantics defined in `R1`.
 

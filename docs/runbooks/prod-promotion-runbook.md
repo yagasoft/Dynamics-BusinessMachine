@@ -17,7 +17,7 @@ Promote a DBM release into `Prod` using a tagged formal release or an approved p
 
 ## Required GitHub Environment variables
 
-GitHub Environment variables must match [`../../azure/config/prod.json`](../../azure/config/prod.json), and `DBM_SOLUTION_NAME` must match `eng/version.json`.
+GitHub Environment variables must match [`../../azure/config/prod.json`](../../azure/config/prod.json), and `DBM_SOLUTION_NAME` must match the core solution name in `eng/version.json`.
 
 - `DATAVERSE_URL`
 - `DATAVERSE_ENVIRONMENT_ID`
@@ -43,7 +43,9 @@ GitHub Environment variables must match [`../../azure/config/prod.json`](../../a
 
 ## Expected technical behavior
 
-- the managed solution package is imported
+- managed solution packages are imported in order:
+  1. `DynamicsBusinessMachine`
+  2. `DynamicsBusinessMachineGeneratedMetadata`
 - the pre-promotion backup reference is retained with the promotion record
 - `--publish-changes` and `--skip-lower-version` are always used
 - `--stage-and-upgrade` is used when the solution already exists in `Prod`
@@ -53,8 +55,8 @@ GitHub Environment variables must match [`../../azure/config/prod.json`](../../a
 
 - deployment completed without import failure
 - `environment-baseline.json` confirms workflow variables matched the tracked baseline
-- production online version matches or exceeds the tagged candidate version
-- `smoke-test-results.json` shows automated solution and version checks passed
+- the core and generated-metadata solution online versions match or exceed the tagged candidate version
+- `smoke-test-results.json` shows automated checks passed for both solutions and generated metadata drift validation
 - `smoke-test-summary.md` is retained with any manual follow-up notes
 - designer entry flow and one critical runtime scenario work
 - monitoring and logs show no immediate regression

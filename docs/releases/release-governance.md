@@ -114,8 +114,9 @@ Required repository workflows:
   - docs validation
   - tracked environment-baseline validation
   - Node asset builds
+  - DBM Dataverse synthesis validation
   - legacy .NET restore and build
-  - Dataverse source staging smoke test
+  - core and generated Dataverse source staging smoke tests
   - Azure delivery-contract validation
 - `security`
   - does not run on feature-branch pushes or protected-branch PRs
@@ -221,7 +222,7 @@ These files are the repo-tracked source of truth for target metadata:
 Alignment rules:
 
 - each GitHub Environment must match the corresponding file under `azure/config/`
-- `DBM_SOLUTION_NAME` must match `eng/version.json`
+- `DBM_SOLUTION_NAME` must match the core solution name in `eng/version.json`
 - the repo-tracked script `eng/scripts/Test-EnvironmentBaseline.ps1` enforces this in validation and deployment workflows
 
 Environment branch restrictions must be enforced both in GitHub Environment settings and by the repo-tracked script `eng/scripts/Test-DeploymentRefPolicy.ps1`.
@@ -304,6 +305,8 @@ Formal Dataverse delivery does not use `dvdt.linker.xml` as the release mechanis
 Tracked source of truth:
 
 - `power-platform/solutions/DynamicsBusinessMachine/baseline/`
+- `power-platform/solutions/DynamicsBusinessMachineGeneratedMetadata/template/`
+- `power-platform/solutions/DynamicsBusinessMachineGeneratedMetadata/source/`
 - `power-platform/manifests/webresources.yml`
 
 Packaging rules:
@@ -311,17 +314,20 @@ Packaging rules:
 - build outputs from `dbm-app`, `dbm-script-lib`, `dbm-js-vm`, and `dbm-web-resources` are assembled into a temporary solution source tree
 - the baseline solution metadata is version-stamped during packaging
 - plugin assembly metadata is refreshed from the built assembly before packaging
+- generated business metadata is emitted from the canonical DBM model into `DynamicsBusinessMachineGeneratedMetadata`
 - the release-candidate packaging lane prefers `app-signing-key` from Azure Key Vault and may fall back to GitHub Actions secret `APP_SIGNING_KEY_B64` during bootstrap or recovery
 - the release-candidate packaging lane enables legacy packaging and promotes the signed merged plugin assembly onto `DbmSolution/Plugins/bin/Release/Yagasoft.Dbm.Plugins.dll`
-- `pac solution pack` produces unmanaged and managed ZIP artifacts
-- `pac solution create-settings` generates the deployment settings template
+- `pac solution pack` produces unmanaged and managed ZIP artifacts for both the core and generated-metadata solutions
+- `pac solution create-settings` generates solution-specific deployment settings templates
 - solution check is required in the release-candidate lane before a formal candidate is promoted
 
 Promotion rules:
 
-- `Dev` imports unmanaged only
-- `UAT` imports managed only
-- `Prod` imports managed only
+- `Dev` may use direct Dataverse metadata apply only as an authoring proof path through the tracked synthesis scripts
+- formal `Dev` promotions import unmanaged packages only
+- `UAT` imports managed packages only
+- `Prod` imports managed packages only
+- all package-driven promotions import `DynamicsBusinessMachine` first and `DynamicsBusinessMachineGeneratedMetadata` second
 - formal `UAT` and `Prod` promotions must have a pre-promotion Dataverse backup or restore point recorded before import starts
 - the preferred automation path for that backup record is `eng/scripts/Invoke-DataverseBackup.ps1`
 - all imports must use `--publish-changes`
@@ -392,6 +398,7 @@ The release train does not move forward unless the following are true:
 - protected branches cannot merge without review and required checks
 - version stamping is consistent across tags, Dataverse packages, and .NET metadata
 - Dataverse packaging generates both managed and unmanaged artifacts plus deployment settings
+- Dataverse packaging and deployment handle the ordered core-plus-generated solution set
 - Dataverse deployment uses GitHub federation and does not depend on a stored Dataverse client secret
 - Azure deployment uses OIDC and validates successfully even when there are no deployable Azure workloads yet
 - secret scanning, dependency review, npm audit, and CodeQL are release-blocking, with npm exceptions allowed only through the tracked expiry-aware manifest

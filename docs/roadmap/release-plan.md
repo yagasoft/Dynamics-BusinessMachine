@@ -72,7 +72,8 @@ Feature set and deliverables:
 - stage + step + form-state semantics
 - reusable condition component
 - advanced designer core and host adapters
-- generated Dataverse columns and model-driven forms
+- hybrid Dataverse synthesis pipeline for direct `Dev` authoring proof plus packaged promotion
+- generated Dataverse columns, relationships, and model-driven forms
 - first real DBM-owned model-driven process runtime
 - backend execution engine v1
 - one approval/request reference solution
@@ -82,7 +83,8 @@ Stages:
 - `R1.1` Canonical model and runtime contract
 - `R1.2.1` Process semantics and contract alignment
 - `R1.2.2` Advanced designer UX foundation
-- `R1.2.3` Generated Dataverse authoring
+- `R1.2.3a` Dataverse synthesis foundation
+- `R1.2.3b` Generated forms and behavior synthesis
 - `R1.2.4` Host adapters and portability completion
 - `R1.3` Execution engine and model-driven runtime
 - `R1.4` Reference solution and release hardening

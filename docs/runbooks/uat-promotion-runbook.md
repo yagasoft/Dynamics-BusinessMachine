@@ -17,7 +17,7 @@ Promote an approved DBM release candidate into `UAT` using managed Dataverse art
 
 ## Required GitHub Environment variables
 
-GitHub Environment variables must match [`../../azure/config/uat.json`](../../azure/config/uat.json), and `DBM_SOLUTION_NAME` must match `eng/version.json`.
+GitHub Environment variables must match [`../../azure/config/uat.json`](../../azure/config/uat.json), and `DBM_SOLUTION_NAME` must match the core solution name in `eng/version.json`.
 
 - `DATAVERSE_URL`
 - `DATAVERSE_ENVIRONMENT_ID`
@@ -54,7 +54,9 @@ When `UAT` is being used as formal R0 close-out evidence:
 
 ## Expected technical behavior
 
-- the managed solution package is imported
+- managed solution packages are imported in order:
+  1. `DynamicsBusinessMachine`
+  2. `DynamicsBusinessMachineGeneratedMetadata`
 - the pre-promotion backup reference is retained with the promotion record
 - `--publish-changes` and `--skip-lower-version` are always used
 - `--stage-and-upgrade` is used only when the solution already exists in `UAT`
@@ -67,8 +69,8 @@ When `UAT` is being used as formal R0 close-out evidence:
 - `environment-baseline.json` confirms workflow variables matched the tracked baseline
 - `backup-reference.json` confirms the pre-deployment backup label and reference when the automation script is used
 - `deployment-remediation.json` is retained when the deployment needed the one-time plugin-identity replace path
-- the solution online version matches or exceeds the expected candidate version
-- `smoke-test-results.json` shows automated solution and version checks passed
+- the core and generated-metadata solution online versions match or exceed the expected candidate version
+- `smoke-test-results.json` shows automated checks passed for both solutions and generated metadata drift validation
 - `smoke-test-summary.md` is retained with any manual follow-up notes
 - no blocking import warnings remain unresolved
 - representative designer flow works

@@ -19,7 +19,7 @@ Non-secret target metadata is tracked in:
 - [`../../azure/config/uat.json`](../../azure/config/uat.json)
 - [`../../azure/config/prod.json`](../../azure/config/prod.json)
 
-`DBM_SOLUTION_NAME` remains aligned to `eng/version.json`.
+`DBM_SOLUTION_NAME` remains aligned to the core solution name in `eng/version.json`.
 
 ## Stable secret inventory
 

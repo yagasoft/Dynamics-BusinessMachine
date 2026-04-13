@@ -42,6 +42,7 @@ Provide the minimum reproducible local setup for engineers working on Release 0.
 .\eng\scripts\Test-RepoHygiene.ps1
 .\eng\scripts\Test-Docs.ps1
 .\eng\scripts\Invoke-NodeBuild.ps1
+.\eng\scripts\Test-DbmDataverseSynthesis.ps1
 .\eng\scripts\Restore-LegacyPackages.ps1
 .\eng\scripts\Build-DotNet.ps1
 .\eng\scripts\New-DataverseSolutionSource.ps1
@@ -56,6 +57,8 @@ To produce Dataverse artifacts locally:
 .\eng\scripts\Invoke-DataversePackaging.ps1 -RunSolutionCheck:$false
 ```
 
+This packages the core `DynamicsBusinessMachine` solution and the layered `DynamicsBusinessMachineGeneratedMetadata` solution in the tracked import order.
+
 Use `-RunSolutionCheck:$true` only when PAC auth has already been established and the environment is meant to support solution checking.
 
 To package only the unmanaged artifact for local `Dev` rapid deploy:
@@ -63,6 +66,18 @@ To package only the unmanaged artifact for local `Dev` rapid deploy:
 ```powershell
 .\eng\scripts\Invoke-DataversePackaging.ps1 -PackageSet UnmanagedOnly -RunSolutionCheck:$false -GenerateSettings:$false
 ```
+
+To exercise the script-driven synthesis path directly in `Dev`:
+
+```powershell
+.\eng\scripts\Invoke-DataverseSynthesis.ps1 -Mode Plan
+.\eng\scripts\Invoke-DataverseSynthesis.ps1 -Mode EmitSource
+.\eng\scripts\Invoke-DataverseSynthesis.ps1 -Mode ApplyDev -TargetEnvironment Dev
+.\eng\scripts\Invoke-DataverseSynthesis.ps1 -Mode Readback -TargetEnvironment Dev
+.\eng\scripts\Invoke-DataverseSynthesis.ps1 -Mode Diff
+```
+
+Use direct `ApplyDev` only for authoring proof in `Dev`. `UAT` and `Prod` remain packaged-import-only.
 
 To run the local `Dev` rapid deploy path:
 

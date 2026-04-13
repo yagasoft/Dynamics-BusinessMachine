@@ -77,6 +77,19 @@ The platform must include:
 - Azure artifact promotion
 - release evidence, smoke tests, and rollback procedures
 
+### 7. Dataverse synthesis layer
+
+DBM needs a dedicated Dataverse synthesis layer between the canonical model and Dataverse delivery artifacts.
+
+That layer owns:
+
+- direct metadata apply and readback in `Dev`
+- tracked emitted source for the layered generated-metadata solution
+- drift detection between the canonical model, emitted artifacts, and live Dataverse metadata
+- later generated FormXML and same-table behavior artifacts
+
+Raw solution XML remains an emitted artifact family, not the primary authoring surface.
+
 ## Target platform view
 
 ```mermaid
@@ -108,6 +121,12 @@ flowchart TB
         O["Release Notes / Runbooks / Rollback"]
     end
 
+    subgraph Synthesis["Dataverse Synthesis"]
+        P["Direct Dev Apply / Readback"]
+        Q["Generated Metadata Solution"]
+        R["Drift / Diff"]
+    end
+
     A --> B
     B --> C
     B --> D
@@ -124,18 +143,27 @@ flowchart TB
     G --> K
     H --> I
     I --> J
+    A --> P
+    A --> Q
+    A --> R
+    B --> P
+    B --> Q
+    Q --> I
+    P --> I
+    R --> I
     L --> M
     M --> N
     L --> O
     L --> C
     L --> I
     L --> J
+    L --> Q
 ```
 
 ## Release mapping
 
 - Release 0 establishes delivery, governance, environments, and baseline recovery.
-- Release 1 locks the canonical process semantics, designer core, generated Dataverse authoring, host adapters, and the first DBM-owned model-driven runtime for one approval/request scenario.
+- Release 1 locks the canonical process semantics, designer core, Dataverse synthesis layer, host adapters, and the first DBM-owned model-driven runtime for one approval/request scenario.
 - Release 1 also defines the portal-facing process projection contract, but it does not deliver the live Power Pages runtime.
 - Release 2 delivers the real Power Pages runtime, end-to-end portal continuity, Azure-backed supporting services, and pilot-ready hardening.
 - Release 3 adds AI only after platform contracts and operations are reliable.

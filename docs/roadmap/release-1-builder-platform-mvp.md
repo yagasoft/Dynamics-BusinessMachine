@@ -57,16 +57,28 @@ Must include:
 - explicit framework and library decision gate for the long-term designer UX
 - preservation of a host-agnostic designer core boundary
 
-### R1.2.3 Generated Dataverse authoring
+### R1.2.3a Dataverse synthesis foundation
 
 Output:
-- first designer-engine synthesis path into Dataverse authoring assets
+- first script-driven synthesis path from the canonical model into Dataverse business metadata
 
 Must include:
-- generated or updated Dataverse columns
-- generated or updated model-driven forms
-- support for same-table form variation through generated behavior rather than duplicate full forms
-- tracked release artifacts that remain the release source of truth
+- generated or updated Dataverse tables, columns, and relationships
+- direct `Dev` metadata apply and readback for authoring proof
+- tracked emitted source for `DynamicsBusinessMachineGeneratedMetadata`
+- drift detection between emitted artifacts and live Dataverse
+- packaged import order that preserves `DynamicsBusinessMachine` as the core solution and layers generated metadata after it
+
+### R1.2.3b Generated forms and behavior synthesis
+
+Output:
+- generated model-driven forms and same-table form-state behavior emitted through the synthesis layer
+
+Must include:
+- generated model-driven main forms from the canonical model
+- same-table form variation through generated behavior rather than duplicate full forms
+- readback and diff support for generated forms
+- packaged import of generated form artifacts through the layered generated-metadata solution
 
 ### R1.2.4 Host adapters and portability completion
 
