@@ -133,6 +133,7 @@ function Get-DbmMatchedComponents {
         [object[]]$RegistryComponents,
 
         [Parameter(Mandatory = $true)]
+        [AllowEmptyCollection()]
         [string[]]$ChangedFiles
     )
 
