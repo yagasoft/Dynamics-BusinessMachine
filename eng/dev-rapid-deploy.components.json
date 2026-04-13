@@ -100,6 +100,20 @@
       "notes": "This package drives generated Dataverse metadata but is not staged directly as a Dataverse artifact."
     },
     {
+      "name": "DbmLiveE2E",
+      "description": "Connected live E2E harness, Playwright suite, and deterministic case catalog.",
+      "sourcePatterns": [
+        "dbm-live-e2e/*",
+        "eng/live-e2e/*"
+      ],
+      "nodeProjects": [
+        "dbm-live-e2e"
+      ],
+      "requiresDotNetBuild": false,
+      "deployable": false,
+      "notes": "This package validates the connected E2E harness but is not staged into Dataverse artifacts."
+    },
+    {
       "name": "SolutionAssets",
       "description": "Files that affect Dataverse solution staging or package metadata.",
       "sourcePatterns": [

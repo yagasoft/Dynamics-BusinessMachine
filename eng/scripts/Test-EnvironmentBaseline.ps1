@@ -69,6 +69,37 @@ function Assert-RequiredValue {
     }
 }
 
+function Assert-PositiveIntegerValue {
+    param(
+        [object]$Value,
+        [string]$Label
+    )
+
+    if ($null -eq $Value) {
+        throw "Required environment baseline value is missing: $Label"
+    }
+
+    $parsed = 0
+    if (-not [int]::TryParse([string]$Value, [ref]$parsed) -or $parsed -le 0) {
+        throw "Required environment baseline value must be a positive integer: $Label"
+    }
+}
+
+function Assert-ArrayValue {
+    param(
+        [object]$Value,
+        [string]$Label
+    )
+
+    if ($null -eq $Value) {
+        throw "Required environment baseline array is missing: $Label"
+    }
+
+    if (-not ($Value -is [System.Collections.IEnumerable])) {
+        throw "Required environment baseline value must be an array: $Label"
+    }
+}
+
 function Assert-Match {
     param(
         [string]$Expected,
@@ -121,6 +152,7 @@ foreach ($name in $selectedEnvironments) {
         deploymentMode = [string]$config.deploymentMode
         dataverseUrl = [string]$config.dataverseUrl
         dataverseEnvironmentId = [string]$config.dataverseEnvironmentId
+        modelDrivenAppUrl = [string]$config.modelDrivenAppUrl
         azureClientId = [string]$config.azureClientId
         azureTenantId = [string]$config.azureTenantId
         resourceGroup = [string]$config.resourceGroup
@@ -135,16 +167,69 @@ foreach ($name in $selectedEnvironments) {
         throw "Environment baseline file '$configPath' declares environment '$($config.environment)' instead of '$name'."
     }
 
+    if ($null -eq $config.liveE2E) {
+        throw "Environment baseline file '$configPath' is missing the liveE2E configuration block."
+    }
+
+    Assert-ArrayValue -Value $config.liveE2E.enabledModes -Label "$name.liveE2E.enabledModes"
+    Assert-RequiredValue -Value ([string]$config.liveE2E.lock.webResourceName) -Label "$name.liveE2E.lock.webResourceName"
+    Assert-PositiveIntegerValue -Value $config.liveE2E.lock.staleAfterMinutes -Label "$name.liveE2E.lock.staleAfterMinutes"
+    Assert-RequiredValue -Value ([string]$config.liveE2E.cleanup.namePrefix) -Label "$name.liveE2E.cleanup.namePrefix"
+    Assert-PositiveIntegerValue -Value $config.liveE2E.cleanup.orphanAgeHours -Label "$name.liveE2E.cleanup.orphanAgeHours"
+
+    if ($null -eq $config.liveE2E.authentication) {
+        throw "Environment baseline file '$configPath' is missing liveE2E.authentication."
+    }
+
+    Assert-RequiredValue -Value ([string]$config.liveE2E.authentication.mode) -Label "$name.liveE2E.authentication.mode"
+    Assert-RequiredValue -Value ([string]$config.liveE2E.authentication.sessionScope) -Label "$name.liveE2E.authentication.sessionScope"
+    Assert-RequiredValue -Value ([string]$config.liveE2E.authentication.identityModel) -Label "$name.liveE2E.authentication.identityModel"
+    Assert-RequiredValue -Value ([string]$config.liveE2E.authentication.sessionUserDisplayName) -Label "$name.liveE2E.authentication.sessionUserDisplayName"
+
+    foreach ($caseSetName in @('full', 'promotion')) {
+        $caseSetProperty = $config.liveE2E.caseSets.PSObject.Properties[$caseSetName]
+        if ($null -eq $caseSetProperty) {
+            throw "Environment baseline file '$configPath' is missing live E2E case set '$caseSetName'."
+        }
+
+        $caseSet = @($caseSetProperty.Value)
+        if ($caseSet.Count -eq 0) {
+            throw "Environment baseline file '$configPath' is missing live E2E case set '$caseSetName'."
+        }
+    }
+
+    if ($null -eq $config.liveE2E.entities) {
+        throw "Environment baseline file '$configPath' is missing live E2E entities."
+    }
+
+    foreach ($entityProperty in $config.liveE2E.entities.PSObject.Properties) {
+        Assert-RequiredValue -Value ([string]$entityProperty.Value.logicalName) -Label "$name.liveE2E.entities.$($entityProperty.Name).logicalName"
+        Assert-RequiredValue -Value ([string]$entityProperty.Value.entitySetName) -Label "$name.liveE2E.entities.$($entityProperty.Name).entitySetName"
+        Assert-RequiredValue -Value ([string]$entityProperty.Value.primaryIdField) -Label "$name.liveE2E.entities.$($entityProperty.Name).primaryIdField"
+        Assert-RequiredValue -Value ([string]$entityProperty.Value.primaryNameField) -Label "$name.liveE2E.entities.$($entityProperty.Name).primaryNameField"
+
+        $stateFieldsProperty = $entityProperty.Value.PSObject.Properties['stateFields']
+        if ($null -ne $stateFieldsProperty -and $null -ne $stateFieldsProperty.Value) {
+            foreach ($stateFieldName in @('stageIdField', 'stepIdField', 'internalStatusField', 'portalStatusField')) {
+                Assert-RequiredValue -Value ([string]$stateFieldsProperty.Value.$stateFieldName) -Label "$name.liveE2E.entities.$($entityProperty.Name).stateFields.$stateFieldName"
+            }
+        }
+    }
+
     $result = [ordered]@{
         environment = $name
         configPath = Get-DbmRelativePath -BasePath $RepoRoot -TargetPath $configPath
         deploymentMode = [string]$config.deploymentMode
         dataverseUrl = [string]$config.dataverseUrl
         dataverseEnvironmentId = [string]$config.dataverseEnvironmentId
+        modelDrivenAppUrl = [string]$config.modelDrivenAppUrl
         azureClientId = [string]$config.azureClientId
         azureTenantId = [string]$config.azureTenantId
         azureResourceGroup = [string]$config.resourceGroup
         azureKeyVaultName = [string]$config.keyVaultName
+        liveE2ELockWebResourceName = [string]$config.liveE2E.lock.webResourceName
+        liveE2EAuthenticationMode = [string]$config.liveE2E.authentication.mode
+        liveE2EIdentityModel = [string]$config.liveE2E.authentication.identityModel
         dbmSolutionName = [string]$version.solutionName
         dbmGeneratedMetadataSolutionName = [string]$version.solutionNames.generatedMetadata
     }
@@ -241,10 +326,14 @@ $results | ForEach-Object {
     "configPath=$($_.configPath)"
     "dataverseUrl=$($_.dataverseUrl)"
     "dataverseEnvironmentId=$($_.dataverseEnvironmentId)"
+    "modelDrivenAppUrl=$($_.modelDrivenAppUrl)"
     "azureClientId=$($_.azureClientId)"
     "azureTenantId=$($_.azureTenantId)"
     "azureResourceGroup=$($_.azureResourceGroup)"
     "azureKeyVaultName=$($_.azureKeyVaultName)"
+    "liveE2ELockWebResourceName=$($_.liveE2ELockWebResourceName)"
+    "liveE2EAuthenticationMode=$($_.liveE2EAuthenticationMode)"
+    "liveE2EIdentityModel=$($_.liveE2EIdentityModel)"
     "dbmSolutionName=$($_.dbmSolutionName)"
     "dbmGeneratedMetadataSolutionName=$($_.dbmGeneratedMetadataSolutionName)"
 }

@@ -14,6 +14,8 @@ These principles are standing constraints for the revival and future evolution o
   - Do the right thing the first time when the cost is reasonable and the direction is clear.
 - Test, validate, and verify continuously.
   - Every major stage must leave us with something valuable and testable.
+- Preview before mutate.
+  - Generated changes, runtime actions, and synthesis outputs should be inspectable before they become authoritative.
 
 ## Product and UX principles
 
@@ -29,6 +31,10 @@ These principles are standing constraints for the revival and future evolution o
   - The core designer must not be trapped inside one host shell.
 - Prefer proven libraries and frameworks over loyalty to the current stack.
   - The designer should be elegant, advanced, and sophisticated. Framework choice is secondary to supportability, product quality, and long-term maintainability.
+- Make behavior explainable.
+  - Architects, admins, and support staff should be able to understand why a branch, status, assignment, visibility rule, or synthesis result resolved the way it did.
+- Build reusable platform assets.
+  - Prefer reusable conditions, templates, policy packs, and subflows over one-off scenario logic.
 - Require a real in-form runtime.
   - Release 1 must ship a real DBM-owned in-form process runtime, not a temporary web-resource fallback.
 
@@ -38,6 +44,8 @@ These principles are standing constraints for the revival and future evolution o
   - Use GitHub Environments and Azure Key Vault only.
 - CI/CD is part of the product, not an afterthought.
   - GitHub pipelines must cover code, Dataverse artifacts, Azure artifacts, documentation, and promotion flows.
+- Operational support is a first-class capability.
+  - Work management, auditability, support surfaces, and observability are part of the platform, not afterthoughts in a reference solution.
 - Performance is a first-class requirement.
   - Optimize for runtime speed, responsiveness, and scale from the beginning.
 - Minimize cost without compromising core quality.

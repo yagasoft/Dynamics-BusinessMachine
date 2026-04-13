@@ -3,8 +3,62 @@
   "deploymentMode": "validation",
   "dataverseUrl": "https://ldv-rd-min-3.crm4.dynamics.com/",
   "dataverseEnvironmentId": "5e2399fe-703d-eb34-afc6-e2312eca9045",
+  "modelDrivenAppUrl": "https://ldv-rd-min-3.crm4.dynamics.com/main.aspx?forceUCI=1&pagetype=webresource&webresourceName=ys_%2Fdbm%2Fapps%2Feditor%2Findex.html",
   "azureClientId": "cadf75c9-c496-4538-8fa2-989757a2dd83",
   "azureTenantId": "b084031b-cdb1-422e-a76a-a6510cdb17f8",
   "resourceGroup": "rg-yagasoft-dbm-uat",
-  "keyVaultName": "yagasoft-dbm-uat-kv"
+  "keyVaultName": "yagasoft-dbm-uat-kv",
+  "liveE2E": {
+    "enabledModes": ["promotion-gate"],
+    "lock": {
+      "webResourceName": "ys_/dbm/live-e2e/system/uat-lock.json",
+      "staleAfterMinutes": 120
+    },
+    "cleanup": {
+      "namePrefix": "DBM-E2E-UAT",
+      "orphanAgeHours": 24,
+      "deleteCreatedRecords": true
+    },
+    "authentication": {
+      "mode": "persisted-user-session",
+      "sessionScope": "environment",
+      "identityModel": "single-user-simulation",
+      "sessionUserDisplayName": "DBM Live E2E Session User"
+    },
+    "caseSets": {
+      "full": [
+        "create-request-draft",
+        "submit-request-advance",
+        "hidden-internal-stage-projection",
+        "approval-path",
+        "rejection-path"
+      ],
+      "promotion": [
+        "submit-request-advance",
+        "hidden-internal-stage-projection",
+        "approval-path",
+        "rejection-path"
+      ]
+    },
+    "entities": {
+      "request": {
+        "logicalName": "dbm_request",
+        "entitySetName": "dbm_requests",
+        "primaryIdField": "dbm_requestid",
+        "primaryNameField": "dbm_title",
+        "stateFields": {
+          "stageIdField": "dbm_currentstageid",
+          "stepIdField": "dbm_currentstepid",
+          "internalStatusField": "dbm_internalstatusid",
+          "portalStatusField": "dbm_portalstatusid"
+        }
+      },
+      "requestDecision": {
+        "logicalName": "dbm_requestdecision",
+        "entitySetName": "dbm_requestdecisions",
+        "primaryIdField": "dbm_requestdecisionid",
+        "primaryNameField": "dbm_name"
+      }
+    }
+  }
 }

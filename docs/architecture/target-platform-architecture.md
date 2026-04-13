@@ -90,6 +90,56 @@ That layer owns:
 
 Raw solution XML remains an emitted artifact family, not the primary authoring surface.
 
+## Capability layers
+
+Beyond the core `R1` synthesis boundary, DBM can grow through explicit capability layers that deepen the platform without changing the canonical model's role as source of truth.
+
+### Simulation and replay
+
+- process simulation before deployment
+- replay and branch debugging for runtime instances
+- support-facing inspection of what happened and why
+
+### Explainability
+
+- why a condition matched
+- why a status, assignment, or visibility rule resolved the way it did
+- why a synthesis change was proposed
+
+### Synthesis and drift control
+
+- preview-before-apply synthesis plans
+- diffs for generated Dataverse forms and columns
+- drift detection between designer intent, tracked artifacts, and environment state
+
+### Work management and operational control
+
+- inboxes, queues, reassignment, delegation, escalation, and SLA timers
+- support and administration surfaces
+- operational controls tied back to canonical process semantics
+
+### Audit timeline and runtime observability
+
+- timeline of process decisions and transitions
+- audit trail of status, assignment, notification, and mutation events
+- runtime telemetry, diagnostics, and performance insight
+
+### Reuse and policy
+
+- reusable conditions
+- reusable step groups, subflows, templates, and policy packs
+- organization-level consistency without copy-paste modeling
+
+### AI assistance
+
+- requirement-to-process drafting
+- logic and condition suggestion
+- missing-step and missing-data analysis
+- test-scenario generation
+- optimization guidance
+
+AI is layered on top of the stable platform. It does not replace the canonical model, runtime, or governance boundaries.
+
 ## Target platform view
 
 ```mermaid
@@ -165,13 +215,15 @@ flowchart TB
 - Release 0 establishes delivery, governance, environments, and baseline recovery.
 - Release 1 locks the canonical process semantics, designer core, Dataverse synthesis layer, host adapters, and the first DBM-owned model-driven runtime for one approval/request scenario.
 - Release 1 also defines the portal-facing process projection contract, but it does not deliver the live Power Pages runtime.
-- Release 2 delivers the real Power Pages runtime, end-to-end portal continuity, Azure-backed supporting services, and pilot-ready hardening.
-- Release 3 adds AI only after platform contracts and operations are reliable.
+- Release 2 delivers the real Power Pages runtime, end-to-end portal continuity, Azure-backed supporting services, work-management, timeline, and observability baselines, and pilot-ready hardening.
+- Release 3 adds AI drafting, review, gap detection, and optimization only after platform contracts and operations are reliable.
+- Release 4 deepens enterprise sophistication through simulation, replay, reusable building blocks, synthesis governance, and advanced analytics and optimization.
 
 ## Architecture constraints
 
 - The designer must remain the primary interaction surface.
 - DBM owns the process UI. Native BPF is optional integration, not the product boundary.
+- Preview-before-mutate applies to generated artifacts and other authoritative platform mutations.
 - No secret may live in source control.
 - No release may bypass Dev and UAT promotion.
 - Release 1 must not use a temporary web-resource substitute as the final process runtime boundary.

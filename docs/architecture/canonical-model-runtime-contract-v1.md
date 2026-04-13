@@ -309,6 +309,24 @@ The architectural direction approved here means:
 - Dataverse schema synthesis and provider-bound form behavior become part of the synthesis boundary
 - native BPF, if generated later, is downstream from the canonical model rather than upstream into it
 
+## Non-Normative Future Capability Extension Areas
+
+This appendix records likely future sophistication surfaces. It is descriptive only.
+
+- It does not change the current executable `v1` contract.
+- It does not imply that `dbm-contract`, the current example model, or the checked-in schemas already support these surfaces.
+- Any executable adoption of these areas must happen through deliberate later revisions to `dbm-contract`, `dbm-designer-core`, and the example models.
+
+Likely future extension areas include:
+
+- work-item and queue contracts for assignment, reassignment, delegation, escalation, and SLA behavior
+- timeline and audit-event contracts for transitions, notifications, mutations, and support diagnostics
+- explainability traces for branching, visibility, assignment, status projection, synthesis, and validation outcomes
+- synthesis plans, preview diffs, and drift-report surfaces
+- reusable templates, subflows, policy packs, and shared step groups
+- simulation, replay, and debugger session hooks
+- richer observability and optimization signals
+
 ## Related Docs
 
 - [Product Principles](product-principles.md)

@@ -1,0 +1,27 @@
+{
+  "name": "dbm-live-e2e",
+  "version": "0.0.0",
+  "private": true,
+  "type": "module",
+  "main": "dist/index.js",
+  "types": "dist/index.d.ts",
+  "scripts": {
+    "build": "tsc -p tsconfig.json",
+    "validate:cases": "tsx src/validate-cases.ts",
+    "test": "tsx --test test/case-catalog.test.ts test/session.test.ts test/model-driven-ui.test.ts",
+    "validate": "npm run build && npm run validate:cases && npm run test",
+    "install:browsers": "playwright install chromium",
+    "session:bootstrap": "tsx src/session-bootstrap.ts",
+    "session:health": "tsx src/session-health.ts",
+    "test:live": "playwright test"
+  },
+  "dependencies": {
+    "@playwright/test": "1.59.1",
+    "ajv": "8.18.0"
+  },
+  "devDependencies": {
+    "@types/node": "25.6.0",
+    "tsx": "4.21.0",
+    "typescript": "6.0.2"
+  }
+}

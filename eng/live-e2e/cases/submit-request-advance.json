@@ -1,0 +1,42 @@
+{
+  "scenarioId": "submit-request-advance",
+  "title": "Submit request and verify stage advance",
+  "description": "Requester submits a request and the backend advances the process into the internal screening path while keeping the portal-safe status.",
+  "runModes": ["full", "promotion"],
+  "requiredRole": "requester",
+  "setup": {
+    "operations": []
+  },
+  "actions": [
+    { "kind": "open-new-record-form", "entityAlias": "request", "role": "requester" },
+    { "kind": "fill-field", "label": "Request Title", "value": "{{cleanupName}} Submit Path", "role": "requester" },
+    { "kind": "fill-field", "label": "Request Amount", "value": "6000", "role": "requester" },
+    { "kind": "set-lookup-field", "label": "Assigned Approver", "value": "{{session.userDisplayName}}", "role": "requester" },
+    { "kind": "click-button", "label": "Save", "role": "requester" },
+    { "kind": "capture-current-record-id", "recordAlias": "requestRecord", "role": "requester" },
+    { "kind": "click-button", "label": "Submit", "role": "requester" },
+    { "kind": "wait-for-text", "text": "Under Review", "role": "requester" }
+  ],
+  "assertions": [
+    {
+      "kind": "process-state",
+      "entityAlias": "request",
+      "recordAlias": "requestRecord",
+      "expected": {
+        "stageId": "internal-screening-stage",
+        "stepId": "screen-request",
+        "internalStatus": "internal-screening",
+        "portalStatus": "under-review"
+      }
+    }
+  ],
+  "cleanup": {
+    "targets": [
+      { "kind": "delete-record", "entityAlias": "request", "recordAlias": "requestRecord" }
+    ]
+  },
+  "evidence": {
+    "captureScreenshotOnSuccess": true,
+    "captureTimeline": true
+  }
+}

@@ -19,7 +19,7 @@ Do not use this area for temporary execution notes, scratch work, or private pla
 - `adr/`
   - architecture decision records
 - `roadmap/`
-  - high-level release ladder and per-release stage plans
+  - high-level release ladder, capability map, and per-release stage plans
 - `releases/`
   - release governance, release notes, and close-out records
 - `runbooks/`
@@ -36,9 +36,11 @@ Do not use this area for temporary execution notes, scratch work, or private pla
 7. [Process UI And Generated Dataverse Artifacts ADR](adr/0009-dbm-process-ui-portal-state-projection-and-generated-dataverse-artifacts.md)
 8. [Dataverse Metadata Synthesis ADR](adr/0010-dataverse-metadata-synthesis-and-layered-generated-solution-strategy.md)
 9. [Release Plan](roadmap/release-plan.md)
-10. [Release Governance](releases/release-governance.md)
-11. [R1 Close-Out: 0.3.0](releases/r1-close-out-0.3.0.md)
-12. [Runbook Index](runbooks/README.md)
+10. [Capability Map](roadmap/capability-map.md)
+11. [Release 4 Enterprise Sophistication](roadmap/release-4-enterprise-sophistication.md)
+12. [Release Governance](releases/release-governance.md)
+13. [R1 Close-Out: 0.3.0](releases/r1-close-out-0.3.0.md)
+14. [Runbook Index](runbooks/README.md)
 
 ## Working rules
 

@@ -1,0 +1,45 @@
+{
+  "scenarioId": "rejection-path",
+  "title": "Rejection path",
+  "description": "Requester submits a request and the manager approver rejects it with a reason while the runtime projects the final portal status.",
+  "runModes": ["full", "promotion"],
+  "requiredRole": "requester",
+  "setup": {
+    "operations": []
+  },
+  "actions": [
+    { "kind": "open-new-record-form", "entityAlias": "request", "role": "requester" },
+    { "kind": "fill-field", "label": "Request Title", "value": "{{cleanupName}} Rejection Path", "role": "requester" },
+    { "kind": "fill-field", "label": "Request Amount", "value": "3200", "role": "requester" },
+    { "kind": "set-lookup-field", "label": "Assigned Approver", "value": "{{session.userDisplayName}}", "role": "requester" },
+    { "kind": "click-button", "label": "Save", "role": "requester" },
+    { "kind": "capture-current-record-id", "recordAlias": "requestRecord", "role": "requester" },
+    { "kind": "click-button", "label": "Submit", "role": "requester" },
+    { "kind": "open-record-form", "entityAlias": "request", "recordAlias": "requestRecord", "role": "manager-approver" },
+    { "kind": "click-button", "label": "Reject", "role": "manager-approver" },
+    { "kind": "fill-field", "label": "Decision Comment", "value": "{{cleanupName}} Rejection Reason", "role": "manager-approver" },
+    { "kind": "click-button", "label": "Save", "role": "manager-approver" },
+    { "kind": "wait-for-text", "text": "Rejected", "role": "manager-approver" }
+  ],
+  "assertions": [
+    {
+      "kind": "process-state",
+      "entityAlias": "request",
+      "recordAlias": "requestRecord",
+      "expected": {
+        "stageId": "rejected",
+        "internalStatus": "rejected",
+        "portalStatus": "rejected"
+      }
+    }
+  ],
+  "cleanup": {
+    "targets": [
+      { "kind": "delete-record", "entityAlias": "request", "recordAlias": "requestRecord" }
+    ]
+  },
+  "evidence": {
+    "captureScreenshotOnSuccess": true,
+    "captureTimeline": true
+  }
+}

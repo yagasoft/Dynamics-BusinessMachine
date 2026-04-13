@@ -19,6 +19,7 @@ This document defines the approved high-level release ladder for DBM and the sta
 | `R1` | Builder Platform MVP | let architects and developers define and run one real approval/request process through a DBM-owned designer-first experience with portal-compatible state projection |
 | `R2` | Pilot-Ready End-To-End Platform | complete the live portal-to-Dataverse-to-Azure-to-portal loop and harden to pilot-ready `v1.0.0` |
 | `R3` | AI-Assisted Platform | add trustworthy AI assistance only after the core platform and operations are stable |
+| `R4` | Enterprise Sophistication And Optimization | deepen the platform with simulation, reuse, synthesis governance, advanced observability, and optimization beyond the pilot-ready baseline |
 
 ## Cross-release rules
 
@@ -101,6 +102,10 @@ Goal:
 
 Feature set and deliverables:
 - Power Pages runtime built on the `R1` portal projection contract
+- work-management core with inboxes, queues, reassignment, delegation, escalation, and SLA timers
+- timeline and audit trail as first-class runtime output
+- support and administration surfaces
+- runtime observability baseline
 - Azure orchestration and integration services
 - end-to-end state return to the portal
 - browser- or Azure-hosted administration surfaces where needed for pilot operation
@@ -123,6 +128,8 @@ Feature set and deliverables:
 - requirement-to-process draft generation
 - logic and metadata assistance inside the designer
 - AI-assisted validation and optimization suggestions
+- logic and condition suggestion, missing-step analysis, missing-data analysis, and test-scenario generation from the canonical model
+- optimization recommendations for forms, statuses, branching, performance, and cost
 - traceable, reviewable AI outputs only
 
 Stages:
@@ -133,12 +140,34 @@ Stages:
 
 Details: [release-3-ai-assisted-platform.md](release-3-ai-assisted-platform.md)
 
+### Release 4
+
+Goal:
+- extend the pilot-ready platform into an enterprise-grade design, governance, simulation, and optimization platform
+
+Feature set and deliverables:
+- process simulator and replay debugger
+- enterprise-grade explainability across authoring and runtime
+- synthesis governance and drift management at scale
+- reusable process building blocks, subflows, templates, and policy packs
+- advanced observability, analytics, and optimization
+- richer multi-table modeling and operational control-plane depth
+
+Stages:
+- `R4.1` Simulation and replay debugger
+- `R4.2` Reuse, templates, and policy packs
+- `R4.3` Synthesis governance and drift control
+- `R4.4` Advanced observability and optimization
+
+Details: [release-4-enterprise-sophistication.md](release-4-enterprise-sophistication.md)
+
 ## Release-specific acceptance scenarios
 
 - `R0`: the current PoC can be rebuilt, packaged, deployed to `Dev`, promoted to `UAT`, and rolled back without manual secret handling
 - `R1`: one approval/request flow can be authored in the designer, synthesized into the required Dataverse schema, bound to existing Dataverse forms with DBM-managed supported behavior, edited from both model-driven and XrmToolBox hosts, rendered through the DBM-owned model-driven process experience, projected to portal-visible status, and executed through the backend runtime
 - `R2`: the same approval/request flow can start in Power Pages, traverse Dataverse and Azure, return state to the portal, pass `UAT`, and be supported with documented rollback and operational diagnostics
 - `R3`: AI can generate drafts and recommendations with full traceability, mandatory human review, and no direct unreviewed production mutation
+- `R4`: the platform can simulate, explain, govern, and optimize complex process portfolios at enterprise scale without losing portability or operational control
 
 ## Current assumptions
 
