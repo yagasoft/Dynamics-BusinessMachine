@@ -53,6 +53,7 @@ jobs:
           cache: npm
           cache-dependency-path: |
             dbm-app/package-lock.json
+            dbm-contract/package-lock.json
             dbm-script-lib/package-lock.json
             dbm-js-vm/package-lock.json
             dbm-web-resources/package-lock.json
@@ -98,6 +99,7 @@ jobs:
           cache: npm
           cache-dependency-path: |
             dbm-app/package-lock.json
+            dbm-contract/package-lock.json
             dbm-script-lib/package-lock.json
             dbm-js-vm/package-lock.json
             dbm-web-resources/package-lock.json

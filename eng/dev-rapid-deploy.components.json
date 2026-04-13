@@ -61,6 +61,19 @@
       "deployable": true
     },
     {
+      "name": "DbmContract",
+      "description": "Canonical DBM contract package and validation fixtures.",
+      "sourcePatterns": [
+        "dbm-contract/*"
+      ],
+      "nodeProjects": [
+        "dbm-contract"
+      ],
+      "requiresDotNetBuild": false,
+      "deployable": false,
+      "notes": "This package is validated in CI but not staged into Dataverse artifacts."
+    },
+    {
       "name": "SolutionAssets",
       "description": "Files that affect Dataverse solution staging or package metadata.",
       "sourcePatterns": [
