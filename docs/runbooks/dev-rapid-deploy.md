@@ -24,6 +24,7 @@ This runbook is for local `Dev` validation only. It is not a release or promotio
   - NuGet CLI
 - tracked environment baseline in [`../../azure/config/dev.json`](../../azure/config/dev.json) is current
 - preferred local PAC profile name for `Dev` is `dbm-dev`
+- the approved DBM strong-name key is available locally through `-AssemblyKeyFile` or `DBM_ASSEMBLY_KEY_FILE`
 - create one named local PAC profile per environment so local scripts can auto-select them:
   - `dbm-dev`
   - `dbm-uat`
@@ -41,6 +42,7 @@ Optional usage:
 ```powershell
 .\eng\scripts\Invoke-DevRapidDeploy.ps1 -Components Plugins,DbmApp
 .\eng\scripts\Invoke-DevRapidDeploy.ps1 -InteractiveLogin
+.\eng\scripts\Invoke-DevRapidDeploy.ps1 -AssemblyKeyFile 'C:\path\to\app-signing-key.snk'
 ```
 
 One-time local PAC profile setup:
@@ -79,7 +81,8 @@ Rules:
 ## Expected behavior
 
 - validates the tracked `Dev` environment baseline
-- builds only the required local component set
+- rebuilds the signed core plugin assembly with the approved key so the packaged core solution stays importable
+- builds only the required local Node component set
 - packages an unmanaged-only Dataverse artifact set from the current working tree
 - imports `DynamicsBusinessMachine` and then `DynamicsBusinessMachineGeneratedMetadata` into `Dev`
 - runs the normal Dataverse smoke validation locally
@@ -101,4 +104,5 @@ Keep the local evidence when troubleshooting:
 - if the command reports conflicting deployable changes, isolate the working tree or widen `-Components`
 - if local PAC auth is missing, create or select a profile for `Dev` and rerun
 - if a named local PAC profile becomes stale, delete and recreate it with the same name
+- if the command reports a missing signing key, supply `-AssemblyKeyFile` or set `DBM_ASSEMBLY_KEY_FILE` to the approved `.snk`
 - if the rapid path becomes ambiguous or too broad, stop and use the normal release-candidate flow instead

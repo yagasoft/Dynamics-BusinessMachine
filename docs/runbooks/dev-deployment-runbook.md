@@ -15,6 +15,7 @@ For local inner-loop validation without release evidence, use [dev-rapid-deploy.
 - the tracked environment baseline in [`../../azure/config/dev.json`](../../azure/config/dev.json) is current
 - the `Dev` delivery identity can read the referenced Key Vault
 - the `Dev` delivery identity exists as a Dataverse application user
+- the packaged core solution was built with the approved strong-name key so the included plugin assembly keeps its established identity
 
 ## Required GitHub Environment variables
 

@@ -26,7 +26,7 @@ Provide the minimum reproducible local setup for engineers working on Release 0.
   - `dbm-app/src/environments/environment.dev.ts`
   - `dbm-app/src/environments/environment.prod.ts`
 - strong-name signing material is not kept in Git
-- legacy plugin merge/sign packaging is opt-in and requires `DbmAssemblyKeyFile`
+- legacy plugin merge/sign packaging requires the approved key through `-AssemblyKeyFile` or `DBM_ASSEMBLY_KEY_FILE`
 - legacy packaging side effects in `DynamicsDbmXtbPlugin` are disabled by default through `DbmEnableLegacyPackaging=false`
 - hosted release packaging prefers `app-signing-key` from Azure Key Vault and may fall back to GitHub Actions secret `APP_SIGNING_KEY_B64` during bootstrap or recovery before promoting the signed merged plugin assembly onto the standard Dataverse package source path
 
@@ -59,6 +59,13 @@ To produce Dataverse artifacts locally:
 
 This packages the core `DynamicsBusinessMachine` solution and the layered `DynamicsBusinessMachineGeneratedMetadata` solution in the tracked import order.
 
+Before packaging or running local `Dev` rapid deploy, make sure the core plugin assembly is rebuilt with the approved strong-name key:
+
+```powershell
+$env:DBM_ASSEMBLY_KEY_FILE = 'C:\path\to\app-signing-key.snk'
+.\eng\scripts\Build-DotNet.ps1 -EnableLegacyPackaging
+```
+
 Use `-RunSolutionCheck:$true` only when PAC auth has already been established and the environment is meant to support solution checking.
 
 To package only the unmanaged artifact for local `Dev` rapid deploy:
@@ -84,6 +91,8 @@ To run the local `Dev` rapid deploy path:
 ```powershell
 .\eng\scripts\Invoke-DevRapidDeploy.ps1
 ```
+
+`Invoke-DevRapidDeploy.ps1` now expects the approved strong-name key through `-AssemblyKeyFile` or `DBM_ASSEMBLY_KEY_FILE`, because the normal packaged refresh path always includes the core plugin assembly.
 
 Use `-Components` to force a scoped local build and `-InteractiveLogin` if PAC needs a local interactive sign-in for `Dev`.
 
