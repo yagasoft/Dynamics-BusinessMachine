@@ -168,6 +168,7 @@ function Get-DbmSelectedComponents {
         [object[]]$RegistryComponents,
 
         [Parameter(Mandatory = $true)]
+        [AllowEmptyCollection()]
         [object[]]$DetectedComponents,
 
         [string[]]$RequestedComponents
@@ -201,6 +202,7 @@ function Resolve-DbmRapidDeployPlan {
         [object[]]$RegistryComponents,
 
         [Parameter(Mandatory = $true)]
+        [AllowEmptyCollection()]
         [object[]]$DetectedComponents,
 
         [Parameter(Mandatory = $true)]
