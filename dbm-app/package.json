@@ -17,8 +17,8 @@
   },
   "private": true,
   "dependencies": {
-    "@angular/cdk": "21.2.6",
     "@angular/animations": "21.2.8",
+    "@angular/cdk": "21.2.6",
     "@angular/common": "21.2.8",
     "@angular/compiler": "21.2.8",
     "@angular/core": "21.2.8",
@@ -34,7 +34,7 @@
     "jquery": "4.0.0",
     "jquery-min": "0.0.2",
     "primeicons": "7.0.0",
-    "primeng": "21.1.5",
+    "primeng": "^21.1.6",
     "rxjs": "7.8.2",
     "tslib": "2.8.1",
     "zone.js": "0.16.1"

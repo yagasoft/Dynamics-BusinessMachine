@@ -65,10 +65,18 @@ export class ResourceDetailsComponent
 	readonly actorSources = ['current-user', 'field-binding', 'rule-derived', 'system'];
 	readonly fieldTypes = ['string', 'multiline-string', 'integer', 'decimal', 'currency', 'boolean', 'choice', 'lookup', 'date', 'datetime'];
 	readonly stageTypes = ['start', 'task', 'approval', 'system', 'end'];
+	readonly stagePortalVisibility = ['visible', 'hidden'];
+	readonly stepTypes = ['data-entry', 'review', 'approval', 'system'];
+	readonly statusAudiences = ['internal', 'portal', 'shared'];
+	readonly statusKinds = ['progress', 'decision', 'terminal'];
+	readonly taskTypes = ['data-entry', 'review', 'approval', 'system'];
+	readonly notificationChannels = ['in-app', 'email', 'both'];
+	readonly formBindingRoles = ['primary', 'related'];
+	readonly stepTransitionTargetKinds = ['step', 'stage', 'outcome'];
 	readonly elementTypes = ['text', 'multiline-text', 'number', 'currency', 'choice', 'lookup', 'date', 'read-only-text'];
 	readonly relationshipTypes = ['one-to-many', 'many-to-one'];
 	readonly ruleTypes = ['condition', 'validation', 'derivation', 'action'];
-	readonly ruleScopes = ['process', 'stage', 'transition', 'form', 'field'];
+	readonly ruleScopes = ['process', 'stage', 'step', 'transition', 'step-transition', 'form', 'form-state', 'field'];
 	readonly ruleLanguages = ['dbm-expression-v1', 'javascript-artifact-v1'];
 	readonly artifactTypes = ['script', 'template', 'static-asset', 'pcf-control', 'plugin-assembly', 'config'];
 	readonly packagingTargets = ['dataverse-webresource', 'dataverse-plugin', 'repo-only', 'azure-app'];
@@ -185,6 +193,27 @@ export class ResourceDetailsComponent
 			: null;
 	}
 
+	get selectedStatus()
+	{
+		return this.selectedNode?.kind === 'status'
+			? this.document?.model.process.statuses.find((entry) => entry.id === this.selectedNode?.modelId) ?? null
+			: null;
+	}
+
+	get selectedTask()
+	{
+		return this.selectedNode?.kind === 'task'
+			? this.document?.model.process.tasks.find((entry) => entry.id === this.selectedNode?.modelId) ?? null
+			: null;
+	}
+
+	get selectedNotification()
+	{
+		return this.selectedNode?.kind === 'notification'
+			? this.document?.model.process.notifications.find((entry) => entry.id === this.selectedNode?.modelId) ?? null
+			: null;
+	}
+
 	get selectedStage()
 	{
 		return this.selectedNode?.kind === 'stage'
@@ -196,6 +225,20 @@ export class ResourceDetailsComponent
 	{
 		return this.selectedNode?.kind === 'transition'
 			? this.document?.model.process.transitions.find((entry) => entry.id === this.selectedNode?.modelId) ?? null
+			: null;
+	}
+
+	get selectedStep()
+	{
+		return this.selectedNode?.kind === 'step'
+			? this.document?.model.process.steps.find((entry) => entry.id === this.selectedNode?.modelId) ?? null
+			: null;
+	}
+
+	get selectedStepTransition()
+	{
+		return this.selectedNode?.kind === 'step-transition'
+			? this.document?.model.process.stepTransitions.find((entry) => entry.id === this.selectedNode?.modelId) ?? null
 			: null;
 	}
 
@@ -213,6 +256,17 @@ export class ResourceDetailsComponent
 			: null;
 	}
 
+	get selectedFormEntityBinding()
+	{
+		if (this.selectedNode?.kind !== 'form-entity-binding' || !this.document)
+		{
+			return null;
+		}
+
+		const form = this.findFormForNode(this.selectedNode);
+		return form?.entityBindings.find((entry) => entry.id === this.selectedNode?.modelId) ?? null;
+	}
+
 	get selectedLayout()
 	{
 		return this.selectedNode?.kind === 'layout'
@@ -227,7 +281,7 @@ export class ResourceDetailsComponent
 			return null;
 		}
 
-		const formId = this.selectedNode.parentId?.replace('layout:', '');
+		const formId = this.findFormIdForNode(this.selectedNode);
 		return this.document.model.forms.find((entry) => entry.id === formId)?.layout.regions.find((entry) => entry.id === this.selectedNode?.modelId) ?? null;
 	}
 
@@ -238,8 +292,19 @@ export class ResourceDetailsComponent
 			return null;
 		}
 
-		const formId = this.selectedNode.parentId?.split(':')[2];
+		const formId = this.findFormIdForNode(this.selectedNode);
 		return this.document.model.forms.find((entry) => entry.id === formId)?.elements.find((entry) => entry.id === this.selectedNode?.modelId) ?? null;
+	}
+
+	get selectedFormState()
+	{
+		if (this.selectedNode?.kind !== 'form-state' || !this.document)
+		{
+			return null;
+		}
+
+		const formId = this.findFormIdForNode(this.selectedNode);
+		return this.document.model.forms.find((entry) => entry.id === formId)?.formStates.find((entry) => entry.id === this.selectedNode?.modelId) ?? null;
 	}
 
 	get selectedEntity()
@@ -303,7 +368,7 @@ export class ResourceDetailsComponent
 
 	get canRemoveSelected(): boolean
 	{
-		return ['actor', 'variable', 'stage', 'transition', 'outcome', 'form', 'region', 'element', 'entity', 'field', 'relationship', 'rule', 'artifact'].includes(this.selectedNode?.kind ?? '');
+		return ['actor', 'variable', 'status', 'task', 'notification', 'stage', 'step', 'transition', 'step-transition', 'outcome', 'form', 'form-entity-binding', 'region', 'element', 'form-state', 'entity', 'field', 'relationship', 'rule', 'artifact'].includes(this.selectedNode?.kind ?? '');
 	}
 
 	get canMoveUp(): boolean
@@ -331,18 +396,30 @@ export class ResourceDetailsComponent
 				return [
 					{ kind: 'actor', label: 'Actor', parentId: 'collection:process:actors' },
 					{ kind: 'variable', label: 'Variable', parentId: 'collection:process:variables' },
+					{ kind: 'status', label: 'Status', parentId: 'collection:process:statuses' },
+					{ kind: 'task', label: 'Task', parentId: 'collection:process:tasks' },
+					{ kind: 'notification', label: 'Notification', parentId: 'collection:process:notifications' },
 					{ kind: 'stage', label: 'Stage', parentId: 'collection:process:stages' },
 					{ kind: 'transition', label: 'Transition', parentId: 'collection:process:transitions' },
+					{ kind: 'step-transition', label: 'Step Transition', parentId: 'collection:process:step-transitions' },
 					{ kind: 'outcome', label: 'Outcome', parentId: 'collection:process:outcomes' },
 				];
 			case 'collection:process:actors':
 				return [{ kind: 'actor', label: 'Actor', parentId: node.id }];
 			case 'collection:process:variables':
 				return [{ kind: 'variable', label: 'Variable', parentId: node.id }];
+			case 'collection:process:statuses':
+				return [{ kind: 'status', label: 'Status', parentId: node.id }];
+			case 'collection:process:tasks':
+				return [{ kind: 'task', label: 'Task', parentId: node.id }];
+			case 'collection:process:notifications':
+				return [{ kind: 'notification', label: 'Notification', parentId: node.id }];
 			case 'collection:process:stages':
 				return [{ kind: 'stage', label: 'Stage', parentId: node.id }];
 			case 'collection:process:transitions':
 				return [{ kind: 'transition', label: 'Transition', parentId: node.id }];
+			case 'collection:process:step-transitions':
+				return [{ kind: 'step-transition', label: 'Step Transition', parentId: node.id }];
 			case 'collection:process:outcomes':
 				return [{ kind: 'outcome', label: 'Outcome', parentId: node.id }];
 			case 'section:forms':
@@ -365,9 +442,26 @@ export class ResourceDetailsComponent
 		if (node.kind === 'form')
 		{
 			return [
+				{ kind: 'form-entity-binding', label: 'Entity Binding', parentId: node.id },
 				{ kind: 'region', label: 'Region', parentId: node.id },
 				{ kind: 'element', label: 'Element', parentId: node.id },
+				{ kind: 'form-state', label: 'Form State', parentId: node.id },
 			];
+		}
+
+		if (node.kind === 'stage')
+		{
+			return [{ kind: 'step', label: 'Step', parentId: node.id }];
+		}
+
+		if (node.kind === 'collection' && node.id.includes(':steps'))
+		{
+			return [{ kind: 'step', label: 'Step', parentId: node.id }];
+		}
+
+		if (node.kind === 'collection' && node.id.includes(':entity-bindings'))
+		{
+			return [{ kind: 'form-entity-binding', label: 'Entity Binding', parentId: node.id }];
 		}
 
 		if (node.kind === 'layout')
@@ -378,6 +472,11 @@ export class ResourceDetailsComponent
 		if (node.kind === 'collection' && node.id.includes(':elements'))
 		{
 			return [{ kind: 'element', label: 'Element', parentId: node.id }];
+		}
+
+		if (node.kind === 'collection' && node.id.includes(':states'))
+		{
+			return [{ kind: 'form-state', label: 'Form State', parentId: node.id }];
 		}
 
 		if (node.kind === 'entity')
@@ -396,6 +495,21 @@ export class ResourceDetailsComponent
 	actorOptions()
 	{
 		return this.document?.model.process.actors ?? [];
+	}
+
+	statusOptions()
+	{
+		return this.document?.model.process.statuses ?? [];
+	}
+
+	taskOptions()
+	{
+		return this.document?.model.process.tasks ?? [];
+	}
+
+	notificationOptions()
+	{
+		return this.document?.model.process.notifications ?? [];
 	}
 
 	formOptions()
@@ -418,9 +532,30 @@ export class ResourceDetailsComponent
 		return this.document?.model.rules ?? [];
 	}
 
+	outcomeOptions()
+	{
+		return this.document?.model.process.outcomes ?? [];
+	}
+
 	artifactOptions()
 	{
 		return this.document?.model.artifacts ?? [];
+	}
+
+	formEntityBindingOptions(formId: string | null | undefined)
+	{
+		return this.document?.model.forms.find((entry) => entry.id === formId)?.entityBindings ?? [];
+	}
+
+	formStateOptions(formId: string | null | undefined)
+	{
+		return this.document?.model.forms.find((entry) => entry.id === formId)?.formStates ?? [];
+	}
+
+	stepFormStateOptions(stageId: string | null | undefined)
+	{
+		const stage = this.document?.model.process.stages.find((entry) => entry.id === stageId);
+		return this.formStateOptions(stage?.formId ?? null);
 	}
 
 	regionOptions(formId: string | null | undefined)
@@ -440,9 +575,18 @@ export class ResourceDetailsComponent
 			return [];
 		}
 
-		const formId = this.selectedNode.parentId?.split(':')[2];
+		const formId = this.findFormIdForNode(this.selectedNode);
 		const form = this.document.model.forms.find((entry) => entry.id === formId);
-		return this.fieldOptions(form?.entityId);
+		if (!form)
+		{
+			return [];
+		}
+
+		const binding = this.selectedElement && 'entityBindingId' in this.selectedElement.binding
+			? form.entityBindings.find((entry) => entry.id === this.selectedElement?.binding.entityBindingId)
+			: form.entityBindings.find((entry) => entry.id === form.primaryEntityBindingId) ?? form.entityBindings[0];
+
+		return this.fieldOptions(binding?.entityId);
 	}
 
 	async saveResource()
@@ -617,6 +761,20 @@ export class ResourceDetailsComponent
 		});
 	}
 
+	updateStepRuleList(fieldName: 'entryRuleIds' | 'exitRuleIds', rawValue: string)
+	{
+		this.updateSelectedPartial({
+			[fieldName]: this.parseList(rawValue)
+		});
+	}
+
+	updateFormStateList(fieldName: 'activationRuleIds' | 'visibleEntityBindingIds', rawValue: string)
+	{
+		this.updateSelectedPartial({
+			[fieldName]: this.parseList(rawValue)
+		});
+	}
+
 	updateElementRuleList(fieldName: 'requiredRuleIds' | 'visibleRuleIds' | 'editableRuleIds', rawValue: string)
 	{
 		const element = this.selectedElement;
@@ -633,11 +791,123 @@ export class ResourceDetailsComponent
 		});
 	}
 
+	updateElementBindingKind(kind: 'field' | 'variable')
+	{
+		if (kind === 'variable')
+		{
+			this.updateSelectedPartial({
+				binding: {
+					variableId: this.document?.model.process.variables[0]?.id ?? ''
+				}
+			});
+			return;
+		}
+
+		const formId = this.selectedNode ? this.findFormIdForNode(this.selectedNode) : null;
+		const form = this.document?.model.forms.find((entry) => entry.id === formId);
+		const entityBindingId = form?.primaryEntityBindingId ?? form?.entityBindings[0]?.id ?? '';
+		const entityId = form?.entityBindings.find((entry) => entry.id === entityBindingId)?.entityId;
+		const fieldId = entityId ? this.fieldOptions(entityId)[0]?.id ?? '' : '';
+
+		this.updateSelectedPartial({
+			binding: {
+				entityBindingId,
+				fieldId
+			}
+		});
+	}
+
+	updateElementBindingEntityBinding(entityBindingId: string)
+	{
+		if (!this.selectedElement)
+		{
+			return;
+		}
+
+		const formId = this.selectedNode ? this.findFormIdForNode(this.selectedNode) : null;
+		const form = this.document?.model.forms.find((entry) => entry.id === formId);
+		const entityId = form?.entityBindings.find((entry) => entry.id === entityBindingId)?.entityId;
+		const fieldId = entityId ? this.fieldOptions(entityId)[0]?.id ?? '' : '';
+		this.updateSelectedPartial({
+			binding: {
+				entityBindingId,
+				fieldId
+			}
+		});
+	}
+
 	updateElementBindingField(fieldId: string)
 	{
+		if (!this.selectedElement)
+		{
+			return;
+		}
+
+		if ('variableId' in this.selectedElement.binding)
+		{
+			this.updateSelectedPartial({
+				binding: { variableId: fieldId }
+			});
+			return;
+		}
+
 		this.updateSelectedPartial({
-			binding: { fieldId }
+			binding: {
+				entityBindingId: this.selectedElement.binding.entityBindingId,
+				fieldId
+			}
 		});
+	}
+
+	updateFormStateElementBehaviors(rawValue: string)
+	{
+		try
+		{
+			const parsed = rawValue.trim() ? JSON.parse(rawValue) : [];
+			this.updateSelectedPartial({
+				elementBehaviors: Array.isArray(parsed) ? parsed : []
+			});
+		}
+		catch
+		{
+			// Ignore invalid JSON while the user is editing; validation will block save.
+		}
+	}
+
+	updateStepTransitionTargetKind(kind: 'step' | 'stage' | 'outcome')
+	{
+		const transition = this.selectedStepTransition;
+		if (!transition)
+		{
+			return;
+		}
+
+		switch (kind)
+		{
+			case 'step':
+				this.updateSelectedPartial({ target: { stepId: this.document?.model.process.steps[0]?.id ?? '' } });
+				return;
+			case 'stage':
+				this.updateSelectedPartial({ target: { stageId: this.document?.model.process.stages[0]?.id ?? '' } });
+				return;
+			default:
+				this.updateSelectedPartial({ target: { outcomeId: this.document?.model.process.outcomes[0]?.id ?? '' } });
+		}
+	}
+
+	updateStepTransitionTargetValue(kind: 'step' | 'stage' | 'outcome', value: string)
+	{
+		switch (kind)
+		{
+			case 'step':
+				this.updateSelectedPartial({ target: { stepId: value } });
+				return;
+			case 'stage':
+				this.updateSelectedPartial({ target: { stageId: value } });
+				return;
+			default:
+				this.updateSelectedPartial({ target: { outcomeId: value } });
+		}
 	}
 
 	updateRuntimeResponsibilities(slice: 'pcf' | 'dataverse' | 'azure', rawValue: string)
@@ -668,6 +938,76 @@ export class ResourceDetailsComponent
 	stringifyScalar(value: unknown): string
 	{
 		return value == null ? '' : `${value}`;
+	}
+
+	stringifyJson(value: unknown): string
+	{
+		return JSON.stringify(value ?? null, null, 2);
+	}
+
+	findFormIdForSelectedNode(): string | null
+	{
+		return this.findFormIdForNode(this.selectedNode);
+	}
+
+	selectedElementBindingKind(): 'field' | 'variable'
+	{
+		return this.selectedElement && 'variableId' in this.selectedElement.binding ? 'variable' : 'field';
+	}
+
+	stepTransitionTargetKind()
+	{
+		const transition = this.selectedStepTransition;
+		if (!transition)
+		{
+			return 'stage';
+		}
+
+		if ('stepId' in transition.target)
+		{
+			return 'step';
+		}
+
+		if ('stageId' in transition.target)
+		{
+			return 'stage';
+		}
+
+		return 'outcome';
+	}
+
+	stepTransitionTargetValue()
+	{
+		const transition = this.selectedStepTransition;
+		if (!transition)
+		{
+			return '';
+		}
+
+		if ('stepId' in transition.target)
+		{
+			return transition.target.stepId;
+		}
+
+		if ('stageId' in transition.target)
+		{
+			return transition.target.stageId;
+		}
+
+		return transition.target.outcomeId;
+	}
+
+	stepTransitionTargetOptions(kind: 'step' | 'stage' | 'outcome')
+	{
+		switch (kind)
+		{
+			case 'step':
+				return this.document?.model.process.steps ?? [];
+			case 'stage':
+				return this.stageOptions();
+			default:
+				return this.outcomeOptions();
+		}
 	}
 
 	private async initDb()
@@ -843,8 +1183,13 @@ export class ResourceDetailsComponent
 		const arrays: Array<{ ids: string[] }> = [
 			{ ids: process.actors.map((entry) => `actor:${entry.id}`) },
 			{ ids: process.variables.map((entry) => `variable:${entry.id}`) },
+			{ ids: process.statuses.map((entry) => `status:${entry.id}`) },
+			{ ids: process.tasks.map((entry) => `task:${entry.id}`) },
+			{ ids: process.notifications.map((entry) => `notification:${entry.id}`) },
 			{ ids: process.stages.map((entry) => `stage:${entry.id}`) },
+			...process.stages.map((entry) => ({ ids: entry.stepIds.map((stepId) => `step:${stepId}`) })),
 			{ ids: process.transitions.map((entry) => `transition:${entry.id}`) },
+			{ ids: process.stepTransitions.map((entry) => `step-transition:${entry.id}`) },
 			{ ids: process.outcomes.map((entry) => `outcome:${entry.id}`) },
 			{ ids: this.document.model.forms.map((entry) => `form:${entry.id}`) },
 			{ ids: metadata.entities.map((entry) => `entity:${entry.id}`) },
@@ -855,8 +1200,10 @@ export class ResourceDetailsComponent
 
 		for (const form of this.document.model.forms)
 		{
+			arrays.push({ ids: form.entityBindings.map((entry) => `form-entity-binding:${form.id}:${entry.id}`) });
 			arrays.push({ ids: form.layout.regions.map((entry) => `region:${form.id}:${entry.id}`) });
 			arrays.push({ ids: form.elements.map((entry) => `element:${form.id}:${entry.id}`) });
+			arrays.push({ ids: form.formStates.map((entry) => `form-state:${form.id}:${entry.id}`) });
 		}
 
 		for (const entity of metadata.entities)
@@ -914,5 +1261,48 @@ export class ResourceDetailsComponent
 	private toFallbackLabel(resourceName: string): string
 	{
 		return resourceName.replace(this.modelRoot, '');
+	}
+
+	private findFormIdForNode(node: DesignerNodeRef | null): string | null
+	{
+		if (!node)
+		{
+			return null;
+		}
+
+		switch (node.kind)
+		{
+			case 'form':
+			case 'layout':
+				return node.modelId;
+			case 'form-entity-binding':
+			case 'region':
+			case 'element':
+			case 'form-state':
+				return node.id.split(':')[1] ?? null;
+		}
+
+		if (node.parentId?.startsWith('form:'))
+		{
+			return node.parentId.replace('form:', '');
+		}
+
+		if (node.parentId?.startsWith('layout:'))
+		{
+			return node.parentId.replace('layout:', '');
+		}
+
+		if (node.parentId?.startsWith('collection:form:'))
+		{
+			return node.parentId.split(':')[2] ?? null;
+		}
+
+		return null;
+	}
+
+	private findFormForNode(node: DesignerNodeRef | null)
+	{
+		const formId = this.findFormIdForNode(node);
+		return this.document?.model.forms.find((entry) => entry.id === formId) ?? null;
 	}
 }
