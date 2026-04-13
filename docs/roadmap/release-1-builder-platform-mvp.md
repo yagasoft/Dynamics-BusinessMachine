@@ -21,6 +21,9 @@ Give architects and developers a real designer-first platform that can define an
 
 Output:
 - approved v1 platform specification that both hosts and runtimes implement
+- docs-first contract baseline tracked in [Canonical Model And Runtime Contract v1](../architecture/canonical-model-runtime-contract-v1.md)
+- authority and future executable format locked in [ADR-0008: Canonical Contract Authority And Format](../adr/0008-canonical-contract-authority-and-format.md)
+- future executable authority will be TypeScript source plus JSON Schema validation
 
 Must define:
 - process model

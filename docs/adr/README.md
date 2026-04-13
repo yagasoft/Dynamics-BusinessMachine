@@ -20,3 +20,4 @@ ADRs capture durable product and delivery decisions that are important enough to
 - [0005-versioning-and-release-branch-policy.md](0005-versioning-and-release-branch-policy.md)
 - [0006-dataverse-alm-source-and-packaging-model.md](0006-dataverse-alm-source-and-packaging-model.md)
 - [0007-github-oidc-key-vault-and-federated-delivery.md](0007-github-oidc-key-vault-and-federated-delivery.md)
+- [0008-canonical-contract-authority-and-format.md](0008-canonical-contract-authority-and-format.md)

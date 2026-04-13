@@ -15,7 +15,7 @@ Do not use this area for temporary execution notes, scratch work, or private pla
 ## Structure
 
 - `architecture/`
-  - product principles, current-state baseline, and target-platform architecture
+  - product principles, current-state baseline, target-platform architecture, and the canonical contract baseline
 - `adr/`
   - architecture decision records
 - `roadmap/`
@@ -30,10 +30,12 @@ Do not use this area for temporary execution notes, scratch work, or private pla
 1. [Architecture Principles](architecture/product-principles.md)
 2. [Current-State Baseline](architecture/current-state-baseline.md)
 3. [Target Platform Architecture](architecture/target-platform-architecture.md)
-4. [ADR Index](adr/README.md)
-5. [Release Plan](roadmap/release-plan.md)
-6. [Release Governance](releases/release-governance.md)
-7. [Runbook Index](runbooks/README.md)
+4. [Canonical Model And Runtime Contract v1](architecture/canonical-model-runtime-contract-v1.md)
+5. [ADR Index](adr/README.md)
+6. [Canonical Contract Authority ADR](adr/0008-canonical-contract-authority-and-format.md)
+7. [Release Plan](roadmap/release-plan.md)
+8. [Release Governance](releases/release-governance.md)
+9. [Runbook Index](runbooks/README.md)
 
 ## Working rules
 
