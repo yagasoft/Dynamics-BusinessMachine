@@ -80,8 +80,6 @@
     </Publisher>
     <RootComponents>
       <RootComponent type="61" schemaName="ys_/dbm/apps/editor/bundle.js" behavior="0" />
-      <RootComponent type="61" schemaName="ys_/dbm/apps/editor/color.png" behavior="0" />
-      <RootComponent type="61" schemaName="ys_/dbm/apps/editor/hue.png" behavior="0" />
       <RootComponent type="61" schemaName="ys_/dbm/apps/editor/index.html" behavior="0" />
       <RootComponent type="61" schemaName="ys_/dbm/apps/editor/primeicons.eot" behavior="0" />
       <RootComponent type="61" schemaName="ys_/dbm/apps/editor/primeicons.svg" behavior="0" />

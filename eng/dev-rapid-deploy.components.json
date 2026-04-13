@@ -87,6 +87,19 @@
       "notes": "This package supports the model-driven designer host but is not staged into Dataverse artifacts."
     },
     {
+      "name": "DbmDataverseSynthesis",
+      "description": "Dataverse synthesis planning, readback, drift diff, and generated metadata solution tooling.",
+      "sourcePatterns": [
+        "dbm-dataverse-synthesis/*"
+      ],
+      "nodeProjects": [
+        "dbm-dataverse-synthesis"
+      ],
+      "requiresDotNetBuild": false,
+      "deployable": false,
+      "notes": "This package drives generated Dataverse metadata but is not staged directly as a Dataverse artifact."
+    },
+    {
       "name": "SolutionAssets",
       "description": "Files that affect Dataverse solution staging or package metadata.",
       "sourcePatterns": [
@@ -96,9 +109,12 @@
         "eng/scripts/Restore-LegacyPackages.ps1",
         "eng/scripts/Invoke-NodeBuild.ps1",
         "eng/scripts/New-DataverseSolutionSource.ps1",
-        "eng/scripts/Invoke-DataversePackaging.ps1"
+        "eng/scripts/Invoke-DataversePackaging.ps1",
+        "eng/scripts/Invoke-DataverseSynthesis.ps1",
+        "eng/scripts/Test-DbmDataverseSynthesis.ps1"
       ],
       "nodeProjects": [
+        "dbm-dataverse-synthesis",
         "dbm-designer-core",
         "dbm-app",
         "dbm-script-lib",

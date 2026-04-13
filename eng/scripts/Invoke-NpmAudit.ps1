@@ -11,6 +11,7 @@ $nodeProjects = @(
     'dbm-app',
     'dbm-contract',
     'dbm-designer-core',
+    'dbm-dataverse-synthesis',
     'dbm-script-lib',
     'dbm-js-vm',
     'dbm-web-resources'

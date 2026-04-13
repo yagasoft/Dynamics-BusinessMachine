@@ -55,6 +55,7 @@ jobs:
             dbm-app/package-lock.json
             dbm-contract/package-lock.json
             dbm-designer-core/package-lock.json
+            dbm-dataverse-synthesis/package-lock.json
             dbm-script-lib/package-lock.json
             dbm-js-vm/package-lock.json
             dbm-web-resources/package-lock.json
@@ -102,6 +103,7 @@ jobs:
             dbm-app/package-lock.json
             dbm-contract/package-lock.json
             dbm-designer-core/package-lock.json
+            dbm-dataverse-synthesis/package-lock.json
             dbm-script-lib/package-lock.json
             dbm-js-vm/package-lock.json
             dbm-web-resources/package-lock.json

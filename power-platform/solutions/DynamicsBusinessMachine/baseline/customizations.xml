@@ -77,32 +77,6 @@
       <FileName>/WebResources/ys_dbmappseditorbundlejs6D574AC0-ACF8-EE11-A1FE-0022489F971B</FileName>
     </WebResource>
     <WebResource>
-      <WebResourceId>{41467dda-acf8-ee11-a1fe-0022489f971b}</WebResourceId>
-      <Name>ys_/dbm/apps/editor/color.png</Name>
-      <DisplayName>DBM Editor App - Color PNG</DisplayName>
-      <WebResourceType>5</WebResourceType>
-      <IntroducedVersion>1.1.1.1</IntroducedVersion>
-      <IsEnabledForMobileClient>0</IsEnabledForMobileClient>
-      <IsAvailableForMobileOffline>0</IsAvailableForMobileOffline>
-      <IsCustomizable>1</IsCustomizable>
-      <CanBeDeleted>1</CanBeDeleted>
-      <IsHidden>0</IsHidden>
-      <FileName>/WebResources/ys_dbmappseditorcolorpng41467DDA-ACF8-EE11-A1FE-0022489F971B</FileName>
-    </WebResource>
-    <WebResource>
-      <WebResourceId>{af4523f7-acf8-ee11-a1fe-0022489f971b}</WebResourceId>
-      <Name>ys_/dbm/apps/editor/hue.png</Name>
-      <DisplayName>DBM Editor App - Hue PNG</DisplayName>
-      <WebResourceType>5</WebResourceType>
-      <IntroducedVersion>1.1.1.1</IntroducedVersion>
-      <IsEnabledForMobileClient>0</IsEnabledForMobileClient>
-      <IsAvailableForMobileOffline>0</IsAvailableForMobileOffline>
-      <IsCustomizable>1</IsCustomizable>
-      <CanBeDeleted>1</CanBeDeleted>
-      <IsHidden>0</IsHidden>
-      <FileName>/WebResources/ys_dbmappseditorhuepngAF4523F7-ACF8-EE11-A1FE-0022489F971B</FileName>
-    </WebResource>
-    <WebResource>
       <WebResourceId>{3abcc44d-aef8-ee11-a1fe-0022489f971b}</WebResourceId>
       <Name>ys_/dbm/apps/editor/primeicons.svg</Name>
       <DisplayName>DBM Editor App - PrimeIcons SVG</DisplayName>

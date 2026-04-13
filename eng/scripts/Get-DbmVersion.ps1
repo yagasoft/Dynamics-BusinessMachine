@@ -13,6 +13,18 @@ $versionPrefix = [string]$versionConfig.version
 $buildNumber = [int]$versionConfig.build
 $prereleaseLabel = [string]$versionConfig.prereleaseLabel
 $solutionName = [string]$versionConfig.solutionName
+$solutionNames = if ($versionConfig.solutionNames) {
+    [ordered]@{
+        core = [string]$versionConfig.solutionNames.core
+        generatedMetadata = [string]$versionConfig.solutionNames.generatedMetadata
+    }
+}
+else {
+    [ordered]@{
+        core = $solutionName
+        generatedMetadata = 'DynamicsBusinessMachineGeneratedMetadata'
+    }
+}
 
 $semVer = if ([string]::IsNullOrWhiteSpace($prereleaseLabel)) {
     $versionPrefix
@@ -40,6 +52,7 @@ $result = [ordered]@{
     fileVersion = $solutionVersion
     informationalVersion = $informationalVersion
     solutionName = $solutionName
+    solutionNames = $solutionNames
 }
 
 if ($AsGitHubOutput) {
@@ -48,7 +61,14 @@ if ($AsGitHubOutput) {
     }
 
     foreach ($item in $result.GetEnumerator()) {
-        Add-Content -Path $GitHubOutputPath -Value "$($item.Key)=$($item.Value)"
+        $value = if ($item.Value -is [System.Collections.IDictionary] -or $item.Value -is [System.Collections.IEnumerable] -and -not ($item.Value -is [string])) {
+            $item.Value | ConvertTo-Json -Compress -Depth 5
+        }
+        else {
+            $item.Value
+        }
+
+        Add-Content -Path $GitHubOutputPath -Value "$($item.Key)=$value"
     }
 
     return
@@ -60,5 +80,12 @@ if ($AsJson) {
 }
 
 $result.GetEnumerator() | Sort-Object Name | ForEach-Object {
-    "$($_.Key)=$($_.Value)"
+    if ($_.Value -is [System.Collections.IDictionary]) {
+        foreach ($entry in $_.Value.GetEnumerator()) {
+            "$($_.Key).$($entry.Key)=$($entry.Value)"
+        }
+    }
+    else {
+        "$($_.Key)=$($_.Value)"
+    }
 }

@@ -7,6 +7,7 @@ param(
 $nodeProjects = @(
     @{ Name = 'dbm-contract'; Path = 'dbm-contract'; OutputPaths = @('dist'); Commands = @('npm ci', 'npm run build') },
     @{ Name = 'dbm-designer-core'; Path = 'dbm-designer-core'; OutputPaths = @('dist'); Commands = @('npm ci', 'npm run build') },
+    @{ Name = 'dbm-dataverse-synthesis'; Path = 'dbm-dataverse-synthesis'; OutputPaths = @('dist'); Commands = @('npm ci', 'npm run build') },
     @{ Name = 'dbm-app'; Path = 'dbm-app'; OutputPaths = @('dist', 'bundle'); Commands = @('npm ci', 'npm run build', 'npm run bundle') },
     @{ Name = 'dbm-script-lib'; Path = 'dbm-script-lib'; OutputPaths = @('bin'); Commands = @('npm ci', 'npx webpack --config webpack.config.js') },
     @{ Name = 'dbm-js-vm'; Path = 'dbm-js-vm'; OutputPaths = @('bin'); Commands = @('npm ci', 'npx webpack --config webpack.config.js') },

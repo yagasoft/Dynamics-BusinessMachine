@@ -2,5 +2,9 @@
   "version": "0.2.0",
   "build": 0,
   "prereleaseLabel": "",
-  "solutionName": "DynamicsBusinessMachine"
+  "solutionName": "DynamicsBusinessMachine",
+  "solutionNames": {
+    "core": "DynamicsBusinessMachine",
+    "generatedMetadata": "DynamicsBusinessMachineGeneratedMetadata"
+  }
 }

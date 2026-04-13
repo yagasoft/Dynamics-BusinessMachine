@@ -16,20 +16,6 @@
     },
     {
       "componentType": "webresource",
-      "name": "ys_/dbm/apps/editor/color.png",
-      "displayName": "DBM Editor App - Color PNG",
-      "source": "dbm-app/bundle/color.png",
-      "stagePath": "WebResources/ys_dbmappseditorcolorpng41467DDA-ACF8-EE11-A1FE-0022489F971B"
-    },
-    {
-      "componentType": "webresource",
-      "name": "ys_/dbm/apps/editor/hue.png",
-      "displayName": "DBM Editor App - Hue PNG",
-      "source": "dbm-app/bundle/hue.png",
-      "stagePath": "WebResources/ys_dbmappseditorhuepngAF4523F7-ACF8-EE11-A1FE-0022489F971B"
-    },
-    {
-      "componentType": "webresource",
       "name": "ys_/dbm/apps/editor/primeicons.eot",
       "displayName": "DBM Editor App - PrimeIcons EOT",
       "source": "dbm-app/bundle/primeicons.eot",

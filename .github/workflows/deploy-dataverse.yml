@@ -35,6 +35,20 @@ jobs:
       - name: Checkout
         uses: actions/checkout@v4
 
+      - name: Setup Node.js
+        uses: actions/setup-node@v4
+        with:
+          node-version: 20
+          cache: npm
+          cache-dependency-path: |
+            dbm-app/package-lock.json
+            dbm-contract/package-lock.json
+            dbm-designer-core/package-lock.json
+            dbm-dataverse-synthesis/package-lock.json
+            dbm-script-lib/package-lock.json
+            dbm-js-vm/package-lock.json
+            dbm-web-resources/package-lock.json
+
       - name: Enforce deployment ref policy
         shell: pwsh
         run: .\eng\scripts\Test-DeploymentRefPolicy.ps1 -EnvironmentName "${{ inputs.target_environment }}"
@@ -71,6 +85,10 @@ jobs:
         uses: actions/setup-dotnet@v4
         with:
           dotnet-version: 10.0.x
+
+      - name: Build synthesis validation packages
+        shell: pwsh
+        run: .\eng\scripts\Invoke-NodeBuild.ps1 -Projects dbm-contract,dbm-dataverse-synthesis
 
       - name: Install Power Platform CLI
         uses: microsoft/powerplatform-actions/actions-install@v1

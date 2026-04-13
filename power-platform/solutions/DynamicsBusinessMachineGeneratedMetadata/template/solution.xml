@@ -1,0 +1,38 @@
+<?xml version="1.0" encoding="utf-8"?>
+<ImportExportXml version="9.2.26033.170" SolutionPackageVersion="9.2" languagecode="1033" generatedBy="DBMSynthesis" xmlns:xsi="http://www.w3.org/2001/XMLSchema-instance">
+  <SolutionManifest>
+    <UniqueName>DynamicsBusinessMachineGeneratedMetadata</UniqueName>
+    <LocalizedNames>
+      <LocalizedName description="DynamicsBusinessMachineGeneratedMetadata" languagecode="1033"/>
+    </LocalizedNames>
+    <Descriptions/>
+    <Version>0.2.0.0</Version>
+    <Managed>0</Managed>
+    <Publisher>
+      <UniqueName>yagasoft</UniqueName>
+      <LocalizedNames>
+        <LocalizedName description="Yagasoft" languagecode="1033"/>
+      </LocalizedNames>
+      <Descriptions/>
+      <EMailAddress>mail@yagasoft.com</EMailAddress>
+      <SupportingWebsiteUrl>http://yagasoft.com</SupportingWebsiteUrl>
+      <CustomizationPrefix>ys</CustomizationPrefix>
+      <CustomizationOptionValuePrefix>71786</CustomizationOptionValuePrefix>
+      <Addresses>
+        <Address>
+          <AddressNumber>1</AddressNumber>
+          <AddressTypeCode>1</AddressTypeCode>
+        </Address>
+        <Address>
+          <AddressNumber>2</AddressNumber>
+          <AddressTypeCode>1</AddressTypeCode>
+        </Address>
+      </Addresses>
+    </Publisher>
+    <RootComponents>
+      <RootComponent type="1" schemaName="dbm_request" behavior="0"/>
+      <RootComponent type="1" schemaName="dbm_requestdecision" behavior="0"/>
+    </RootComponents>
+    <MissingDependencies/>
+  </SolutionManifest>
+</ImportExportXml>

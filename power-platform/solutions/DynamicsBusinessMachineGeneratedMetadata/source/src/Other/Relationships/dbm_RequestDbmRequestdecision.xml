@@ -1,0 +1,9 @@
+<?xml version="1.0" encoding="utf-8"?>
+<EntityRelationship>
+  <Name>dbm_request_dbm_requestdecision</Name>
+  <SchemaName>dbm_RequestDbmRequestdecision</SchemaName>
+  <RelationshipType>one-to-many</RelationshipType>
+  <ReferencedEntity>dbm_request</ReferencedEntity>
+  <ReferencingEntity>dbm_requestdecision</ReferencingEntity>
+  <ReferencingAttribute>dbm_requestid</ReferencingAttribute>
+</EntityRelationship>

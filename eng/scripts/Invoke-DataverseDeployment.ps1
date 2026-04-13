@@ -10,12 +10,23 @@ param(
     [Parameter(Mandatory = $true)]
     [string]$DataverseUrl,
 
-    [string]$SolutionName = 'DynamicsBusinessMachine',
+    [string]$SolutionName,
+    [string]$GeneratedMetadataSolutionName,
     [string]$PluginAssemblyName = 'Yagasoft.Dbm.Plugins',
     [string]$ExpectedSolutionVersion,
     [string]$EvidenceRoot = (Join-Path $PackageRoot 'deployment-evidence'),
     [switch]$AllowSolutionReplaceOnPluginIdentityChange
 )
+
+$ErrorActionPreference = 'Stop'
+
+$version = & (Join-Path $PSScriptRoot 'Get-DbmVersion.ps1') -AsJson | ConvertFrom-Json
+if ([string]::IsNullOrWhiteSpace($SolutionName)) {
+    $SolutionName = [string]$version.solutionNames.core
+}
+if ([string]::IsNullOrWhiteSpace($GeneratedMetadataSolutionName)) {
+    $GeneratedMetadataSolutionName = [string]$version.solutionNames.generatedMetadata
+}
 
 $pacPath = $null
 
@@ -62,30 +73,19 @@ function Convert-ToVersionOrNull {
 
     try {
         return [version]$Value
-    } catch {
+    }
+    catch {
         return $null
     }
 }
 
-function Get-DbmSolutionVersionFromList {
+function Get-DbmSolutionVersionFromEntry {
     param(
         [Parameter(Mandatory = $true)]
-        [object[]]$Solutions,
-
-        [Parameter(Mandatory = $true)]
-        [string]$SolutionName
+        [object]$Solution
     )
 
-    $solution = $Solutions | Where-Object {
-        $uniqueName = Get-DbmPropertyValue -InputObject $_ -Names @('UniqueName', 'uniquename', 'SolutionUniqueName', 'solutionuniquename')
-        $uniqueName -eq $SolutionName
-    } | Select-Object -First 1
-
-    if (-not $solution) {
-        return $null
-    }
-
-    return Get-DbmPropertyValue -InputObject $solution -Names @('Version', 'version', 'SolutionVersion', 'solutionversion', 'VersionNumber', 'versionnumber')
+    return Get-DbmPropertyValue -InputObject $Solution -Names @('Version', 'version', 'SolutionVersion', 'solutionversion', 'VersionNumber', 'versionnumber')
 }
 
 function Get-DbmImportFailureMessage {
@@ -169,8 +169,8 @@ function Invoke-DbmDataverseRequest {
     )
 
     $headers = @{
-        Authorization  = "Bearer $AccessToken"
-        Accept         = 'application/json'
+        Authorization = "Bearer $AccessToken"
+        Accept = 'application/json'
         'OData-Version' = '4.0'
         'OData-MaxVersion' = '4.0'
     }
@@ -279,208 +279,343 @@ function Remove-DbmPluginAssemblyRegistrations {
     }
 }
 
-$packageType = if ($TargetEnvironment -eq 'Dev') { 'unmanaged' } else { 'managed' }
-$package = Get-ChildItem -Path $PackageRoot -Filter "*-$packageType.zip" -File |
-    Sort-Object LastWriteTimeUtc -Descending |
-    Select-Object -First 1
+function Get-DbmSolutionVersionValue {
+    param(
+        [Parameter(Mandatory = $true)]
+        [object[]]$Solutions,
 
-if (-not $package) {
-    throw "No $packageType Dataverse solution package was found under '$PackageRoot'."
+        [Parameter(Mandatory = $true)]
+        [string]$SolutionName
+    )
+
+    $solution = $Solutions | Where-Object {
+        $uniqueName = Get-DbmPropertyValue -InputObject $_ -Names @('UniqueName', 'uniquename', 'SolutionUniqueName', 'solutionuniquename')
+        $uniqueName -eq $SolutionName
+    } | Select-Object -First 1
+
+    if (-not $solution) {
+        return $null
+    }
+
+    return Get-DbmSolutionVersionFromEntry -Solution $solution
 }
 
-$settingsFile = Join-Path $PackageRoot 'SampleDeploymentSettings.json'
+function Get-DbmPackageForSolution {
+    param(
+        [Parameter(Mandatory = $true)]
+        [string]$PackageRoot,
+
+        [Parameter(Mandatory = $true)]
+        [string]$SolutionName,
+
+        [Parameter(Mandatory = $true)]
+        [ValidateSet('managed', 'unmanaged')]
+        [string]$PackageType
+    )
+
+    return Get-ChildItem -Path $PackageRoot -Recurse -File |
+        Where-Object { $_.Name -like "$SolutionName-*-$PackageType.zip" } |
+        Sort-Object LastWriteTimeUtc -Descending |
+        Select-Object -First 1
+}
+
+function Get-DbmSettingsFileForSolution {
+    param(
+        [Parameter(Mandatory = $true)]
+        [string]$PackageRoot,
+
+        [Parameter(Mandatory = $true)]
+        [string]$SolutionName,
+
+        [switch]$AllowLegacyAlias
+    )
+
+    $specificPath = Join-Path $PackageRoot "SampleDeploymentSettings.$SolutionName.json"
+    if (Test-Path $specificPath) {
+        return $specificPath
+    }
+
+    if ($AllowLegacyAlias) {
+        $legacyPath = Join-Path $PackageRoot 'SampleDeploymentSettings.json'
+        if (Test-Path $legacyPath) {
+            return $legacyPath
+        }
+    }
+
+    return $null
+}
+
+function Import-DbmSolutionPackage {
+    param(
+        [Parameter(Mandatory = $true)]
+        [string]$SolutionName,
+
+        [Parameter(Mandatory = $true)]
+        [string]$PackageRoot,
+
+        [Parameter(Mandatory = $true)]
+        [string]$DataverseUrl,
+
+        [Parameter(Mandatory = $true)]
+        [string]$TargetEnvironment,
+
+        [Parameter(Mandatory = $true)]
+        [string]$EvidenceRoot,
+
+        [string]$PluginAssemblyName,
+        [string]$ExpectedSolutionVersion,
+        [switch]$AllowPluginIdentityReplace,
+        [switch]$AllowLegacySettingsAlias
+    )
+
+    $packageType = if ($TargetEnvironment -eq 'Dev') { 'unmanaged' } else { 'managed' }
+    $package = Get-DbmPackageForSolution -PackageRoot $PackageRoot -SolutionName $SolutionName -PackageType $packageType
+
+    if (-not $package) {
+        throw "No $packageType Dataverse solution package was found for '$SolutionName' under '$PackageRoot'."
+    }
+
+    $settingsFile = Get-DbmSettingsFileForSolution -PackageRoot $PackageRoot -SolutionName $SolutionName -AllowLegacyAlias:$AllowLegacySettingsAlias
+    New-Item -ItemType Directory -Path $EvidenceRoot -Force | Out-Null
+    if (-not [string]::IsNullOrWhiteSpace($selectedPacProfileName)) {
+        Set-Content -Path (Join-Path $EvidenceRoot 'pac-profile.txt') -Value $selectedPacProfileName -Encoding UTF8
+    }
+
+    $remediationEvidencePath = Join-Path $EvidenceRoot 'deployment-remediation.json'
+    $pluginAssembliesBeforeCleanupPath = Join-Path $EvidenceRoot 'plugin-assemblies-before-cleanup.json'
+    $pluginAssembliesAfterCleanupPath = Join-Path $EvidenceRoot 'plugin-assemblies-after-cleanup.json'
+
+    $beforeListPath = Join-Path $EvidenceRoot 'solution-list-before.json'
+    $beforeSolutionsRaw = & $pacPath solution list --environment $DataverseUrl --json
+    if ($LASTEXITCODE -ne 0) {
+        throw "pac solution list failed before importing '$SolutionName'."
+    }
+
+    Set-Content -Path $beforeListPath -Value $beforeSolutionsRaw -Encoding UTF8
+    $beforeSolutions = $beforeSolutionsRaw | ConvertFrom-Json
+    $existingSolution = $beforeSolutions | Where-Object {
+        $uniqueName = Get-DbmPropertyValue -InputObject $_ -Names @('UniqueName', 'uniquename', 'SolutionUniqueName', 'solutionuniquename')
+        $uniqueName -eq $SolutionName
+    } | Select-Object -First 1
+    $existingSolutionVersion = Get-DbmSolutionVersionValue -Solutions $beforeSolutions -SolutionName $SolutionName
+
+    $importArguments = @(
+        '--log-to-console',
+        'solution',
+        'import',
+        '--path', $package.FullName,
+        '--environment', $DataverseUrl,
+        '--publish-changes',
+        '--skip-lower-version',
+        '--max-async-wait-time', '60'
+    )
+
+    if ($settingsFile) {
+        $importArguments += @('--settings-file', $settingsFile)
+    }
+
+    if ($TargetEnvironment -ne 'Dev' -and $existingSolution) {
+        $importArguments += '--stage-and-upgrade'
+    }
+
+    $remediation = [ordered]@{
+        generatedUtc = (Get-Date).ToUniversalTime().ToString('o')
+        targetEnvironment = $TargetEnvironment
+        solutionName = $SolutionName
+        pluginAssemblyName = $PluginAssemblyName
+        packagePath = $package.FullName
+        existingSolutionVersion = $existingSolutionVersion
+        allowSolutionReplaceOnPluginIdentityChange = [bool]$AllowPluginIdentityReplace
+        usedSolutionReplaceOnPluginIdentityChange = $false
+        reason = $null
+        initialImportFailure = $null
+    }
+
+    try {
+        $importResult = Invoke-DbmPacCommand -PacPath $pacPath -Arguments $importArguments
+        if ($importResult.ExitCode -ne 0) {
+            $message = if ([string]::IsNullOrWhiteSpace($importResult.OutputText)) {
+                "pac solution import failed for '$($package.FullName)'."
+            }
+            else {
+                $importResult.OutputText
+            }
+
+            throw $message
+        }
+    }
+    catch {
+        $failureMessage = Get-DbmImportFailureMessage -ErrorRecord $_
+        $remediation.initialImportFailure = $failureMessage
+
+        $isPluginIdentityChange = -not [string]::IsNullOrWhiteSpace($PluginAssemblyName) -and $failureMessage -like '*Plugin Assembly fully qualified name has changed*'
+        $canReplaceSolution = $AllowPluginIdentityReplace -and $TargetEnvironment -ne 'Prod'
+
+        if (-not ($isPluginIdentityChange -and $canReplaceSolution)) {
+            $remediation | ConvertTo-Json -Depth 6 | Set-Content -Path $remediationEvidencePath -Encoding UTF8
+            throw
+        }
+
+        Write-Warning "Detected plugin assembly identity drift for '$SolutionName' in '$TargetEnvironment'. Cleaning stale registrations and retrying import."
+        $remediation.usedSolutionReplaceOnPluginIdentityChange = $true
+        $remediation.reason = 'plugin-assembly-identity-change'
+        $remediation.solutionFoundBeforeCleanup = [bool]$existingSolution
+
+        if ($existingSolution) {
+            $remediation.deleteAttemptedUtc = (Get-Date).ToUniversalTime().ToString('o')
+
+            & $pacPath --log-to-console solution delete --environment $DataverseUrl --solution-name $SolutionName
+            if ($LASTEXITCODE -ne 0) {
+                $remediation.deleteSucceeded = $false
+                $remediation | ConvertTo-Json -Depth 6 | Set-Content -Path $remediationEvidencePath -Encoding UTF8
+                throw "pac solution delete failed while remediating plugin assembly identity drift for '$SolutionName'."
+            }
+
+            $remediation.deleteSucceeded = $true
+        }
+        else {
+            Write-Warning "Solution '$SolutionName' is already absent in '$TargetEnvironment'. Skipping solution delete and cleaning stale plugin assembly registrations directly."
+            $remediation.deleteSkippedBecauseSolutionMissing = $true
+        }
+
+        $remediation.retryAttemptedUtc = (Get-Date).ToUniversalTime().ToString('o')
+
+        $dataverseAccessToken = Get-DbmDataverseAccessToken -DataverseUrl $DataverseUrl
+        $pluginAssembliesBeforeCleanup = Get-DbmPluginAssemblyRegistrations -DataverseUrl $DataverseUrl -PluginAssemblyName $PluginAssemblyName -AccessToken $dataverseAccessToken
+        $pluginAssemblyEvidenceBeforeCleanup = ConvertTo-DbmPluginAssemblyEvidence -PluginAssemblies $pluginAssembliesBeforeCleanup
+        $pluginAssemblyEvidenceBeforeCleanup | ConvertTo-Json -Depth 6 | Set-Content -Path $pluginAssembliesBeforeCleanupPath -Encoding UTF8
+        $remediation.pluginAssembliesBeforeCleanup = $pluginAssemblyEvidenceBeforeCleanup
+
+        if ($pluginAssembliesBeforeCleanup.Count -gt 0) {
+            Write-Warning "Found $($pluginAssembliesBeforeCleanup.Count) stale plugin assembly registration(s) for '$PluginAssemblyName' after deleting '$SolutionName'. Removing them before retry."
+            $remediation.pluginAssemblyCleanupAttemptedUtc = (Get-Date).ToUniversalTime().ToString('o')
+
+            $pluginAssemblyCleanupResult = Remove-DbmPluginAssemblyRegistrations -DataverseUrl $DataverseUrl -PluginAssemblies $pluginAssembliesBeforeCleanup -AccessToken $dataverseAccessToken
+            $remediation.pluginAssembliesRemoved = @($pluginAssemblyCleanupResult.Removed)
+            $remediation.pluginAssemblyCleanupFailures = @($pluginAssemblyCleanupResult.Failures)
+
+            if ($pluginAssemblyCleanupResult.Failures.Count -gt 0) {
+                $remediation.pluginAssemblyCleanupSucceeded = $false
+                $remediation | ConvertTo-Json -Depth 6 | Set-Content -Path $remediationEvidencePath -Encoding UTF8
+                throw "Failed to remove one or more stale plugin assembly registrations for '$PluginAssemblyName'."
+            }
+        }
+        else {
+            $remediation.pluginAssembliesRemoved = @()
+            $remediation.pluginAssemblyCleanupFailures = @()
+            $remediation.pluginAssemblyCleanupSucceeded = $true
+        }
+
+        $pluginAssembliesAfterCleanup = Get-DbmPluginAssemblyRegistrations -DataverseUrl $DataverseUrl -PluginAssemblyName $PluginAssemblyName -AccessToken $dataverseAccessToken
+        $pluginAssemblyEvidenceAfterCleanup = ConvertTo-DbmPluginAssemblyEvidence -PluginAssemblies $pluginAssembliesAfterCleanup
+        $pluginAssemblyEvidenceAfterCleanup | ConvertTo-Json -Depth 6 | Set-Content -Path $pluginAssembliesAfterCleanupPath -Encoding UTF8
+        $remediation.pluginAssembliesAfterCleanup = $pluginAssemblyEvidenceAfterCleanup
+
+        if ($pluginAssembliesAfterCleanup.Count -gt 0) {
+            $remediation.pluginAssemblyCleanupSucceeded = $false
+            $remediation | ConvertTo-Json -Depth 6 | Set-Content -Path $remediationEvidencePath -Encoding UTF8
+            throw "Stale plugin assembly registrations remain for '$PluginAssemblyName' after cleanup."
+        }
+
+        $remediation.pluginAssemblyCleanupSucceeded = $true
+
+        $retryImportArguments = @($importArguments | Where-Object { $_ -ne '--stage-and-upgrade' })
+        $retryImportResult = Invoke-DbmPacCommand -PacPath $pacPath -Arguments $retryImportArguments
+        if ($retryImportResult.ExitCode -ne 0) {
+            $remediation.retrySucceeded = $false
+            if (-not [string]::IsNullOrWhiteSpace($retryImportResult.OutputText)) {
+                $remediation.retryImportFailure = $retryImportResult.OutputText
+            }
+            $remediation | ConvertTo-Json -Depth 6 | Set-Content -Path $remediationEvidencePath -Encoding UTF8
+            throw "pac solution import retry failed for '$($package.FullName)' after deleting '$SolutionName'."
+        }
+
+        $remediation.retrySucceeded = $true
+        $remediation | ConvertTo-Json -Depth 6 | Set-Content -Path $remediationEvidencePath -Encoding UTF8
+    }
+
+    & $pacPath --log-to-console solution publish --environment $DataverseUrl
+    if ($LASTEXITCODE -ne 0) {
+        throw "pac solution publish failed after importing '$SolutionName'."
+    }
+
+    $afterListPath = Join-Path $EvidenceRoot 'solution-list-after.json'
+    $afterSolutionsRaw = & $pacPath solution list --environment $DataverseUrl --json
+    if ($LASTEXITCODE -ne 0) {
+        throw "pac solution list failed after importing '$SolutionName'."
+    }
+
+    Set-Content -Path $afterListPath -Value $afterSolutionsRaw -Encoding UTF8
+    $afterSolutions = $afterSolutionsRaw | ConvertFrom-Json
+    $onlineVersion = Get-DbmSolutionVersionValue -Solutions $afterSolutions -SolutionName $SolutionName
+
+    if ([string]::IsNullOrWhiteSpace($onlineVersion)) {
+        $onlineVersionRaw = & $pacPath solution online-version --solution-name $SolutionName --environment $DataverseUrl
+        if ($LASTEXITCODE -ne 0) {
+            throw "Unable to resolve deployed solution version for '$SolutionName' from post-import solution list, and pac solution online-version also failed."
+        }
+
+        $onlineVersion = ($onlineVersionRaw | Select-Object -Last 1).Trim()
+    }
+
+    Set-Content -Path (Join-Path $EvidenceRoot 'online-version.txt') -Value $onlineVersion -Encoding UTF8
+
+    if (-not [string]::IsNullOrWhiteSpace($ExpectedSolutionVersion)) {
+        $expectedVersion = Convert-ToVersionOrNull -Value $ExpectedSolutionVersion
+        $currentVersion = Convert-ToVersionOrNull -Value $onlineVersion
+
+        if ($expectedVersion -and $currentVersion -and $currentVersion -lt $expectedVersion) {
+            throw "Deployed solution version '$currentVersion' for '$SolutionName' is lower than expected '$expectedVersion'."
+        }
+    }
+
+    return [pscustomobject]@{
+        solutionName = $SolutionName
+        packagePath = $package.FullName
+        packageType = $packageType
+        onlineVersion = $onlineVersion
+        usedPluginIdentityReplace = [bool]$remediation.usedSolutionReplaceOnPluginIdentityChange
+        evidenceRoot = $EvidenceRoot
+    }
+}
+
 New-Item -ItemType Directory -Path $EvidenceRoot -Force | Out-Null
 if (-not [string]::IsNullOrWhiteSpace($selectedPacProfileName)) {
     Set-Content -Path (Join-Path $EvidenceRoot 'pac-profile.txt') -Value $selectedPacProfileName -Encoding UTF8
 }
-$remediationEvidencePath = Join-Path $EvidenceRoot 'deployment-remediation.json'
-$pluginAssembliesBeforeCleanupPath = Join-Path $EvidenceRoot 'plugin-assemblies-before-cleanup.json'
-$pluginAssembliesAfterCleanupPath = Join-Path $EvidenceRoot 'plugin-assemblies-after-cleanup.json'
 
-$beforeListPath = Join-Path $EvidenceRoot 'solution-list-before.json'
-$beforeSolutionsRaw = & $pacPath solution list --environment $DataverseUrl --json
-if ($LASTEXITCODE -ne 0) {
-    throw 'pac solution list failed before import.'
-}
+$deploymentResults = @()
 
-Set-Content -Path $beforeListPath -Value $beforeSolutionsRaw -Encoding UTF8
-$beforeSolutions = $beforeSolutionsRaw | ConvertFrom-Json
-$existingSolution = $beforeSolutions | Where-Object {
-    $uniqueName = Get-DbmPropertyValue -InputObject $_ -Names @('UniqueName', 'uniquename', 'SolutionUniqueName', 'solutionuniquename')
-    $uniqueName -eq $SolutionName
-} | Select-Object -First 1
-$existingSolutionVersion = Get-DbmSolutionVersionFromList -Solutions $beforeSolutions -SolutionName $SolutionName
+$deploymentResults += Import-DbmSolutionPackage `
+    -SolutionName $SolutionName `
+    -PackageRoot $PackageRoot `
+    -DataverseUrl $DataverseUrl `
+    -TargetEnvironment $TargetEnvironment `
+    -EvidenceRoot (Join-Path $EvidenceRoot 'core') `
+    -PluginAssemblyName $PluginAssemblyName `
+    -ExpectedSolutionVersion $ExpectedSolutionVersion `
+    -AllowPluginIdentityReplace:$AllowSolutionReplaceOnPluginIdentityChange `
+    -AllowLegacySettingsAlias
 
-$importArguments = @(
-    '--log-to-console',
-    'solution',
-    'import',
-    '--path', $package.FullName,
-    '--environment', $DataverseUrl,
-    '--publish-changes',
-    '--skip-lower-version',
-    '--max-async-wait-time', '60'
-)
+$deploymentResults += Import-DbmSolutionPackage `
+    -SolutionName $GeneratedMetadataSolutionName `
+    -PackageRoot $PackageRoot `
+    -DataverseUrl $DataverseUrl `
+    -TargetEnvironment $TargetEnvironment `
+    -EvidenceRoot (Join-Path $EvidenceRoot 'generated-metadata') `
+    -ExpectedSolutionVersion $ExpectedSolutionVersion
 
-if (Test-Path $settingsFile) {
-    $importArguments += @('--settings-file', $settingsFile)
-}
-
-if ($TargetEnvironment -ne 'Dev' -and $existingSolution) {
-    $importArguments += '--stage-and-upgrade'
-}
-
-$remediation = [ordered]@{
+$summary = [ordered]@{
     generatedUtc = (Get-Date).ToUniversalTime().ToString('o')
     targetEnvironment = $TargetEnvironment
-    solutionName = $SolutionName
-    pluginAssemblyName = $PluginAssemblyName
-    packagePath = $package.FullName
-    existingSolutionVersion = $existingSolutionVersion
-    allowSolutionReplaceOnPluginIdentityChange = [bool]$AllowSolutionReplaceOnPluginIdentityChange
-    usedSolutionReplaceOnPluginIdentityChange = $false
-    reason = $null
-    initialImportFailure = $null
+    dataverseUrl = $DataverseUrl
+    solutionImportOrder = @($SolutionName, $GeneratedMetadataSolutionName)
+    deployments = $deploymentResults
 }
 
-try {
-    $importResult = Invoke-DbmPacCommand -PacPath $pacPath -Arguments $importArguments
-    if ($importResult.ExitCode -ne 0) {
-        $message = if ([string]::IsNullOrWhiteSpace($importResult.OutputText)) {
-            "pac solution import failed for '$($package.FullName)'."
-        }
-        else {
-            $importResult.OutputText
-        }
+$summary | ConvertTo-Json -Depth 8 | Set-Content -Path (Join-Path $EvidenceRoot 'deployment-summary.json') -Encoding UTF8
 
-        throw $message
-    }
+foreach ($deployment in $deploymentResults) {
+    Write-Host "Package [$($deployment.solutionName)]: $($deployment.packagePath)"
+    Write-Host "Online version [$($deployment.solutionName)]: $($deployment.onlineVersion)"
 }
-catch {
-    $failureMessage = Get-DbmImportFailureMessage -ErrorRecord $_
-    $remediation.initialImportFailure = $failureMessage
-
-    $isPluginIdentityChange = $failureMessage -like '*Plugin Assembly fully qualified name has changed*'
-    $canReplaceSolution = $AllowSolutionReplaceOnPluginIdentityChange -and $TargetEnvironment -ne 'Prod'
-
-    if (-not ($isPluginIdentityChange -and $canReplaceSolution)) {
-        $remediation | ConvertTo-Json -Depth 6 | Set-Content -Path $remediationEvidencePath -Encoding UTF8
-        throw
-    }
-
-    Write-Warning "Detected plugin assembly identity drift for '$SolutionName' in '$TargetEnvironment'. Cleaning stale registrations and retrying import."
-    $remediation.usedSolutionReplaceOnPluginIdentityChange = $true
-    $remediation.reason = 'plugin-assembly-identity-change'
-    $remediation.solutionFoundBeforeCleanup = [bool]$existingSolution
-
-    if ($existingSolution) {
-        $remediation.deleteAttemptedUtc = (Get-Date).ToUniversalTime().ToString('o')
-
-        & $pacPath --log-to-console solution delete --environment $DataverseUrl --solution-name $SolutionName
-        if ($LASTEXITCODE -ne 0) {
-            $remediation.deleteSucceeded = $false
-            $remediation | ConvertTo-Json -Depth 6 | Set-Content -Path $remediationEvidencePath -Encoding UTF8
-            throw "pac solution delete failed while remediating plugin assembly identity drift for '$SolutionName'."
-        }
-
-        $remediation.deleteSucceeded = $true
-    }
-    else {
-        Write-Warning "Solution '$SolutionName' is already absent in '$TargetEnvironment'. Skipping solution delete and cleaning stale plugin assembly registrations directly."
-        $remediation.deleteSkippedBecauseSolutionMissing = $true
-    }
-
-    $remediation.retryAttemptedUtc = (Get-Date).ToUniversalTime().ToString('o')
-
-    $dataverseAccessToken = Get-DbmDataverseAccessToken -DataverseUrl $DataverseUrl
-    $pluginAssembliesBeforeCleanup = Get-DbmPluginAssemblyRegistrations -DataverseUrl $DataverseUrl -PluginAssemblyName $PluginAssemblyName -AccessToken $dataverseAccessToken
-    $pluginAssemblyEvidenceBeforeCleanup = ConvertTo-DbmPluginAssemblyEvidence -PluginAssemblies $pluginAssembliesBeforeCleanup
-    $pluginAssemblyEvidenceBeforeCleanup | ConvertTo-Json -Depth 6 | Set-Content -Path $pluginAssembliesBeforeCleanupPath -Encoding UTF8
-    $remediation.pluginAssembliesBeforeCleanup = $pluginAssemblyEvidenceBeforeCleanup
-
-    if ($pluginAssembliesBeforeCleanup.Count -gt 0) {
-        Write-Warning "Found $($pluginAssembliesBeforeCleanup.Count) stale plugin assembly registration(s) for '$PluginAssemblyName' after deleting '$SolutionName'. Removing them before retry."
-        $remediation.pluginAssemblyCleanupAttemptedUtc = (Get-Date).ToUniversalTime().ToString('o')
-
-        $pluginAssemblyCleanupResult = Remove-DbmPluginAssemblyRegistrations -DataverseUrl $DataverseUrl -PluginAssemblies $pluginAssembliesBeforeCleanup -AccessToken $dataverseAccessToken
-        $remediation.pluginAssembliesRemoved = @($pluginAssemblyCleanupResult.Removed)
-        $remediation.pluginAssemblyCleanupFailures = @($pluginAssemblyCleanupResult.Failures)
-
-        if ($pluginAssemblyCleanupResult.Failures.Count -gt 0) {
-            $remediation.pluginAssemblyCleanupSucceeded = $false
-            $remediation | ConvertTo-Json -Depth 6 | Set-Content -Path $remediationEvidencePath -Encoding UTF8
-            throw "Failed to remove one or more stale plugin assembly registrations for '$PluginAssemblyName'."
-        }
-    }
-    else {
-        $remediation.pluginAssembliesRemoved = @()
-        $remediation.pluginAssemblyCleanupFailures = @()
-        $remediation.pluginAssemblyCleanupSucceeded = $true
-    }
-
-    $pluginAssembliesAfterCleanup = Get-DbmPluginAssemblyRegistrations -DataverseUrl $DataverseUrl -PluginAssemblyName $PluginAssemblyName -AccessToken $dataverseAccessToken
-    $pluginAssemblyEvidenceAfterCleanup = ConvertTo-DbmPluginAssemblyEvidence -PluginAssemblies $pluginAssembliesAfterCleanup
-    $pluginAssemblyEvidenceAfterCleanup | ConvertTo-Json -Depth 6 | Set-Content -Path $pluginAssembliesAfterCleanupPath -Encoding UTF8
-    $remediation.pluginAssembliesAfterCleanup = $pluginAssemblyEvidenceAfterCleanup
-
-    if ($pluginAssembliesAfterCleanup.Count -gt 0) {
-        $remediation.pluginAssemblyCleanupSucceeded = $false
-        $remediation | ConvertTo-Json -Depth 6 | Set-Content -Path $remediationEvidencePath -Encoding UTF8
-        throw "Stale plugin assembly registrations remain for '$PluginAssemblyName' after cleanup."
-    }
-
-    $remediation.pluginAssemblyCleanupSucceeded = $true
-
-    $retryImportArguments = @($importArguments | Where-Object { $_ -ne '--stage-and-upgrade' })
-    $retryImportResult = Invoke-DbmPacCommand -PacPath $pacPath -Arguments $retryImportArguments
-    if ($retryImportResult.ExitCode -ne 0) {
-        $remediation.retrySucceeded = $false
-        if (-not [string]::IsNullOrWhiteSpace($retryImportResult.OutputText)) {
-            $remediation.retryImportFailure = $retryImportResult.OutputText
-        }
-        $remediation | ConvertTo-Json -Depth 6 | Set-Content -Path $remediationEvidencePath -Encoding UTF8
-        throw "pac solution import retry failed for '$($package.FullName)' after deleting '$SolutionName'."
-    }
-
-    $remediation.retrySucceeded = $true
-    $remediation | ConvertTo-Json -Depth 6 | Set-Content -Path $remediationEvidencePath -Encoding UTF8
-}
-
-& $pacPath --log-to-console solution publish --environment $DataverseUrl
-if ($LASTEXITCODE -ne 0) {
-    throw 'pac solution publish failed after import.'
-}
-
-$afterListPath = Join-Path $EvidenceRoot 'solution-list-after.json'
-$afterSolutionsRaw = & $pacPath solution list --environment $DataverseUrl --json
-if ($LASTEXITCODE -ne 0) {
-    throw 'pac solution list failed after import.'
-}
-
-Set-Content -Path $afterListPath -Value $afterSolutionsRaw -Encoding UTF8
-$afterSolutions = $afterSolutionsRaw | ConvertFrom-Json
-$onlineVersion = Get-DbmSolutionVersionFromList -Solutions $afterSolutions -SolutionName $SolutionName
-
-if ([string]::IsNullOrWhiteSpace($onlineVersion)) {
-    $onlineVersionRaw = & $pacPath solution online-version --solution-name $SolutionName --environment $DataverseUrl
-    if ($LASTEXITCODE -ne 0) {
-        throw "Unable to resolve deployed solution version for '$SolutionName' from post-import solution list, and pac solution online-version also failed."
-    }
-
-    $onlineVersion = ($onlineVersionRaw | Select-Object -Last 1).Trim()
-}
-
-Set-Content -Path (Join-Path $EvidenceRoot 'online-version.txt') -Value $onlineVersion -Encoding UTF8
-
-if (-not [string]::IsNullOrWhiteSpace($ExpectedSolutionVersion)) {
-    $expectedVersion = Convert-ToVersionOrNull -Value $ExpectedSolutionVersion
-    $currentVersion = Convert-ToVersionOrNull -Value $onlineVersion
-
-    if ($expectedVersion -and $currentVersion -and $currentVersion -lt $expectedVersion) {
-        throw "Deployed solution version '$currentVersion' is lower than expected '$expectedVersion'."
-    }
-}
-
-Write-Host "Package: $($package.FullName)"
-Write-Host "Environment: $TargetEnvironment"
-Write-Host "Online version: $onlineVersion"

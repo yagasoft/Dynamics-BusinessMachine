@@ -146,6 +146,7 @@ foreach ($name in $selectedEnvironments) {
         azureResourceGroup = [string]$config.resourceGroup
         azureKeyVaultName = [string]$config.keyVaultName
         dbmSolutionName = [string]$version.solutionName
+        dbmGeneratedMetadataSolutionName = [string]$version.solutionNames.generatedMetadata
     }
 
     if ($selectedEnvironments.Count -eq 1) {
@@ -213,6 +214,10 @@ if ($duplicateEnvironmentIds) {
 $payload = [ordered]@{
     generatedUtc = (Get-Date).ToUniversalTime().ToString('o')
     solutionName = [string]$version.solutionName
+    solutionNames = [ordered]@{
+        core = [string]$version.solutionNames.core
+        generatedMetadata = [string]$version.solutionNames.generatedMetadata
+    }
     environments = $results
 }
 
@@ -241,4 +246,5 @@ $results | ForEach-Object {
     "azureResourceGroup=$($_.azureResourceGroup)"
     "azureKeyVaultName=$($_.azureKeyVaultName)"
     "dbmSolutionName=$($_.dbmSolutionName)"
+    "dbmGeneratedMetadataSolutionName=$($_.dbmGeneratedMetadataSolutionName)"
 }

@@ -1,0 +1,47 @@
+<?xml version="1.0" encoding="utf-8"?>
+<Entity xmlns:xsi="http://www.w3.org/2001/XMLSchema-instance">
+  <Name LocalizedName="Request Decision" OriginalName="">dbm_requestdecision</Name>
+  <EntityInfo>
+    <entity Name="dbm_requestdecision" unmodified="0">
+      <attributes>
+        <attribute PhysicalName="dbm_name" Name="dbm_name">
+          <Type>String</Type>
+          <LogicalName>dbm_name</LogicalName>
+          <SchemaName>dbm_Name</SchemaName>
+          <DisplayName>Request Decision Name</DisplayName>
+          <RequiredLevel>ApplicationRequired</RequiredLevel>
+          <IsPrimaryName>1</IsPrimaryName>
+        </attribute>
+        <attribute PhysicalName="dbm_requestid" Name="dbm_requestid">
+          <Type>Lookup</Type>
+          <LogicalName>dbm_requestid</LogicalName>
+          <SchemaName>dbm_Requestid</SchemaName>
+          <DisplayName>Request</DisplayName>
+          <RequiredLevel>ApplicationRequired</RequiredLevel>
+          <IsPrimaryName>0</IsPrimaryName>
+          <Targets>
+            <Target>dbm_request</Target>
+          </Targets>
+        </attribute>
+        <attribute PhysicalName="dbm_decisionsummary" Name="dbm_decisionsummary">
+          <Type>Memo</Type>
+          <LogicalName>dbm_decisionsummary</LogicalName>
+          <SchemaName>dbm_Decisionsummary</SchemaName>
+          <DisplayName>Decision Summary</DisplayName>
+          <RequiredLevel>None</RequiredLevel>
+          <IsPrimaryName>0</IsPrimaryName>
+        </attribute>
+        <attribute PhysicalName="dbm_decisioncomment" Name="dbm_decisioncomment">
+          <Type>Memo</Type>
+          <LogicalName>dbm_decisioncomment</LogicalName>
+          <SchemaName>dbm_Decisioncomment</SchemaName>
+          <DisplayName>Decision Comment</DisplayName>
+          <RequiredLevel>None</RequiredLevel>
+          <IsPrimaryName>0</IsPrimaryName>
+        </attribute>
+      </attributes>
+    </entity>
+  </EntityInfo>
+  <FormXml/>
+  <RibbonDiffXml/>
+</Entity>

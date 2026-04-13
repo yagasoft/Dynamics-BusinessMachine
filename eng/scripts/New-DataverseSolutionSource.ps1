@@ -5,7 +5,8 @@ param(
 )
 
 $version = & (Join-Path $PSScriptRoot 'Get-DbmVersion.ps1') -AsJson | ConvertFrom-Json
-$baselineRoot = Join-Path $RepoRoot 'power-platform\solutions\DynamicsBusinessMachine\baseline'
+$coreSolutionName = [string]$version.solutionNames.core
+$baselineRoot = Join-Path $RepoRoot "power-platform\solutions\$coreSolutionName\baseline"
 $manifestPath = Join-Path $RepoRoot 'power-platform\manifests\webresources.yml'
 $manifest = Get-Content -Path $manifestPath -Raw | ConvertFrom-Json
 $stagingRoot = Join-Path $OutputRoot 'src'

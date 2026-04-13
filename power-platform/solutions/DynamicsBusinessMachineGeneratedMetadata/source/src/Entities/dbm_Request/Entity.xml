@@ -1,0 +1,49 @@
+<?xml version="1.0" encoding="utf-8"?>
+<Entity xmlns:xsi="http://www.w3.org/2001/XMLSchema-instance">
+  <Name LocalizedName="Request" OriginalName="">dbm_request</Name>
+  <EntityInfo>
+    <entity Name="dbm_request" unmodified="0">
+      <attributes>
+        <attribute PhysicalName="dbm_title" Name="dbm_title">
+          <Type>String</Type>
+          <LogicalName>dbm_title</LogicalName>
+          <SchemaName>dbm_Title</SchemaName>
+          <DisplayName>Request Title</DisplayName>
+          <RequiredLevel>ApplicationRequired</RequiredLevel>
+          <IsPrimaryName>1</IsPrimaryName>
+        </attribute>
+        <attribute PhysicalName="dbm_amount" Name="dbm_amount">
+          <Type>Money</Type>
+          <LogicalName>dbm_amount</LogicalName>
+          <SchemaName>dbm_Amount</SchemaName>
+          <DisplayName>Request Amount</DisplayName>
+          <RequiredLevel>ApplicationRequired</RequiredLevel>
+          <IsPrimaryName>0</IsPrimaryName>
+        </attribute>
+        <attribute PhysicalName="dbm_supportingnotes" Name="dbm_supportingnotes">
+          <Type>Memo</Type>
+          <LogicalName>dbm_supportingnotes</LogicalName>
+          <SchemaName>dbm_Supportingnotes</SchemaName>
+          <DisplayName>Supporting Notes</DisplayName>
+          <RequiredLevel>None</RequiredLevel>
+          <IsPrimaryName>0</IsPrimaryName>
+        </attribute>
+        <attribute PhysicalName="dbm_screeningresult" Name="dbm_screeningresult">
+          <Type>Picklist</Type>
+          <LogicalName>dbm_screeningresult</LogicalName>
+          <SchemaName>dbm_Screeningresult</SchemaName>
+          <DisplayName>Screening Result</DisplayName>
+          <RequiredLevel>None</RequiredLevel>
+          <IsPrimaryName>0</IsPrimaryName>
+          <Options>
+            <Option Value="100000000" Id="pending" Label="Pending"/>
+            <Option Value="100000001" Id="complete" Label="Complete"/>
+            <Option Value="100000002" Id="blocked" Label="Blocked"/>
+          </Options>
+        </attribute>
+      </attributes>
+    </entity>
+  </EntityInfo>
+  <FormXml/>
+  <RibbonDiffXml/>
+</Entity>

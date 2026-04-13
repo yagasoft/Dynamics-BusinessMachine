@@ -37,6 +37,7 @@ jobs:
             dbm-app/package-lock.json
             dbm-contract/package-lock.json
             dbm-designer-core/package-lock.json
+            dbm-dataverse-synthesis/package-lock.json
             dbm-script-lib/package-lock.json
             dbm-js-vm/package-lock.json
             dbm-web-resources/package-lock.json
@@ -76,6 +77,10 @@ jobs:
         shell: pwsh
         run: .\eng\scripts\Test-DbmDesignerCore.ps1
 
+      - name: Validate DBM Dataverse synthesis
+        shell: pwsh
+        run: .\eng\scripts\Test-DbmDataverseSynthesis.ps1
+
       - name: Restore legacy NuGet packages
         shell: pwsh
         run: .\eng\scripts\Restore-LegacyPackages.ps1
@@ -86,7 +91,9 @@ jobs:
 
       - name: Smoke-stage Dataverse solution source
         shell: pwsh
-        run: .\eng\scripts\New-DataverseSolutionSource.ps1 -OutputRoot (Join-Path $PWD 'artifacts\validate\power-platform') | Out-Host
+        run: |
+          .\eng\scripts\New-DataverseSolutionSource.ps1 -OutputRoot (Join-Path $PWD 'artifacts\validate\power-platform\core') | Out-Host
+          .\eng\scripts\Invoke-DataverseSynthesis.ps1 -Mode EmitSource -OutputRoot (Join-Path $PWD 'artifacts\validate\power-platform\generated-metadata') | Out-Host
 
       - name: Validate Azure delivery contract
         shell: pwsh
