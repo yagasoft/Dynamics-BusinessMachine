@@ -367,6 +367,7 @@ function Import-DbmSolutionPackage {
         [string]$PluginAssemblyName,
         [string]$ExpectedSolutionVersion,
         [switch]$AllowPluginIdentityReplace,
+        [switch]$AllowSameVersionImport,
         [switch]$AllowLegacySettingsAlias
     )
 
