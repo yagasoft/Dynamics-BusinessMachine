@@ -292,7 +292,7 @@ function planRelationship(
     return {
       id: relationship.id,
       logicalName,
-      schemaName: toSchemaName(logicalName),
+      schemaName: logicalName,
       relationshipType: relationship.relationshipType,
       fromEntityId: relationship.fromEntityId,
       toEntityId: relationship.toEntityId,
@@ -320,7 +320,7 @@ function planRelationship(
     return {
       id: relationship.id,
       logicalName,
-      schemaName: toSchemaName(logicalName),
+      schemaName: logicalName,
       relationshipType: relationship.relationshipType,
       fromEntityId: relationship.fromEntityId,
       toEntityId: relationship.toEntityId,
@@ -345,7 +345,7 @@ function planRelationship(
     return {
       id: relationship.id,
       logicalName,
-      schemaName: toSchemaName(logicalName),
+      schemaName: logicalName,
       relationshipType: relationship.relationshipType,
       fromEntityId: relationship.fromEntityId,
       toEntityId: relationship.toEntityId,
@@ -361,7 +361,7 @@ function planRelationship(
   return {
     id: relationship.id,
     logicalName,
-    schemaName: toSchemaName(logicalName),
+    schemaName: logicalName,
     relationshipType: relationship.relationshipType,
     fromEntityId: relationship.fromEntityId,
     toEntityId: relationship.toEntityId,

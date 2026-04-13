@@ -352,7 +352,9 @@ async function ensureRelationship(relationship, plan, environmentConfig, accessT
         });
         return;
     }
-    const filter = encodeURIComponent(`SchemaName eq '${relationship.schemaName}'`);
+    const relationshipFilters = [...new Set([relationship.schemaName, relationship.logicalName].filter((value) => value.length > 0))]
+        .map((value) => `SchemaName eq '${value.replace(/'/g, "''")}'`);
+    const filter = encodeURIComponent(relationshipFilters.join(' or '));
     const result = await dataverseRequest(environmentConfig.dataverseUrl, accessToken, 'GET', `RelationshipDefinitions/Microsoft.Dynamics.CRM.OneToManyRelationshipMetadata?$select=SchemaName&$filter=${filter}`);
     if (!result.ok) {
         throw new Error(getDataverseErrorMessage(result, `Failed to validate relationship '${relationship.logicalName}' in Dataverse.`));

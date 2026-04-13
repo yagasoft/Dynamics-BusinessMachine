@@ -14,6 +14,7 @@ const index_1 = require("../src/index");
     strict_1.default.equal(plan.generatedMetadataSolutionName, 'DynamicsBusinessMachineGeneratedMetadata');
     strict_1.default.equal(plan.entities.length, 2);
     strict_1.default.equal(plan.relationships.some((relationship) => relationship.logicalName === 'dbm_request_dbm_requestdecision'), true);
+    strict_1.default.equal(plan.relationships.some((relationship) => relationship.schemaName === 'dbm_request_dbm_requestdecision'), true);
     strict_1.default.equal(plan.entities
         .flatMap((entity) => entity.columns)
         .some((column) => column.logicalName === 'dbm_screeningresult' && column.attributeType === 'Picklist' && column.supported), true);
@@ -85,6 +86,7 @@ const index_1 = require("../src/index");
     await (0, index_1.emitGeneratedMetadataSolution)(plan, outputRoot);
     const solutionXml = await node_fs_1.promises.readFile(node_path_1.default.join(outputRoot, 'src', 'Other', 'Solution.xml'), 'utf8');
     const entityXml = await node_fs_1.promises.readFile(node_path_1.default.join(outputRoot, 'src', 'Entities', 'dbm_Request', 'Entity.xml'), 'utf8');
+    const requestDecisionEntityXml = await node_fs_1.promises.readFile(node_path_1.default.join(outputRoot, 'src', 'Entities', 'dbm_Requestdecision', 'Entity.xml'), 'utf8');
     const relationshipsIndexXml = await node_fs_1.promises.readFile(node_path_1.default.join(outputRoot, 'src', 'Other', 'Relationships.xml'), 'utf8');
     const relationshipFileName = `${plan.relationships[0]?.schemaName}.xml`.replace(/[^A-Za-z0-9_.-]/g, '_');
     const relationshipXml = await node_fs_1.promises.readFile(node_path_1.default.join(outputRoot, 'src', 'Other', 'Relationships', relationshipFileName), 'utf8');
@@ -92,7 +94,9 @@ const index_1 = require("../src/index");
     strict_1.default.match(entityXml, /<Type>primarykey<\/Type>/);
     strict_1.default.match(entityXml, /<Name>dbm_title<\/Name>/);
     strict_1.default.match(entityXml, /PrimaryName\|ValidForAdvancedFind\|ValidForForm\|ValidForGrid\|RequiredForForm/);
-    strict_1.default.match(relationshipsIndexXml, /dbm_RequestDbmRequestdecision/);
+    strict_1.default.match(requestDecisionEntityXml, /<LookupTypes\/>/);
+    strict_1.default.doesNotMatch(requestDecisionEntityXml, /<LookupType[^>]*>dbm_request<\/LookupType>/);
+    strict_1.default.match(relationshipsIndexXml, /dbm_request_dbm_requestdecision/);
     strict_1.default.match(relationshipXml, /dbm_request_dbm_requestdecision/);
     await node_fs_1.promises.rm(outputRoot, { recursive: true, force: true });
 });
@@ -186,7 +190,7 @@ const index_1 = require("../src/index");
             payload: {
                 value: [
                     {
-                        SchemaName: 'dbm_Request_DbM_Requestdecision',
+                        SchemaName: 'dbm_request_dbm_requestdecision',
                         ReferencedEntity: 'dbm_request',
                         ReferencingEntity: 'dbm_requestdecision',
                         ReferencingAttribute: 'dbm_requestid'

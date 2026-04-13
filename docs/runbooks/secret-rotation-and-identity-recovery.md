@@ -45,6 +45,14 @@ Vault names:
 
 `APP_SIGNING_KEY_B64` is a GitHub Actions secret containing the same base64-encoded `.snk` payload. It exists only as a bootstrap or recovery fallback when the matching Key Vault secret has not yet been seeded or temporarily cannot be read.
 
+If the previous approved signing key has been lost and plugin identity must be reset, generate one new replacement key outside Git with:
+
+```powershell
+.\eng\scripts\New-DbmAssemblySigningKey.ps1
+```
+
+Treat that generated `.snk` as the new official DBM signing key immediately, seed the same base64 payload into each environment's `app-signing-key`, update `APP_SIGNING_KEY_B64`, and capture the new public key token from the signed plugin build as deployment evidence.
+
 ## Ownership model
 
 - platform owner:
@@ -62,10 +70,11 @@ Vault names:
 3. Confirm current GitHub Environment variables still point to the correct vault and identity.
 4. Create the new secret version in the matching Key Vault.
 5. If Key Vault seeding is temporarily blocked, set GitHub Actions secret `APP_SIGNING_KEY_B64` to the same payload as a documented fallback and remove the fallback once Key Vault is seeded.
-6. Validate the consuming system outside production first when practical.
-7. Run the relevant deployment workflow against `Dev` or the lowest safe environment.
-8. If validation is successful, repeat the rotation for the next environment.
-8. Retire the old secret version according to the platform retention policy.
+6. Rebuild the signed plugin assembly and capture the resulting public key token as evidence when the rotated secret is the app signing key.
+7. Validate the consuming system outside production first when practical.
+8. Run the relevant deployment workflow against `Dev` or the lowest safe environment.
+9. If validation is successful, repeat the rotation for the next environment.
+10. Retire the old secret version according to the platform retention policy.
 
 ## Identity recovery process
 
@@ -91,7 +100,7 @@ If a delivery workflow loses access:
 
 ## Prohibited actions
 
-- do not paste rotated secrets into GitHub repository secrets
+- do not paste rotated secrets into ad hoc or unstable GitHub repository secrets; only the stable fallback secret `APP_SIGNING_KEY_B64` is allowed for DBM recovery
 - do not rename stable secret identifiers without docs and ADR updates
 - do not remove or narrow unrelated permissions on the shared delivery identity from DBM work
 - do not create repository-wide GitHub subjects that bypass the approved `Dev`, `UAT`, and `Prod` environment boundaries

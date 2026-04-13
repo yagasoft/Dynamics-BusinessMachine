@@ -177,32 +177,38 @@ async function readEntitySnapshot(
 async function readRelationshipSnapshot(
   dataverseUrl: string,
   accessToken: string,
-  schemaName: string
+  relationshipPlan: Pick<DataverseSynthesisPlan['relationships'][number], 'logicalName' | 'schemaName'>
 ): Promise<DataverseReadbackRelationship | null> {
-  const filter = encodeURIComponent(`SchemaName eq '${schemaName}'`);
-  const result = await dataverseRequest(
-    dataverseUrl,
-    accessToken,
-    `RelationshipDefinitions/Microsoft.Dynamics.CRM.OneToManyRelationshipMetadata?$select=SchemaName,ReferencedEntity,ReferencingEntity,ReferencingAttribute&$filter=${filter}`
-  );
+  const candidateNames = [...new Set([relationshipPlan.schemaName, relationshipPlan.logicalName].filter((value) => value.length > 0))];
 
-  if (!result.ok) {
-    throw new Error(`Failed to retrieve relationship '${schemaName}' from Dataverse.`);
+  for (const candidateName of candidateNames) {
+    const filter = encodeURIComponent(`SchemaName eq '${candidateName}'`);
+    const result = await dataverseRequest(
+      dataverseUrl,
+      accessToken,
+      `RelationshipDefinitions/Microsoft.Dynamics.CRM.OneToManyRelationshipMetadata?$select=SchemaName,ReferencedEntity,ReferencingEntity,ReferencingAttribute&$filter=${filter}`
+    );
+
+    if (!result.ok) {
+      throw new Error(`Failed to retrieve relationship '${candidateName}' from Dataverse.`);
+    }
+
+    const relationship = Array.isArray(result.payload?.value) ? result.payload.value[0] : null;
+    if (!relationship) {
+      continue;
+    }
+
+    return {
+      logicalName: relationshipPlan.logicalName,
+      schemaName: relationship.SchemaName ?? candidateName,
+      relationshipType: 'OneToManyRelationship',
+      referencedEntityLogicalName: relationship.ReferencedEntity,
+      referencingEntityLogicalName: relationship.ReferencingEntity,
+      referencingAttributeLogicalName: relationship.ReferencingAttribute ?? null
+    };
   }
 
-  const relationship = Array.isArray(result.payload?.value) ? result.payload.value[0] : null;
-  if (!relationship) {
-    return null;
-  }
-
-  return {
-    logicalName: schemaName,
-    schemaName: relationship.SchemaName ?? schemaName,
-    relationshipType: 'OneToManyRelationship',
-    referencedEntityLogicalName: relationship.ReferencedEntity,
-    referencingEntityLogicalName: relationship.ReferencingEntity,
-    referencingAttributeLogicalName: relationship.ReferencingAttribute ?? null
-  };
+  return null;
 }
 
 export async function readbackDataverseMetadata(
@@ -223,7 +229,7 @@ export async function readbackDataverseMetadata(
     const relationshipSnapshot = await readRelationshipSnapshot(
       environmentConfig.dataverseUrl,
       auth.accessToken,
-      relationshipPlan.schemaName
+      relationshipPlan
     );
     if (relationshipSnapshot) {
       relationships.push(relationshipSnapshot);

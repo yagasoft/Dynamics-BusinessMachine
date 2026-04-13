@@ -86,7 +86,7 @@ function createRelationshipsIndex(relationships: DataverseRelationshipPlan[]): s
   });
 
   for (const relationship of relationships.filter((entry) => entry.supported)) {
-    root.ele('EntityRelationship', { Name: relationship.schemaName });
+    root.ele('EntityRelationship', { Name: relationship.logicalName });
   }
 
   return root.end({ prettyPrint: true });
@@ -255,10 +255,7 @@ function writeColumnAttribute(attributes: any, entity: DataverseEntityPlan, colu
       break;
     case 'Lookup': {
       attribute.ele('LookupStyle').txt('single');
-      const lookupTypes = attribute.ele('LookupTypes');
-      if (column.lookupTargetLogicalName) {
-        lookupTypes.ele('LookupType', { id: '00000000-0000-0000-0000-000000000000' }).txt(column.lookupTargetLogicalName);
-      }
+      attribute.ele('LookupTypes');
       break;
     }
     case 'DateTime':

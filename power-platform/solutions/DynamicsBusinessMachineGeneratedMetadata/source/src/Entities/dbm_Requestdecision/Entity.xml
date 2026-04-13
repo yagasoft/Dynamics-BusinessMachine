@@ -121,9 +121,7 @@
           <IsRetrievable>0</IsRetrievable>
           <IsLocalizable>0</IsLocalizable>
           <LookupStyle>single</LookupStyle>
-          <LookupTypes>
-            <LookupType id="00000000-0000-0000-0000-000000000000">dbm_request</LookupType>
-          </LookupTypes>
+          <LookupTypes/>
           <displaynames>
             <displayname description="Request" languagecode="1033"/>
           </displaynames>

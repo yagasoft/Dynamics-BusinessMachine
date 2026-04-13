@@ -19,6 +19,7 @@ test('planDataverseSynthesis maps the approval example into Dataverse entities, 
   assert.equal(plan.generatedMetadataSolutionName, 'DynamicsBusinessMachineGeneratedMetadata');
   assert.equal(plan.entities.length, 2);
   assert.equal(plan.relationships.some((relationship) => relationship.logicalName === 'dbm_request_dbm_requestdecision'), true);
+  assert.equal(plan.relationships.some((relationship) => relationship.schemaName === 'dbm_request_dbm_requestdecision'), true);
   assert.equal(
     plan.entities
       .flatMap((entity) => entity.columns)
@@ -105,6 +106,10 @@ test('emitGeneratedMetadataSolution writes a tracked solution-source tree', asyn
 
   const solutionXml = await fs.readFile(path.join(outputRoot, 'src', 'Other', 'Solution.xml'), 'utf8');
   const entityXml = await fs.readFile(path.join(outputRoot, 'src', 'Entities', 'dbm_Request', 'Entity.xml'), 'utf8');
+  const requestDecisionEntityXml = await fs.readFile(
+    path.join(outputRoot, 'src', 'Entities', 'dbm_Requestdecision', 'Entity.xml'),
+    'utf8'
+  );
   const relationshipsIndexXml = await fs.readFile(path.join(outputRoot, 'src', 'Other', 'Relationships.xml'), 'utf8');
   const relationshipFileName = `${plan.relationships[0]?.schemaName}.xml`.replace(/[^A-Za-z0-9_.-]/g, '_');
   const relationshipXml = await fs.readFile(
@@ -116,7 +121,9 @@ test('emitGeneratedMetadataSolution writes a tracked solution-source tree', asyn
   assert.match(entityXml, /<Type>primarykey<\/Type>/);
   assert.match(entityXml, /<Name>dbm_title<\/Name>/);
   assert.match(entityXml, /PrimaryName\|ValidForAdvancedFind\|ValidForForm\|ValidForGrid\|RequiredForForm/);
-  assert.match(relationshipsIndexXml, /dbm_RequestDbmRequestdecision/);
+  assert.match(requestDecisionEntityXml, /<LookupTypes\/>/);
+  assert.doesNotMatch(requestDecisionEntityXml, /<LookupType[^>]*>dbm_request<\/LookupType>/);
+  assert.match(relationshipsIndexXml, /dbm_request_dbm_requestdecision/);
   assert.match(relationshipXml, /dbm_request_dbm_requestdecision/);
 
   await fs.rm(outputRoot, { recursive: true, force: true });
@@ -212,7 +219,7 @@ test('applySynthesisPlanToDev bootstraps the generated solution and creates rela
       payload: {
         value: [
           {
-            SchemaName: 'dbm_Request_DbM_Requestdecision',
+            SchemaName: 'dbm_request_dbm_requestdecision',
             ReferencedEntity: 'dbm_request',
             ReferencingEntity: 'dbm_requestdecision',
             ReferencingAttribute: 'dbm_requestid'

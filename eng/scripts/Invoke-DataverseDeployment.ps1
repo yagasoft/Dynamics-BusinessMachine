@@ -130,6 +130,42 @@ function Invoke-DbmPacCommand {
     }
 }
 
+function Invoke-DbmPacPublishWithRetry {
+    param(
+        [Parameter(Mandatory = $true)]
+        [string]$PacPath,
+
+        [Parameter(Mandatory = $true)]
+        [string]$DataverseUrl,
+
+        [int]$MaxAttempts = 6,
+
+        [int]$RetryDelaySeconds = 10
+    )
+
+    $lastResult = $null
+    for ($attempt = 1; $attempt -le $MaxAttempts; $attempt++) {
+        $lastResult = Invoke-DbmPacCommand -PacPath $PacPath -Arguments @('--log-to-console', 'solution', 'publish', '--environment', $DataverseUrl)
+        if ($lastResult.ExitCode -eq 0) {
+            return
+        }
+
+        $isImportConcurrencyFailure = -not [string]::IsNullOrWhiteSpace($lastResult.OutputText) -and (
+            $lastResult.OutputText -like '*another [Import] running*' -or
+            $lastResult.OutputText -like '*SolutionConcurrencyFailure*'
+        )
+
+        if (-not $isImportConcurrencyFailure -or $attempt -eq $MaxAttempts) {
+            break
+        }
+
+        Write-Warning "Publish is blocked by an active Dataverse import. Waiting $RetryDelaySeconds second(s) before retry $($attempt + 1) of $MaxAttempts."
+        Start-Sleep -Seconds $RetryDelaySeconds
+    }
+
+    throw "pac solution publish failed after importing a solution into '$DataverseUrl'."
+}
+
 function Get-DbmDataverseApiBaseUrl {
     param(
         [Parameter(Mandatory = $true)]
@@ -302,6 +338,84 @@ function Get-DbmSolutionVersionValue {
     }
 
     return Get-DbmSolutionVersionFromEntry -Solution $solution
+}
+
+function Get-DbmSolutionsByUniqueName {
+    param(
+        [Parameter(Mandatory = $true)]
+        [string]$DataverseUrl,
+
+        [Parameter(Mandatory = $true)]
+        [string]$SolutionName,
+
+        [Parameter(Mandatory = $true)]
+        [string]$AccessToken
+    )
+
+    $escapedSolutionName = $SolutionName.Replace("'", "''")
+    $filter = [System.Uri]::EscapeDataString("uniquename eq '$escapedSolutionName'")
+    $uri = "$(Get-DbmDataverseApiBaseUrl -DataverseUrl $DataverseUrl)/solutions?`$select=solutionid,uniquename,version&`$filter=$filter"
+    $response = Invoke-DbmDataverseRequest -Method GET -Uri $uri -AccessToken $AccessToken
+
+    return @($response.value)
+}
+
+function Wait-DbmSolutionRemoval {
+    param(
+        [Parameter(Mandatory = $true)]
+        [string]$DataverseUrl,
+
+        [Parameter(Mandatory = $true)]
+        [string]$SolutionName,
+
+        [Parameter(Mandatory = $true)]
+        [string]$AccessToken,
+
+        [int]$TimeoutSeconds = 30,
+
+        [int]$PollSeconds = 2
+    )
+
+    $deadline = (Get-Date).ToUniversalTime().AddSeconds($TimeoutSeconds)
+    do {
+        $solutions = Get-DbmSolutionsByUniqueName -DataverseUrl $DataverseUrl -SolutionName $SolutionName -AccessToken $AccessToken
+        if ($solutions.Count -eq 0) {
+            return $true
+        }
+
+        Start-Sleep -Seconds $PollSeconds
+    } while ((Get-Date).ToUniversalTime() -lt $deadline)
+
+    return $false
+}
+
+function Wait-DbmPluginAssemblyRemoval {
+    param(
+        [Parameter(Mandatory = $true)]
+        [string]$DataverseUrl,
+
+        [Parameter(Mandatory = $true)]
+        [string]$PluginAssemblyName,
+
+        [Parameter(Mandatory = $true)]
+        [string]$AccessToken,
+
+        [int]$TimeoutSeconds = 30,
+
+        [int]$PollSeconds = 2
+    )
+
+    $deadline = (Get-Date).ToUniversalTime().AddSeconds($TimeoutSeconds)
+    do {
+        $pluginAssemblies = Get-DbmPluginAssemblyRegistrations -DataverseUrl $DataverseUrl -PluginAssemblyName $PluginAssemblyName -AccessToken $AccessToken
+        if ($pluginAssemblies.Count -eq 0) {
+            return $true
+        }
+
+        Start-Sleep -Seconds $PollSeconds
+    } while ((Get-Date).ToUniversalTime() -lt $deadline)
+
+    return $false
 }
 
 function Get-DbmPackageForSolution {
@@ -551,6 +665,12 @@ function Import-DbmSolutionPackage {
         $remediation.retryAttemptedUtc = (Get-Date).ToUniversalTime().ToString('o')
 
         $dataverseAccessToken = Get-DbmDataverseAccessToken -DataverseUrl $DataverseUrl
+        $remediation.solutionDeleteStabilized = Wait-DbmSolutionRemoval -DataverseUrl $DataverseUrl -SolutionName $SolutionName -AccessToken $dataverseAccessToken
+        if (-not $remediation.solutionDeleteStabilized) {
+            $remediation | ConvertTo-Json -Depth 6 | Set-Content -Path $remediationEvidencePath -Encoding UTF8
+            throw "Timed out waiting for '$SolutionName' to disappear from '$TargetEnvironment' after solution delete."
+        }
+
         $pluginAssembliesBeforeCleanup = Get-DbmPluginAssemblyRegistrations -DataverseUrl $DataverseUrl -PluginAssemblyName $PluginAssemblyName -AccessToken $dataverseAccessToken
         $pluginAssemblyEvidenceBeforeCleanup = ConvertTo-DbmPluginAssemblyEvidence -PluginAssemblies $pluginAssembliesBeforeCleanup
         $pluginAssemblyEvidenceBeforeCleanup | ConvertTo-Json -Depth 6 | Set-Content -Path $pluginAssembliesBeforeCleanupPath -Encoding UTF8
@@ -576,10 +696,17 @@ function Import-DbmSolutionPackage {
             $remediation.pluginAssemblyCleanupSucceeded = $true
         }
 
+        $remediation.pluginAssemblyDeleteStabilized = Wait-DbmPluginAssemblyRemoval -DataverseUrl $DataverseUrl -PluginAssemblyName $PluginAssemblyName -AccessToken $dataverseAccessToken
         $pluginAssembliesAfterCleanup = Get-DbmPluginAssemblyRegistrations -DataverseUrl $DataverseUrl -PluginAssemblyName $PluginAssemblyName -AccessToken $dataverseAccessToken
         $pluginAssemblyEvidenceAfterCleanup = ConvertTo-DbmPluginAssemblyEvidence -PluginAssemblies $pluginAssembliesAfterCleanup
         $pluginAssemblyEvidenceAfterCleanup | ConvertTo-Json -Depth 6 | Set-Content -Path $pluginAssembliesAfterCleanupPath -Encoding UTF8
         $remediation.pluginAssembliesAfterCleanup = $pluginAssemblyEvidenceAfterCleanup
+
+        if (-not $remediation.pluginAssemblyDeleteStabilized) {
+            $remediation.pluginAssemblyCleanupSucceeded = $false
+            $remediation | ConvertTo-Json -Depth 6 | Set-Content -Path $remediationEvidencePath -Encoding UTF8
+            throw "Timed out waiting for stale plugin assembly registrations to disappear for '$PluginAssemblyName'."
+        }
 
         if ($pluginAssembliesAfterCleanup.Count -gt 0) {
             $remediation.pluginAssemblyCleanupSucceeded = $false
@@ -604,10 +731,7 @@ function Import-DbmSolutionPackage {
         $remediation | ConvertTo-Json -Depth 6 | Set-Content -Path $remediationEvidencePath -Encoding UTF8
     }
 
-    & $pacPath --log-to-console solution publish --environment $DataverseUrl
-    if ($LASTEXITCODE -ne 0) {
-        throw "pac solution publish failed after importing '$SolutionName'."
-    }
+    Invoke-DbmPacPublishWithRetry -PacPath $pacPath -DataverseUrl $DataverseUrl
 
     $afterListPath = Join-Path $EvidenceRoot 'solution-list-after.json'
     $afterSolutionsRaw = & $pacPath solution list --environment $DataverseUrl --json

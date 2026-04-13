@@ -1,5 +1,5 @@
 {
-  "generatedUtc": "2026-04-13T14:59:49.368Z",
+  "generatedUtc": "2026-04-13T16:01:10.033Z",
   "modelId": "dbm-approval-request",
   "modelVersion": "1.2.1",
   "model": {
@@ -1167,7 +1167,7 @@
         {
           "id": "request-to-decision",
           "logicalName": "dbm_request_dbm_requestdecision",
-          "schemaName": "dbm_RequestDbmRequestdecision",
+          "schemaName": "dbm_request_dbm_requestdecision",
           "relationshipType": "one-to-many",
           "fromEntityId": "request",
           "toEntityId": "request-decision",
@@ -1267,7 +1267,7 @@
     {
       "id": "request-to-decision",
       "logicalName": "dbm_request_dbm_requestdecision",
-      "schemaName": "dbm_RequestDbmRequestdecision",
+      "schemaName": "dbm_request_dbm_requestdecision",
       "relationshipType": "one-to-many",
       "fromEntityId": "request",
       "toEntityId": "request-decision",

@@ -66,6 +66,8 @@ $env:DBM_ASSEMBLY_KEY_FILE = 'C:\path\to\app-signing-key.snk'
 .\eng\scripts\Build-DotNet.ps1 -EnableLegacyPackaging
 ```
 
+If the approved key has been lost during a controlled recovery, generate one replacement `.snk` outside Git with `.\eng\scripts\New-DbmAssemblySigningKey.ps1`, then seed it through the documented secret-rotation flow before using it as the new official key.
+
 Use `-RunSolutionCheck:$true` only when PAC auth has already been established and the environment is meant to support solution checking.
 
 To package only the unmanaged artifact for local `Dev` rapid deploy:

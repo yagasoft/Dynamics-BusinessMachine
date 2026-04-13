@@ -175,7 +175,7 @@ function planRelationship(model, relationship, entityPlans, diagnostics) {
         return {
             id: relationship.id,
             logicalName,
-            schemaName: (0, common_1.toSchemaName)(logicalName),
+            schemaName: logicalName,
             relationshipType: relationship.relationshipType,
             fromEntityId: relationship.fromEntityId,
             toEntityId: relationship.toEntityId,
@@ -194,7 +194,7 @@ function planRelationship(model, relationship, entityPlans, diagnostics) {
         return {
             id: relationship.id,
             logicalName,
-            schemaName: (0, common_1.toSchemaName)(logicalName),
+            schemaName: logicalName,
             relationshipType: relationship.relationshipType,
             fromEntityId: relationship.fromEntityId,
             toEntityId: relationship.toEntityId,
@@ -211,7 +211,7 @@ function planRelationship(model, relationship, entityPlans, diagnostics) {
         return {
             id: relationship.id,
             logicalName,
-            schemaName: (0, common_1.toSchemaName)(logicalName),
+            schemaName: logicalName,
             relationshipType: relationship.relationshipType,
             fromEntityId: relationship.fromEntityId,
             toEntityId: relationship.toEntityId,
@@ -226,7 +226,7 @@ function planRelationship(model, relationship, entityPlans, diagnostics) {
     return {
         id: relationship.id,
         logicalName,
-        schemaName: (0, common_1.toSchemaName)(logicalName),
+        schemaName: logicalName,
         relationshipType: relationship.relationshipType,
         fromEntityId: relationship.fromEntityId,
         toEntityId: relationship.toEntityId,

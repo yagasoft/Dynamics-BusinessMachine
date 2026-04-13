@@ -527,7 +527,9 @@ async function ensureRelationship(
     return;
   }
 
-  const filter = encodeURIComponent(`SchemaName eq '${relationship.schemaName}'`);
+  const relationshipFilters = [...new Set([relationship.schemaName, relationship.logicalName].filter((value) => value.length > 0))]
+    .map((value) => `SchemaName eq '${value.replace(/'/g, "''")}'`);
+  const filter = encodeURIComponent(relationshipFilters.join(' or '));
   const result = await dataverseRequest(
     environmentConfig.dataverseUrl,
     accessToken,
