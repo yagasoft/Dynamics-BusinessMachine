@@ -12,6 +12,16 @@ $manifest = Get-Content -Path $manifestPath -Raw | ConvertFrom-Json
 $stagingRoot = Join-Path $OutputRoot 'src'
 $otherRoot = Join-Path $stagingRoot 'Other'
 
+function Get-DbmAssemblyPublicKeyToken {
+    param(
+        [Parameter(Mandatory = $true)]
+        [string]$AssemblyPath
+    )
+
+    $assemblyName = [System.Reflection.AssemblyName]::GetAssemblyName($AssemblyPath)
+    return [System.BitConverter]::ToString($assemblyName.GetPublicKeyToken()).Replace('-', '').ToLowerInvariant()
+}
+
 if (Test-Path $stagingRoot) {
     Remove-Item -Path $stagingRoot -Recurse -Force
 }
@@ -51,6 +61,11 @@ foreach ($entry in $manifest.files) {
 
     if ($entry.componentType -ne 'pluginassembly') {
         continue
+    }
+
+    $publicKeyToken = Get-DbmAssemblyPublicKeyToken -AssemblyPath $destinationPath
+    if ([string]::IsNullOrWhiteSpace($publicKeyToken)) {
+        throw "Dataverse solution staging requires a signed plugin assembly, but '$sourcePath' is unsigned. Rebuild with .\eng\scripts\Build-DotNet.ps1 -EnableLegacyPackaging -AssemblyKeyFile <official.snk> or set DBM_ASSEMBLY_KEY_FILE first."
     }
 
     $assemblyName = [System.Reflection.AssemblyName]::GetAssemblyName($destinationPath)

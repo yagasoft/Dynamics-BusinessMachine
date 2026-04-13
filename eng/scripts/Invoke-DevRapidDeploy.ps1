@@ -3,6 +3,7 @@ param(
     [string]$RepoRoot = (Resolve-Path (Join-Path $PSScriptRoot '..\..')).Path,
     [string]$OutputRoot = (Join-Path (Resolve-Path (Join-Path $PSScriptRoot '..\..')).Path 'artifacts\dev-rapid-deploy'),
     [string[]]$Components,
+    [string]$AssemblyKeyFile,
     [switch]$InteractiveLogin,
     [switch]$SkipGeneratedMetadataDeployment
 )
@@ -300,6 +301,10 @@ if ((-not $Components -or $Components.Count -eq 0) -and $detectedComponents.Coun
 
 $selectedComponents = Get-DbmSelectedComponents -RegistryComponents $registryComponents -DetectedComponents $detectedComponents -RequestedComponents $Components
 $plan = Resolve-DbmRapidDeployPlan -RegistryComponents $registryComponents -DetectedComponents $detectedComponents -SelectedComponents $selectedComponents
+$resolvedAssemblyKey = & (Join-Path $PSScriptRoot 'Resolve-DbmAssemblyKeyFile.ps1') `
+    -AssemblyKeyFile $AssemblyKeyFile `
+    -Required `
+    -Purpose 'Dev rapid deploy core solution packaging'
 
 $timestamp = (Get-Date).ToUniversalTime().ToString('yyyyMMdd-HHmmssZ')
 $runRoot = Join-Path $OutputRoot $timestamp
@@ -334,10 +339,12 @@ Write-Host "Detected components: $($plan.detectedComponentNames -join ', ')"
 Write-Host "Selected components: $($plan.selectedComponentNames -join ', ')"
 Write-Host "Effective build components: $($plan.effectiveComponentNames -join ', ')"
 
-if ($plan.requiresDotNetBuild) {
-    & (Join-Path $PSScriptRoot 'Restore-LegacyPackages.ps1') -RepoRoot $RepoRoot
-    & (Join-Path $PSScriptRoot 'Build-DotNet.ps1') -RepoRoot $RepoRoot
-}
+& (Join-Path $PSScriptRoot 'Restore-LegacyPackages.ps1') -RepoRoot $RepoRoot
+
+& (Join-Path $PSScriptRoot 'Build-DotNet.ps1') `
+    -RepoRoot $RepoRoot `
+    -EnableLegacyPackaging `
+    -AssemblyKeyFile ([string]$resolvedAssemblyKey.path)
 
 if ($plan.nodeProjects.Count -gt 0) {
     & (Join-Path $PSScriptRoot 'Invoke-NodeBuild.ps1') -RepoRoot $RepoRoot -Projects $plan.nodeProjects
@@ -370,6 +377,7 @@ if ($pacProfileSelection -and $pacProfileSelection.profileName) {
     -SolutionName ([string]$version.solutionName) `
     -ExpectedSolutionVersion ([string]$version.solutionVersion) `
     -EvidenceRoot $evidenceRoot `
+    -AssemblyKeyFile ([string]$resolvedAssemblyKey.path) `
     -AllowSameVersionImport `
     -SkipGeneratedMetadataDeployment:$SkipGeneratedMetadataDeployment
 
@@ -395,7 +403,8 @@ $summary = [ordered]@{
     selectedComponents = $plan.selectedComponentNames
     effectiveComponents = $plan.effectiveComponentNames
     nodeProjectsBuilt = $plan.nodeProjects
-    dotNetBuilt = $plan.requiresDotNetBuild
+    dotNetBuilt = $true
+    assemblyKeySource = [string]$resolvedAssemblyKey.source
     forceFullBuild = $plan.forceFullBuild
     skipGeneratedMetadataDeployment = [bool]$SkipGeneratedMetadataDeployment
     expectedSolutionVersion = [string]$version.solutionVersion

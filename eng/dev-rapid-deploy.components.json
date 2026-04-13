@@ -106,10 +106,12 @@
         "power-platform/*",
         "eng/version.json",
         "eng/scripts/Build-DotNet.ps1",
+        "eng/scripts/Resolve-DbmAssemblyKeyFile.ps1",
         "eng/scripts/Restore-LegacyPackages.ps1",
         "eng/scripts/Invoke-NodeBuild.ps1",
         "eng/scripts/New-DataverseSolutionSource.ps1",
         "eng/scripts/Invoke-DataversePackaging.ps1",
+        "eng/scripts/Invoke-DataverseDeployment.ps1",
         "eng/scripts/Invoke-DataverseSynthesis.ps1",
         "eng/scripts/Test-DbmDataverseSynthesis.ps1"
       ],

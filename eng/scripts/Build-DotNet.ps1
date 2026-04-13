@@ -15,11 +15,11 @@ if (-not $msbuild) {
 $version = & (Join-Path $PSScriptRoot 'Get-DbmVersion.ps1') -AsJson | ConvertFrom-Json
 $fullSolutionPath = Join-Path $RepoRoot $SolutionPath
 
-$resolvedAssemblyKeyFile = $null
-if (-not [string]::IsNullOrWhiteSpace($AssemblyKeyFile)) {
-    $resolvedPath = Resolve-Path -LiteralPath $AssemblyKeyFile -ErrorAction SilentlyContinue
-    $resolvedAssemblyKeyFile = if ($resolvedPath) { $resolvedPath.Path } else { $AssemblyKeyFile }
-}
+$assemblyKey = & (Join-Path $PSScriptRoot 'Resolve-DbmAssemblyKeyFile.ps1') `
+    -AssemblyKeyFile $AssemblyKeyFile `
+    -Required:$EnableLegacyPackaging `
+    -Purpose 'legacy Dataverse plugin build'
+$resolvedAssemblyKeyFile = [string]$assemblyKey.path
 
 $msbuildArguments = @(
     $fullSolutionPath,
@@ -36,6 +36,10 @@ $msbuildArguments = @(
 
 if ($resolvedAssemblyKeyFile) {
     $msbuildArguments += "/p:DbmAssemblyKeyFile=$resolvedAssemblyKeyFile"
+}
+
+if ($EnableLegacyPackaging) {
+    Write-Host "Using DBM assembly signing key from $($assemblyKey.source): $resolvedAssemblyKeyFile"
 }
 
 & $msbuild.Source @msbuildArguments

@@ -81,9 +81,30 @@ jobs:
         shell: pwsh
         run: .\eng\scripts\Restore-LegacyPackages.ps1
 
+      - name: Materialize app signing key
+        id: signing
+        shell: pwsh
+        env:
+          APP_SIGNING_KEY_B64: ${{ secrets.APP_SIGNING_KEY_B64 }}
+        run: |
+          if ([string]::IsNullOrWhiteSpace($env:APP_SIGNING_KEY_B64)) {
+            throw "Required packaging signing key secret 'APP_SIGNING_KEY_B64' is unavailable."
+          }
+
+          try {
+            $keyBytes = [System.Convert]::FromBase64String($env:APP_SIGNING_KEY_B64.Trim())
+          }
+          catch {
+            throw "GitHub Actions secret 'APP_SIGNING_KEY_B64' must contain a base64-encoded SNK payload."
+          }
+
+          $keyPath = Join-Path $env:RUNNER_TEMP 'dbm-app-signing-key.snk'
+          [System.IO.File]::WriteAllBytes($keyPath, $keyBytes)
+          Add-Content -Path $env:GITHUB_OUTPUT -Value "path=$keyPath"
+
       - name: Build legacy .NET solution
         shell: pwsh
-        run: .\eng\scripts\Build-DotNet.ps1
+        run: .\eng\scripts\Build-DotNet.ps1 -EnableLegacyPackaging -AssemblyKeyFile "${{ steps.signing.outputs.path }}"
 
       - name: Package Dataverse artifacts
         shell: pwsh

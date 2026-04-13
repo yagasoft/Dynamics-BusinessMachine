@@ -15,6 +15,7 @@ param(
     [string]$PluginAssemblyName = 'Yagasoft.Dbm.Plugins',
     [string]$ExpectedSolutionVersion,
     [string]$EvidenceRoot = (Join-Path $PackageRoot 'deployment-evidence'),
+    [string]$AssemblyKeyFile,
     [switch]$AllowSolutionReplaceOnPluginIdentityChange,
     [switch]$AllowSameVersionImport,
     [switch]$SkipGeneratedMetadataDeployment
@@ -48,6 +49,7 @@ if (-not $pacPath) {
 
 $pacProfileSelection = & (Join-Path $PSScriptRoot 'Use-DbmPacProfile.ps1') -TargetEnvironment $TargetEnvironment -DataverseUrl $DataverseUrl
 $selectedPacProfileName = if ($pacProfileSelection -and $pacProfileSelection.profileName) { [string]$pacProfileSelection.profileName } else { $null }
+$resolvedAssemblyKey = & (Join-Path $PSScriptRoot 'Resolve-DbmAssemblyKeyFile.ps1') -AssemblyKeyFile $AssemblyKeyFile
 
 function Get-DbmPropertyValue {
     param(
@@ -347,6 +349,54 @@ function Get-DbmSettingsFileForSolution {
     return $null
 }
 
+function Get-DbmPackagePluginAssemblySignature {
+    param(
+        [Parameter(Mandatory = $true)]
+        [string]$PackagePath
+    )
+
+    Add-Type -AssemblyName System.IO.Compression.FileSystem
+    $archive = [System.IO.Compression.ZipFile]::OpenRead($PackagePath)
+    try {
+        $pluginEntries = @(
+            $archive.Entries |
+                Where-Object {
+                    $_.FullName -like 'PluginAssemblies/*.dll' -or $_.FullName -like 'PluginAssemblies/*/*.dll'
+                }
+        )
+
+        if ($pluginEntries.Count -eq 0) {
+            return [pscustomobject]@{
+                hasPluginAssembly = $false
+                entryName = $null
+                publicKeyToken = $null
+            }
+        }
+
+        $pluginEntry = $pluginEntries | Select-Object -First 1
+        $tempAssemblyPath = Join-Path ([System.IO.Path]::GetTempPath()) ("dbm-plugin-{0}.dll" -f ([guid]::NewGuid().ToString('N')))
+        try {
+            [System.IO.Compression.ZipFileExtensions]::ExtractToFile($pluginEntry, $tempAssemblyPath, $true)
+            $assemblyName = [System.Reflection.AssemblyName]::GetAssemblyName($tempAssemblyPath)
+            $publicKeyToken = [System.BitConverter]::ToString($assemblyName.GetPublicKeyToken()).Replace('-', '').ToLowerInvariant()
+        }
+        finally {
+            if (Test-Path $tempAssemblyPath) {
+                Remove-Item -LiteralPath $tempAssemblyPath -Force
+            }
+        }
+
+        return [pscustomobject]@{
+            hasPluginAssembly = $true
+            entryName = $pluginEntry.FullName
+            publicKeyToken = $publicKeyToken
+        }
+    }
+    finally {
+        $archive.Dispose()
+    }
+}
+
 function Import-DbmSolutionPackage {
     param(
         [Parameter(Mandatory = $true)]
@@ -376,6 +426,20 @@ function Import-DbmSolutionPackage {
 
     if (-not $package) {
         throw "No $packageType Dataverse solution package was found for '$SolutionName' under '$PackageRoot'."
+    }
+
+    if (-not [string]::IsNullOrWhiteSpace($PluginAssemblyName)) {
+        $packagePluginSignature = Get-DbmPackagePluginAssemblySignature -PackagePath $package.FullName
+        if ($packagePluginSignature.hasPluginAssembly -and [string]::IsNullOrWhiteSpace($packagePluginSignature.publicKeyToken)) {
+            $keyHint = if ([string]::IsNullOrWhiteSpace([string]$resolvedAssemblyKey.path)) {
+                'Rebuild and repackage with -AssemblyKeyFile or DBM_ASSEMBLY_KEY_FILE pointing to the official strong-name key.'
+            }
+            else {
+                "A signing key was resolved from '$($resolvedAssemblyKey.source)', but the package is still unsigned. Rebuild and repackage before deployment."
+            }
+
+            throw "Core solution package '$($package.FullName)' contains an unsigned plugin assembly ('$($packagePluginSignature.entryName)'). $keyHint"
+        }
     }
 
     $settingsFile = Get-DbmSettingsFileForSolution -PackageRoot $PackageRoot -SolutionName $SolutionName -AllowLegacyAlias:$AllowLegacySettingsAlias
