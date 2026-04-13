@@ -1,49 +1,699 @@
 <div id="app-wrapper" class="fill stretch">
 	<p-toolbar>
-		<div class="button-group p-toolbar-group-start button-template">
-				<button pButton id="save-button" [text]="true" [plain]="true" [icon]="isSaving ? null : PrimeIcons.SAVE"
+		<div class="button-group p-toolbar-group-start">
+			<button pButton id="save-button" [text]="true" [plain]="true" [icon]="isSaving ? null : PrimeIcons.SAVE"
 				[disabled]="!isSaveEnabled" (click)="saveResource()">
 				@if (isSaving)
 				{
-					<p-progressSpinner [styleClass]="'spinner'"	strokeWidth="7" fill="var(--surface-overlay)" animationDuration="2s" />
+					<p-progressSpinner [styleClass]="'spinner'" strokeWidth="7" fill="transparent" animationDuration="1.5s" />
 				}
-				<span class="label">Save</span>
+				<span class="label">Save Model</span>
 			</button>
-		</div>
-		<div class="button-group p-toolbar-group-center">
+
+			@for (action of addActions; track action.kind + ':' + action.parentId)
+			{
+				<p-button [text]="true" [plain]="true" [label]="'Add ' + action.label"
+					[icon]="PrimeIcons.PLUS" (click)="addSelected(action.kind, action.parentId)"></p-button>
+			}
 		</div>
 		<div class="button-group p-toolbar-group-end">
+			<p-button [text]="true" [plain]="true" label="Move Up" [disabled]="!canMoveUp"
+				[icon]="PrimeIcons.ARROW_UP" (click)="moveSelected(-1)"></p-button>
+			<p-button [text]="true" [plain]="true" label="Move Down" [disabled]="!canMoveDown"
+				[icon]="PrimeIcons.ARROW_DOWN" (click)="moveSelected(1)"></p-button>
+			<p-button [text]="true" [plain]="true" label="Remove" [disabled]="!canRemoveSelected"
+				[icon]="PrimeIcons.TRASH" (click)="removeSelected()"></p-button>
 		</div>
 	</p-toolbar>
-	<p-fieldset legend="Web resource info">
-		<div class="web-resource-info-wrapper">
-			<label class="web-resource-info-label" for="webResourceName">Name:</label>
-			<span id="web-resource-name-wrapper">
-				<label class="web-resource-name-label" for="webResourceName" (click)="editName()">ys_/dbm/data/</label>
-				<label class="web-resource-name-label" [hidden]="isEditName"
-					(click)="editName()">{{webResourceNameTrunc}}</label>
-				<input id="web-resource-name" name="webResourceName" type="text" pInputText [hidden]="!isEditName"
-					[(ngModel)]="webResourceNameTemp" #nameEditorElement />
-				<p-button id="confirm-name-button" [text]="true" [plain]="true" label="Confirm"
-					[icon]="PrimeIcons.CHECK" [hidden]="!isEditName" (click)="confirmName()"></p-button>
-				<p-button id="cancel-name-button" [text]="true" [plain]="true" label="Cancel" [icon]="PrimeIcons.TIMES"
-					[hidden]="!isEditName" (click)="cancelName()"></p-button>
-			</span>
-			<label class="web-resource-info-label" for="webResourceLabel">Label:</label>
-			<input name="webResourceLabel" type="text" pInputText [(ngModel)]="webResourceDisplayname" />
+
+	<div class="resource-header panel">
+		<div class="resource-grid">
+			<label for="resource-name">Resource Name</label>
+			<div class="resource-name-row">
+				<span class="resource-prefix">ys_/dbm/data/models/</span>
+				<input id="resource-name" type="text" pInputText
+					[ngModel]="resourceNameSuffix"
+					[ngModelOptions]="{ standalone: true, updateOn: 'blur' }"
+					(ngModelChange)="resourceName = $event" />
+			</div>
+
+			<label for="display-name">Display Label</label>
+			<input id="display-name" type="text" pInputText
+				[ngModel]="displayName"
+				[ngModelOptions]="{ standalone: true, updateOn: 'blur' }"
+				(ngModelChange)="displayName = $event" />
 		</div>
-	</p-fieldset>
-	<div id="editor-wrapper" class="editor-wrapper fill">
-		@switch (webResource?.content?.type) {
-		@case ('js') {
-		<ys-js-editor id="editor" [(code)]="codeAsString" (codeChange)="codeUpdated();" class="fill"></ys-js-editor>
-		}
-		@case ("json") {
-		<ys-json-editor id="editor" [(code)]="codeAsProp" (codeChange)="codeUpdated();" class="fill"></ys-json-editor>
-		}
-		@default {
-		<label id="app-placeholder">Please use a supported file extension.</label>
-		}
-		}
+
+		<div class="resource-status">
+			<span class="pill">{{document?.dirty ? 'Unsaved changes' : 'Saved state'}}</span>
+			<span class="pill">{{errorIssues.length}} errors</span>
+			<span class="pill">{{warningIssues.length}} warnings</span>
+		</div>
 	</div>
+
+	@if (validationIssues.length > 0)
+	{
+		<div class="issue-panel panel">
+			<div class="issue-header">
+				<h3>Validation</h3>
+				<span class="muted">Save is blocked while error-level issues remain.</span>
+			</div>
+			<div class="issue-list">
+				@for (issue of validationIssues; track issue.code + ':' + issue.path)
+				{
+					<div class="issue-row" [class.issue-error]="issue.level === 'error'">
+						<strong>{{ issue.level.toUpperCase() }}</strong>
+						<span>{{ issue.message }}</span>
+						<code>{{ issue.path }}</code>
+					</div>
+				}
+			</div>
+		</div>
+	}
+
+	<p-splitter [panelSizes]="[28, 72]" class="fill">
+		<ng-template pTemplate>
+			<div class="designer-tree panel fill stretch">
+				<div class="designer-tree-copy">
+					<h3>Canonical Model</h3>
+					<p class="muted">Navigate package, process, forms, metadata, rules, runtime, and artifacts.</p>
+				</div>
+
+				<p-tree [value]="treeEntries" selectionMode="single" [(selection)]="selectedTreeEntry"
+					[styleClass]="'fill overflow designer-tree-widget'">
+					<ng-template let-node pTemplate="default">
+						<div class="tree-node-label">
+							<span>{{ node.data.label }}</span>
+							<small class="muted">{{ node.data.kind }}</small>
+						</div>
+					</ng-template>
+				</p-tree>
+			</div>
+		</ng-template>
+
+		<ng-template pTemplate>
+			<div class="designer-inspector fill overflow">
+				@if (isLoading)
+				{
+					<div class="empty-state panel">
+						<p-progressSpinner strokeWidth="6" fill="transparent" animationDuration="1.5s" />
+						<p>Loading model document...</p>
+					</div>
+				}
+				@else if (!selectedNode)
+				{
+					<div class="empty-state panel">
+						<h2>Select a contract section</h2>
+						<p class="muted">Choose a package, process, form, metadata, rule, runtime, or artifact node to edit it.</p>
+					</div>
+				}
+				@else
+				{
+					<div class="inspector-stack">
+						<div class="panel inspector-title">
+							<div>
+								<h2>{{ selectedNode.label }}</h2>
+								<p class="muted">{{ selectedNode.kind }} · {{ selectedNode.path }}</p>
+							</div>
+						</div>
+
+						@switch (selectedNode.kind)
+						{
+							@case ('package')
+							{
+								@if (selectedPackage)
+								{
+									<div class="panel form-card">
+										<div class="form-grid">
+											<label>Package Id</label>
+											<input type="text" pInputText [ngModel]="selectedPackage.id" [ngModelOptions]="{ standalone: true, updateOn: 'blur' }" (ngModelChange)="updateSelectedPartial({ id: $event })" />
+											<label>Display Name</label>
+											<input type="text" pInputText [ngModel]="selectedPackage.displayName" [ngModelOptions]="{ standalone: true, updateOn: 'blur' }" (ngModelChange)="updateSelectedPartial({ displayName: $event })" />
+											<label>Version</label>
+											<input type="text" pInputText [ngModel]="selectedPackage.version" [ngModelOptions]="{ standalone: true, updateOn: 'blur' }" (ngModelChange)="updateSelectedPartial({ version: $event })" />
+											<label>Entry Process Id</label>
+											<input type="text" pInputText [ngModel]="selectedPackage.entryProcessId" [ngModelOptions]="{ standalone: true, updateOn: 'blur' }" (ngModelChange)="updateSelectedPartial({ entryProcessId: $event })" />
+											<label>Publisher Name</label>
+											<input type="text" pInputText [ngModel]="selectedPackage.publisher.name" [ngModelOptions]="{ standalone: true, updateOn: 'blur' }" (ngModelChange)="updateSelectedPartial({ publisher: { ...selectedPackage.publisher, name: $event } })" />
+											<label>Publisher Website</label>
+											<input type="text" pInputText [ngModel]="selectedPackage.publisher.website" [ngModelOptions]="{ standalone: true, updateOn: 'blur' }" (ngModelChange)="updateSelectedPartial({ publisher: { ...selectedPackage.publisher, website: $event } })" />
+											<label>Publisher Prefix</label>
+											<input type="text" pInputText [ngModel]="selectedPackage.publisher.prefix" [ngModelOptions]="{ standalone: true, updateOn: 'blur' }" (ngModelChange)="updateSelectedPartial({ publisher: { ...selectedPackage.publisher, prefix: $event } })" />
+											<label>Solution Name</label>
+											<input type="text" pInputText [ngModel]="selectedPackage.deployment.solutionName" [ngModelOptions]="{ standalone: true, updateOn: 'blur' }" (ngModelChange)="updateSelectedPartial({ deployment: { ...selectedPackage.deployment, solutionName: $event } })" />
+											<label>Release Line</label>
+											<input type="text" pInputText [ngModel]="selectedPackage.deployment.releaseLine" [ngModelOptions]="{ standalone: true, updateOn: 'blur' }" (ngModelChange)="updateSelectedPartial({ deployment: { ...selectedPackage.deployment, releaseLine: $event } })" />
+											<label>Artifact Root</label>
+											<input type="text" pInputText [ngModel]="selectedPackage.deployment.artifactRoot" [ngModelOptions]="{ standalone: true, updateOn: 'blur' }" (ngModelChange)="updateSelectedPartial({ deployment: { ...selectedPackage.deployment, artifactRoot: $event } })" />
+										</div>
+
+										<div class="checkbox-groups">
+											<div>
+												<h4>Supported Hosts</h4>
+												@for (host of supportedHosts; track host)
+												{
+													<label class="checkbox-row">
+														<input type="checkbox" [checked]="selectedPackage.supportedHosts.includes(host)" (change)="updateSelectedPartial({ supportedHosts: toggleStringOption(selectedPackage.supportedHosts, host, $any($event.target).checked) })" />
+														<span>{{ host }}</span>
+													</label>
+												}
+											</div>
+											<div>
+												<h4>Supported Runtimes</h4>
+												@for (runtime of supportedRuntimes; track runtime)
+												{
+													<label class="checkbox-row">
+														<input type="checkbox" [checked]="selectedPackage.supportedRuntimes.includes(runtime)" (change)="updateSelectedPartial({ supportedRuntimes: toggleStringOption(selectedPackage.supportedRuntimes, runtime, $any($event.target).checked) })" />
+														<span>{{ runtime }}</span>
+													</label>
+												}
+											</div>
+										</div>
+									</div>
+								}
+							}
+
+							@case ('process')
+							{
+								@if (selectedProcess)
+								{
+									<div class="panel form-card">
+										<div class="form-grid">
+											<label>Process Id</label>
+											<input type="text" pInputText [ngModel]="selectedProcess.id" [ngModelOptions]="{ standalone: true, updateOn: 'blur' }" (ngModelChange)="updateSelectedPartial({ id: $event })" />
+											<label>Display Name</label>
+											<input type="text" pInputText [ngModel]="selectedProcess.displayName" [ngModelOptions]="{ standalone: true, updateOn: 'blur' }" (ngModelChange)="updateSelectedPartial({ displayName: $event })" />
+											<label>Scenario Type</label>
+											<input type="text" pInputText [ngModel]="selectedProcess.scenarioType" disabled />
+										</div>
+									</div>
+								}
+							}
+
+							@case ('actor')
+							{
+								@if (selectedActor)
+								{
+									<div class="panel form-card">
+										<div class="form-grid">
+											<label>Actor Id</label>
+											<input type="text" pInputText [ngModel]="selectedActor.id" [ngModelOptions]="{ standalone: true, updateOn: 'blur' }" (ngModelChange)="updateSelectedPartial({ id: $event })" />
+											<label>Display Name</label>
+											<input type="text" pInputText [ngModel]="selectedActor.displayName" [ngModelOptions]="{ standalone: true, updateOn: 'blur' }" (ngModelChange)="updateSelectedPartial({ displayName: $event })" />
+											<label>Actor Type</label>
+											<select [ngModel]="selectedActor.actorType" [ngModelOptions]="{ standalone: true }" (ngModelChange)="updateSelectedPartial({ actorType: $event })">
+												@for (actorType of actorTypes; track actorType)
+												{
+													<option [ngValue]="actorType">{{ actorType }}</option>
+												}
+											</select>
+											<label>Source</label>
+											<select [ngModel]="selectedActor.source" [ngModelOptions]="{ standalone: true }" (ngModelChange)="updateSelectedPartial({ source: $event })">
+												@for (source of actorSources; track source)
+												{
+													<option [ngValue]="source">{{ source }}</option>
+												}
+											</select>
+										</div>
+									</div>
+								}
+							}
+
+							@case ('variable')
+							{
+								@if (selectedVariable)
+								{
+									<div class="panel form-card">
+										<div class="form-grid">
+											<label>Variable Id</label>
+											<input type="text" pInputText [ngModel]="selectedVariable.id" [ngModelOptions]="{ standalone: true, updateOn: 'blur' }" (ngModelChange)="updateSelectedPartial({ id: $event })" />
+											<label>Data Type</label>
+											<select [ngModel]="selectedVariable.dataType" [ngModelOptions]="{ standalone: true }" (ngModelChange)="updateSelectedPartial({ dataType: $event })">
+												@for (fieldType of fieldTypes; track fieldType)
+												{
+													<option [ngValue]="fieldType">{{ fieldType }}</option>
+												}
+											</select>
+											<label>Default Value</label>
+											<input type="text" pInputText [ngModel]="stringifyScalar(selectedVariable.defaultValue)" [ngModelOptions]="{ standalone: true, updateOn: 'blur' }" (ngModelChange)="updateVariableDefaultValue($event)" />
+											<label>Persistence</label>
+											<select [ngModel]="selectedVariable.persistence" [ngModelOptions]="{ standalone: true }" (ngModelChange)="updateSelectedPartial({ persistence: $event })">
+												<option value="runtime-only">runtime-only</option>
+												<option value="persisted">persisted</option>
+											</select>
+										</div>
+									</div>
+								}
+							}
+
+							@case ('stage')
+							{
+								@if (selectedStage)
+								{
+									<div class="panel form-card">
+										<div class="form-grid">
+											<label>Stage Id</label>
+											<input type="text" pInputText [ngModel]="selectedStage.id" [ngModelOptions]="{ standalone: true, updateOn: 'blur' }" (ngModelChange)="updateSelectedPartial({ id: $event })" />
+											<label>Display Name</label>
+											<input type="text" pInputText [ngModel]="selectedStage.displayName" [ngModelOptions]="{ standalone: true, updateOn: 'blur' }" (ngModelChange)="updateSelectedPartial({ displayName: $event })" />
+											<label>Stage Type</label>
+											<select [ngModel]="selectedStage.stageType" [ngModelOptions]="{ standalone: true }" (ngModelChange)="updateSelectedPartial({ stageType: $event })">
+												@for (stageType of stageTypes; track stageType)
+												{
+													<option [ngValue]="stageType">{{ stageType }}</option>
+												}
+											</select>
+											<label>Actor</label>
+											<select [ngModel]="selectedStage.actorId" [ngModelOptions]="{ standalone: true }" (ngModelChange)="updateSelectedPartial({ actorId: $event })">
+												@for (actor of actorOptions(); track actor.id)
+												{
+													<option [ngValue]="actor.id">{{ actor.displayName }}</option>
+												}
+											</select>
+											<label>Form</label>
+											<select [ngModel]="selectedStage.formId" [ngModelOptions]="{ standalone: true }" (ngModelChange)="updateSelectedPartial({ formId: $event || null })">
+												<option [ngValue]="null">(none)</option>
+												@for (form of formOptions(); track form.id)
+												{
+													<option [ngValue]="form.id">{{ form.displayName }}</option>
+												}
+											</select>
+											<label>Entry Rules</label>
+											<input type="text" pInputText [ngModel]="selectedStage.entryRuleIds.join(', ')" [ngModelOptions]="{ standalone: true, updateOn: 'blur' }" (ngModelChange)="updateStageRuleList('entryRuleIds', $event)" />
+											<label>Exit Rules</label>
+											<input type="text" pInputText [ngModel]="selectedStage.exitRuleIds.join(', ')" [ngModelOptions]="{ standalone: true, updateOn: 'blur' }" (ngModelChange)="updateStageRuleList('exitRuleIds', $event)" />
+											<label>Allowed Outcomes</label>
+											<input type="text" pInputText [ngModel]="selectedStage.allowedOutcomeIds.join(', ')" [ngModelOptions]="{ standalone: true, updateOn: 'blur' }" (ngModelChange)="updateStageRuleList('allowedOutcomeIds', $event)" />
+										</div>
+									</div>
+								}
+							}
+
+							@case ('transition')
+							{
+								@if (selectedTransition)
+								{
+									<div class="panel form-card">
+										<div class="form-grid">
+											<label>Transition Id</label>
+											<input type="text" pInputText [ngModel]="selectedTransition.id" [ngModelOptions]="{ standalone: true, updateOn: 'blur' }" (ngModelChange)="updateSelectedPartial({ id: $event })" />
+											<label>From Stage</label>
+											<select [ngModel]="selectedTransition.fromStageId" [ngModelOptions]="{ standalone: true }" (ngModelChange)="updateSelectedPartial({ fromStageId: $event })">
+												@for (stage of stageOptions(); track stage.id)
+												{
+													<option [ngValue]="stage.id">{{ stage.displayName }}</option>
+												}
+											</select>
+											<label>To Stage</label>
+											<select [ngModel]="selectedTransition.toStageId" [ngModelOptions]="{ standalone: true }" (ngModelChange)="updateSelectedPartial({ toStageId: $event })">
+												@for (stage of stageOptions(); track stage.id)
+												{
+													<option [ngValue]="stage.id">{{ stage.displayName }}</option>
+												}
+											</select>
+											<label>Outcome Id</label>
+											<input type="text" pInputText [ngModel]="selectedTransition.outcomeId" [ngModelOptions]="{ standalone: true, updateOn: 'blur' }" (ngModelChange)="updateSelectedPartial({ outcomeId: $event })" />
+											<label>Guard Rule</label>
+											<select [ngModel]="selectedTransition.guardRuleId" [ngModelOptions]="{ standalone: true }" (ngModelChange)="updateSelectedPartial({ guardRuleId: $event })">
+												@for (rule of ruleOptions(); track rule.id)
+												{
+													<option [ngValue]="rule.id">{{ rule.displayName }}</option>
+												}
+											</select>
+										</div>
+									</div>
+								}
+							}
+
+							@case ('outcome')
+							{
+								@if (selectedOutcome)
+								{
+									<div class="panel form-card">
+										<div class="form-grid">
+											<label>Outcome Id</label>
+											<input type="text" pInputText [ngModel]="selectedOutcome.id" [ngModelOptions]="{ standalone: true, updateOn: 'blur' }" (ngModelChange)="updateSelectedPartial({ id: $event })" />
+											<label>Display Name</label>
+											<input type="text" pInputText [ngModel]="selectedOutcome.displayName" [ngModelOptions]="{ standalone: true, updateOn: 'blur' }" (ngModelChange)="updateSelectedPartial({ displayName: $event })" />
+										</div>
+									</div>
+								}
+							}
+
+							@case ('form')
+							{
+								@if (selectedForm)
+								{
+									<div class="panel form-card">
+										<div class="form-grid">
+											<label>Form Id</label>
+											<input type="text" pInputText [ngModel]="selectedForm.id" [ngModelOptions]="{ standalone: true, updateOn: 'blur' }" (ngModelChange)="updateSelectedPartial({ id: $event })" />
+											<label>Display Name</label>
+											<input type="text" pInputText [ngModel]="selectedForm.displayName" [ngModelOptions]="{ standalone: true, updateOn: 'blur' }" (ngModelChange)="updateSelectedPartial({ displayName: $event })" />
+											<label>Entity</label>
+											<select [ngModel]="selectedForm.entityId" [ngModelOptions]="{ standalone: true }" (ngModelChange)="updateSelectedPartial({ entityId: $event })">
+												@for (entity of entityOptions(); track entity.id)
+												{
+													<option [ngValue]="entity.id">{{ entity.displayName }}</option>
+												}
+											</select>
+										</div>
+									</div>
+								}
+							}
+
+							@case ('layout')
+							{
+								<div class="panel form-card">
+									<p class="muted">R1.2 keeps the layout type fixed to <code>single-page</code>. Add or reorder regions from the toolbar.</p>
+								</div>
+							}
+
+							@case ('region')
+							{
+								@if (selectedRegion)
+								{
+									<div class="panel form-card">
+										<div class="form-grid">
+											<label>Region Id</label>
+											<input type="text" pInputText [ngModel]="selectedRegion.id" [ngModelOptions]="{ standalone: true, updateOn: 'blur' }" (ngModelChange)="updateSelectedPartial({ id: $event })" />
+											<label>Display Name</label>
+											<input type="text" pInputText [ngModel]="selectedRegion.displayName" [ngModelOptions]="{ standalone: true, updateOn: 'blur' }" (ngModelChange)="updateSelectedPartial({ displayName: $event })" />
+											<label>Order</label>
+											<input type="number" pInputText [ngModel]="selectedRegion.order" [ngModelOptions]="{ standalone: true }" (ngModelChange)="updateSelectedPartial({ order: +$event })" />
+										</div>
+									</div>
+								}
+							}
+
+							@case ('element')
+							{
+								@if (selectedElement)
+								{
+									<div class="panel form-card">
+										<div class="form-grid">
+											<label>Element Id</label>
+											<input type="text" pInputText [ngModel]="selectedElement.id" [ngModelOptions]="{ standalone: true, updateOn: 'blur' }" (ngModelChange)="updateSelectedPartial({ id: $event })" />
+											<label>Display Name</label>
+											<input type="text" pInputText [ngModel]="selectedElement.displayName" [ngModelOptions]="{ standalone: true, updateOn: 'blur' }" (ngModelChange)="updateSelectedPartial({ displayName: $event })" />
+											<label>Element Type</label>
+											<select [ngModel]="selectedElement.elementType" [ngModelOptions]="{ standalone: true }" (ngModelChange)="updateSelectedPartial({ elementType: $event })">
+												@for (elementType of elementTypes; track elementType)
+												{
+													<option [ngValue]="elementType">{{ elementType }}</option>
+												}
+											</select>
+											<label>Region</label>
+											<select [ngModel]="selectedElement.regionId" [ngModelOptions]="{ standalone: true }" (ngModelChange)="updateSelectedPartial({ regionId: $event })">
+												@for (region of regionOptions(selectedNode.parentId?.split(':')[2]); track region.id)
+												{
+													<option [ngValue]="region.id">{{ region.displayName }}</option>
+												}
+											</select>
+											<label>Field Binding</label>
+											<select [ngModel]="$any(selectedElement.binding).fieldId" [ngModelOptions]="{ standalone: true }" (ngModelChange)="updateElementBindingField($event)">
+												@for (field of selectedElementFieldOptions(); track field.id)
+												{
+													<option [ngValue]="field.id">{{ field.displayName }}</option>
+												}
+											</select>
+											<label>Required Rules</label>
+											<input type="text" pInputText [ngModel]="selectedElement.behavior.requiredRuleIds.join(', ')" [ngModelOptions]="{ standalone: true, updateOn: 'blur' }" (ngModelChange)="updateElementRuleList('requiredRuleIds', $event)" />
+											<label>Visible Rules</label>
+											<input type="text" pInputText [ngModel]="selectedElement.behavior.visibleRuleIds.join(', ')" [ngModelOptions]="{ standalone: true, updateOn: 'blur' }" (ngModelChange)="updateElementRuleList('visibleRuleIds', $event)" />
+											<label>Editable Rules</label>
+											<input type="text" pInputText [ngModel]="selectedElement.behavior.editableRuleIds.join(', ')" [ngModelOptions]="{ standalone: true, updateOn: 'blur' }" (ngModelChange)="updateElementRuleList('editableRuleIds', $event)" />
+										</div>
+									</div>
+								}
+							}
+
+							@case ('entity')
+							{
+								@if (selectedEntity)
+								{
+									<div class="panel form-card">
+										<div class="form-grid">
+											<label>Entity Id</label>
+											<input type="text" pInputText [ngModel]="selectedEntity.id" [ngModelOptions]="{ standalone: true, updateOn: 'blur' }" (ngModelChange)="updateSelectedPartial({ id: $event })" />
+											<label>Display Name</label>
+											<input type="text" pInputText [ngModel]="selectedEntity.displayName" [ngModelOptions]="{ standalone: true, updateOn: 'blur' }" (ngModelChange)="updateSelectedPartial({ displayName: $event })" />
+											<label>Primary Key Field</label>
+											<select [ngModel]="selectedEntity.primaryKeyFieldId" [ngModelOptions]="{ standalone: true }" (ngModelChange)="updateSelectedPartial({ primaryKeyFieldId: $event })">
+												@for (field of selectedEntity.fields; track field.id)
+												{
+													<option [ngValue]="field.id">{{ field.displayName }}</option>
+												}
+											</select>
+											<label>Dataverse Logical Name</label>
+											<input type="text" pInputText [ngModel]="selectedEntity.providerBindings?.dataverse?.logicalName ?? ''" [ngModelOptions]="{ standalone: true, updateOn: 'blur' }" (ngModelChange)="updateSelectedProviderLogicalName($event)" />
+										</div>
+									</div>
+								}
+							}
+
+							@case ('field')
+							{
+								@if (selectedField)
+								{
+									<div class="panel form-card">
+										<div class="form-grid">
+											<label>Field Id</label>
+											<input type="text" pInputText [ngModel]="selectedField.id" [ngModelOptions]="{ standalone: true, updateOn: 'blur' }" (ngModelChange)="updateSelectedPartial({ id: $event })" />
+											<label>Display Name</label>
+											<input type="text" pInputText [ngModel]="selectedField.displayName" [ngModelOptions]="{ standalone: true, updateOn: 'blur' }" (ngModelChange)="updateSelectedPartial({ displayName: $event })" />
+											<label>Data Type</label>
+											<select [ngModel]="selectedField.dataType" [ngModelOptions]="{ standalone: true }" (ngModelChange)="updateSelectedPartial({ dataType: $event })">
+												@for (fieldType of fieldTypes; track fieldType)
+												{
+													<option [ngValue]="fieldType">{{ fieldType }}</option>
+												}
+											</select>
+											<label>Dataverse Logical Name</label>
+											<input type="text" pInputText [ngModel]="selectedField.providerBindings?.dataverse?.logicalName ?? ''" [ngModelOptions]="{ standalone: true, updateOn: 'blur' }" (ngModelChange)="updateSelectedProviderLogicalName($event)" />
+										</div>
+										<div class="checkbox-groups">
+											<label class="checkbox-row">
+												<input type="checkbox" [checked]="selectedField.isRequired" (change)="updateSelectedPartial({ isRequired: $any($event.target).checked })" />
+												<span>Required</span>
+											</label>
+											<label class="checkbox-row">
+												<input type="checkbox" [checked]="selectedField.isReadOnly" (change)="updateSelectedPartial({ isReadOnly: $any($event.target).checked })" />
+												<span>Read Only</span>
+											</label>
+										</div>
+									</div>
+								}
+							}
+
+							@case ('relationship')
+							{
+								@if (selectedRelationship)
+								{
+									<div class="panel form-card">
+										<div class="form-grid">
+											<label>Relationship Id</label>
+											<input type="text" pInputText [ngModel]="selectedRelationship.id" [ngModelOptions]="{ standalone: true, updateOn: 'blur' }" (ngModelChange)="updateSelectedPartial({ id: $event })" />
+											<label>From Entity</label>
+											<select [ngModel]="selectedRelationship.fromEntityId" [ngModelOptions]="{ standalone: true }" (ngModelChange)="updateSelectedPartial({ fromEntityId: $event })">
+												@for (entity of entityOptions(); track entity.id)
+												{
+													<option [ngValue]="entity.id">{{ entity.displayName }}</option>
+												}
+											</select>
+											<label>To Entity</label>
+											<select [ngModel]="selectedRelationship.toEntityId" [ngModelOptions]="{ standalone: true }" (ngModelChange)="updateSelectedPartial({ toEntityId: $event })">
+												@for (entity of entityOptions(); track entity.id)
+												{
+													<option [ngValue]="entity.id">{{ entity.displayName }}</option>
+												}
+											</select>
+											<label>Relationship Type</label>
+											<select [ngModel]="selectedRelationship.relationshipType" [ngModelOptions]="{ standalone: true }" (ngModelChange)="updateSelectedPartial({ relationshipType: $event })">
+												@for (relationshipType of relationshipTypes; track relationshipType)
+												{
+													<option [ngValue]="relationshipType">{{ relationshipType }}</option>
+												}
+											</select>
+											<label>Dataverse Logical Name</label>
+											<input type="text" pInputText [ngModel]="selectedRelationship.providerBindings?.dataverse?.logicalName ?? ''" [ngModelOptions]="{ standalone: true, updateOn: 'blur' }" (ngModelChange)="updateSelectedProviderLogicalName($event)" />
+										</div>
+									</div>
+								}
+							}
+
+							@case ('rule')
+							{
+								@if (selectedRule)
+								{
+									<div class="panel form-card">
+										<div class="form-grid">
+											<label>Rule Id</label>
+											<input type="text" pInputText [ngModel]="selectedRule.id" [ngModelOptions]="{ standalone: true, updateOn: 'blur' }" (ngModelChange)="updateSelectedPartial({ id: $event })" />
+											<label>Display Name</label>
+											<input type="text" pInputText [ngModel]="selectedRule.displayName" [ngModelOptions]="{ standalone: true, updateOn: 'blur' }" (ngModelChange)="updateSelectedPartial({ displayName: $event })" />
+											<label>Rule Type</label>
+											<select [ngModel]="selectedRule.ruleType" [ngModelOptions]="{ standalone: true }" (ngModelChange)="updateSelectedPartial({ ruleType: $event })">
+												@for (ruleType of ruleTypes; track ruleType)
+												{
+													<option [ngValue]="ruleType">{{ ruleType }}</option>
+												}
+											</select>
+											<label>Scope</label>
+											<select [ngModel]="selectedRule.scope" [ngModelOptions]="{ standalone: true }" (ngModelChange)="updateSelectedPartial({ scope: $event })">
+												@for (ruleScope of ruleScopes; track ruleScope)
+												{
+													<option [ngValue]="ruleScope">{{ ruleScope }}</option>
+												}
+											</select>
+											<label>Language</label>
+											<select [ngModel]="selectedRule.language" [ngModelOptions]="{ standalone: true }" (ngModelChange)="updateSelectedPartial({ language: $event })">
+												@for (ruleLanguage of ruleLanguages; track ruleLanguage)
+												{
+													<option [ngValue]="ruleLanguage">{{ ruleLanguage }}</option>
+												}
+											</select>
+											<label>Body</label>
+											<textarea [ngModel]="selectedRule.body" [ngModelOptions]="{ standalone: true, updateOn: 'blur' }" (ngModelChange)="updateSelectedPartial({ body: $event })"></textarea>
+										</div>
+									</div>
+								}
+							}
+
+							@case ('runtime')
+							{
+								@if (selectedRuntime)
+								{
+									<div class="panel form-card">
+										<h3>Capabilities</h3>
+										<div class="checkbox-groups">
+											@for (capability of runtimeCapabilities; track capability)
+											{
+												<label class="checkbox-row">
+													<input type="checkbox" [checked]="selectedRuntime.capabilities.includes(capability)" (change)="updateSelectedPartial({ capabilities: toggleStringOption(selectedRuntime.capabilities, capability, $any($event.target).checked) })" />
+													<span>{{ capability }}</span>
+												</label>
+											}
+										</div>
+
+										<h3>Ownership</h3>
+										<div class="form-grid">
+											<label>PCF Responsibilities</label>
+											<input type="text" pInputText [ngModel]="selectedRuntime.ownership.pcf.responsibilities.join(', ')" [ngModelOptions]="{ standalone: true, updateOn: 'blur' }" (ngModelChange)="updateRuntimeResponsibilities('pcf', $event)" />
+											<label>Dataverse Responsibilities</label>
+											<input type="text" pInputText [ngModel]="selectedRuntime.ownership.dataverse.responsibilities.join(', ')" [ngModelOptions]="{ standalone: true, updateOn: 'blur' }" (ngModelChange)="updateRuntimeResponsibilities('dataverse', $event)" />
+											<label>Azure Responsibilities</label>
+											<input type="text" pInputText [ngModel]="selectedRuntime.ownership.azure.responsibilities.join(', ')" [ngModelOptions]="{ standalone: true, updateOn: 'blur' }" (ngModelChange)="updateRuntimeResponsibilities('azure', $event)" />
+										</div>
+									</div>
+								}
+							}
+
+							@case ('request-contract')
+							{
+								<div class="panel form-card">
+									<div class="form-grid">
+										<label>Schema Version</label>
+										<input type="text" pInputText [ngModel]="document?.model.runtime.requestContract.schemaVersion" disabled />
+									</div>
+									<div class="checkbox-groups">
+										@for (operation of requestOperations; track operation)
+										{
+											<label class="checkbox-row">
+												<input type="checkbox" [checked]="document?.model.runtime.requestContract.operations.includes(operation)" (change)="updateSelectedPartial({ operations: toggleStringOption(document!.model.runtime.requestContract.operations, operation, $any($event.target).checked) })" />
+												<span>{{ operation }}</span>
+											</label>
+										}
+									</div>
+								</div>
+							}
+
+							@case ('result-contract')
+							{
+								<div class="panel form-card">
+									<div class="form-grid">
+										<label>Schema Version</label>
+										<input type="text" pInputText [ngModel]="document?.model.runtime.resultContract.schemaVersion" disabled />
+									</div>
+									<div class="checkbox-groups">
+										@for (status of resultStatuses; track status)
+										{
+											<label class="checkbox-row">
+												<input type="checkbox" [checked]="document?.model.runtime.resultContract.statuses.includes(status)" (change)="updateSelectedPartial({ statuses: toggleStringOption(document!.model.runtime.resultContract.statuses, status, $any($event.target).checked) })" />
+												<span>{{ status }}</span>
+											</label>
+										}
+									</div>
+								</div>
+							}
+
+							@case ('ownership')
+							{
+								<div class="panel form-card">
+									<p class="muted">Ownership is edited from the runtime section so the slices stay synchronized.</p>
+								</div>
+							}
+
+							@case ('artifact')
+							{
+								@if (selectedArtifact)
+								{
+									<div class="panel form-card">
+										<div class="form-grid">
+											<label>Artifact Id</label>
+											<input type="text" pInputText [ngModel]="selectedArtifact.id" [ngModelOptions]="{ standalone: true, updateOn: 'blur' }" (ngModelChange)="updateSelectedPartial({ id: $event })" />
+											<label>Display Name</label>
+											<input type="text" pInputText [ngModel]="selectedArtifact.displayName" [ngModelOptions]="{ standalone: true, updateOn: 'blur' }" (ngModelChange)="updateSelectedPartial({ displayName: $event })" />
+											<label>Artifact Type</label>
+											<select [ngModel]="selectedArtifact.artifactType" [ngModelOptions]="{ standalone: true }" (ngModelChange)="updateSelectedPartial({ artifactType: $event })">
+												@for (artifactType of artifactTypes; track artifactType)
+												{
+													<option [ngValue]="artifactType">{{ artifactType }}</option>
+												}
+											</select>
+											<label>Packaging Target</label>
+											<select [ngModel]="selectedArtifact.packagingTarget" [ngModelOptions]="{ standalone: true }" (ngModelChange)="updateSelectedPartial({ packagingTarget: $event })">
+												@for (packagingTarget of packagingTargets; track packagingTarget)
+												{
+													<option [ngValue]="packagingTarget">{{ packagingTarget }}</option>
+												}
+											</select>
+											<label>Source Ref</label>
+											<input type="text" pInputText [ngModel]="selectedArtifact.sourceRef" [ngModelOptions]="{ standalone: true, updateOn: 'blur' }" (ngModelChange)="updateSelectedPartial({ sourceRef: $event })" />
+										</div>
+
+										<div class="checkbox-groups">
+											<div>
+												<h4>Runtime Targets</h4>
+												@for (runtime of supportedRuntimes; track runtime)
+												{
+													<label class="checkbox-row">
+														<input type="checkbox" [checked]="selectedArtifact.runtimeTargets.includes(runtime)" (change)="updateSelectedPartial({ runtimeTargets: toggleStringOption(selectedArtifact.runtimeTargets, runtime, $any($event.target).checked) })" />
+														<span>{{ runtime }}</span>
+													</label>
+												}
+											</div>
+											<div>
+												<h4>Required</h4>
+												<label class="checkbox-row">
+													<input type="checkbox" [checked]="selectedArtifact.required" (change)="updateSelectedPartial({ required: $any($event.target).checked })" />
+													<span>Artifact is mandatory for a valid package</span>
+												</label>
+											</div>
+										</div>
+									</div>
+								}
+							}
+							@default
+							{
+								<div class="panel form-card">
+									<p class="muted">This node is a structural grouping. Use the toolbar to add child items, or pick a child node to edit its contract fields.</p>
+								</div>
+							}
+						}
+					</div>
+				}
+			</div>
+		</ng-template>
+	</p-splitter>
 </div>

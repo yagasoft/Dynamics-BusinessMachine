@@ -1,37 +1,59 @@
 <div id="app-wrapper" class="fill">
-	<p-splitter [panelSizes]="[15, 85]" class="fill">
+	<p-splitter [panelSizes]="[22, 78]" class="fill">
 		<ng-template pTemplate>
-			<div class="fill stretch">
+			<div class="catalog-shell fill stretch panel">
 				<p-toolbar>
 					<div class="button-group p-toolbar-group-start">
-						<p-button id="add-folder-button" [text]="true" [plain]="true" label="Add Folder"
-							[icon]="PrimeIcons.PLUS" (click)="addFolder()"></p-button>
-						<p-button id="add-resource-button" [text]="true" [plain]="true" label="Add Resource"
-							[icon]="PrimeIcons.PLUS" (click)="addResource()"></p-button>
+						<p-button id="add-model-button" [text]="true" [plain]="true" label="New Model"
+							[icon]="PrimeIcons.PLUS" (click)="createModel()"></p-button>
 					</div>
 					<div class="button-group p-toolbar-group-center">
 						<p-button id="refresh-button" [text]="true" [plain]="true" label="Refresh"
 							[icon]="PrimeIcons.REPLAY" (click)="refresh()"></p-button>
 					</div>
 					<div class="button-group p-toolbar-group-end">
-						<p-button id="remove-button" [text]="true" [plain]="true" label="Remove"
-							[icon]="PrimeIcons.TRASH" (click)="removeEntry()"></p-button>
+						<p-button id="remove-button" [text]="true" [plain]="true" label="Delete"
+							[disabled]="!selectedTreeEntry" [icon]="PrimeIcons.TRASH" (click)="removeEntry()"></p-button>
 					</div>
 				</p-toolbar>
-				<p-tree [value]="treeEntries" selectionMode="single" [(selection)]="selectedTreeEntry" class="fill overflow" [styleClass]="'fill'">
+
+				<div class="catalog-header">
+					<h2>DBM Models</h2>
+					<span class="pill">{{treeEntries.length}} tracked</span>
+				</div>
+				<p class="muted catalog-copy">Source of truth lives in the model payload stored under <code>ys_/dbm/data/models/</code>.</p>
+
+				<p-tree [value]="treeEntries" selectionMode="single" [(selection)]="selectedTreeEntry"
+					[styleClass]="'fill overflow model-tree'">
 					<ng-template let-node pTemplate="default">
-						{{ node.data.label }}
+						<div class="tree-row">
+							<span class="tree-label">{{ node.data.label }}</span>
+							@if (node.data.modifiedOn)
+							{
+								<span class="muted tree-meta">{{ node.data.modifiedOn | date:'short' }}</span>
+							}
+						</div>
 					</ng-template>
 				</p-tree>
 			</div>
 		</ng-template>
+
 		<ng-template pTemplate>
-			<div id="editor-wrapper" class="fill">
-				@if (!isClearView && selectedTreeEntry?.data && selectedTreeEntry?.children == null) {
-				<ys-resource-details id="entryTree" [webResourceName]="selectedTreeEntry.data.name" [(webResourceDisplayname)]="selectedTreeEntry.data.label" class="fill"></ys-resource-details>
+			<div class="fill">
+				@if (selectedTreeEntry?.data?.name)
+				{
+					<ys-resource-details class="fill"
+						[webResourceName]="selectedTreeEntry?.data?.name"
+						[(webResourceDisplayname)]="selectedTreeEntry!.data!.label"
+						(webResourceDisplaynameChange)="handleDisplayNameChange($event)"
+						(resourceSaved)="handleResourceSaved()"></ys-resource-details>
 				}
-				@else {
-				<label id="app-placeholder">Please select a resource on the left.</label>
+				@else
+				{
+					<div class="empty-state panel">
+						<h2>Select or create a model</h2>
+						<p class="muted">Choose a DBM model document on the left, or create a new approval/request starter model.</p>
+					</div>
 				}
 			</div>
 		</ng-template>

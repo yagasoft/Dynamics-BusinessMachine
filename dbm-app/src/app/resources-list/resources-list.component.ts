@@ -1,264 +1,235 @@
 import { Component } from '@angular/core';
 import { CommonModule } from '@angular/common';
-import { RouterOutlet } from '@angular/router';
-import { PrimeIcons, TreeDragDropService, TreeNode } from 'primeng/api';
+import { PrimeIcons, TreeNode } from 'primeng/api';
 import { ButtonModule } from 'primeng/button';
 import { ToolbarModule } from 'primeng/toolbar';
-import { DividerModule } from 'primeng/divider';
 import { SplitterModule } from 'primeng/splitter';
 import { TreeModule } from 'primeng/tree';
-import { ResourceDetailsComponent } from "../resource-details/resource-details.component";
-import { HttpClient } from '@angular/common/http';
+import { ResourceDetailsComponent } from '../resource-details/resource-details.component';
+
+interface ModelDocumentEntry {
+	id?: string;
+	name: string;
+	label: string;
+	modifiedOn?: Date | null;
+}
+
+interface DataverseWebResourceSummary {
+	webresourceid?: string;
+	name: string;
+	displayname?: string | null;
+	modifiedon?: string | null;
+}
 
 @Component({
 	selector: 'ys-resources-list',
 	standalone: true,
-	providers: [TreeDragDropService],
 	templateUrl: './resources-list.component.html',
 	styleUrl: './resources-list.component.scss',
-	imports: [CommonModule, RouterOutlet, ButtonModule, ToolbarModule, DividerModule, SplitterModule, TreeModule, ResourceDetailsComponent]
+	imports: [CommonModule, ButtonModule, ToolbarModule, SplitterModule, TreeModule, ResourceDetailsComponent]
 })
 export class ResourcesListComponent
 {
-	PrimeIcons = PrimeIcons;
+	readonly PrimeIcons = PrimeIcons;
+	private readonly modelRoot = 'ys_/dbm/data/models/';
+	private readonly dbStore = 'dbmModelDocuments';
 
-	get selectedTreeEntry(): TreeNode
-	{
-		return this._selectedTreeEntry;
-	}
+	treeEntries: TreeNode<ModelDocumentEntry>[] = [];
+	selectedTreeEntry: TreeNode<ModelDocumentEntry> | null = null;
+	isLoading = false;
 
-	set selectedTreeEntry(value: TreeNode)
-	{
-		if (value !== this._selectedTreeEntry)
-		{
-			setTimeout(() => this.isClearView = true, 0);
-			setTimeout(() => this.isClearView = false, 1);
-		}
-
-		this._selectedTreeEntry = value;
-	}
-
-	private _selectedTreeEntry: TreeNode;
-
-	isClearView: boolean = false;
-
-	treeEntries: TreeNode[] = [];
-
-	private db: IDBDatabase;
-	private dbStore = 'dbmObjects';
-
-	constructor(private http: HttpClient) { }
+	private db!: IDBDatabase;
 
 	async ngOnInit()
 	{
 		await this.initDb();
-		await this.loadWebResources();
+		await this.loadModelDocuments();
 	}
 
 	async initDb()
 	{
-		return new Promise<void>(
-			(r, x) => 
+		return new Promise<void>((resolve, reject) =>
+		{
+			const dbRequest = indexedDB.open('dbmModelDocuments', 1);
+
+			dbRequest.onupgradeneeded = () =>
 			{
-				const dbRequest = indexedDB.open('dbmResourceFiles', 1);
+				const db = dbRequest.result;
+				if (db && !db.objectStoreNames.contains(this.dbStore))
+				{
+					db.createObjectStore(this.dbStore, { keyPath: 'name' });
+				}
+			};
 
-				dbRequest.onupgradeneeded =
-					_ =>
-					{
-						let db = dbRequest.result;
+			dbRequest.onsuccess = () =>
+			{
+				this.db = dbRequest.result;
+				resolve();
+			};
 
-						if (db && !db.objectStoreNames.contains(this.dbStore))
-						{
-							db.createObjectStore(this.dbStore, { keyPath: 'name' });
-						}
-
-						r();
-					};
-
-				dbRequest.onsuccess =
-					_ =>
-					{
-						this.db = dbRequest.result;
-						r();
-					}
-			});
+			dbRequest.onerror = () => reject(dbRequest.error);
+		});
 	}
 
-	private async loadWebResources()
+	async createModel()
 	{
-		let currentSelectedNode = this.selectedTreeEntry;
+		const stamp = new Date().toISOString().replace(/[-:.TZ]/g, '').slice(0, 14);
+		const name = `${this.modelRoot}dbm-model-${stamp}.json`;
+		const label = `DBM Model ${stamp}`;
+		const node: TreeNode<ModelDocumentEntry> = {
+			key: name,
+			label,
+			data: {
+				name,
+				label,
+				modifiedOn: null
+			}
+		};
+
+		this.treeEntries = [...this.treeEntries, node];
+		this.selectedTreeEntry = node;
+	}
+
+	async refresh()
+	{
+		await this.loadModelDocuments();
+	}
+
+	async removeEntry()
+	{
+		const entry = this.selectedTreeEntry?.data;
+		if (!entry)
+		{
+			return;
+		}
+
+		if (globalThis.Xrm && entry.id)
+		{
+			await this.deleteDataverseEntry(entry);
+		}
+		else
+		{
+			await this.deleteIndexedDbEntry(entry.name);
+		}
+
+		await this.loadModelDocuments();
+	}
+
+	async handleResourceSaved()
+	{
+		await this.loadModelDocuments();
+	}
+
+	handleDisplayNameChange(label: string)
+	{
+		if (this.selectedTreeEntry?.data)
+		{
+			this.selectedTreeEntry.label = label;
+			this.selectedTreeEntry.data.label = label;
+		}
+	}
+
+	private async loadModelDocuments()
+	{
+		const previousSelection = this.selectedTreeEntry?.data?.name;
+		this.isLoading = true;
 
 		try
 		{
-			let webResources: any[];
+			const entries = globalThis.Xrm
+				? await this.loadDataverseEntries()
+				: await this.loadIndexedDbEntries();
 
-			if (globalThis.Xrm)
-			{
-				webResources =
-					await Ys.Common
-					.retrieveRecords(`webresourceset/Microsoft.Dynamics.CRM.RetrieveUnpublishedMultiple()?$select=displayname,name&$filter=startswith(name,'ys_/dbm/data')`, 9999, true)
-			}
-			else
-			{
-				const transaction = this.db.transaction(this.dbStore, 'readonly');
-				const store = transaction.objectStore(this.dbStore);
+			this.treeEntries =
+				entries
+					.sort((left, right) => left.label.localeCompare(right.label))
+					.map((entry) =>
+						({
+							key: entry.name,
+							label: entry.label,
+							data: entry,
+							leaf: true
+						}) satisfies TreeNode<ModelDocumentEntry>);
 
-				webResources = await (async () =>
-					new Promise<any[]>((r, x) =>
-					{
-						const getRequest = store.getAll();
-						getRequest.onsuccess = _ => r(getRequest.result);
-					}))();
-			}
-
-			this.treeEntries = [{ children: [], expanded: true, data: new FolderEntry({ label: 'root' }) } as TreeNode];
-			this.selectedTreeEntry = this.treeEntries[0];
-
-			for (const resource of webResources)
-			{
-				let path = resource.name.replace('ys_/dbm/data', '');
-				const pathSplit = path.split('/').filter(e => e);
-				path = pathSplit[pathSplit.length - 1];
-				pathSplit.splice(pathSplit.length - 1, 1);
-
-				for (const pathNode of pathSplit)
-				{
-					let foundNode = (this.selectedTreeEntry.children).find(e => e.data?.name === pathNode);
-
-					if (foundNode == null)
-					{
-						this.addFolder();
-						this.selectedTreeEntry.data.name = this.selectedTreeEntry.data.label = pathNode;
-					}
-					else
-					{
-						this.selectedTreeEntry = foundNode;
-					}
-				}
-
-				this.addResource();
-				this.selectedTreeEntry.data.name = resource.name;
-				this.selectedTreeEntry.data.label = resource.displayname;
-				currentSelectedNode = resource.name === currentSelectedNode?.data?.name ? this.selectedTreeEntry : currentSelectedNode;
-
-				this.selectedTreeEntry = this.treeEntries[0];
-			}
-
-			this.selectedTreeEntry = currentSelectedNode ?? this.treeEntries[0];
+			this.selectedTreeEntry =
+				this.treeEntries.find((entry) => entry.data?.name === previousSelection)
+				?? this.treeEntries[0]
+				?? null;
 		}
-		catch (error)
+		finally
 		{
-			console.error(`Failed to load script ...`);
-			console.error(error);
-			this.selectedTreeEntry = null;
+			this.isLoading = false;
 		}
 	}
 
-	addFolder()
+	private async loadDataverseEntries(): Promise<ModelDocumentEntry[]>
 	{
-		const newNode = { children: [], expanded: true } as TreeNode;
-		newNode.data = new FolderEntry({ name: '<path-node>', label: '<path-node>' });
+		const resources =
+			await Ys.Common.retrieveRecords(
+				`webresourceset/Microsoft.Dynamics.CRM.RetrieveUnpublishedMultiple()?$select=displayname,name,webresourceid,modifiedon&$filter=startswith(name,'${this.modelRoot}')`,
+				9999,
+				true) as DataverseWebResourceSummary[];
 
-		if (this.selectedTreeEntry)
-		{
-			this.selectedTreeEntry.children.push(newNode);
-			newNode.parent = this.selectedTreeEntry;
-			this.selectedTreeEntry.children.sort((a, b) => a?.data?.label.localeCompare(b?.data?.label));
-		}
-		else
-		{
-			this.treeEntries[0].children.push(newNode);
-			newNode.parent = this.treeEntries[0];
-			this.treeEntries[0].children.sort((a, b) => a?.data?.label.localeCompare(b?.data?.label));
-		}
-
-		this.selectedTreeEntry = newNode;
+		return resources.map((resource) => ({
+			id: resource.webresourceid,
+			name: resource.name,
+			label: resource.displayname || this.toFallbackLabel(resource.name),
+			modifiedOn: resource.modifiedon ? new Date(resource.modifiedon) : null
+		}));
 	}
 
-	addResource()
+	private async loadIndexedDbEntries(): Promise<ModelDocumentEntry[]>
 	{
-		const newNode = {} as TreeNode;
-		newNode.data = new Resource({ name: '<resource>', label: '<resource>' });
+		const transaction = this.db.transaction(this.dbStore, 'readonly');
+		const store = transaction.objectStore(this.dbStore);
 
-		if (this.selectedTreeEntry)
+		const resources = await new Promise<any[]>((resolve) =>
 		{
-			const siblings = this.selectedTreeEntry.children ?? this.selectedTreeEntry.parent.children;
+			const getRequest = store.getAll();
+			getRequest.onsuccess = () => resolve(getRequest.result || []);
+			getRequest.onerror = () => resolve([]);
+		});
 
-			if (siblings)
+		return resources
+			.filter((resource) => typeof resource?.name === 'string' && resource.name.startsWith(this.modelRoot))
+			.map((resource) => ({
+				id: resource.id,
+				name: resource.name,
+				label: resource.displayname || this.toFallbackLabel(resource.name),
+				modifiedOn: resource.modifiedon ? new Date(resource.modifiedon) : null
+			}));
+	}
+
+	private async deleteDataverseEntry(entry: ModelDocumentEntry)
+	{
+		const response = await fetch(
+			`${globalThis.Xrm.Utility.getGlobalContext().getClientUrl()}/api/data/v9.1/webresourceset(${entry.id})`,
 			{
-				siblings.push(newNode);
-				newNode.parent = this.selectedTreeEntry;
-				siblings.sort((a, b) => a?.data?.label.localeCompare(b?.data?.label));
-			}
-			else
-			{
-				return;
-			}
-		}
-		else
+				method: 'DELETE',
+				headers: Ys.Common.buildWebApiHeaders([])
+			});
+
+		if (!response.ok)
 		{
-			this.treeEntries[0].children.push(newNode);
-			newNode.parent = this.treeEntries[0];
-			this.treeEntries[0].children.sort((a, b) => a?.data?.label.localeCompare(b?.data?.label));
+			throw new Error(`Failed to delete model document '${entry.name}'.`);
 		}
-
-		this.selectedTreeEntry = newNode;
 	}
 
-	refresh()
+	private async deleteIndexedDbEntry(name: string)
 	{
-		this.loadWebResources();
-	}
+		const transaction = this.db.transaction(this.dbStore, 'readwrite');
+		const store = transaction.objectStore(this.dbStore);
 
-	removeEntry()
-	{
-		const parent = this.selectedTreeEntry.parent;
-		const siblings = parent?.children;
-
-		if (siblings)
+		await new Promise<void>((resolve, reject) =>
 		{
-			const currentIndex = siblings.indexOf(this.selectedTreeEntry);
-			siblings.splice(currentIndex, 1);
-
-			if (siblings?.length >= 1)
-			{
-				const newIndex = currentIndex === 0 ? 0 : (currentIndex + 1 >= siblings.length ? siblings.length - 1 : currentIndex + 1)
-				this.selectedTreeEntry = siblings[newIndex];
-			}
-			else
-			{
-				this.selectedTreeEntry = parent;
-			}
-		}
+			const deleteRequest = store.delete(name);
+			deleteRequest.onsuccess = () => resolve();
+			deleteRequest.onerror = () => reject(deleteRequest.error);
+		});
 	}
 
-	codeUpdated()
+	private toFallbackLabel(resourceName: string): string
 	{
-
-	}
-}
-
-class Resource
-{
-	name: string;
-	label: string;
-	content: string;
-	isFolder: boolean = false;
-
-	public constructor(init?: Partial<Resource>)
-	{
-		Object.assign(this, init);
-	}
-}
-
-class FolderEntry extends Resource
-{
-	override isFolder: boolean = true;
-	entries: Resource[];
-
-	public constructor(init?: Partial<FolderEntry>)
-	{
-		super(init);
-		Object.assign(this, init);
+		return resourceName.replace(this.modelRoot, '');
 	}
 }

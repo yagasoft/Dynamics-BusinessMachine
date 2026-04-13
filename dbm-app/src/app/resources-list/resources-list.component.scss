@@ -1,0 +1,53 @@
+#app-wrapper {
+	.catalog-shell {
+		padding: 0.5rem;
+	}
+
+	.catalog-header {
+		display: flex;
+		align-items: center;
+		justify-content: space-between;
+		margin: 0.75rem 0 0.25rem;
+
+		h2 {
+			margin: 0;
+			font-size: 1.05rem;
+		}
+	}
+
+	.catalog-copy {
+		margin: 0 0 0.75rem;
+		font-size: 0.9rem;
+	}
+
+	.model-tree {
+		border: 1px solid var(--dbm-border);
+		border-radius: 12px;
+		padding: 0.25rem;
+		background: rgba(255, 255, 255, 0.7);
+	}
+
+	.tree-row {
+		display: flex;
+		flex-direction: column;
+		gap: 0.15rem;
+	}
+
+	.tree-label {
+		font-weight: 600;
+	}
+
+	.tree-meta {
+		font-size: 0.78rem;
+	}
+
+	.empty-state {
+		height: 100%;
+		display: flex;
+		flex-direction: column;
+		align-items: center;
+		justify-content: center;
+		text-align: center;
+		padding: 2rem;
+	}
+}
