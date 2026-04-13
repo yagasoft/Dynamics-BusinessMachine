@@ -1,15 +1,15 @@
 # Canonical Model And Runtime Contract v1
 
-This document defines the approved R1.1 baseline for the DBM canonical model, runtime contract, and packaging contract.
-
-For this docs-first R1.1 slice, this document is the authoritative product specification. The future executable authority will be implemented as TypeScript backed by JSON Schema, as locked by ADR-0008.
+This document defines the approved architectural target for the DBM canonical model, runtime contract, and packaging contract after the portal-spanning process refresh.
 
 ## Status
 
-- Status: Approved R1.1 baseline
-- Release scope: `R1.1 Canonical model and runtime contract`
+- Status: Approved architecture target
+- Release scope: `R1.1` baseline plus the `R1.2.1` contract-alignment target
 - Intended first scenario: one approval/request flow
-- Current slice: docs-first contract definition only
+- Current executable status:
+  - `dbm-contract` and the checked-in example model still implement the earlier minimal stage-only baseline
+  - `R1.2.1` must align the executable TypeScript types, JSON Schema, fixtures, and example model to this document
 
 ## Purpose
 
@@ -18,15 +18,17 @@ DBM needs one portable contract that all later hosts and runtimes consume.
 This contract must:
 
 - define one authoring model that is not tied to the current web-resource PoC shape
-- allow both supported R1 hosts to edit the same model
-- support runtime execution across PCF, Dataverse, and Azure-backed services
-- keep deployment assets attached to the model without turning those assets into the model
-- give the next implementation slice a decision-complete target for TypeScript types and JSON Schema
+- define one business process that spans portal to backend to portal
+- preserve a coherent DBM-owned process experience across model-driven and portal surfaces
+- support hidden internal stages and steps without losing portal-visible status clarity
+- support runtime execution across model-driven runtime, Dataverse, portal, and Azure-backed services
+- keep generated Dataverse forms and columns attached to the model without turning those artifacts into the model
+- give the next executable contract slice a decision-complete target
 
-## Normative Rules
+## Normative Platform Rules
 
 - A DBM model is serialized as one UTF-8 JSON document.
-- The top-level shape is fixed for `v1` and must contain these sections in this order:
+- The top-level shape remains:
   - `schemaVersion`
   - `package`
   - `process`
@@ -35,14 +37,19 @@ This contract must:
   - `rules`
   - `runtime`
   - `artifacts`
-- All cross-references inside the model use stable string IDs, not host-specific paths, Dataverse web-resource names, or assembly-qualified names.
-- Host-specific and runtime-specific bindings are allowed only under explicit provider-binding fields. They must not replace the portable IDs.
-- External scripts, templates, binaries, and other deployable payloads are referenced through `artifacts`. They are supporting assets, not the canonical model itself.
+- The canonical DBM model is the source of truth for:
+  - process semantics
+  - portal-visible state projection
+  - generated Dataverse forms and columns
+  - runtime contracts
+- Native Dataverse business process flow is not the source of truth. It may be generated later as an optional integration artifact where it adds value.
+- All cross-references inside the model use stable string IDs, not host-specific paths, FormXml identifiers, Dataverse web-resource names, or assembly-qualified names.
+- Host-specific and runtime-specific bindings are allowed only under explicit provider-binding fields. They must not replace portable IDs.
 - `schemaVersion` is the contract family marker. Package release versioning belongs under `package.version`.
 
 ## Canonical Envelope
 
-Every `DbmModelV1` document must follow this logical shape:
+Every `DbmModelV1` document continues to follow this logical shape:
 
 ```json
 {
@@ -57,586 +64,247 @@ Every `DbmModelV1` document must follow this logical shape:
 }
 ```
 
-### Top-Level Sections
-
-| Section | Type | Purpose |
-| --- | --- | --- |
-| `schemaVersion` | string | Fixed contract family identifier for the serialized model |
-| `package` | object | Identity, compatibility, deployment metadata, and supported surfaces |
-| `process` | object | The portable business-process definition |
-| `forms` | array | Form definitions used by process stages |
-| `metadata` | object | Portable business data model plus provider bindings |
-| `rules` | array | Validation, condition, derivation, and action rules |
-| `runtime` | object | Execution contract, capabilities, and request/response envelopes |
-| `artifacts` | array | Referenced deployable assets such as scripts, templates, controls, or binaries |
+The architectural expansion approved here happens inside those sections.
 
 ## Package Contract
 
-`package` is the identity and compatibility envelope for the model.
+`package` remains the identity and compatibility envelope for the model.
 
-### Required Fields
+It must continue to define:
 
-| Field | Type | Rule |
-| --- | --- | --- |
-| `id` | string | Stable package identifier, lowercase kebab-case |
-| `displayName` | string | Human-readable name |
-| `version` | string | SemVer for the model package |
-| `publisher` | object | Product/publisher identity metadata |
-| `entryProcessId` | string | Must reference `process.id` |
-| `supportedHosts` | array | R1 values are `model-driven` and `xrmtoolbox` |
-| `supportedRuntimes` | array | R1 values are `pcf`, `dataverse`, and optional `azure` support services |
-| `compatibility` | object | Reader/writer compatibility rules |
-| `deployment` | object | Product deployment metadata needed by later packaging flows |
+- stable package identity and versioning
+- supported hosts and runtimes
+- compatibility policy
+- deployment metadata
 
-### Required `publisher` Fields
+It now also needs to capture:
 
-- `name`
-- `website`
-- `prefix`
-
-### Required `compatibility` Fields
-
-- `minimumReaderSchemaVersion`
-- `maximumReaderSchemaVersion`
-- `breakingChangePolicy`
-
-For `v1`, use:
-
-- `minimumReaderSchemaVersion`: `dbm.model/v1`
-- `maximumReaderSchemaVersion`: `dbm.model/v1`
-- `breakingChangePolicy`: `reject-newer-major`
-
-### Required `deployment` Fields
-
-- `solutionName`
-- `releaseLine`
-- `artifactRoot`
-
-`solutionName` may align with Dataverse packaging, but the package contract remains portable. Dataverse solution naming is deployment metadata, not the package identity.
+- which process UI surfaces are supported by the package
+- whether the package exposes portal-visible state
+- whether generated Dataverse forms and columns are owned by the designer engine
 
 ## Process Contract
 
-`process` defines the portable approval/request flow itself.
+`process` now describes a stage + step + form-state business process rather than a stage-only flow.
 
-### Required Fields
+### Required process concerns
 
-| Field | Type | Rule |
-| --- | --- | --- |
-| `id` | string | Stable process identifier |
-| `displayName` | string | Human-readable name |
-| `scenarioType` | string | For R1 this is `approval-request` |
-| `actors` | array | All actors referenced by stages or rules |
-| `variables` | array | Process-scoped variables |
-| `stages` | array | Ordered stage definitions |
-| `transitions` | array | Allowed stage-to-stage movement |
-| `outcomes` | array | Terminal or externally visible result states |
+The architectural target for `process` must define:
 
-### Actor Definition
+- ordered stages
+- stage branching and convergence
+- steps within each stage
+- step branching that can converge back to the same linked stage output
+- form states that control what the user sees or can do at each point
+- internal status versus portal-visible status
+- ownership, notifications, and task expectations at the step level
 
-Each actor must define:
+### Stage model
 
-- `id`
-- `displayName`
-- `actorType`
-- `source`
+Each stage must represent a durable process milestone and must define:
 
-R1 actor types are:
+- stable identity and display metadata
+- stage type
+- entry and exit conditions
+- portal visibility policy
+- linked step flow
+- linked outcome or stage-transition targets
 
-- `requester`
-- `approver`
-- `system`
+Stage branching is allowed.
 
-R1 actor sources are:
+Stage visibility rules must support:
 
-- `current-user`
-- `field-binding`
-- `rule-derived`
-- `system`
+- visible to model-driven users
+- visible to portal users
+- internal-only stages hidden from portal users
 
-### Variable Definition
+### Step model
 
-Each variable must define:
+Steps are first-class process elements nested under a stage or otherwise linked to a stage-owned flow.
 
-- `id`
-- `dataType`
-- `scope`
-- `defaultValue`
-- `persistence`
+Each step must be capable of defining:
 
-R1 variable scope is always `process`.
+- stable identity and display metadata
+- owner
+- notification behavior
+- task behavior
+- internal status
+- portal-visible status, when applicable
+- assigned form state
+- entry and exit conditions
+- next-step branching
+- convergence back to the same stage outcome or linked downstream stage
 
-R1 persistence values are:
+The contract must allow one stage to contain multiple alternative step paths that still resolve to the same stage-level outcome.
 
-- `runtime-only`
-- `persisted`
+### Process state projection
 
-### Stage Definition
+The canonical process state must distinguish:
 
-Each stage must define:
+- full internal runtime state
+- model-driven-visible state
+- portal-visible state
 
-- `id`
-- `displayName`
-- `stageType`
-- `actorId`
-- `formId`
-- `entryRuleIds`
-- `exitRuleIds`
-- `allowedOutcomeIds`
+Portal-visible state is a projection of canonical state, not a separate process model.
 
-R1 stage types are:
+That projection must support:
 
-- `start`
-- `task`
-- `approval`
-- `system`
-- `end`
-
-Rules:
-
-- `stageType: start` must be unique within the process.
-- `stageType: end` may appear multiple times only when distinct outcomes are required.
-- `actorId` must reference a declared actor unless `stageType` is `system`.
-- `formId` is required for `task` and `approval` stages and omitted for pure `system` stages.
-
-### Transition Definition
-
-Each transition must define:
-
-- `id`
-- `fromStageId`
-- `toStageId`
-- `outcomeId`
-- `guardRuleId`
-
-Rules:
-
-- `fromStageId` and `toStageId` must reference declared stages.
-- `guardRuleId` must reference a `condition` rule.
-- Terminal transitions must lead to an `end` stage.
+- hiding internal stages and steps
+- mapping one or more internal states to a single portal-facing status
+- preserving user-friendly portal status without leaking internal process detail
 
 ## Form Contract
 
-`forms` defines portable form surfaces consumed by the PCF runtime and later by host adapters.
+`forms` defines the model-driven forms, related form states, and generated form behavior consumed by the runtime and designer engine.
 
-Each form must define:
+### Form rules
 
-- `id`
-- `displayName`
-- `entityId`
-- `layout`
-- `elements`
+- Forms are model-driven forms, not custom form components.
+- The DBM process UI is separate from the underlying model-driven forms.
+- Forms may span multiple tables through declared bindings and related data projections.
+- Same-table form variants should reuse the same underlying model-driven form and apply stateful manipulation through generated behavior instead of multiplying full standalone forms.
 
-### Layout
+### Form-state model
 
-`layout` must define:
+Each form must support one or more `formStates` that define the active UI shape for a stage or step.
 
-- `layoutType`
-- `regions`
+The architectural target for each form state must allow:
 
-R1 `layoutType` is `single-page`.
+- tab, section, and control visibility
+- editability and requirement changes
+- state-specific labels or hints where needed
+- state-specific logic bindings
+- same-form variation without treating each variation as a separate full form
 
-Each region must define:
+### Generated form ownership
 
-- `id`
-- `displayName`
-- `order`
+The designer engine is responsible for creating or updating owned Dataverse forms in `Dev`.
 
-### Element Definition
-
-Each element must define:
-
-- `id`
-- `elementType`
-- `regionId`
-- `displayName`
-- `binding`
-- `behavior`
-
-R1 `elementType` values are:
-
-- `text`
-- `multiline-text`
-- `number`
-- `currency`
-- `choice`
-- `lookup`
-- `date`
-- `read-only-text`
-
-`binding` must reference either:
-
-- a `metadata` field via `fieldId`, or
-- a `process` variable via `variableId`
-
-`behavior` must define:
-
-- `requiredRuleIds`
-- `visibleRuleIds`
-- `editableRuleIds`
-
-All three are arrays of rule IDs and may be empty.
+Release artifacts remain tracked and pipeline-driven. Direct environment mutation does not become the release source of truth.
 
 ## Metadata Contract
 
-`metadata` defines the portable business data model and its provider-specific bindings.
+`metadata` continues to define the portable business data model and provider-specific bindings.
 
-### Required Fields
+### Expanded scope
 
-- `entities`
-- `relationships`
+The architectural target now assumes that the designer engine can generate or update:
 
-### Entity Definition
+- Dataverse columns
+- Dataverse form bindings
+- related metadata needed by the first reference scenario
 
-Each entity must define:
+Initial proof scope is:
 
-- `id`
-- `displayName`
-- `providerBindings`
-- `primaryKeyFieldId`
-- `fields`
+- columns
+- model-driven form updates
 
-For R1, `providerBindings` may include `dataverse`, and later may include other providers. Portable consumers must use the canonical `id`, not the provider logical name.
+Deferred target scope includes:
 
-### Field Definition
+- grids
+- richer native Dataverse controls
+- other native Dataverse components beyond the first proof scenario
 
-Each field must define:
+### Multi-table process support
 
-- `id`
-- `displayName`
-- `dataType`
-- `providerBindings`
-- `isRequired`
-- `isReadOnly`
+The canonical metadata model must support process forms that span multiple tables, including:
 
-R1 field data types are:
+- a primary business record
+- related supporting records
+- reusable multi-table condition evaluation
+- explicit provider bindings for joins or related record navigation
 
-- `string`
-- `multiline-string`
-- `integer`
-- `decimal`
-- `currency`
-- `boolean`
-- `choice`
-- `lookup`
-- `date`
-- `datetime`
+## Rules And Conditions Contract
 
-### Relationship Definition
+`rules` continues to hold reusable business logic, but the contract now explicitly requires a first-class reusable condition component.
 
-Each relationship must define:
+### Condition component
 
-- `id`
-- `fromEntityId`
-- `toEntityId`
-- `relationshipType`
-- `providerBindings`
+The condition component must be reusable anywhere a condition definition is required, including:
 
-R1 relationship types are:
+- stage branching
+- step branching
+- visibility
+- assignment
+- status projection
+- form-state activation
+- runtime guards
 
-- `one-to-many`
-- `many-to-one`
+### Condition expectations
 
-## Rule Contract
+Conditions must be able to express:
 
-`rules` contains all reusable business rules referenced by process stages, transitions, and forms.
-
-Each rule must define:
-
-- `id`
-- `displayName`
-- `ruleType`
-- `scope`
-- `language`
-- `body`
-
-### Rule Types
-
-R1 rule types are:
-
-- `condition`
-- `validation`
-- `derivation`
-- `action`
-
-### Scope Values
-
-R1 scopes are:
-
-- `process`
-- `stage`
-- `transition`
-- `form`
-- `field`
-
-### Language Boundary
-
-R1 language values are:
-
-- `dbm-expression-v1`
-- `javascript-artifact-v1`
-
-Rules:
-
-- `condition` and `validation` rules use `dbm-expression-v1`.
-- `derivation` and `action` rules may use either `dbm-expression-v1` or `javascript-artifact-v1`.
-- `javascript-artifact-v1` rules must reference an `artifactId` from `artifacts`; they must not inline host-specific file paths or Dataverse web-resource names.
-
-### Expression Boundary
-
-`dbm-expression-v1` is the portable expression subset used for:
-
-- field and variable comparisons
+- same-table comparisons
+- multi-table comparisons
+- join-like related-record navigation
 - boolean composition
-- null and emptiness checks
-- simple arithmetic and threshold checks
+- reusable references from multiple parts of the model
 
-It does not own:
-
-- direct persistence
-- direct network access
-- direct Dataverse request construction
-- host UI manipulation
-
-Those imperative behaviors belong to runtime adapters and referenced artifacts.
+The runtime implementation must evaluate conditions efficiently through compilation, caching, or other equivalent optimization. The architecture does not require conditions to be written in raw Dataverse query syntax.
 
 ## Runtime Contract
 
 `runtime` defines the common execution boundary that all later runtime adapters must implement.
 
-### Required Fields
+### Process experience ownership
 
-- `capabilities`
-- `requestContract`
-- `resultContract`
-- `ownership`
+The runtime contract now assumes:
 
-### Capabilities
+- DBM owns the process UI and status experience
+- model-driven runtime and portal runtime are different projections of the same canonical process state
+- Dataverse owns authoritative persistence and stage or step transition decisions
+- Azure remains optional support infrastructure where it adds clear value
 
-R1 capabilities are:
+### Model-driven experience target
 
-- `load-record`
-- `render-form`
-- `validate-input`
-- `evaluate-rules`
-- `persist-record`
-- `advance-stage`
-- `invoke-artifact`
-- `emit-notification`
+The preferred model-driven target is a DBM-owned process experience rendered at the top of the form, above tabs.
 
-### Ownership
+If no supported placement can achieve the required proof in early `R1`, a simplified unsupported placement method may be used temporarily, but that does not change the product boundary or long-term target.
 
-Runtime ownership is fixed for R1:
+### Runtime request and result implications
 
-- `pcf`
-  - owns form rendering and local interaction
-  - may run non-authoritative validation and derivation for responsiveness
-  - must not commit authoritative stage changes without backend confirmation
-- `dataverse`
-  - owns authoritative persistence and stage transition decisions for the R1 scenario
-  - owns in-platform artifact execution and final validation outcome
-- `azure`
-  - optional in R1
-  - used only when support services add clear value
-  - must not define an alternate process model
+The runtime request and result envelopes must evolve to carry:
 
-### Runtime Request Envelope
-
-The later executable contract must implement this logical request shape:
-
-```json
-{
-  "schemaVersion": "dbm.runtime.request/v1",
-  "operation": "initialize | load-form | validate | submit | transition",
-  "model": {
-    "packageId": "string",
-    "packageVersion": "string",
-    "processId": "string"
-  },
-  "runtime": {
-    "host": "model-driven | xrmtoolbox",
-    "engine": "pcf | dataverse | azure",
-    "capabilities": ["..."]
-  },
-  "actor": {
-    "actorId": "string",
-    "userId": "string",
-    "roleIds": ["..."]
-  },
-  "subject": {
-    "entityId": "string",
-    "recordId": "string"
-  },
-  "state": {
-    "stageId": "string",
-    "fields": {},
-    "variables": {}
-  },
-  "command": {
-    "requestedOutcomeId": "string"
-  },
-  "correlationId": "string"
-}
-```
-
-### Runtime Result Envelope
-
-The later executable contract must implement this logical result shape:
-
-```json
-{
-  "schemaVersion": "dbm.runtime.result/v1",
-  "status": "ok | validation-failed | blocked | error",
-  "state": {
-    "stageId": "string",
-    "fields": {},
-    "variables": {}
-  },
-  "effects": {
-    "persist": [],
-    "notifications": [],
-    "artifactCalls": []
-  },
-  "messages": [],
-  "errors": [],
-  "correlationId": "string"
-}
-```
-
-Rules:
-
-- `correlationId` must round-trip from request to result.
-- Portable consumers must depend on `status`, `state`, and structured `effects`, not runtime-specific log text.
-- Validation failures are business outcomes, not transport failures.
+- stage and step identity
+- active form state
+- full internal status
+- portal-visible status projection
+- multi-table subject context where the scenario needs it
 
 ## Packaging Contract
 
 The packaging contract keeps deployable assets associated with the model without making deployment structure the primary authoring surface.
 
-### Artifact Definition
+It now also needs to account for:
 
-Each `artifacts` entry must define:
+- generated Dataverse forms
+- generated Dataverse columns
+- process UI assets
+- generated behavior needed for same-table form-state variation
 
-- `id`
-- `artifactType`
-- `displayName`
-- `runtimeTargets`
-- `packagingTarget`
-- `sourceRef`
-- `required`
+Tracked release artifacts remain the durable release source of truth even when the designer engine can apply changes directly in `Dev`.
 
-R1 `artifactType` values are:
+## Approval/Request Example Alignment
 
-- `script`
-- `template`
-- `static-asset`
-- `pcf-control`
-- `plugin-assembly`
-- `config`
+The approval/request scenario remains the first proof scenario.
 
-R1 `packagingTarget` values are:
+That scenario must now be understood as supporting:
 
-- `dataverse-webresource`
-- `dataverse-plugin`
-- `repo-only`
-- `azure-app`
+- internal stages and steps that may not all be visible to portal users
+- step-level ownership, notifications, tasks, and status
+- form states within the request and decision lifecycle
+- a portal-facing status projection derived from internal process state
 
-Rules:
+The currently checked-in example model remains a simplified stage-only baseline until `R1.2.1` updates the executable contract and example together.
 
-- Model-internal references use `artifactId`.
-- `sourceRef` identifies the source payload in repo or package space.
-- Dataverse-specific names such as `ys_/dbm/...` may exist only in packaging metadata, not in the canonical references used by process, form, metadata, or rule sections.
-- A package is invalid if any referenced required artifact is missing.
+## Legacy And Implementation Implications
 
-## Serialization Defaults
+The architectural direction approved here means:
 
-- IDs are lowercase kebab-case.
-- Arrays preserve author order.
-- Object maps inside runtime state are keyed by canonical field ID or variable ID.
-- Nullable data is represented explicitly as `null`.
-- Provider bindings are optional, but any model intended for Dataverse deployment must include the `dataverse` provider bindings needed by its metadata and artifacts.
-
-## Approval/Request Example
-
-This example defines the minimum R1 scenario the contract must support.
-
-### Actors
-
-| Actor ID | Type | Source | Purpose |
-| --- | --- | --- | --- |
-| `requester` | `requester` | `current-user` | Creates and submits the request |
-| `manager-approver` | `approver` | `field-binding` | Reviews and decides the request |
-| `platform` | `system` | `system` | Applies system-owned updates |
-
-### Metadata
-
-| Entity ID | Purpose | Example Dataverse Binding |
-| --- | --- | --- |
-| `request` | Primary request record | `ys_request` |
-| `request-decision` | Optional review/decision data | `ys_requestdecision` |
-
-| Field ID | Entity | Type | Purpose |
-| --- | --- | --- | --- |
-| `request-title` | `request` | `string` | Request summary |
-| `request-amount` | `request` | `currency` | Approval amount |
-| `request-justification` | `request` | `multiline-string` | Business reason |
-| `request-status` | `request` | `choice` | Draft, submitted, approved, rejected |
-| `assigned-approver` | `request` | `lookup` | Target approver |
-| `decision-comment` | `request-decision` | `multiline-string` | Review note |
-
-### Forms
-
-| Form ID | Used By | Key Elements |
-| --- | --- | --- |
-| `request-entry-form` | Draft/requester stage | title, amount, justification, assigned approver |
-| `manager-decision-form` | Approval stage | read-only request summary, decision comment |
-
-### Stages
-
-| Stage ID | Type | Actor | Form | Outcome |
-| --- | --- | --- | --- | --- |
-| `draft-request` | `start` | `requester` | `request-entry-form` | submit or cancel |
-| `manager-review` | `approval` | `manager-approver` | `manager-decision-form` | approve or reject |
-| `approved` | `end` | `platform` | none | approved |
-| `rejected` | `end` | `platform` | none | rejected |
-
-### Transition Rules
-
-| Transition | Guard |
-| --- | --- |
-| `draft-request` -> `manager-review` | required fields present and approver assigned |
-| `manager-review` -> `approved` | approval outcome selected |
-| `manager-review` -> `rejected` | rejection outcome selected and rejection comment present |
-
-### Rule Expectations
-
-- Submission validates requester-entered required fields.
-- Rejection requires a decision comment.
-- Approval or rejection updates the canonical `request-status`.
-- Runtime adapters may invoke scripts to enrich the process, but the stage flow and business meaning remain in the model.
-
-## Appendix A: Legacy Mapping
-
-| Area | Current Role | R1.1 Classification | Treatment |
-| --- | --- | --- | --- |
-| `dbm-app` | Web-resource editor plus JSON tree/property editing | selective reuse | Reuse editor interaction patterns only; redesign content model and host boundary |
-| `dbm-script-lib` | Shared JS runtime primitives and object model | reusable seed | Keep entity/service/cache/logger patterns where they fit the new contract |
-| `dbm-js-vm` | Thin browser fetch-and-run bridge | adapter-only seed | Redesign around the runtime request/result contract |
-| `dbm-web-resources` | Dataverse helper code and BroadcastChannel form bridge | selective reuse | Reuse Dataverse helper patterns only; current bridge is not the target runtime shape |
-| `DbmSolution/Plugins` | Jint-based Dataverse execution proof | reusable seed | Keep backend execution concepts; redesign inputs and outputs to the canonical contract |
-| `DbmSolution/DynamicsDbmXtbPlugin` | XrmToolBox plugin for patch promotion, not a designer host | redesign | Do not treat current plugin UX as the R1 designer host foundation |
-| `power-platform` | Dataverse solution baseline and package manifest | reusable foundation | Keep as the delivery baseline while moving model references away from web-resource identity |
-| `eng` and `.github/workflows` | Build, validation, packaging, deployment, release evidence | reusable foundation | Keep and extend as later executable contract artifacts appear |
-
-## Appendix B: Implementation Notes For The Next Slice
-
-The next implementation slice should create the executable contract, not revisit product decisions. It should:
-
-- encode `DbmModelV1` as TypeScript types
-- encode the same contract as JSON Schema
-- add one checked-in example model for the approval/request scenario at [examples/approval-request-v1.model.json](examples/approval-request-v1.model.json)
-- keep the executable schema in `dbm-contract/schema/`
-- validate that example model in CI
-- leave host and runtime rewiring for the following slice unless explicitly expanded
+- `dbm-contract` must be revised in `R1.2.1`, not just documented
+- `dbm-designer-core` must evolve from stage-only editing into stage + step + form-state authoring
+- generated Dataverse forms and columns become part of the designer engine boundary
+- native BPF, if generated later, is downstream from the canonical model rather than upstream into it
 
 ## Related Docs
 
@@ -645,5 +313,6 @@ The next implementation slice should create the executable contract, not revisit
 - [Target Platform Architecture](target-platform-architecture.md)
 - [Release 1 Builder Platform MVP](../roadmap/release-1-builder-platform-mvp.md)
 - [ADR-0002: Designer-First And Portable Host Strategy](../adr/0002-designer-first-and-host-strategy.md)
-- [ADR-0003: Shared Runtime Contract And Mandatory PCF Form Runtime](../adr/0003-runtime-and-pcf-strategy.md)
+- [ADR-0003: Shared Runtime Contract And Mandatory Model-Driven Runtime](../adr/0003-runtime-and-pcf-strategy.md)
 - [ADR-0008: Canonical Contract Authority And Format](../adr/0008-canonical-contract-authority-and-format.md)
+- [ADR-0009: DBM Process UI, Portal State Projection, and Generated Dataverse Artifacts](../adr/0009-dbm-process-ui-portal-state-projection-and-generated-dataverse-artifacts.md)

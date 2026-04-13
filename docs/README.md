@@ -33,9 +33,10 @@ Do not use this area for temporary execution notes, scratch work, or private pla
 4. [Canonical Model And Runtime Contract v1](architecture/canonical-model-runtime-contract-v1.md)
 5. [ADR Index](adr/README.md)
 6. [Canonical Contract Authority ADR](adr/0008-canonical-contract-authority-and-format.md)
-7. [Release Plan](roadmap/release-plan.md)
-8. [Release Governance](releases/release-governance.md)
-9. [Runbook Index](runbooks/README.md)
+7. [Process UI And Generated Dataverse Artifacts ADR](adr/0009-dbm-process-ui-portal-state-projection-and-generated-dataverse-artifacts.md)
+8. [Release Plan](roadmap/release-plan.md)
+9. [Release Governance](releases/release-governance.md)
+10. [Runbook Index](runbooks/README.md)
 
 ## Working rules
 

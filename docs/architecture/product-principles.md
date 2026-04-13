@@ -21,10 +21,16 @@ These principles are standing constraints for the revival and future evolution o
   - DBM should let architects and developers define the solution from within the designer with minimal dependence on scattered tools or hidden configuration.
 - Build the platform for serious end-to-end business automation.
   - The target is not a script editor; it is a coherent system for defining process, forms, metadata, logic, deployment, and operational flow.
+- Keep one coherent process experience across every surface.
+  - The business process must remain understandable from portal to backend to portal, even when some internal stages or steps are intentionally hidden from portal users.
+- Own the process UI.
+  - DBM owns the business-process experience and status projection. Native Dataverse business process flow can be generated later as an optional integration aid, but it is not the product boundary or source of truth.
 - Keep the designer portable.
   - The core designer must not be trapped inside one host shell.
+- Prefer proven libraries and frameworks over loyalty to the current stack.
+  - The designer should be elegant, advanced, and sophisticated. Framework choice is secondary to supportability, product quality, and long-term maintainability.
 - Require a real in-form runtime.
-  - Release 1 must ship a real PCF-based form runtime, not a temporary web-resource fallback.
+  - Release 1 must ship a real DBM-owned in-form process runtime, not a temporary web-resource fallback.
 
 ## Security and operational principles
 
@@ -68,5 +74,6 @@ The following are currently locked unless replaced by a future ADR:
 - The first portable designer host is XrmToolBox.
 - Azure is used from the start where it adds clear value.
 - Power Pages is the first portal/front-door target.
+- Portal projection semantics are defined in Release 1 before the live Power Pages runtime arrives in Release 2.
 - AI arrives after the core platform is stable enough to support it well.
 - `v1.0.0` means pilot-ready end-to-end delivery, not full product maturity.

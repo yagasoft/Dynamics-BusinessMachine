@@ -4,15 +4,15 @@ This document defines the intended high-level architecture for DBM. It describes
 
 ## Architectural intent
 
-DBM should let a solution architect or developer define, deploy, run, and support an end-to-end business process from a single designer-led experience.
+DBM should let a solution architect or developer define, deploy, run, and support one business process that spans portal to backend to portal from a single designer-led experience.
 
 The platform must support:
 
-- process flow definition
-- form definition
-- metadata and structure definition
-- business rules and branching
-- execution across client, Dataverse, and Azure
+- stage, step, and form-state definition
+- coherent process UI across model-driven and portal surfaces
+- metadata, columns, and generated Dataverse form authoring
+- reusable conditions, branching, and status projection
+- execution across portal, client, Dataverse, and Azure
 - pipeline-driven deployment and promotion
 - future AI-assisted design and validation
 
@@ -22,36 +22,51 @@ The platform must support:
 
 The product needs one authoritative model that describes:
 
-- process stages and transitions
-- forms and UI layout
-- metadata and schema-related definitions
-- validation and business rules
-- executable logic contracts
+- process stages, steps, branching, and convergence
+- form definitions and form-state variations
+- portal-visible state projection versus internal runtime state
+- metadata, schema-related definitions, and generated Dataverse artifacts
+- reusable conditions, validation, and executable logic contracts
 - deployment packaging metadata
 
 This model is the heart of portability and runtime consistency.
 
 ### 2. Designer core
 
-The designer core owns editing behavior, validation, model composition, and serialization. It should be host-agnostic.
+The designer core owns editing behavior, validation, model composition, semantic checks, serialization, and synthesis planning. It should remain host-agnostic.
 
-### 3. Host adapters
+### 3. Process experience layer
+
+DBM owns the business-process experience itself. That experience must remain coherent across model-driven and portal surfaces even when some internal stages or steps are intentionally hidden from portal users.
+
+For model-driven forms:
+
+- the preferred target is a process experience rendered at the top of the form, above tabs
+- supported platform placement should be preferred whenever it can satisfy the UX goal
+- if no supported placement can achieve the required proof in early R1, a simplified unsupported placement method may be used with explicit documentation and later replacement
+
+Native Dataverse business process flow is not the source of truth. It may be generated later as an optional integration artifact where it adds value.
+
+### 4. Host adapters
 
 The designer is hosted through adapters, not duplicated implementations.
 
-- Release 1 host: model-driven experience
-- Release 1 portable host: XrmToolBox
-- later hosts: browser/Azure-hosted administration or management surfaces
+- first proof host: model-driven experience
+- first portable host: XrmToolBox
+- later hosts: browser- or Azure-hosted administration and management surfaces
 
-### 4. Execution runtimes
+The host shell is replaceable. The canonical model and designer core are the enduring seams.
+
+### 5. Execution runtimes
 
 The same platform contract should support several execution contexts:
 
-- PCF runtime on model-driven forms
+- DBM-owned model-driven runtime
+- portal runtime and state projection
 - Dataverse backend execution
 - Azure orchestration and service-plane execution
 
-### 5. Delivery and operations layer
+### 6. Delivery and operations layer
 
 The platform must include:
 
@@ -74,18 +89,23 @@ flowchart TB
         E["Future Browser/Azure Host"]
     end
 
+    subgraph Experience["Process Experience"]
+        F["DBM Process UI"]
+        G["Portal State Projection"]
+    end
+
     subgraph Runtime["Execution"]
-        F["PCF Form Runtime"]
-        G["Dataverse Runtime"]
-        H["Azure Orchestration and Services"]
-        I["Power Pages Front Door"]
+        H["Model-Driven Runtime"]
+        I["Dataverse Runtime"]
+        J["Azure Orchestration and Services"]
+        K["Power Pages Runtime"]
     end
 
     subgraph Delivery["Delivery and Operations"]
-        J["GitHub Actions"]
-        K["GitHub Environments"]
-        L["Azure Key Vault"]
-        M["Release Notes / Runbooks / Rollback"]
+        L["GitHub Actions"]
+        M["GitHub Environments"]
+        N["Azure Key Vault"]
+        O["Release Notes / Runbooks / Rollback"]
     end
 
     A --> B
@@ -95,28 +115,36 @@ flowchart TB
     A --> F
     A --> G
     A --> H
-    I --> F
-    F --> G
-    G --> H
-    J --> K
-    K --> L
-    J --> M
-    J --> C
-    J --> G
-    J --> H
+    A --> I
+    A --> J
+    A --> K
+    C --> F
+    K --> G
+    F --> H
+    G --> K
+    H --> I
+    I --> J
+    L --> M
+    M --> N
+    L --> O
+    L --> C
+    L --> I
+    L --> J
 ```
 
 ## Release mapping
 
 - Release 0 establishes delivery, governance, environments, and baseline recovery.
-- Release 1 delivers the canonical model, designer core, host adapters, backend runtime, and real PCF runtime for one approval/request scenario.
-- Release 2 completes the end-to-end loop through Power Pages and Azure, then hardens the solution to pilot-ready `v1.0.0`.
+- Release 1 locks the canonical process semantics, designer core, generated Dataverse authoring, host adapters, and the first DBM-owned model-driven runtime for one approval/request scenario.
+- Release 1 also defines the portal-facing process projection contract, but it does not deliver the live Power Pages runtime.
+- Release 2 delivers the real Power Pages runtime, end-to-end portal continuity, Azure-backed supporting services, and pilot-ready hardening.
 - Release 3 adds AI only after platform contracts and operations are reliable.
 
 ## Architecture constraints
 
 - The designer must remain the primary interaction surface.
+- DBM owns the process UI. Native BPF is optional integration, not the product boundary.
 - No secret may live in source control.
 - No release may bypass Dev and UAT promotion.
-- Release 1 must not use a temporary web-resource substitute for the in-form runtime.
+- Release 1 must not use a temporary web-resource substitute as the final process runtime boundary.
 - Azure should complement Dataverse, not copy responsibilities unnecessarily.
