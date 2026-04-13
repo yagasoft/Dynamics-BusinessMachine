@@ -2,6 +2,8 @@ import type { DbmEntityV1, DbmFieldV1, DbmModelV1 } from 'dbm-contract';
 import type { DataverseSynthesisDiagnostic, DataverseSynthesisSeverity } from './types';
 
 export const DEFAULT_GENERATED_METADATA_SOLUTION_NAME = 'DynamicsBusinessMachineGeneratedMetadata';
+export const DEFAULT_GENERATED_METADATA_SOLUTION_PUBLISHER_UNIQUE_NAME = 'yagasoft';
+export const DEFAULT_GENERATED_METADATA_SOLUTION_VERSION = '0.2.0.0';
 export const DEFAULT_LOCALE_CODE = 1033;
 
 export function createDiagnostic(

@@ -139,6 +139,28 @@ function compareRelationship(
     ];
   }
 
+  if (snapshot.referencedEntityLogicalName !== plan.referencedEntityLogicalName) {
+    return [
+      {
+        kind: 'relationship',
+        severity: 'error',
+        logicalName: plan.logicalName,
+        message: `Relationship '${plan.logicalName}' referenced entity does not match the Dataverse snapshot.`
+      }
+    ];
+  }
+
+  if (snapshot.referencingEntityLogicalName !== plan.referencingEntityLogicalName) {
+    return [
+      {
+        kind: 'relationship',
+        severity: 'error',
+        logicalName: plan.logicalName,
+        message: `Relationship '${plan.logicalName}' referencing entity does not match the Dataverse snapshot.`
+      }
+    ];
+  }
+
   return [];
 }
 
@@ -158,7 +180,11 @@ export function diffSynthesisPlan(plan: DataverseSynthesisPlan, snapshot: Datave
     differences.push(
       ...compareRelationship(
         relationshipPlan,
-        snapshot.relationships.find((relationship) => relationship.logicalName === relationshipPlan.logicalName)
+        snapshot.relationships.find(
+          (relationship) =>
+            relationship.logicalName === relationshipPlan.logicalName ||
+            relationship.schemaName === relationshipPlan.schemaName
+        )
       )
     );
   }

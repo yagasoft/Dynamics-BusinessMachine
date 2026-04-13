@@ -1,6 +1,6 @@
 "use strict";
 Object.defineProperty(exports, "__esModule", { value: true });
-exports.DEFAULT_LOCALE_CODE = exports.DEFAULT_GENERATED_METADATA_SOLUTION_NAME = void 0;
+exports.DEFAULT_LOCALE_CODE = exports.DEFAULT_GENERATED_METADATA_SOLUTION_VERSION = exports.DEFAULT_GENERATED_METADATA_SOLUTION_PUBLISHER_UNIQUE_NAME = exports.DEFAULT_GENERATED_METADATA_SOLUTION_NAME = void 0;
 exports.createDiagnostic = createDiagnostic;
 exports.getDataverseLogicalName = getDataverseLogicalName;
 exports.toSchemaName = toSchemaName;
@@ -13,6 +13,8 @@ exports.getFieldById = getFieldById;
 exports.getPublisherPrefix = getPublisherPrefix;
 exports.sanitizeFileName = sanitizeFileName;
 exports.DEFAULT_GENERATED_METADATA_SOLUTION_NAME = 'DynamicsBusinessMachineGeneratedMetadata';
+exports.DEFAULT_GENERATED_METADATA_SOLUTION_PUBLISHER_UNIQUE_NAME = 'yagasoft';
+exports.DEFAULT_GENERATED_METADATA_SOLUTION_VERSION = '0.2.0.0';
 exports.DEFAULT_LOCALE_CODE = 1033;
 function createDiagnostic(code, severity, message, modelPath) {
     return {

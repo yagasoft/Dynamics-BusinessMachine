@@ -85,10 +85,152 @@ const index_1 = require("../src/index");
     await (0, index_1.emitGeneratedMetadataSolution)(plan, outputRoot);
     const solutionXml = await node_fs_1.promises.readFile(node_path_1.default.join(outputRoot, 'src', 'Other', 'Solution.xml'), 'utf8');
     const entityXml = await node_fs_1.promises.readFile(node_path_1.default.join(outputRoot, 'src', 'Entities', 'dbm_Request', 'Entity.xml'), 'utf8');
+    const relationshipsIndexXml = await node_fs_1.promises.readFile(node_path_1.default.join(outputRoot, 'src', 'Other', 'Relationships.xml'), 'utf8');
     const relationshipFileName = `${plan.relationships[0]?.schemaName}.xml`.replace(/[^A-Za-z0-9_.-]/g, '_');
     const relationshipXml = await node_fs_1.promises.readFile(node_path_1.default.join(outputRoot, 'src', 'Other', 'Relationships', relationshipFileName), 'utf8');
     strict_1.default.match(solutionXml, /DynamicsBusinessMachineGeneratedMetadata/);
-    strict_1.default.match(entityXml, /dbm_request/);
+    strict_1.default.match(entityXml, /<Type>primarykey<\/Type>/);
+    strict_1.default.match(entityXml, /<Name>dbm_title<\/Name>/);
+    strict_1.default.match(entityXml, /PrimaryName\|ValidForAdvancedFind\|ValidForForm\|ValidForGrid\|RequiredForForm/);
+    strict_1.default.match(relationshipsIndexXml, /dbm_RequestDbmRequestdecision/);
     strict_1.default.match(relationshipXml, /dbm_request_dbm_requestdecision/);
     await node_fs_1.promises.rm(outputRoot, { recursive: true, force: true });
+});
+(0, node_test_1.default)('applySynthesisPlanToDev bootstraps the generated solution and creates relationship-backed metadata idempotently', async () => {
+    const plan = (0, index_1.planDataverseSynthesis)(approval_request_v1_model_json_1.default);
+    const requests = [];
+    const queuedResponses = [
+        { status: 200, payload: { value: [] } },
+        { status: 200, payload: { value: [{ publisherid: '11111111-1111-1111-1111-111111111111', uniquename: 'yagasoft' }] } },
+        { status: 204 },
+        { status: 404 },
+        { status: 204 },
+        { status: 404 },
+        { status: 204 },
+        { status: 404 },
+        { status: 204 },
+        { status: 404 },
+        { status: 204 },
+        { status: 404 },
+        { status: 204 },
+        { status: 404 },
+        { status: 204 },
+        { status: 404 },
+        { status: 204 },
+        { status: 200, payload: { value: [] } },
+        { status: 204 },
+        { status: 204 },
+        {
+            status: 200,
+            payload: {
+                LogicalName: 'dbm_request',
+                SchemaName: 'dbm_Request',
+                PrimaryIdAttribute: 'dbm_requestid',
+                PrimaryNameAttribute: 'dbm_title'
+            }
+        },
+        {
+            status: 200,
+            payload: {
+                value: [
+                    {
+                        LogicalName: 'dbm_title',
+                        SchemaName: 'dbm_Title',
+                        AttributeType: 'String',
+                        IsPrimaryName: true,
+                        RequiredLevel: { Value: 'ApplicationRequired' }
+                    },
+                    {
+                        LogicalName: 'dbm_amount',
+                        SchemaName: 'dbm_Amount',
+                        AttributeType: 'Money',
+                        IsPrimaryName: false,
+                        RequiredLevel: { Value: 'ApplicationRequired' }
+                    }
+                ]
+            }
+        },
+        {
+            status: 200,
+            payload: {
+                LogicalName: 'dbm_requestdecision',
+                SchemaName: 'dbm_Requestdecision',
+                PrimaryIdAttribute: 'dbm_requestdecisionid',
+                PrimaryNameAttribute: 'dbm_name'
+            }
+        },
+        {
+            status: 200,
+            payload: {
+                value: [
+                    {
+                        LogicalName: 'dbm_name',
+                        SchemaName: 'dbm_Name',
+                        AttributeType: 'String',
+                        IsPrimaryName: true,
+                        RequiredLevel: { Value: 'ApplicationRequired' }
+                    },
+                    {
+                        LogicalName: 'dbm_requestid',
+                        SchemaName: 'dbm_RequestId',
+                        AttributeType: 'Lookup',
+                        IsPrimaryName: false,
+                        RequiredLevel: { Value: 'ApplicationRequired' }
+                    }
+                ]
+            }
+        },
+        { status: 200, payload: { Targets: ['dbm_request'] } },
+        {
+            status: 200,
+            payload: {
+                value: [
+                    {
+                        SchemaName: 'dbm_Request_DbM_Requestdecision',
+                        ReferencedEntity: 'dbm_request',
+                        ReferencingEntity: 'dbm_requestdecision',
+                        ReferencingAttribute: 'dbm_requestid'
+                    }
+                ]
+            }
+        }
+    ];
+    const originalFetch = globalThis.fetch;
+    globalThis.fetch = (async (input, init) => {
+        const next = queuedResponses.shift();
+        strict_1.default.ok(next, `Unexpected fetch call: ${String(input)}`);
+        const bodyText = typeof init?.body === 'string' ? init.body : undefined;
+        requests.push({
+            method: init?.method ?? 'GET',
+            url: String(input),
+            body: bodyText ? JSON.parse(bodyText) : undefined,
+            headers: Object.fromEntries(new Headers(init?.headers ?? {}).entries())
+        });
+        return new Response(next.payload ? JSON.stringify(next.payload) : null, {
+            status: next.status,
+            headers: next.payload ? { 'Content-Type': 'application/json' } : undefined
+        });
+    });
+    try {
+        const report = await (0, index_1.applySynthesisPlanToDev)(plan, { dataverseUrl: 'https://example.crm.dynamics.com' }, { accessToken: 'token' });
+        strict_1.default.equal(report.status, 'success');
+        strict_1.default.equal(report.actions.some((action) => action.componentType === 'solution' && action.state === 'created'), true);
+        strict_1.default.equal(report.actions.some((action) => action.componentType === 'relationship' && action.state === 'created'), true);
+        strict_1.default.equal(report.actions.some((action) => action.componentType === 'column' &&
+            action.logicalName === 'dbm_requestdecision.dbm_requestid' &&
+            action.message.includes('relationship metadata')), true);
+        const relationshipCreate = requests.find((request) => request.url.endsWith('/RelationshipDefinitions') && request.method === 'POST');
+        strict_1.default.ok(relationshipCreate);
+        strict_1.default.equal(relationshipCreate?.headers['mscrm.solutionuniquename'], 'DynamicsBusinessMachineGeneratedMetadata');
+        strict_1.default.equal(relationshipCreate?.body?.Lookup?.SchemaName, 'dbm_Requestid');
+        strict_1.default.equal(relationshipCreate?.body?.ReferencedEntity, 'dbm_request');
+        strict_1.default.equal(relationshipCreate?.body?.ReferencingEntity, 'dbm_requestdecision');
+        const entityCreate = requests.find((request) => request.url.endsWith('/EntityDefinitions') && request.method === 'POST');
+        strict_1.default.ok(entityCreate);
+        strict_1.default.equal(entityCreate?.body?.PrimaryNameAttribute, 'dbm_title');
+    }
+    finally {
+        globalThis.fetch = originalFetch;
+    }
+    strict_1.default.equal(queuedResponses.length, 0);
 });

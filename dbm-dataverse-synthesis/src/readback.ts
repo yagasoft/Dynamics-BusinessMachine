@@ -56,6 +56,66 @@ function normalizeOptionValues(payload: any): number[] {
     .filter((value: unknown): value is number => typeof value === 'number');
 }
 
+async function enrichAttribute(
+  dataverseUrl: string,
+  accessToken: string,
+  entityLogicalName: string,
+  attribute: any
+): Promise<any> {
+  if (attribute.AttributeType === 'Lookup') {
+    const lookupResult = await dataverseRequest(
+      dataverseUrl,
+      accessToken,
+      `EntityDefinitions(LogicalName='${entityLogicalName}')/Attributes(LogicalName='${attribute.LogicalName}')/Microsoft.Dynamics.CRM.LookupAttributeMetadata?$select=Targets`
+    );
+
+    if (!lookupResult.ok) {
+      return attribute;
+    }
+
+    return {
+      ...attribute,
+      Targets: lookupResult.payload?.Targets ?? []
+    };
+  }
+
+  if (attribute.AttributeType === 'Picklist') {
+    const picklistResult = await dataverseRequest(
+      dataverseUrl,
+      accessToken,
+      `EntityDefinitions(LogicalName='${entityLogicalName}')/Attributes(LogicalName='${attribute.LogicalName}')/Microsoft.Dynamics.CRM.PicklistAttributeMetadata?$select=LogicalName&$expand=OptionSet`
+    );
+
+    if (!picklistResult.ok) {
+      return attribute;
+    }
+
+    return {
+      ...attribute,
+      OptionSet: picklistResult.payload?.OptionSet ?? null
+    };
+  }
+
+  if (attribute.AttributeType === 'Boolean') {
+    const booleanResult = await dataverseRequest(
+      dataverseUrl,
+      accessToken,
+      `EntityDefinitions(LogicalName='${entityLogicalName}')/Attributes(LogicalName='${attribute.LogicalName}')/Microsoft.Dynamics.CRM.BooleanAttributeMetadata?$select=LogicalName&$expand=OptionSet`
+    );
+
+    if (!booleanResult.ok) {
+      return attribute;
+    }
+
+    return {
+      ...attribute,
+      OptionSet: booleanResult.payload?.OptionSet ?? null
+    };
+  }
+
+  return attribute;
+}
+
 export function normalizeReadbackEntity(
   entityPayload: any,
   attributePayloads: any[]
@@ -101,7 +161,7 @@ async function readEntitySnapshot(
   const attributesResult = await dataverseRequest(
     dataverseUrl,
     accessToken,
-    `EntityDefinitions(LogicalName='${logicalName}')/Attributes?$select=LogicalName,SchemaName,AttributeType,IsPrimaryName,RequiredLevel&$expand=OptionSet`
+    `EntityDefinitions(LogicalName='${logicalName}')/Attributes?$select=LogicalName,SchemaName,AttributeType,IsPrimaryName,RequiredLevel`
   );
 
   if (!attributesResult.ok) {
@@ -109,28 +169,7 @@ async function readEntitySnapshot(
   }
 
   const attributes = Array.isArray(attributesResult.payload?.value) ? attributesResult.payload.value : [];
-  const normalizedAttributes = await Promise.all(
-    attributes.map(async (attribute: any) => {
-      if (attribute.AttributeType !== 'Lookup') {
-        return attribute;
-      }
-
-      const lookupResult = await dataverseRequest(
-        dataverseUrl,
-        accessToken,
-        `EntityDefinitions(LogicalName='${logicalName}')/Attributes(LogicalName='${attribute.LogicalName}')/Microsoft.Dynamics.CRM.LookupAttributeMetadata?$select=Targets`
-      );
-
-      if (!lookupResult.ok) {
-        return attribute;
-      }
-
-      return {
-        ...attribute,
-        Targets: lookupResult.payload?.Targets ?? []
-      };
-    })
-  );
+  const normalizedAttributes = await Promise.all(attributes.map((attribute: any) => enrichAttribute(dataverseUrl, accessToken, logicalName, attribute)));
 
   return normalizeReadbackEntity(entityResult.payload, normalizedAttributes);
 }

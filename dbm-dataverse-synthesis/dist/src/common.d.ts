@@ -1,6 +1,8 @@
 import type { DbmEntityV1, DbmFieldV1, DbmModelV1 } from 'dbm-contract';
 import type { DataverseSynthesisDiagnostic, DataverseSynthesisSeverity } from './types';
 export declare const DEFAULT_GENERATED_METADATA_SOLUTION_NAME = "DynamicsBusinessMachineGeneratedMetadata";
+export declare const DEFAULT_GENERATED_METADATA_SOLUTION_PUBLISHER_UNIQUE_NAME = "yagasoft";
+export declare const DEFAULT_GENERATED_METADATA_SOLUTION_VERSION = "0.2.0.0";
 export declare const DEFAULT_LOCALE_CODE = 1033;
 export declare function createDiagnostic(code: string, severity: DataverseSynthesisSeverity, message: string, modelPath?: string | null): DataverseSynthesisDiagnostic;
 export declare function getDataverseLogicalName(binding: {
