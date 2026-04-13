@@ -27,6 +27,7 @@ import { filter, takeUntil } from 'rxjs/operators';
 
 import { HttpClient } from '@angular/common/http';
 import { xrmGlobal } from './global';
+import { getDbmHostBridge } from './host-bridge';
 
 import { RouterOutlet } from '@angular/router';
 
@@ -48,7 +49,7 @@ export class AppComponent
 
 	public get isReady(): boolean 
 	{
-		return !!globalThis.Xrm || !!xrmGlobal.accessToken;
+		return !!globalThis.Xrm || !!getDbmHostBridge() || !!xrmGlobal.accessToken;
 	}
 	
 	public set baseUrl(t : string) {

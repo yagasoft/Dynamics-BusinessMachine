@@ -38,10 +38,11 @@ async function main() {
         }
         case 'emit-source': {
             const outputRoot = getArgument('--output-root');
+            const templateRoot = getArgument('--template-root');
             if (!outputRoot) {
                 throw new Error('emit-source requires --output-root');
             }
-            await (0, emit_1.emitGeneratedMetadataSolution)(plan, node_path_1.default.resolve(outputRoot));
+            await (0, emit_1.emitGeneratedMetadataSolution)(plan, node_path_1.default.resolve(outputRoot), templateRoot ? node_path_1.default.resolve(templateRoot) : undefined);
             return;
         }
         case 'readback': {

@@ -81,6 +81,7 @@ describe('AppComponent', () =>
 	afterEach(() =>
 	{
 		delete (globalThis as any).Xrm;
+		delete (globalThis as any).dbmHostBridge;
 		delete (globalThis as any).Ys;
 		if (window.parent)
 		{
@@ -90,6 +91,29 @@ describe('AppComponent', () =>
 
 	it('renders the model browser when host context is already available', () =>
 	{
+		const fixture = TestBed.createComponent(AppComponent);
+		fixture.detectChanges();
+
+		expect(fixture.componentInstance.isReady).toBeTrue();
+		expect(fixture.nativeElement.querySelector('ys-resources-list')).not.toBeNull();
+	});
+
+	it('treats the host bridge as a ready context without relying on Xrm auth', () =>
+	{
+		delete (globalThis as any).Xrm;
+		if (window.parent)
+		{
+			delete (window.parent as any).Xrm;
+		}
+
+		(globalThis as any).dbmHostBridge = {
+			hostKind: 'xrmtoolbox',
+			listModelDocuments: async () => [],
+			loadModelDocument: async () => null,
+			saveModelDocument: async (record: unknown) => record,
+			deleteModelDocument: async () => undefined
+		};
+
 		const fixture = TestBed.createComponent(AppComponent);
 		fixture.detectChanges();
 

@@ -1,9 +1,12 @@
-import type { DbmFieldDataTypeV1, DbmModelV1, DbmRelationshipTypeV1 } from 'dbm-contract';
+import type { DbmElementTypeV1, DbmFieldDataTypeV1, DbmModelV1, DbmRelationshipTypeV1 } from 'dbm-contract';
 export type DataverseSynthesisSeverity = 'info' | 'warning' | 'error';
 export type DataverseApplyStatus = 'success' | 'warning' | 'error';
 export type DataversePlanSource = 'field' | 'synthetic';
 export type DataverseAttributeType = 'String' | 'Memo' | 'Money' | 'Integer' | 'Decimal' | 'Boolean' | 'Picklist' | 'Lookup' | 'DateTime';
 export type DataverseApplyActionState = 'created' | 'updated' | 'skipped' | 'failed';
+export type DataverseFormKind = 'main';
+export type DataverseFormFolder = 'main';
+export type DataverseBehaviorKind = 'shared-runtime' | 'form-config';
 export interface DataverseSynthesisDiagnostic {
     code: string;
     severity: DataverseSynthesisSeverity;
@@ -63,20 +66,91 @@ export interface DataverseEntityPlan {
     columns: DataverseColumnPlan[];
     relationships: DataverseRelationshipPlan[];
 }
+export interface DataverseFormLibraryPlan {
+    name: string;
+    libraryUniqueId: string;
+}
+export interface DataverseFormEventHandlerPlan {
+    eventName: string;
+    functionName: string;
+    libraryName: string;
+    handlerUniqueId: string;
+    enabled: boolean;
+    passExecutionContext: boolean;
+    parameters: string;
+    application: boolean;
+    active: boolean;
+    eventType: 'DataEvent' | 'ControlEvent';
+}
+export interface DataverseFormControlPlan {
+    id: string;
+    displayName: string;
+    elementType: DbmElementTypeV1;
+    entityBindingId: string;
+    entityLogicalName: string;
+    dataFieldName: string | null;
+    controlName: string;
+    readOnly: boolean;
+    requiredByDefault: boolean;
+    sourceElementIds: string[];
+}
+export interface DataverseFormSectionPlan {
+    id: string;
+    displayName: string;
+    order: number;
+    tabName: string;
+    sectionName: string;
+    controls: DataverseFormControlPlan[];
+}
+export interface DataverseFormStatePlan {
+    id: string;
+    displayName: string;
+    visibleControlNames: string[];
+    requiredControlNames: string[];
+    lockedControlNames: string[];
+}
 export interface DataverseFormPlan {
     id: string;
+    sourceFormId: string;
+    sourceEntityBindingId: string;
+    kind: DataverseFormKind;
+    folder: DataverseFormFolder;
+    displayName: string;
+    entityId: string;
+    entityLogicalName: string;
+    systemFormId: string;
     supported: boolean;
-    reason: string;
+    reason: string | null;
+    templateRelativePath: string;
+    relativePath: string;
+    sections: DataverseFormSectionPlan[];
+    libraries: DataverseFormLibraryPlan[];
+    eventHandlers: DataverseFormEventHandlerPlan[];
+    managedFormLibrariesXml: string;
+    managedEventsXml: string;
+    defaultFormStateId: string | null;
+    states: DataverseFormStatePlan[];
+    configBehaviorId: string;
 }
 export interface DataverseBehaviorPlan {
     id: string;
+    kind: DataverseBehaviorKind;
+    displayName: string;
+    webResourceName: string;
+    webResourceId: string;
     supported: boolean;
-    reason: string;
+    reason: string | null;
+    webResourceType: number;
+    relativePath: string;
+    content: string;
+    attachedFormIds: string[];
 }
 export interface DataverseSynthesisPlanSummary {
     supportedEntities: number;
     supportedColumns: number;
     supportedRelationships: number;
+    supportedForms: number;
+    supportedBehaviors: number;
     blockingDiagnostics: number;
 }
 export interface DataverseSynthesisPlan {
@@ -130,6 +204,34 @@ export interface DataverseReadbackEntity {
     primaryNameAttributeLogicalName: string | null;
     columns: DataverseReadbackColumn[];
 }
+export interface DataverseReadbackForm {
+    formId: string;
+    name: string;
+    entityLogicalName: string;
+    type: number | null;
+    formXml: string;
+    managedFormLibrariesXml: string;
+    managedEventsXml: string;
+    libraries: DataverseFormLibraryPlan[];
+    eventHandlers: DataverseFormEventHandlerPlan[];
+}
+export interface DataverseReadbackWebResource {
+    id: string;
+    name: string;
+    displayName: string | null;
+    webResourceType: number | null;
+    content: string;
+}
+export interface DataverseReadbackSnapshot {
+    generatedUtc: string;
+    dataverseUrl: string;
+    solutionName: string;
+    entities: DataverseReadbackEntity[];
+    relationships: DataverseReadbackRelationship[];
+    forms: DataverseReadbackForm[];
+    webResources: DataverseReadbackWebResource[];
+    diagnostics: DataverseSynthesisDiagnostic[];
+}
 export interface DataverseReadbackRelationship {
     logicalName: string;
     schemaName: string;
@@ -138,16 +240,8 @@ export interface DataverseReadbackRelationship {
     referencingEntityLogicalName: string;
     referencingAttributeLogicalName: string | null;
 }
-export interface DataverseReadbackSnapshot {
-    generatedUtc: string;
-    dataverseUrl: string;
-    solutionName: string;
-    entities: DataverseReadbackEntity[];
-    relationships: DataverseReadbackRelationship[];
-    diagnostics: DataverseSynthesisDiagnostic[];
-}
 export interface DataverseDriftDifference {
-    kind: 'entity' | 'column' | 'relationship';
+    kind: 'entity' | 'column' | 'relationship' | 'form' | 'webresource';
     severity: DataverseSynthesisSeverity;
     logicalName: string;
     message: string;

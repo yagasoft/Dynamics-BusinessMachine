@@ -1,3 +1,4 @@
+import { createHash } from 'node:crypto';
 import type { DbmEntityV1, DbmFieldV1, DbmModelV1 } from 'dbm-contract';
 import type { DataverseSynthesisDiagnostic, DataverseSynthesisSeverity } from './types';
 
@@ -101,4 +102,57 @@ export function getPublisherPrefix(logicalName: string): string {
 
 export function sanitizeFileName(value: string): string {
   return value.replace(/[^A-Za-z0-9_.-]/g, '_');
+}
+
+export function createDeterministicGuid(seed: string): string {
+  const hash = createHash('sha1').update(seed).digest();
+  const bytes = Buffer.from(hash.subarray(0, 16));
+
+  bytes[6] = (bytes[6] & 0x0f) | 0x50;
+  bytes[8] = (bytes[8] & 0x3f) | 0x80;
+
+  const hex = bytes.toString('hex');
+  const parts = [
+    hex.slice(0, 8),
+    hex.slice(8, 12),
+    hex.slice(12, 16),
+    hex.slice(16, 20),
+    hex.slice(20, 32)
+  ];
+
+  return `{${parts.join('-')}}`;
+}
+
+export function normalizeXmlContent(value: string): string {
+  return value
+    .replace(/\r\n/g, '\n')
+    .replace(/^\uFEFF/, '')
+    .replace(/<\?xml[^>]*\?>\s*/i, '')
+    .replace(/>\s+</g, '><')
+    .trim();
+}
+
+export function normalizeTextContent(value: string): string {
+  return value.replace(/\r\n/g, '\n').replace(/^\uFEFF/, '').trim();
+}
+
+export function tryDecodeBase64Utf8(value: string): string {
+  try {
+    const decoded = Buffer.from(value, 'base64').toString('utf8');
+    const reencoded = Buffer.from(decoded, 'utf8').toString('base64').replace(/=+$/g, '');
+    const normalizedInput = value.replace(/\s+/g, '').replace(/=+$/g, '');
+    if (reencoded === normalizedInput) {
+      return decoded;
+    }
+  } catch {
+    // Fall through to raw value.
+  }
+
+  return value;
+}
+
+export function toDataverseWebResourceFileName(webResourceName: string, webResourceId: string): string {
+  const normalizedName = webResourceName.replace(/[^A-Za-z0-9_]/g, '');
+  const normalizedId = webResourceId.replace(/[{}-]/g, '').toUpperCase();
+  return `${normalizedName}${normalizedId}`;
 }

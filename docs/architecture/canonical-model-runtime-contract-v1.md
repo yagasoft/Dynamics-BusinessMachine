@@ -22,7 +22,7 @@ This contract must:
 - preserve a coherent DBM-owned process experience across model-driven and portal surfaces
 - support hidden internal stages and steps without losing portal-visible status clarity
 - support runtime execution across model-driven runtime, Dataverse, portal, and Azure-backed services
-- keep generated Dataverse forms and columns attached to the model without turning those artifacts into the model
+- keep Dataverse provider bindings, supported form behavior, and synthesis-owned artifacts attached to the model without turning those artifacts into the model
 - give the next executable contract slice a decision-complete target
 
 ## Normative Platform Rules
@@ -40,7 +40,7 @@ This contract must:
 - The canonical DBM model is the source of truth for:
   - process semantics
   - portal-visible state projection
-  - generated Dataverse forms and columns
+  - Dataverse provider bindings and synthesis-owned artifacts
   - runtime contracts
 - Native Dataverse business process flow is not the source of truth. It may be generated later as an optional integration artifact where it adds value.
 - All cross-references inside the model use stable string IDs, not host-specific paths, FormXml identifiers, Dataverse web-resource names, or assembly-qualified names.
@@ -81,7 +81,7 @@ It now also needs to capture:
 
 - which process UI surfaces are supported by the package
 - whether the package exposes portal-visible state
-- whether generated Dataverse forms and columns are owned by the designer engine
+- whether Dataverse schema synthesis and form-behavior patching are owned by the DBM synthesis layer
 
 ## Process Contract
 
@@ -155,13 +155,14 @@ That projection must support:
 
 ## Form Contract
 
-`forms` defines the model-driven forms, related form states, and generated form behavior consumed by the runtime and designer engine.
+`forms` defines the model-driven form bindings, related form states, and DBM-managed form behavior consumed by the runtime and synthesis layer.
 
 ### Form rules
 
 - Forms are model-driven forms, not custom form components.
 - The DBM process UI is separate from the underlying model-driven forms.
 - Forms may span multiple tables through declared bindings and related data projections.
+- In `R1`, canonical forms bind to existing Dataverse forms through explicit provider bindings rather than generating full new form layouts.
 - Same-table form variants should reuse the same underlying model-driven form and apply stateful manipulation through generated behavior instead of multiplying full standalone forms.
 
 ### Form-state model
@@ -176,11 +177,11 @@ The architectural target for each form state must allow:
 - state-specific logic bindings
 - same-form variation without treating each variation as a separate full form
 
-### Generated form ownership
+### Form provider ownership
 
-The designer engine is responsible for creating or updating owned Dataverse forms in `Dev`.
+In `R1`, the synthesis layer is responsible for patching DBM-managed fragments onto referenced Dataverse forms in `Dev`.
 
-Release artifacts remain tracked and pipeline-driven. Direct environment mutation does not become the release source of truth.
+Release artifacts remain tracked and pipeline-driven. Direct environment mutation does not become the release source of truth. Full generated-form ownership is deferred to post-R1.
 
 ## Metadata Contract
 
@@ -188,19 +189,21 @@ Release artifacts remain tracked and pipeline-driven. Direct environment mutatio
 
 ### Expanded scope
 
-The architectural target now assumes that the designer engine can generate or update:
+The architectural target now assumes that the synthesis layer can generate or update:
 
 - Dataverse columns
-- Dataverse form bindings
+- Dataverse form bindings and DBM-managed form-behavior assets
 - related metadata needed by the first reference scenario
 
 Initial proof scope is:
 
-- columns
-- model-driven form updates
+- tables, columns, and relationships
+- model-driven form bindings plus managed fragment patching on existing forms
 
 Deferred target scope includes:
 
+- generated main forms
+- generated quick-view forms
 - grids
 - richer native Dataverse controls
 - other native Dataverse components beyond the first proof scenario
@@ -277,8 +280,8 @@ The packaging contract keeps deployable assets associated with the model without
 
 It now also needs to account for:
 
-- generated Dataverse forms
 - generated Dataverse columns
+- patched existing Dataverse form fragments
 - process UI assets
 - generated behavior needed for same-table form-state variation
 
@@ -303,7 +306,7 @@ The architectural direction approved here means:
 
 - `dbm-contract` must be revised in `R1.2.1`, not just documented
 - `dbm-designer-core` must evolve from stage-only editing into stage + step + form-state authoring
-- generated Dataverse forms and columns become part of the designer engine boundary
+- Dataverse schema synthesis and provider-bound form behavior become part of the synthesis boundary
 - native BPF, if generated later, is downstream from the canonical model rather than upstream into it
 
 ## Related Docs

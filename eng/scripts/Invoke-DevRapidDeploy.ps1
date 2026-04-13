@@ -341,14 +341,14 @@ Write-Host "Effective build components: $($plan.effectiveComponentNames -join ',
 
 & (Join-Path $PSScriptRoot 'Restore-LegacyPackages.ps1') -RepoRoot $RepoRoot
 
+if ($plan.nodeProjects.Count -gt 0) {
+    & (Join-Path $PSScriptRoot 'Invoke-NodeBuild.ps1') -RepoRoot $RepoRoot -Projects $plan.nodeProjects
+}
+
 & (Join-Path $PSScriptRoot 'Build-DotNet.ps1') `
     -RepoRoot $RepoRoot `
     -EnableLegacyPackaging `
     -AssemblyKeyFile ([string]$resolvedAssemblyKey.path)
-
-if ($plan.nodeProjects.Count -gt 0) {
-    & (Join-Path $PSScriptRoot 'Invoke-NodeBuild.ps1') -RepoRoot $RepoRoot -Projects $plan.nodeProjects
-}
 
 & (Join-Path $PSScriptRoot 'Invoke-DataversePackaging.ps1') `
     -RepoRoot $RepoRoot `

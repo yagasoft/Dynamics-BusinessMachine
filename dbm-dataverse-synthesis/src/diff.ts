@@ -1,11 +1,17 @@
+import {
+  normalizeTextContent,
+  normalizeXmlContent
+} from './common';
 import type {
   DataverseColumnPlan,
   DataverseDriftDifference,
   DataverseDriftReport,
   DataverseReadbackColumn,
   DataverseReadbackEntity,
+  DataverseReadbackForm,
   DataverseReadbackRelationship,
   DataverseReadbackSnapshot,
+  DataverseReadbackWebResource,
   DataverseRelationshipPlan,
   DataverseSynthesisPlan
 } from './types';
@@ -164,6 +170,88 @@ function compareRelationship(
   return [];
 }
 
+function compareForm(
+  planForm: DataverseSynthesisPlan['forms'][number],
+  snapshotForm: DataverseReadbackForm | undefined
+): DataverseDriftDifference[] {
+  if (!planForm.supported) {
+    return [];
+  }
+
+  if (!snapshotForm) {
+    return [
+      {
+        kind: 'form',
+        severity: 'error',
+        logicalName: planForm.systemFormId,
+        message: `Form '${planForm.displayName}' (${planForm.systemFormId}) is missing from the Dataverse snapshot.`
+      }
+    ];
+  }
+
+  const differences: DataverseDriftDifference[] = [];
+  if (normalizeXmlContent(snapshotForm.managedFormLibrariesXml) !== normalizeXmlContent(planForm.managedFormLibrariesXml)) {
+    differences.push({
+      kind: 'form',
+      severity: 'error',
+      logicalName: planForm.systemFormId,
+      message: `Form '${planForm.displayName}' libraries fragment does not match the DBM-managed plan.`
+    });
+  }
+
+  if (normalizeXmlContent(snapshotForm.managedEventsXml) !== normalizeXmlContent(planForm.managedEventsXml)) {
+    differences.push({
+      kind: 'form',
+      severity: 'error',
+      logicalName: planForm.systemFormId,
+      message: `Form '${planForm.displayName}' onload events fragment does not match the DBM-managed plan.`
+    });
+  }
+
+  return differences;
+}
+
+function compareWebResource(
+  planBehavior: DataverseSynthesisPlan['behaviors'][number],
+  snapshotWebResource: DataverseReadbackWebResource | undefined
+): DataverseDriftDifference[] {
+  if (!planBehavior.supported) {
+    return [];
+  }
+
+  if (!snapshotWebResource) {
+    return [
+      {
+        kind: 'webresource',
+        severity: 'error',
+        logicalName: planBehavior.webResourceName,
+        message: `Web resource '${planBehavior.webResourceName}' is missing from the Dataverse snapshot.`
+      }
+    ];
+  }
+
+  const differences: DataverseDriftDifference[] = [];
+  if (snapshotWebResource.webResourceType !== planBehavior.webResourceType) {
+    differences.push({
+      kind: 'webresource',
+      severity: 'error',
+      logicalName: planBehavior.webResourceName,
+      message: `Web resource '${planBehavior.webResourceName}' expected type '${planBehavior.webResourceType}' but found '${snapshotWebResource.webResourceType}'.`
+    });
+  }
+
+  if (normalizeTextContent(snapshotWebResource.content) !== normalizeTextContent(planBehavior.content)) {
+    differences.push({
+      kind: 'webresource',
+      severity: 'error',
+      logicalName: planBehavior.webResourceName,
+      message: `Web resource '${planBehavior.webResourceName}' content does not match the DBM-generated plan.`
+    });
+  }
+
+  return differences;
+}
+
 export function diffSynthesisPlan(plan: DataverseSynthesisPlan, snapshot: DataverseReadbackSnapshot): DataverseDriftReport {
   const differences: DataverseDriftDifference[] = [];
 
@@ -185,6 +273,24 @@ export function diffSynthesisPlan(plan: DataverseSynthesisPlan, snapshot: Datave
             relationship.logicalName === relationshipPlan.logicalName ||
             relationship.schemaName === relationshipPlan.schemaName
         )
+      )
+    );
+  }
+
+  for (const formPlan of plan.forms) {
+    differences.push(
+      ...compareForm(
+        formPlan,
+        snapshot.forms.find((form) => form.formId.replace(/[{}]/g, '').toLowerCase() === formPlan.systemFormId.replace(/[{}]/g, '').toLowerCase())
+      )
+    );
+  }
+
+  for (const behaviorPlan of plan.behaviors) {
+    differences.push(
+      ...compareWebResource(
+        behaviorPlan,
+        snapshot.webResources.find((webResource) => webResource.name === behaviorPlan.webResourceName)
       )
     );
   }

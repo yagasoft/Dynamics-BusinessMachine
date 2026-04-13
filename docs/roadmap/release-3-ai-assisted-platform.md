@@ -28,7 +28,7 @@ Must define:
 ### R3.2 Requirement analysis and draft generation
 
 Output:
-- designer assistant that can generate editable draft processes, metadata, and forms from structured requirements
+- designer assistant that can generate editable draft processes, bindings, and behavior configuration from structured requirements
 
 ### R3.3 Validation and optimization assistance
 

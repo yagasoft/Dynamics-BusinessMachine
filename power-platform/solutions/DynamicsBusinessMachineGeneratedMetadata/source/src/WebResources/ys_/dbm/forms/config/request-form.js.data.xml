@@ -1,0 +1,15 @@
+<?xml version="1.0" encoding="utf-8"?>
+<WebResource xmlns:xsi="http://www.w3.org/2001/XMLSchema-instance">
+  <WebResourceId>{073b94d1-b4ff-5020-8bc8-4d79b94bf2d0}</WebResourceId>
+  <Name>ys_/dbm/forms/config/request-form.js</Name>
+  <DisplayName>Request Form Behavior Config</DisplayName>
+  <WebResourceType>3</WebResourceType>
+  <IntroducedVersion>0.2.0.0</IntroducedVersion>
+  <IsEnabledForMobileClient>0</IsEnabledForMobileClient>
+  <IsAvailableForMobileOffline>0</IsAvailableForMobileOffline>
+  <DependencyXml>&lt;Dependencies&gt;&lt;Dependency componentType="WebResource"/&gt;&lt;/Dependencies&gt;</DependencyXml>
+  <IsCustomizable>1</IsCustomizable>
+  <CanBeDeleted>1</CanBeDeleted>
+  <IsHidden>0</IsHidden>
+  <FileName>/WebResources/ys_dbmformsconfigrequestformjs073B94D1B4FF50208BC84D79B94BF2D0</FileName>
+</WebResource>

@@ -125,6 +125,11 @@ if ($resolvedOutputPath) {
 
 if ($resolvedOutputRoot) {
     $arguments += @('--output-root', $resolvedOutputRoot)
+
+    if ($Mode -eq 'EmitSource') {
+        $templateRoot = Join-Path $RepoRoot 'power-platform\solutions\DynamicsBusinessMachineGeneratedMetadata\template'
+        $arguments += @('--template-root', $templateRoot)
+    }
 }
 
 if ($Mode -in @('ApplyDev', 'Readback')) {

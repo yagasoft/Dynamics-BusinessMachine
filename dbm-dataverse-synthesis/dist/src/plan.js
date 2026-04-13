@@ -2,6 +2,7 @@
 Object.defineProperty(exports, "__esModule", { value: true });
 exports.planDataverseSynthesis = planDataverseSynthesis;
 const common_1 = require("./common");
+const forms_1 = require("./forms");
 function tryGetLogicalName(binding, fallbackLabel, diagnostics, modelPath) {
     try {
         return (0, common_1.getDataverseLogicalName)(binding, fallbackLabel);
@@ -132,8 +133,8 @@ function planColumn(model, entity, field, diagnostics) {
         }
         default:
             column.supported = false;
-            column.unsupportedReason = `Field data type '${field.dataType}' is not supported in R1.2.3a synthesis.`;
-            diagnostics.push((0, common_1.createDiagnostic)('unsupported-field-type', 'warning', `Field '${field.id}' has unsupported data type '${field.dataType}' for R1.2.3a synthesis.`, modelPath));
+            column.unsupportedReason = `Field data type '${field.dataType}' is not supported in R1 synthesis.`;
+            diagnostics.push((0, common_1.createDiagnostic)('unsupported-field-type', 'warning', `Field '${field.id}' has unsupported data type '${field.dataType}' for R1 synthesis.`, modelPath));
             break;
     }
     return column;
@@ -286,16 +287,7 @@ function planDataverseSynthesis(model) {
             : entityPlans.get(relationship.toEntityId);
         ownerPlan?.relationships.push(relationship);
     }
-    const forms = model.forms.map((form) => ({
-        id: form.id,
-        supported: false,
-        reason: 'R1.2.3b owns generated model-driven forms.'
-    }));
-    const behaviors = model.forms.flatMap((form) => form.formStates.map((formState) => ({
-        id: `${form.id}:${formState.id}`,
-        supported: false,
-        reason: 'R1.2.3b owns same-table form-state behavior generation.'
-    })));
+    const existingFormArtifacts = (0, forms_1.planExistingDataverseForms)(model, entityPlans, diagnostics);
     return {
         generatedUtc: new Date().toISOString(),
         modelId: model.package.id,
@@ -305,13 +297,15 @@ function planDataverseSynthesis(model) {
         generatedMetadataSolutionName: common_1.DEFAULT_GENERATED_METADATA_SOLUTION_NAME,
         entities,
         relationships,
-        forms,
-        behaviors,
+        forms: existingFormArtifacts.forms,
+        behaviors: existingFormArtifacts.behaviors,
         diagnostics,
         summary: {
             supportedEntities: entities.length,
             supportedColumns: entities.flatMap((entity) => entity.columns).filter((column) => column.supported).length,
             supportedRelationships: relationships.filter((relationship) => relationship.supported).length,
+            supportedForms: existingFormArtifacts.forms.filter((form) => form.supported).length,
+            supportedBehaviors: existingFormArtifacts.behaviors.filter((behavior) => behavior.supported).length,
             blockingDiagnostics: diagnostics.filter((entry) => entry.severity === 'error').length
         }
     };

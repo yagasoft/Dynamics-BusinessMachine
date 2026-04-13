@@ -46,6 +46,13 @@ function createSolutionXml(plan) {
             behavior: '0'
         });
     }
+    for (const behavior of plan.behaviors.filter((entry) => entry.supported)) {
+        rootComponents.ele('RootComponent', {
+            type: '61',
+            schemaName: behavior.webResourceName,
+            behavior: '0'
+        });
+    }
     manifest.ele('MissingDependencies');
     return root.end({ prettyPrint: true });
 }
@@ -221,11 +228,10 @@ function writeColumnAttribute(attributes, entity, column) {
         case 'Picklist':
             appendOptionSet(attribute, 'picklist', `${entity.logicalName}_${column.logicalName}`, column.displayName, (column.choiceOptions ?? []).map((option) => ({ value: option.value, label: option.displayName })));
             break;
-        case 'Lookup': {
+        case 'Lookup':
             attribute.ele('LookupStyle').txt('single');
             attribute.ele('LookupTypes');
             break;
-        }
         case 'DateTime':
             attribute.ele('Format').txt(column.dateTimeFormat === 'DateAndTime' ? 'datetime' : 'date');
             attribute.ele('CanChangeDateTimeBehavior').txt('1');
@@ -362,15 +368,77 @@ function writeRelationshipPlan(relationship) {
     referencedRole.ele('RelationshipRoleType').txt('0');
     return root.end({ prettyPrint: true });
 }
+function createWebResourceMetadata(behavior) {
+    const root = (0, xmlbuilder2_1.create)({ version: '1.0', encoding: 'utf-8' }).ele('WebResource', {
+        'xmlns:xsi': 'http://www.w3.org/2001/XMLSchema-instance'
+    });
+    root.ele('WebResourceId').txt(behavior.webResourceId);
+    root.ele('Name').txt(behavior.webResourceName);
+    root.ele('DisplayName').txt(behavior.displayName);
+    root.ele('WebResourceType').txt(String(behavior.webResourceType));
+    root.ele('IntroducedVersion').txt(common_1.DEFAULT_GENERATED_METADATA_SOLUTION_VERSION);
+    root.ele('IsEnabledForMobileClient').txt('0');
+    root.ele('IsAvailableForMobileOffline').txt('0');
+    root.ele('DependencyXml').txt('<Dependencies><Dependency componentType="WebResource"/></Dependencies>');
+    root.ele('IsCustomizable').txt('1');
+    root.ele('CanBeDeleted').txt('1');
+    root.ele('IsHidden').txt('0');
+    root.ele('FileName').txt(`/WebResources/${(0, common_1.toDataverseWebResourceFileName)(behavior.webResourceName, behavior.webResourceId)}`);
+    return root.end({ prettyPrint: true });
+}
+function replaceXmlNode(xml, nodeName, replacement) {
+    const fullNodePattern = new RegExp(`<${nodeName}(?:\\s[^>]*)?>[\\s\\S]*?<\\/${nodeName}>`, 'i');
+    if (fullNodePattern.test(xml)) {
+        return xml.replace(fullNodePattern, replacement);
+    }
+    const selfClosingPattern = new RegExp(`<${nodeName}(?:\\s[^>]*)?\\s*/>`, 'i');
+    if (selfClosingPattern.test(xml)) {
+        return xml.replace(selfClosingPattern, replacement);
+    }
+    return xml.replace(/<\/form>/i, `${replacement}\n    </form>`);
+}
+function patchFormXml(formXml, formPlan) {
+    let patchedXml = formXml.replace(/\r\n/g, '\n');
+    patchedXml = replaceXmlNode(patchedXml, 'formLibraries', formPlan.managedFormLibrariesXml);
+    patchedXml = replaceXmlNode(patchedXml, 'events', formPlan.managedEventsXml);
+    return patchedXml.endsWith('\n') ? patchedXml : `${patchedXml}\n`;
+}
 async function writeTextFile(filePath, content) {
     await node_fs_1.promises.mkdir(node_path_1.default.dirname(filePath), { recursive: true });
     await node_fs_1.promises.writeFile(filePath, `${content.trimEnd()}\n`, 'utf8');
 }
-async function emitGeneratedMetadataSolution(plan, outputRoot) {
+async function copyTemplateArtifacts(templateRoot, outputRoot) {
+    const templateSourceRoot = node_path_1.default.join(templateRoot, 'src');
+    try {
+        await node_fs_1.promises.access(templateSourceRoot);
+        await node_fs_1.promises.cp(templateSourceRoot, node_path_1.default.join(outputRoot, 'src'), { recursive: true, force: true });
+    }
+    catch {
+        // No template source tree is acceptable for early metadata-only slices.
+    }
+}
+async function emitPatchedForms(outputRoot, forms) {
+    for (const form of forms.filter((entry) => entry.supported)) {
+        const formPath = node_path_1.default.join(outputRoot, form.relativePath);
+        const existingXml = await node_fs_1.promises.readFile(formPath, 'utf8');
+        const patchedXml = patchFormXml(existingXml, form);
+        await writeTextFile(formPath, patchedXml);
+    }
+}
+async function emitBehaviorWebResources(outputRoot, behaviors) {
+    for (const behavior of behaviors.filter((entry) => entry.supported)) {
+        const filePath = node_path_1.default.join(outputRoot, behavior.relativePath);
+        await writeTextFile(filePath, behavior.content);
+        await writeTextFile(`${filePath}.data.xml`, createWebResourceMetadata(behavior));
+    }
+}
+async function emitGeneratedMetadataSolution(plan, outputRoot, templateRoot = node_path_1.default.join(node_path_1.default.dirname(outputRoot), 'template')) {
     const otherRoot = node_path_1.default.join(outputRoot, 'src', 'Other');
     const entitiesRoot = node_path_1.default.join(outputRoot, 'src', 'Entities');
     const relationshipsRoot = node_path_1.default.join(outputRoot, 'src', 'Other', 'Relationships');
     await node_fs_1.promises.rm(outputRoot, { recursive: true, force: true });
+    await node_fs_1.promises.mkdir(outputRoot, { recursive: true });
+    await copyTemplateArtifacts(templateRoot, outputRoot);
     await node_fs_1.promises.mkdir(otherRoot, { recursive: true });
     await node_fs_1.promises.mkdir(entitiesRoot, { recursive: true });
     await node_fs_1.promises.mkdir(relationshipsRoot, { recursive: true });
@@ -386,4 +454,6 @@ async function emitGeneratedMetadataSolution(plan, outputRoot) {
     for (const relationship of plan.relationships.filter((entry) => entry.supported)) {
         await writeTextFile(node_path_1.default.join(relationshipsRoot, `${(0, common_1.sanitizeFileName)(relationship.schemaName)}.xml`), writeRelationshipPlan(relationship));
     }
+    await emitPatchedForms(outputRoot, plan.forms);
+    await emitBehaviorWebResources(outputRoot, plan.behaviors);
 }

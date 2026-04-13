@@ -6,6 +6,7 @@ import { ToolbarModule } from 'primeng/toolbar';
 import { SplitterModule } from 'primeng/splitter';
 import { TreeModule } from 'primeng/tree';
 import { ResourceDetailsComponent } from '../resource-details/resource-details.component';
+import { getDbmHostBridge, type DbmHostModelDocumentSummary } from '../host-bridge';
 
 interface ModelDocumentEntry {
 	id?: string;
@@ -103,7 +104,15 @@ export class ResourcesListComponent
 			return;
 		}
 
-		if (globalThis.Xrm && entry.id)
+		const hostBridge = getDbmHostBridge();
+		if (hostBridge)
+		{
+			await hostBridge.deleteModelDocument({
+				id: entry.id,
+				name: entry.name
+			});
+		}
+		else if (globalThis.Xrm && entry.id)
 		{
 			await this.deleteDataverseEntry(entry);
 		}
@@ -136,9 +145,12 @@ export class ResourcesListComponent
 
 		try
 		{
-			const entries = globalThis.Xrm
-				? await this.loadDataverseEntries()
-				: await this.loadIndexedDbEntries();
+			const hostBridge = getDbmHostBridge();
+			const entries = hostBridge
+				? await this.loadHostBridgeEntries(hostBridge)
+				: globalThis.Xrm
+					? await this.loadDataverseEntries()
+					: await this.loadIndexedDbEntries();
 
 			this.treeEntries =
 				entries
@@ -172,6 +184,17 @@ export class ResourcesListComponent
 
 		return resources.map((resource) => ({
 			id: resource.webresourceid,
+			name: resource.name,
+			label: resource.displayname || this.toFallbackLabel(resource.name),
+			modifiedOn: resource.modifiedon ? new Date(resource.modifiedon) : null
+		}));
+	}
+
+	private async loadHostBridgeEntries(hostBridge: NonNullable<ReturnType<typeof getDbmHostBridge>>): Promise<ModelDocumentEntry[]>
+	{
+		const resources = await hostBridge.listModelDocuments();
+		return resources.map((resource: DbmHostModelDocumentSummary) => ({
+			id: resource.id ?? undefined,
 			name: resource.name,
 			label: resource.displayname || this.toFallbackLabel(resource.name),
 			modifiedOn: resource.modifiedon ? new Date(resource.modifiedon) : null

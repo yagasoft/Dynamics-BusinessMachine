@@ -2,6 +2,7 @@
 Object.defineProperty(exports, "__esModule", { value: true });
 exports.normalizeReadbackEntity = normalizeReadbackEntity;
 exports.readbackDataverseMetadata = readbackDataverseMetadata;
+const common_1 = require("./common");
 async function dataverseRequest(dataverseUrl, accessToken, relativePath) {
     const response = await fetch(`${dataverseUrl.replace(/\/$/, '')}/api/data/v9.2/${relativePath}`, {
         method: 'GET',
@@ -69,6 +70,43 @@ async function enrichAttribute(dataverseUrl, accessToken, entityLogicalName, att
     }
     return attribute;
 }
+function extractManagedXmlFragment(formXml, nodeName) {
+    const match = formXml.match(new RegExp(`<${nodeName}(?:\\s[^>]*)?>[\\s\\S]*?<\\/${nodeName}>`, 'i')) ??
+        formXml.match(new RegExp(`<${nodeName}(?:\\s[^>]*)?\\s*/>`, 'i'));
+    return match ? (0, common_1.normalizeXmlContent)(match[0]) : '';
+}
+function extractLibraries(fragment) {
+    const libraries = [];
+    const pattern = /<Library\b[^>]*name="([^"]+)"[^>]*libraryUniqueId="([^"]+)"[^>]*\/?>/gi;
+    let match;
+    while ((match = pattern.exec(fragment)) !== null) {
+        libraries.push({
+            name: match[1] ?? '',
+            libraryUniqueId: match[2] ?? ''
+        });
+    }
+    return libraries;
+}
+function extractEventHandlers(fragment) {
+    const handlers = [];
+    const pattern = /<Handler\b[^>]*functionName="([^"]+)"[^>]*libraryName="([^"]+)"[^>]*handlerUniqueId="([^"]+)"[^>]*enabled="([^"]+)"[^>]*passExecutionContext="([^"]+)"[^>]*parameters="([^"]*)"[^>]*\/?>/gi;
+    let match;
+    while ((match = pattern.exec(fragment)) !== null) {
+        handlers.push({
+            eventName: 'onload',
+            functionName: match[1] ?? '',
+            libraryName: match[2] ?? '',
+            handlerUniqueId: match[3] ?? '',
+            enabled: (match[4] ?? '').toLowerCase() === 'true',
+            passExecutionContext: (match[5] ?? '').toLowerCase() === 'true',
+            parameters: match[6] ?? '',
+            application: false,
+            active: true,
+            eventType: 'DataEvent'
+        });
+    }
+    return handlers;
+}
 function normalizeReadbackEntity(entityPayload, attributePayloads) {
     const columns = attributePayloads.map((attribute) => ({
         logicalName: attribute.LogicalName,
@@ -85,6 +123,22 @@ function normalizeReadbackEntity(entityPayload, attributePayloads) {
         primaryIdLogicalName: entityPayload.PrimaryIdAttribute ?? null,
         primaryNameAttributeLogicalName: entityPayload.PrimaryNameAttribute ?? null,
         columns
+    };
+}
+function normalizeReadbackForm(payload) {
+    const formXml = payload.formxml ?? payload.formXml ?? '';
+    const managedFormLibrariesXml = extractManagedXmlFragment(formXml, 'formLibraries');
+    const managedEventsXml = extractManagedXmlFragment(formXml, 'events');
+    return {
+        formId: payload.formid ?? payload.formId ?? '',
+        name: payload.name ?? '',
+        entityLogicalName: payload.objecttypecode ?? '',
+        type: typeof payload.type === 'number' ? payload.type : null,
+        formXml,
+        managedFormLibrariesXml,
+        managedEventsXml,
+        libraries: extractLibraries(managedFormLibrariesXml),
+        eventHandlers: extractEventHandlers(managedEventsXml)
     };
 }
 async function readEntitySnapshot(dataverseUrl, accessToken, logicalName) {
@@ -126,6 +180,35 @@ async function readRelationshipSnapshot(dataverseUrl, accessToken, relationshipP
     }
     return null;
 }
+async function readFormSnapshot(dataverseUrl, accessToken, formId) {
+    const normalizedFormId = formId.replace(/[{}]/g, '');
+    const result = await dataverseRequest(dataverseUrl, accessToken, `systemforms(${normalizedFormId})?$select=formid,name,type,objecttypecode,formxml`);
+    if (!result.ok && result.status === 404) {
+        return null;
+    }
+    if (!result.ok) {
+        throw new Error(`Failed to retrieve form '${formId}' from Dataverse.`);
+    }
+    return normalizeReadbackForm(result.payload);
+}
+async function readWebResourceSnapshot(dataverseUrl, accessToken, webResourceName) {
+    const filter = encodeURIComponent(`name eq '${webResourceName.replace(/'/g, "''")}'`);
+    const result = await dataverseRequest(dataverseUrl, accessToken, `webresourceset?$select=webresourceid,name,displayname,webresourcetype,content&$filter=${filter}`);
+    if (!result.ok) {
+        throw new Error(`Failed to retrieve web resource '${webResourceName}' from Dataverse.`);
+    }
+    const webResource = Array.isArray(result.payload?.value) ? result.payload.value[0] : null;
+    if (!webResource) {
+        return null;
+    }
+    return {
+        id: webResource.webresourceid ?? '',
+        name: webResource.name ?? '',
+        displayName: webResource.displayname ?? null,
+        webResourceType: typeof webResource.webresourcetype === 'number' ? webResource.webresourcetype : null,
+        content: (0, common_1.normalizeTextContent)((0, common_1.tryDecodeBase64Utf8)(webResource.content ?? ''))
+    };
+}
 async function readbackDataverseMetadata(plan, environmentConfig, auth) {
     const entities = [];
     for (const entityPlan of plan.entities) {
@@ -141,12 +224,28 @@ async function readbackDataverseMetadata(plan, environmentConfig, auth) {
             relationships.push(relationshipSnapshot);
         }
     }
+    const forms = [];
+    for (const formPlan of plan.forms.filter((entry) => entry.supported)) {
+        const formSnapshot = await readFormSnapshot(environmentConfig.dataverseUrl, auth.accessToken, formPlan.systemFormId);
+        if (formSnapshot) {
+            forms.push(formSnapshot);
+        }
+    }
+    const webResources = [];
+    for (const behaviorPlan of plan.behaviors.filter((entry) => entry.supported)) {
+        const webResourceSnapshot = await readWebResourceSnapshot(environmentConfig.dataverseUrl, auth.accessToken, behaviorPlan.webResourceName);
+        if (webResourceSnapshot) {
+            webResources.push(webResourceSnapshot);
+        }
+    }
     return {
         generatedUtc: new Date().toISOString(),
         dataverseUrl: environmentConfig.dataverseUrl,
         solutionName: plan.generatedMetadataSolutionName,
         entities,
         relationships,
+        forms,
+        webResources,
         diagnostics: []
     };
 }

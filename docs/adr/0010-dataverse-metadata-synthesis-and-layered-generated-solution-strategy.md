@@ -10,7 +10,7 @@ Release `R1.2.3` needs DBM to move beyond a web-resource-only packaging baseline
 
 - fast authoring proof in `Dev`
 - durable tracked artifacts for CI/CD and promotion
-- generated tables, columns, relationships, and later model-driven forms
+- generated tables, columns, relationships, and later existing-form behavior bindings
 - drift/readback validation between live Dataverse metadata and tracked emitted artifacts
 
 DBM already has a formal PAC-based delivery spine for the current core solution, but that spine is still centered on the recovered PoC package under `power-platform/solutions/DynamicsBusinessMachine/baseline/`.
@@ -28,8 +28,8 @@ DBM already has a formal PAC-based delivery spine for the current core solution,
   2. `DynamicsBusinessMachineGeneratedMetadata`
 - `Dev` may use direct metadata apply and readback as an authoring proof path through `Invoke-DataverseSynthesis.ps1`.
 - `UAT` and `Prod` remain packaged-import-only environments. Direct Dataverse metadata mutation is not a release mechanism there.
-- `R1.2.3a` is script-driven. The designer owns the canonical model and synthesis-planning boundary, but it does not yet own an in-host “apply to Dev” UX.
-- `R1.2.3b` extends the same synthesis layer to generated model-driven forms and same-table form-state behavior using generated FormXML and related Dataverse artifacts.
+- `R1.2.3a` is script-driven. The designer owns the canonical model and synthesis-planning boundary, but it does not yet own an in-host "apply to Dev" UX.
+- `R1.2.3b` resets the form strategy to existing Dataverse forms plus supported JS behavior. The synthesis layer maps canonical forms to existing Dataverse forms, patches only DBM-managed fragments, and emits the behavior web resources required to drive tabs, sections, and field behavior. Generated main forms, generated quick-view forms, and designer-driven table or column authoring are deferred to post-R1.
 
 ## Consequences
 
@@ -39,6 +39,7 @@ DBM already has a formal PAC-based delivery spine for the current core solution,
 - Smoke and promotion validation can now check both:
   - layered solution presence
   - generated metadata drift against the canonical model
+  - DBM-managed fragments on existing Dataverse forms
 
 ## Alternatives considered
 

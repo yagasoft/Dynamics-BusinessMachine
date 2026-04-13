@@ -195,6 +195,7 @@ if (-not $SkipGeneratedMetadataValidation) {
         -SkipBuild
 
     $driftReport = Get-Content -Path $driftPath -Raw | ConvertFrom-Json
+    $readbackSnapshot = Get-Content -Path $readbackPath -Raw | ConvertFrom-Json
     $generatedMetadataArtifacts.readbackSnapshot = $readbackPath
     $generatedMetadataArtifacts.driftReport = $driftPath
 
@@ -206,6 +207,42 @@ if (-not $SkipGeneratedMetadataValidation) {
         name = 'generated-metadata-drift-free'
         passed = $true
         details = 'Generated metadata readback matched the synthesized Dataverse plan without blocking drift.'
+    }
+
+    $expectedFormIds = @(
+        '{8d65fa31-b54d-5d9b-84e0-07d87e113130}',
+        '{4e37e2e6-61cb-544d-848a-9f870ec4cf4d}'
+    )
+    foreach ($expectedFormId in $expectedFormIds) {
+        $normalizedExpectedFormId = ([string]$expectedFormId).Trim('{}').ToLowerInvariant()
+        $form = $readbackSnapshot.forms | Where-Object { ([string]$_.formId).Trim('{}').ToLowerInvariant() -eq $normalizedExpectedFormId } | Select-Object -First 1
+        if (-not $form) {
+            throw "Generated metadata validation could not find expected form '$expectedFormId' in '$TargetEnvironment'. Review '$readbackPath'."
+        }
+    }
+
+    $expectedWebResources = @(
+        'ys_/dbm/forms/runtime.js',
+        'ys_/dbm/forms/config/request-form.js',
+        'ys_/dbm/forms/config/review-form.js'
+    )
+    foreach ($expectedWebResource in $expectedWebResources) {
+        $webResource = $readbackSnapshot.webResources | Where-Object { [string]$_.name -eq $expectedWebResource } | Select-Object -First 1
+        if (-not $webResource) {
+            throw "Generated metadata validation could not find expected web resource '$expectedWebResource' in '$TargetEnvironment'. Review '$readbackPath'."
+        }
+    }
+
+    $automatedChecks += [ordered]@{
+        name = 'generated-metadata-forms-present'
+        passed = $true
+        details = 'Expected DBM-managed Dataverse forms were found in the generated metadata readback.'
+    }
+
+    $automatedChecks += [ordered]@{
+        name = 'generated-metadata-behavior-assets-present'
+        passed = $true
+        details = 'Expected DBM form behavior web resources were found in the generated metadata readback.'
     }
 }
 

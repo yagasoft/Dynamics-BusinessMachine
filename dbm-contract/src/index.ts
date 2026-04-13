@@ -226,6 +226,7 @@ export interface DbmLayoutRegionV1 {
   id: string;
   displayName: string;
   order: number;
+  providerBindings?: DbmProviderBindingsV1;
 }
 
 export interface DbmFormLayoutV1 {
@@ -256,6 +257,7 @@ export interface DbmFormElementV1 {
   displayName: string;
   binding: DbmElementBindingV1;
   behavior: DbmElementBehaviorV1;
+  providerBindings?: DbmProviderBindingsV1;
 }
 
 export interface DbmFormStateElementBehaviorV1 {
@@ -283,10 +285,15 @@ export interface DbmFormV1 {
   layout: DbmFormLayoutV1;
   elements: DbmFormElementV1[];
   formStates: DbmFormStateV1[];
+  providerBindings?: DbmProviderBindingsV1;
 }
 
 export interface DbmDataverseBindingV1 {
-  logicalName: string;
+  logicalName?: string;
+  formId?: string;
+  tabName?: string;
+  sectionName?: string;
+  controlName?: string;
 }
 
 export interface DbmProviderBindingsV1 {

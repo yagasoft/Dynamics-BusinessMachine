@@ -9,18 +9,21 @@ const node_path_1 = __importDefault(require("node:path"));
 const node_test_1 = __importDefault(require("node:test"));
 const approval_request_v1_model_json_1 = __importDefault(require("../../docs/architecture/examples/approval-request-v1.model.json"));
 const index_1 = require("../src/index");
-(0, node_test_1.default)('planDataverseSynthesis maps the approval example into Dataverse entities, columns, and relationships', () => {
+(0, node_test_1.default)('planDataverseSynthesis maps the approval example into entities, existing forms, and JS behaviors', () => {
     const plan = (0, index_1.planDataverseSynthesis)(approval_request_v1_model_json_1.default);
     strict_1.default.equal(plan.generatedMetadataSolutionName, 'DynamicsBusinessMachineGeneratedMetadata');
     strict_1.default.equal(plan.entities.length, 2);
     strict_1.default.equal(plan.relationships.some((relationship) => relationship.logicalName === 'dbm_request_dbm_requestdecision'), true);
-    strict_1.default.equal(plan.relationships.some((relationship) => relationship.schemaName === 'dbm_request_dbm_requestdecision'), true);
-    strict_1.default.equal(plan.entities
-        .flatMap((entity) => entity.columns)
-        .some((column) => column.logicalName === 'dbm_screeningresult' && column.attributeType === 'Picklist' && column.supported), true);
-    strict_1.default.equal(plan.entities
-        .flatMap((entity) => entity.columns)
-        .some((column) => column.logicalName === 'dbm_requestid' && column.attributeType === 'Lookup' && column.supported), true);
+    strict_1.default.equal(plan.forms.length, 2);
+    strict_1.default.equal(plan.forms.every((form) => form.supported), true);
+    strict_1.default.equal(plan.behaviors.filter((behavior) => behavior.supported).length, 3);
+    strict_1.default.equal(plan.summary.supportedForms, 2);
+    strict_1.default.equal(plan.summary.supportedBehaviors, 3);
+    strict_1.default.equal(plan.forms.some((form) => form.id === 'request-form' &&
+        form.systemFormId === '{8d65fa31-b54d-5d9b-84e0-07d87e113130}' &&
+        form.sections.some((section) => section.sectionName === 'request_supporting_section')), true);
+    strict_1.default.equal(plan.behaviors.some((behavior) => behavior.webResourceName === 'ys_/dbm/forms/config/request-form.js' &&
+        behavior.kind === 'form-config'), true);
 });
 (0, node_test_1.default)('normalizeReadbackEntity captures lookup targets and picklist values', () => {
     const entity = (0, index_1.normalizeReadbackEntity)({
@@ -57,7 +60,7 @@ const index_1 = require("../src/index");
     strict_1.default.deepEqual(entity.columns.find((column) => column.logicalName === 'dbm_requestid')?.targets, ['dbm_request']);
     strict_1.default.deepEqual(entity.columns.find((column) => column.logicalName === 'dbm_screeningresult')?.optionValues, [100000000, 100000001]);
 });
-(0, node_test_1.default)('diffSynthesisPlan detects missing columns and relationships as blocking drift', () => {
+(0, node_test_1.default)('diffSynthesisPlan detects missing forms and web resources as blocking drift', () => {
     const plan = (0, index_1.planDataverseSynthesis)(approval_request_v1_model_json_1.default);
     const snapshot = {
         generatedUtc: new Date().toISOString(),
@@ -73,34 +76,39 @@ const index_1 = require("../src/index");
             }
         ],
         relationships: [],
+        forms: [],
+        webResources: [],
         diagnostics: []
     };
     const report = (0, index_1.diffSynthesisPlan)(plan, snapshot);
     strict_1.default.equal(report.hasBlockingDrift, true);
     strict_1.default.equal(report.differences.some((difference) => difference.kind === 'column'), true);
     strict_1.default.equal(report.differences.some((difference) => difference.kind === 'relationship'), true);
+    strict_1.default.equal(report.differences.some((difference) => difference.kind === 'form'), true);
+    strict_1.default.equal(report.differences.some((difference) => difference.kind === 'webresource'), true);
 });
-(0, node_test_1.default)('emitGeneratedMetadataSolution writes a tracked solution-source tree', async () => {
+(0, node_test_1.default)('emitGeneratedMetadataSolution writes patched forms and behavior web resources', async () => {
     const plan = (0, index_1.planDataverseSynthesis)(approval_request_v1_model_json_1.default);
     const outputRoot = node_path_1.default.join(process.cwd(), 'dist', 'test-output');
-    await (0, index_1.emitGeneratedMetadataSolution)(plan, outputRoot);
+    const templateRoot = node_path_1.default.join(process.cwd(), '..', 'power-platform', 'solutions', 'DynamicsBusinessMachineGeneratedMetadata', 'template');
+    await (0, index_1.emitGeneratedMetadataSolution)(plan, outputRoot, templateRoot);
     const solutionXml = await node_fs_1.promises.readFile(node_path_1.default.join(outputRoot, 'src', 'Other', 'Solution.xml'), 'utf8');
-    const entityXml = await node_fs_1.promises.readFile(node_path_1.default.join(outputRoot, 'src', 'Entities', 'dbm_Request', 'Entity.xml'), 'utf8');
-    const requestDecisionEntityXml = await node_fs_1.promises.readFile(node_path_1.default.join(outputRoot, 'src', 'Entities', 'dbm_Requestdecision', 'Entity.xml'), 'utf8');
-    const relationshipsIndexXml = await node_fs_1.promises.readFile(node_path_1.default.join(outputRoot, 'src', 'Other', 'Relationships.xml'), 'utf8');
-    const relationshipFileName = `${plan.relationships[0]?.schemaName}.xml`.replace(/[^A-Za-z0-9_.-]/g, '_');
-    const relationshipXml = await node_fs_1.promises.readFile(node_path_1.default.join(outputRoot, 'src', 'Other', 'Relationships', relationshipFileName), 'utf8');
+    const requestEntityXml = await node_fs_1.promises.readFile(node_path_1.default.join(outputRoot, 'src', 'Entities', 'dbm_Request', 'Entity.xml'), 'utf8');
+    const requestFormXml = await node_fs_1.promises.readFile(node_path_1.default.join(outputRoot, 'src', 'Entities', 'dbm_Request', 'FormXml', 'main', '{8d65fa31-b54d-5d9b-84e0-07d87e113130}.xml'), 'utf8');
+    const requestConfigJs = await node_fs_1.promises.readFile(node_path_1.default.join(outputRoot, 'src', 'WebResources', 'ys_', 'dbm', 'forms', 'config', 'request-form.js'), 'utf8');
+    const runtimeMetadataXml = await node_fs_1.promises.readFile(node_path_1.default.join(outputRoot, 'src', 'WebResources', 'ys_', 'dbm', 'forms', 'runtime.js.data.xml'), 'utf8');
     strict_1.default.match(solutionXml, /DynamicsBusinessMachineGeneratedMetadata/);
-    strict_1.default.match(entityXml, /<Type>primarykey<\/Type>/);
-    strict_1.default.match(entityXml, /<Name>dbm_title<\/Name>/);
-    strict_1.default.match(entityXml, /PrimaryName\|ValidForAdvancedFind\|ValidForForm\|ValidForGrid\|RequiredForForm/);
-    strict_1.default.match(requestDecisionEntityXml, /<LookupTypes\/>/);
-    strict_1.default.doesNotMatch(requestDecisionEntityXml, /<LookupType[^>]*>dbm_request<\/LookupType>/);
-    strict_1.default.match(relationshipsIndexXml, /dbm_request_dbm_requestdecision/);
-    strict_1.default.match(relationshipXml, /dbm_request_dbm_requestdecision/);
+    strict_1.default.match(solutionXml, /type="61" schemaName="ys_\/dbm\/forms\/runtime\.js"/);
+    strict_1.default.match(requestEntityXml, /<Name>dbm_title<\/Name>/);
+    strict_1.default.match(requestFormXml, /<formLibraries>/);
+    strict_1.default.match(requestFormXml, /ys_\/dbm\/forms\/runtime\.js/);
+    strict_1.default.match(requestFormXml, /ys_\/dbm\/forms\/config\/request-form\.js/);
+    strict_1.default.match(requestFormXml, /<event name="onload"/);
+    strict_1.default.match(requestConfigJs, /dbmOnLoad_request_form/);
+    strict_1.default.match(runtimeMetadataXml, /<Name>ys_\/dbm\/forms\/runtime\.js<\/Name>/);
     await node_fs_1.promises.rm(outputRoot, { recursive: true, force: true });
 });
-(0, node_test_1.default)('applySynthesisPlanToDev bootstraps the generated solution and creates relationship-backed metadata idempotently', async () => {
+(0, node_test_1.default)('applySynthesisPlanToDev bootstraps the generated solution and keeps relationship-backed metadata idempotent', async () => {
     const plan = (0, index_1.planDataverseSynthesis)(approval_request_v1_model_json_1.default);
     const requests = [];
     const queuedResponses = [
@@ -197,7 +205,12 @@ const index_1 = require("../src/index");
                     }
                 ]
             }
-        }
+        },
+        { status: 404 },
+        { status: 404 },
+        { status: 200, payload: { value: [] } },
+        { status: 200, payload: { value: [] } },
+        { status: 200, payload: { value: [] } }
     ];
     const originalFetch = globalThis.fetch;
     globalThis.fetch = (async (input, init) => {

@@ -18,8 +18,12 @@
   </PropertyGroup>
   <PropertyGroup>
     <LangVersion>latest</LangVersion>
+    <DbmSolutionRoot Condition="'$(DbmSolutionRoot)' == '' and '$(SolutionDir)' != ''">$(SolutionDir)</DbmSolutionRoot>
+    <DbmSolutionRoot Condition="'$(DbmSolutionRoot)' == ''">$([System.IO.Path]::GetFullPath('$(MSBuildProjectDirectory)\..'))\</DbmSolutionRoot>
     <DbmEnableLegacyPackaging Condition="'$(DbmEnableLegacyPackaging)' == ''">false</DbmEnableLegacyPackaging>
-    <DbmLegacyPackageOutputDirectory Condition="'$(DbmLegacyPackageOutputDirectory)' == ''">$(SolutionDir)artifacts\legacy-packages</DbmLegacyPackageOutputDirectory>
+    <DbmLegacyPackageOutputDirectory Condition="'$(DbmLegacyPackageOutputDirectory)' == ''">$(DbmSolutionRoot)artifacts\legacy-packages</DbmLegacyPackageOutputDirectory>
+    <DbmXtbInstallRoot Condition="'$(DbmXtbInstallRoot)' == ''">$(DbmSolutionRoot)XrmToolBox</DbmXtbInstallRoot>
+    <DbmEditorBundleRoot Condition="'$(DbmEditorBundleRoot)' == ''">$([System.IO.Path]::GetFullPath('$(MSBuildProjectDirectory)\..\..\dbm-app\bundle'))</DbmEditorBundleRoot>
   </PropertyGroup>
   <PropertyGroup Condition=" '$(Configuration)|$(Platform)' == 'Debug|AnyCPU' ">
     <DebugSymbols>true</DebugSymbols>
@@ -343,14 +347,12 @@
     <Compile Include="Control\DeletableMenuItem.Designer.cs">
       <DependentUpon>DeletableMenuItem.cs</DependentUpon>
     </Compile>
+    <Compile Include="Control\DbmDesignerHostControl.cs" />
     <Compile Include="Control\MenuPanel.cs">
       <SubType>UserControl</SubType>
     </Compile>
     <Compile Include="Control\MenuPanel.Designer.cs">
       <DependentUpon>MenuPanel.cs</DependentUpon>
-    </Compile>
-    <Compile Include="Control\XrmMockGeneratorPluginControl.cs">
-      <SubType>UserControl</SubType>
     </Compile>
     <Compile Include="Helpers\UiHelper.cs" />
     <Compile Include="Helpers\WorkerHelper.cs" />
@@ -361,6 +363,12 @@
     <Compile Include="DynamicsDbmXtbPlugin.cs" />
     <Compile Include="Model\ToolParameters.cs" />
     <Compile Include="Properties\AssemblyInfo.cs" />
+  </ItemGroup>
+  <ItemGroup>
+    <Content Include="$(DbmEditorBundleRoot)\**\*">
+      <Link>dbm-app-bundle\%(RecursiveDir)%(Filename)%(Extension)</Link>
+      <CopyToOutputDirectory>PreserveNewest</CopyToOutputDirectory>
+    </Content>
   </ItemGroup>
   <ItemGroup>
     <None Include="app.config" />
@@ -379,9 +387,6 @@
     <EmbeddedResource Include="Control\MenuPanel.resx">
       <DependentUpon>MenuPanel.cs</DependentUpon>
     </EmbeddedResource>
-    <EmbeddedResource Include="Control\XrmMockGeneratorPluginControl.resx">
-      <DependentUpon>XrmMockGeneratorPluginControl.cs</DependentUpon>
-    </EmbeddedResource>
   </ItemGroup>
   <ItemGroup>
     <Content Include="nuget-access-key.txt" />
@@ -391,28 +396,47 @@
   <PropertyGroup Condition="'$(DbmEnableLegacyPackaging)' == 'true'">
     <PostBuildEvent>IF NOT EXIST "$(TargetDir)merge" mkdir "$(TargetDir)merge"
 
-copy /Y "$(TargetPath)" "$(SolutionDir)lib\ILMerge\"
+copy /Y "$(TargetPath)" "$(DbmSolutionRoot)lib\ILMerge\"
 copy /Y "$(TargetPath)" "$(TargetDir)merge\"
-copy /Y "$(SolutionDir)packages\Yagasoft.Libraries.Common.8.3.1\lib\net462\*" "$(SolutionDir)lib\ILMerge\"
-copy /Y "$(SolutionDir)packages\Yagasoft.Libraries.Common.8.3.1\lib\net462\*" "$(TargetDir)merge\"
+copy /Y "$(DbmSolutionRoot)packages\Yagasoft.Libraries.Common.8.3.1\lib\net462\*" "$(DbmSolutionRoot)lib\ILMerge\"
+copy /Y "$(DbmSolutionRoot)packages\Yagasoft.Libraries.Common.8.3.1\lib\net462\*" "$(TargetDir)merge\"
 
-IF NOT EXIST "$(SolutionDir)XrmToolBox\Plugins" mkdir "$(SolutionDir)XrmToolBox\Plugins"
+IF NOT EXIST "$(DbmXtbInstallRoot)\Plugins" mkdir "$(DbmXtbInstallRoot)\Plugins"
 IF NOT EXIST "$(DbmLegacyPackageOutputDirectory)" mkdir "$(DbmLegacyPackageOutputDirectory)"
 
 IF "$(ConfigurationName)" == "Debug" (
-  copy /Y "$(SolutionDir)packages\Yagasoft.Libraries.Common.8.3.1\lib\net462\*" "$(SolutionDir)XrmToolBox\Plugins\"
+  copy /Y "$(DbmSolutionRoot)packages\Yagasoft.Libraries.Common.8.3.1\lib\net462\*" "$(DbmXtbInstallRoot)\Plugins\"
 )
 
 IF "$(ConfigurationName)" == "Release" (
-  "$(SolutionDir)packages\ILMerge.3.0.41\tools\net452\ILMerge.exe" /out:"$(TargetPath)" "$(TargetDir)merge\*.dll" /target:library /wildcards /ndebug /lib:"$(SolutionDir)lib\ILMerge" /targetplatform:v4,"C:\Program Files (x86)\Reference Assemblies\Microsoft\Framework\.NETFramework\v4.8" /attr:"$(TargetPath)"
+  "$(DbmSolutionRoot)packages\ILMerge.3.0.41\tools\net452\ILMerge.exe" /out:"$(TargetPath)" "$(TargetDir)merge\*.dll" /target:library /wildcards /ndebug /lib:"$(DbmSolutionRoot)lib\ILMerge" /targetplatform:v4,"C:\Program Files (x86)\Reference Assemblies\Microsoft\Framework\.NETFramework\v4.8" /attr:"$(TargetPath)"
   nuget pack "$(ProjectDir)DynamicsDbmXtbPlugin.nuspec" -OutputDirectory "$(DbmLegacyPackageOutputDirectory)"
 )
 
-copy /Y "$(TargetPath)" "$(SolutionDir)XrmToolBox\Plugins\"</PostBuildEvent>
+copy /Y "$(TargetPath)" "$(DbmXtbInstallRoot)\Plugins\"
+</PostBuildEvent>
   </PropertyGroup>
   <PropertyGroup Condition="'$(DbmEnableLegacyPackaging)' == 'true'">
     <PreBuildEvent>if exist "$(DbmLegacyPackageOutputDirectory)\*.nupkg" del /Q "$(DbmLegacyPackageOutputDirectory)\*.nupkg"</PreBuildEvent>
   </PropertyGroup>
+  <Target Name="CopyDbmEditorBundle" AfterTargets="Build">
+    <ItemGroup>
+      <DbmEditorBundleFiles Include="$(TargetDir)dbm-app-bundle\**\*" />
+    </ItemGroup>
+    <MakeDir Directories="$(DbmXtbInstallRoot)\dbm-app-bundle" Condition="Exists('$(TargetDir)dbm-app-bundle')" />
+    <MakeDir Directories="$(DbmXtbInstallRoot)\Plugins\dbm-app-bundle" Condition="Exists('$(TargetDir)dbm-app-bundle')" />
+    <Copy SourceFiles="@(DbmEditorBundleFiles)"
+          DestinationFiles="@(DbmEditorBundleFiles->'$(DbmXtbInstallRoot)\dbm-app-bundle\%(RecursiveDir)%(Filename)%(Extension)')"
+          SkipUnchangedFiles="true"
+          Condition="Exists('$(TargetDir)dbm-app-bundle')" />
+    <Copy SourceFiles="@(DbmEditorBundleFiles)"
+          DestinationFiles="@(DbmEditorBundleFiles->'$(DbmXtbInstallRoot)\Plugins\dbm-app-bundle\%(RecursiveDir)%(Filename)%(Extension)')"
+          SkipUnchangedFiles="true"
+          Condition="Exists('$(TargetDir)dbm-app-bundle')" />
+  </Target>
+  <Target Name="EnsureDbmEditorBundleExists" BeforeTargets="PrepareForBuild">
+    <Error Condition="!Exists('$(DbmEditorBundleRoot)\index.html')" Text="The DBM editor bundle is missing at '$(DbmEditorBundleRoot)'. Run '.\eng\scripts\Invoke-NodeBuild.ps1 -Projects dbm-app' before building the XrmToolBox host." />
+  </Target>
   <Target Name="EnsureNuGetPackageBuildImports" BeforeTargets="PrepareForBuild">
     <PropertyGroup>
       <ErrorText>This project references NuGet package(s) that are missing on this computer. Use NuGet Package Restore to download them.  For more information, see http://go.microsoft.com/fwlink/?LinkID=322105. The missing file is {0}.</ErrorText>

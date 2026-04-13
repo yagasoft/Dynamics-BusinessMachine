@@ -13,23 +13,32 @@ import {
 } from '../src/index';
 import type { DataverseReadbackSnapshot } from '../src/types';
 
-test('planDataverseSynthesis maps the approval example into Dataverse entities, columns, and relationships', () => {
+test('planDataverseSynthesis maps the approval example into entities, existing forms, and JS behaviors', () => {
   const plan = planDataverseSynthesis(approvalRequestModel as DbmModelV1);
 
   assert.equal(plan.generatedMetadataSolutionName, 'DynamicsBusinessMachineGeneratedMetadata');
   assert.equal(plan.entities.length, 2);
   assert.equal(plan.relationships.some((relationship) => relationship.logicalName === 'dbm_request_dbm_requestdecision'), true);
-  assert.equal(plan.relationships.some((relationship) => relationship.schemaName === 'dbm_request_dbm_requestdecision'), true);
+  assert.equal(plan.forms.length, 2);
+  assert.equal(plan.forms.every((form) => form.supported), true);
+  assert.equal(plan.behaviors.filter((behavior) => behavior.supported).length, 3);
+  assert.equal(plan.summary.supportedForms, 2);
+  assert.equal(plan.summary.supportedBehaviors, 3);
   assert.equal(
-    plan.entities
-      .flatMap((entity) => entity.columns)
-      .some((column) => column.logicalName === 'dbm_screeningresult' && column.attributeType === 'Picklist' && column.supported),
+    plan.forms.some(
+      (form) =>
+        form.id === 'request-form' &&
+        form.systemFormId === '{8d65fa31-b54d-5d9b-84e0-07d87e113130}' &&
+        form.sections.some((section) => section.sectionName === 'request_supporting_section')
+    ),
     true
   );
   assert.equal(
-    plan.entities
-      .flatMap((entity) => entity.columns)
-      .some((column) => column.logicalName === 'dbm_requestid' && column.attributeType === 'Lookup' && column.supported),
+    plan.behaviors.some(
+      (behavior) =>
+        behavior.webResourceName === 'ys_/dbm/forms/config/request-form.js' &&
+        behavior.kind === 'form-config'
+    ),
     true
   );
 });
@@ -74,7 +83,7 @@ test('normalizeReadbackEntity captures lookup targets and picklist values', () =
   assert.deepEqual(entity.columns.find((column) => column.logicalName === 'dbm_screeningresult')?.optionValues, [100000000, 100000001]);
 });
 
-test('diffSynthesisPlan detects missing columns and relationships as blocking drift', () => {
+test('diffSynthesisPlan detects missing forms and web resources as blocking drift', () => {
   const plan = planDataverseSynthesis(approvalRequestModel as DbmModelV1);
   const snapshot: DataverseReadbackSnapshot = {
     generatedUtc: new Date().toISOString(),
@@ -90,6 +99,8 @@ test('diffSynthesisPlan detects missing columns and relationships as blocking dr
       }
     ],
     relationships: [],
+    forms: [],
+    webResources: [],
     diagnostics: []
   };
 
@@ -97,39 +108,52 @@ test('diffSynthesisPlan detects missing columns and relationships as blocking dr
   assert.equal(report.hasBlockingDrift, true);
   assert.equal(report.differences.some((difference) => difference.kind === 'column'), true);
   assert.equal(report.differences.some((difference) => difference.kind === 'relationship'), true);
+  assert.equal(report.differences.some((difference) => difference.kind === 'form'), true);
+  assert.equal(report.differences.some((difference) => difference.kind === 'webresource'), true);
 });
 
-test('emitGeneratedMetadataSolution writes a tracked solution-source tree', async () => {
+test('emitGeneratedMetadataSolution writes patched forms and behavior web resources', async () => {
   const plan = planDataverseSynthesis(approvalRequestModel as DbmModelV1);
   const outputRoot = path.join(process.cwd(), 'dist', 'test-output');
-  await emitGeneratedMetadataSolution(plan, outputRoot);
+  const templateRoot = path.join(
+    process.cwd(),
+    '..',
+    'power-platform',
+    'solutions',
+    'DynamicsBusinessMachineGeneratedMetadata',
+    'template'
+  );
+  await emitGeneratedMetadataSolution(plan, outputRoot, templateRoot);
 
   const solutionXml = await fs.readFile(path.join(outputRoot, 'src', 'Other', 'Solution.xml'), 'utf8');
-  const entityXml = await fs.readFile(path.join(outputRoot, 'src', 'Entities', 'dbm_Request', 'Entity.xml'), 'utf8');
-  const requestDecisionEntityXml = await fs.readFile(
-    path.join(outputRoot, 'src', 'Entities', 'dbm_Requestdecision', 'Entity.xml'),
+  const requestEntityXml = await fs.readFile(path.join(outputRoot, 'src', 'Entities', 'dbm_Request', 'Entity.xml'), 'utf8');
+  const requestFormXml = await fs.readFile(
+    path.join(outputRoot, 'src', 'Entities', 'dbm_Request', 'FormXml', 'main', '{8d65fa31-b54d-5d9b-84e0-07d87e113130}.xml'),
     'utf8'
   );
-  const relationshipsIndexXml = await fs.readFile(path.join(outputRoot, 'src', 'Other', 'Relationships.xml'), 'utf8');
-  const relationshipFileName = `${plan.relationships[0]?.schemaName}.xml`.replace(/[^A-Za-z0-9_.-]/g, '_');
-  const relationshipXml = await fs.readFile(
-    path.join(outputRoot, 'src', 'Other', 'Relationships', relationshipFileName),
+  const requestConfigJs = await fs.readFile(
+    path.join(outputRoot, 'src', 'WebResources', 'ys_', 'dbm', 'forms', 'config', 'request-form.js'),
+    'utf8'
+  );
+  const runtimeMetadataXml = await fs.readFile(
+    path.join(outputRoot, 'src', 'WebResources', 'ys_', 'dbm', 'forms', 'runtime.js.data.xml'),
     'utf8'
   );
 
   assert.match(solutionXml, /DynamicsBusinessMachineGeneratedMetadata/);
-  assert.match(entityXml, /<Type>primarykey<\/Type>/);
-  assert.match(entityXml, /<Name>dbm_title<\/Name>/);
-  assert.match(entityXml, /PrimaryName\|ValidForAdvancedFind\|ValidForForm\|ValidForGrid\|RequiredForForm/);
-  assert.match(requestDecisionEntityXml, /<LookupTypes\/>/);
-  assert.doesNotMatch(requestDecisionEntityXml, /<LookupType[^>]*>dbm_request<\/LookupType>/);
-  assert.match(relationshipsIndexXml, /dbm_request_dbm_requestdecision/);
-  assert.match(relationshipXml, /dbm_request_dbm_requestdecision/);
+  assert.match(solutionXml, /type="61" schemaName="ys_\/dbm\/forms\/runtime\.js"/);
+  assert.match(requestEntityXml, /<Name>dbm_title<\/Name>/);
+  assert.match(requestFormXml, /<formLibraries>/);
+  assert.match(requestFormXml, /ys_\/dbm\/forms\/runtime\.js/);
+  assert.match(requestFormXml, /ys_\/dbm\/forms\/config\/request-form\.js/);
+  assert.match(requestFormXml, /<event name="onload"/);
+  assert.match(requestConfigJs, /dbmOnLoad_request_form/);
+  assert.match(runtimeMetadataXml, /<Name>ys_\/dbm\/forms\/runtime\.js<\/Name>/);
 
   await fs.rm(outputRoot, { recursive: true, force: true });
 });
 
-test('applySynthesisPlanToDev bootstraps the generated solution and creates relationship-backed metadata idempotently', async () => {
+test('applySynthesisPlanToDev bootstraps the generated solution and keeps relationship-backed metadata idempotent', async () => {
   const plan = planDataverseSynthesis(approvalRequestModel as DbmModelV1);
   const requests: Array<{ method: string; url: string; body?: any; headers: Record<string, string> }> = [];
   const queuedResponses: Array<{ status: number; payload?: any }> = [
@@ -226,7 +250,12 @@ test('applySynthesisPlanToDev bootstraps the generated solution and creates rela
           }
         ]
       }
-    }
+    },
+    { status: 404 },
+    { status: 404 },
+    { status: 200, payload: { value: [] } },
+    { status: 200, payload: { value: [] } },
+    { status: 200, payload: { value: [] } }
   ];
 
   const originalFetch = globalThis.fetch;

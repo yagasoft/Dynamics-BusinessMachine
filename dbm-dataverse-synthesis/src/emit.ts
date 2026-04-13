@@ -3,9 +3,17 @@ import path from 'node:path';
 import { create } from 'xmlbuilder2';
 import {
   DEFAULT_GENERATED_METADATA_SOLUTION_VERSION,
-  sanitizeFileName
+  sanitizeFileName,
+  toDataverseWebResourceFileName
 } from './common';
-import type { DataverseColumnPlan, DataverseEntityPlan, DataverseRelationshipPlan, DataverseSynthesisPlan } from './types';
+import type {
+  DataverseBehaviorPlan,
+  DataverseColumnPlan,
+  DataverseEntityPlan,
+  DataverseFormPlan,
+  DataverseRelationshipPlan,
+  DataverseSynthesisPlan
+} from './types';
 
 function createSolutionXml(plan: DataverseSynthesisPlan): string {
   const root = create({ version: '1.0', encoding: 'utf-8' }).ele('ImportExportXml', {
@@ -45,6 +53,14 @@ function createSolutionXml(plan: DataverseSynthesisPlan): string {
     rootComponents.ele('RootComponent', {
       type: '1',
       schemaName: entity.logicalName,
+      behavior: '0'
+    });
+  }
+
+  for (const behavior of plan.behaviors.filter((entry) => entry.supported)) {
+    rootComponents.ele('RootComponent', {
+      type: '61',
+      schemaName: behavior.webResourceName,
       behavior: '0'
     });
   }
@@ -253,11 +269,10 @@ function writeColumnAttribute(attributes: any, entity: DataverseEntityPlan, colu
         (column.choiceOptions ?? []).map((option) => ({ value: option.value, label: option.displayName }))
       );
       break;
-    case 'Lookup': {
+    case 'Lookup':
       attribute.ele('LookupStyle').txt('single');
       attribute.ele('LookupTypes');
       break;
-    }
     case 'DateTime':
       attribute.ele('Format').txt(column.dateTimeFormat === 'DateAndTime' ? 'datetime' : 'date');
       attribute.ele('CanChangeDateTimeBehavior').txt('1');
@@ -401,20 +416,90 @@ function writeRelationshipPlan(relationship: DataverseRelationshipPlan): string 
   return root.end({ prettyPrint: true });
 }
 
+function createWebResourceMetadata(behavior: DataverseBehaviorPlan): string {
+  const root = create({ version: '1.0', encoding: 'utf-8' }).ele('WebResource', {
+    'xmlns:xsi': 'http://www.w3.org/2001/XMLSchema-instance'
+  });
+  root.ele('WebResourceId').txt(behavior.webResourceId);
+  root.ele('Name').txt(behavior.webResourceName);
+  root.ele('DisplayName').txt(behavior.displayName);
+  root.ele('WebResourceType').txt(String(behavior.webResourceType));
+  root.ele('IntroducedVersion').txt(DEFAULT_GENERATED_METADATA_SOLUTION_VERSION);
+  root.ele('IsEnabledForMobileClient').txt('0');
+  root.ele('IsAvailableForMobileOffline').txt('0');
+  root.ele('DependencyXml').txt('<Dependencies><Dependency componentType="WebResource"/></Dependencies>');
+  root.ele('IsCustomizable').txt('1');
+  root.ele('CanBeDeleted').txt('1');
+  root.ele('IsHidden').txt('0');
+  root.ele('FileName').txt(`/WebResources/${toDataverseWebResourceFileName(behavior.webResourceName, behavior.webResourceId)}`);
+  return root.end({ prettyPrint: true });
+}
+
+function replaceXmlNode(xml: string, nodeName: string, replacement: string): string {
+  const fullNodePattern = new RegExp(`<${nodeName}(?:\\s[^>]*)?>[\\s\\S]*?<\\/${nodeName}>`, 'i');
+  if (fullNodePattern.test(xml)) {
+    return xml.replace(fullNodePattern, replacement);
+  }
+
+  const selfClosingPattern = new RegExp(`<${nodeName}(?:\\s[^>]*)?\\s*/>`, 'i');
+  if (selfClosingPattern.test(xml)) {
+    return xml.replace(selfClosingPattern, replacement);
+  }
+
+  return xml.replace(/<\/form>/i, `${replacement}\n    </form>`);
+}
+
+function patchFormXml(formXml: string, formPlan: DataverseFormPlan): string {
+  let patchedXml = formXml.replace(/\r\n/g, '\n');
+  patchedXml = replaceXmlNode(patchedXml, 'formLibraries', formPlan.managedFormLibrariesXml);
+  patchedXml = replaceXmlNode(patchedXml, 'events', formPlan.managedEventsXml);
+  return patchedXml.endsWith('\n') ? patchedXml : `${patchedXml}\n`;
+}
+
 async function writeTextFile(filePath: string, content: string): Promise<void> {
   await fs.mkdir(path.dirname(filePath), { recursive: true });
   await fs.writeFile(filePath, `${content.trimEnd()}\n`, 'utf8');
 }
 
+async function copyTemplateArtifacts(templateRoot: string, outputRoot: string): Promise<void> {
+  const templateSourceRoot = path.join(templateRoot, 'src');
+  try {
+    await fs.access(templateSourceRoot);
+    await fs.cp(templateSourceRoot, path.join(outputRoot, 'src'), { recursive: true, force: true });
+  } catch {
+    // No template source tree is acceptable for early metadata-only slices.
+  }
+}
+
+async function emitPatchedForms(outputRoot: string, forms: DataverseFormPlan[]): Promise<void> {
+  for (const form of forms.filter((entry) => entry.supported)) {
+    const formPath = path.join(outputRoot, form.relativePath);
+    const existingXml = await fs.readFile(formPath, 'utf8');
+    const patchedXml = patchFormXml(existingXml, form);
+    await writeTextFile(formPath, patchedXml);
+  }
+}
+
+async function emitBehaviorWebResources(outputRoot: string, behaviors: DataverseBehaviorPlan[]): Promise<void> {
+  for (const behavior of behaviors.filter((entry) => entry.supported)) {
+    const filePath = path.join(outputRoot, behavior.relativePath);
+    await writeTextFile(filePath, behavior.content);
+    await writeTextFile(`${filePath}.data.xml`, createWebResourceMetadata(behavior));
+  }
+}
+
 export async function emitGeneratedMetadataSolution(
   plan: DataverseSynthesisPlan,
-  outputRoot: string
+  outputRoot: string,
+  templateRoot = path.join(path.dirname(outputRoot), 'template')
 ): Promise<void> {
   const otherRoot = path.join(outputRoot, 'src', 'Other');
   const entitiesRoot = path.join(outputRoot, 'src', 'Entities');
   const relationshipsRoot = path.join(outputRoot, 'src', 'Other', 'Relationships');
 
   await fs.rm(outputRoot, { recursive: true, force: true });
+  await fs.mkdir(outputRoot, { recursive: true });
+  await copyTemplateArtifacts(templateRoot, outputRoot);
   await fs.mkdir(otherRoot, { recursive: true });
   await fs.mkdir(entitiesRoot, { recursive: true });
   await fs.mkdir(relationshipsRoot, { recursive: true });
@@ -422,10 +507,7 @@ export async function emitGeneratedMetadataSolution(
   await writeTextFile(path.join(otherRoot, 'Solution.xml'), createSolutionXml(plan));
   await writeTextFile(path.join(otherRoot, 'Customizations.xml'), createCustomizationsXml());
   await writeTextFile(path.join(otherRoot, 'Relationships.xml'), createRelationshipsIndex(plan.relationships));
-  await writeTextFile(
-    path.join(outputRoot, 'dbm-generated-metadata.plan.json'),
-    JSON.stringify(plan, null, 2)
-  );
+  await writeTextFile(path.join(outputRoot, 'dbm-generated-metadata.plan.json'), JSON.stringify(plan, null, 2));
 
   for (const entity of plan.entities) {
     const entityRoot = path.join(entitiesRoot, sanitizeFileName(entity.schemaName));
@@ -439,4 +521,7 @@ export async function emitGeneratedMetadataSolution(
       writeRelationshipPlan(relationship)
     );
   }
+
+  await emitPatchedForms(outputRoot, plan.forms);
+  await emitBehaviorWebResources(outputRoot, plan.behaviors);
 }

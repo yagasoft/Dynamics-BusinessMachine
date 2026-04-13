@@ -10,12 +10,11 @@ import {
   toLogicalCollectionName,
   toSchemaName
 } from './common';
+import { planExistingDataverseForms } from './forms';
 import type {
-  DataverseBehaviorPlan,
   DataverseChoiceOptionPlan,
   DataverseColumnPlan,
   DataverseEntityPlan,
-  DataverseFormPlan,
   DataverseRelationshipPlan,
   DataverseSynthesisDiagnostic,
   DataverseSynthesisPlan
@@ -203,12 +202,12 @@ function planColumn(
     }
     default:
       column.supported = false;
-      column.unsupportedReason = `Field data type '${field.dataType}' is not supported in R1.2.3a synthesis.`;
+      column.unsupportedReason = `Field data type '${field.dataType}' is not supported in R1 synthesis.`;
       diagnostics.push(
         createDiagnostic(
           'unsupported-field-type',
           'warning',
-          `Field '${field.id}' has unsupported data type '${field.dataType}' for R1.2.3a synthesis.`,
+          `Field '${field.id}' has unsupported data type '${field.dataType}' for R1 synthesis.`,
           modelPath
         )
       );
@@ -238,12 +237,7 @@ function planRelationship(
   diagnostics: DataverseSynthesisDiagnostic[]
 ): DataverseRelationshipPlan | null {
   const modelPath = `metadata.relationships.${relationship.id}`;
-  const logicalName = tryGetLogicalName(
-    relationship,
-    `relationship '${relationship.id}'`,
-    diagnostics,
-    modelPath
-  );
+  const logicalName = tryGetLogicalName(relationship, `relationship '${relationship.id}'`, diagnostics, modelPath);
   if (!logicalName) {
     return null;
   }
@@ -436,19 +430,7 @@ export function planDataverseSynthesis(model: DbmModelV1): DataverseSynthesisPla
     ownerPlan?.relationships.push(relationship);
   }
 
-  const forms: DataverseFormPlan[] = model.forms.map((form) => ({
-    id: form.id,
-    supported: false,
-    reason: 'R1.2.3b owns generated model-driven forms.'
-  }));
-
-  const behaviors: DataverseBehaviorPlan[] = model.forms.flatMap((form) =>
-    form.formStates.map((formState) => ({
-      id: `${form.id}:${formState.id}`,
-      supported: false,
-      reason: 'R1.2.3b owns same-table form-state behavior generation.'
-    }))
-  );
+  const existingFormArtifacts = planExistingDataverseForms(model, entityPlans, diagnostics);
 
   return {
     generatedUtc: new Date().toISOString(),
@@ -459,13 +441,15 @@ export function planDataverseSynthesis(model: DbmModelV1): DataverseSynthesisPla
     generatedMetadataSolutionName: DEFAULT_GENERATED_METADATA_SOLUTION_NAME,
     entities,
     relationships,
-    forms,
-    behaviors,
+    forms: existingFormArtifacts.forms,
+    behaviors: existingFormArtifacts.behaviors,
     diagnostics,
     summary: {
       supportedEntities: entities.length,
       supportedColumns: entities.flatMap((entity) => entity.columns).filter((column) => column.supported).length,
       supportedRelationships: relationships.filter((relationship) => relationship.supported).length,
+      supportedForms: existingFormArtifacts.forms.filter((form) => form.supported).length,
+      supportedBehaviors: existingFormArtifacts.behaviors.filter((behavior) => behavior.supported).length,
       blockingDiagnostics: diagnostics.filter((entry) => entry.severity === 'error').length
     }
   };

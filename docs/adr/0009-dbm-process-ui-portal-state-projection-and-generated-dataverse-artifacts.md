@@ -13,7 +13,7 @@ The product now needs to lock:
 - DBM-owned process UI instead of native Dataverse business process flow as the product boundary
 - portal-visible versus internal process state
 - stage + step + form-state semantics
-- generated Dataverse forms and columns as designer-engine outputs
+- supported Dataverse synthesis boundaries, including schema artifacts and DBM-managed behavior on existing forms
 - top-of-form model-driven process placement as the target experience
 
 ## Decision
@@ -24,11 +24,11 @@ The product now needs to lock:
 - The canonical process model expands from stage-only flow into stage + step + form-state semantics.
 - Forms are model-driven forms, not custom form components.
 - Same-table variants should reuse the underlying model-driven form and apply generated stateful behavior rather than creating unnecessary full duplicate forms.
-- The designer engine owns creation or update of supported Dataverse forms and columns in `Dev`.
+- The synthesis layer owns supported Dataverse schema artifacts in `Dev` and patches DBM-managed fragments onto existing Dataverse forms.
 - Tracked release artifacts remain the release source of truth even when the designer engine can apply changes directly in `Dev`.
-- Initial generated Dataverse authoring scope is:
-  - columns
-  - model-driven form updates
+- Initial Dataverse synthesis scope is:
+  - tables, columns, and relationships
+  - model-driven form patching for DBM-managed libraries, handlers, and behavior assets
 - Grids and richer native Dataverse components remain planned but are deferred from the first proof scope.
 - The preferred model-driven process experience is rendered at the top of the form, above tabs.
 - If no supported platform placement can satisfy the required early proof, a simplified unsupported placement method may be used temporarily with explicit documentation and later replacement.
@@ -37,7 +37,7 @@ The product now needs to lock:
 
 - `R1.2.1` must align the executable canonical contract, schema, fixtures, and example model to the expanded process semantics.
 - `R1.2.3a` must own generated Dataverse tables, columns, relationships, and synthesis layering.
-- `R1.2.3b` must own generated Dataverse forms and same-table form-state behavior.
+- `R1.2.3b` must own binding canonical forms to existing Dataverse forms and attaching DBM-managed supported JS behavior.
 - `R1.3` must deliver the first DBM-owned model-driven runtime experience rather than delegating the business-process experience to native BPF.
 - `R2` delivers the live Power Pages runtime on top of the portal projection semantics defined in `R1`.
 
@@ -47,7 +47,7 @@ The product now needs to lock:
   - rejected because it would constrain process semantics, visibility control, and portal continuity to the limits of the native platform feature
 - Treat portal status as a separate process definition
   - rejected because it would create duplicate logic and drift risk
-- Keep Dataverse forms and columns hand-authored outside the designer engine
+- Keep all Dataverse schema and behavior hand-authored outside DBM synthesis
   - rejected because it would weaken the designer-first product boundary and make the model incomplete
 
 ## Related docs

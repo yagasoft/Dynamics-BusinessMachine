@@ -942,6 +942,10 @@
             "$ref": "#/definitions/DbmFormStateV1"
           },
           "title": "formStates"
+        },
+        "providerBindings": {
+          "$ref": "#/definitions/DbmProviderBindingsV1",
+          "title": "providerBindings"
         }
       },
       "additionalProperties": false,
@@ -1038,6 +1042,10 @@
         "order": {
           "type": "number",
           "title": "order"
+        },
+        "providerBindings": {
+          "$ref": "#/definitions/DbmProviderBindingsV1",
+          "title": "providerBindings"
         }
       },
       "additionalProperties": false,
@@ -1046,6 +1054,44 @@
         "id",
         "order"
       ]
+    },
+    "DbmProviderBindingsV1": {
+      "title": "DbmProviderBindingsV1",
+      "type": "object",
+      "properties": {
+        "dataverse": {
+          "$ref": "#/definitions/DbmDataverseBindingV1",
+          "title": "dataverse"
+        }
+      },
+      "additionalProperties": false
+    },
+    "DbmDataverseBindingV1": {
+      "title": "DbmDataverseBindingV1",
+      "type": "object",
+      "properties": {
+        "logicalName": {
+          "type": "string",
+          "title": "logicalName"
+        },
+        "formId": {
+          "type": "string",
+          "title": "formId"
+        },
+        "tabName": {
+          "type": "string",
+          "title": "tabName"
+        },
+        "sectionName": {
+          "type": "string",
+          "title": "sectionName"
+        },
+        "controlName": {
+          "type": "string",
+          "title": "controlName"
+        }
+      },
+      "additionalProperties": false
     },
     "DbmFormElementV1": {
       "title": "DbmFormElementV1",
@@ -1074,6 +1120,10 @@
         "behavior": {
           "$ref": "#/definitions/DbmElementBehaviorV1",
           "title": "behavior"
+        },
+        "providerBindings": {
+          "$ref": "#/definitions/DbmProviderBindingsV1",
+          "title": "providerBindings"
         }
       },
       "additionalProperties": false,
@@ -1326,31 +1376,6 @@
         "id",
         "primaryKeyFieldId",
         "providerBindings"
-      ]
-    },
-    "DbmProviderBindingsV1": {
-      "title": "DbmProviderBindingsV1",
-      "type": "object",
-      "properties": {
-        "dataverse": {
-          "$ref": "#/definitions/DbmDataverseBindingV1",
-          "title": "dataverse"
-        }
-      },
-      "additionalProperties": false
-    },
-    "DbmDataverseBindingV1": {
-      "title": "DbmDataverseBindingV1",
-      "type": "object",
-      "properties": {
-        "logicalName": {
-          "type": "string",
-          "title": "logicalName"
-        }
-      },
-      "additionalProperties": false,
-      "required": [
-        "logicalName"
       ]
     },
     "DbmFieldV1": {

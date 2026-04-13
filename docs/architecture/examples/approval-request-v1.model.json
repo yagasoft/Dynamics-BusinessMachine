@@ -239,37 +239,97 @@
       "id": "request-form",
       "displayName": "Request Form",
       "primaryEntityBindingId": "request-primary",
+      "providerBindings": {
+        "dataverse": {
+          "formId": "{8d65fa31-b54d-5d9b-84e0-07d87e113130}"
+        }
+      },
       "entityBindings": [
         { "id": "request-primary", "displayName": "Request", "entityId": "request", "relationshipId": null, "role": "primary" }
       ],
       "layout": {
         "layoutType": "single-page",
-        "regions": [{ "id": "main", "displayName": "Main", "order": 1 }]
+        "regions": [
+          {
+            "id": "request-details-region",
+            "displayName": "Request Details",
+            "order": 1,
+            "providerBindings": {
+              "dataverse": {
+                "tabName": "request_main_tab",
+                "sectionName": "request_details_section"
+              }
+            }
+          },
+          {
+            "id": "request-supporting-region",
+            "displayName": "Supporting Details",
+            "order": 2,
+            "providerBindings": {
+              "dataverse": {
+                "tabName": "request_main_tab",
+                "sectionName": "request_supporting_section"
+              }
+            }
+          },
+          {
+            "id": "request-screening-region",
+            "displayName": "Screening",
+            "order": 3,
+            "providerBindings": {
+              "dataverse": {
+                "tabName": "request_main_tab",
+                "sectionName": "request_screening_section"
+              }
+            }
+          }
+        ]
       },
       "elements": [
         {
           "id": "request-title-element",
           "elementType": "text",
-          "regionId": "main",
+          "regionId": "request-details-region",
           "displayName": "Request Title",
           "binding": { "entityBindingId": "request-primary", "fieldId": "request-title" },
-          "behavior": { "requiredRuleIds": ["request-basic-fields-present"], "visibleRuleIds": [], "editableRuleIds": [] }
+          "behavior": { "requiredRuleIds": ["request-basic-fields-present"], "visibleRuleIds": [], "editableRuleIds": [] },
+          "providerBindings": { "dataverse": { "controlName": "dbm_title" } }
         },
         {
           "id": "request-amount-element",
           "elementType": "currency",
-          "regionId": "main",
+          "regionId": "request-details-region",
           "displayName": "Request Amount",
           "binding": { "entityBindingId": "request-primary", "fieldId": "request-amount" },
-          "behavior": { "requiredRuleIds": ["request-basic-fields-present"], "visibleRuleIds": [], "editableRuleIds": [] }
+          "behavior": { "requiredRuleIds": ["request-basic-fields-present"], "visibleRuleIds": [], "editableRuleIds": [] },
+          "providerBindings": { "dataverse": { "controlName": "dbm_amount" } }
+        },
+        {
+          "id": "assigned-approver-element",
+          "elementType": "text",
+          "regionId": "request-details-region",
+          "displayName": "Assigned Approver",
+          "binding": { "entityBindingId": "request-primary", "fieldId": "assigned-approver" },
+          "behavior": { "requiredRuleIds": ["request-basic-fields-present"], "visibleRuleIds": [], "editableRuleIds": [] },
+          "providerBindings": { "dataverse": { "controlName": "dbm_assignedapprover" } }
         },
         {
           "id": "supporting-notes-element",
           "elementType": "multiline-text",
-          "regionId": "main",
+          "regionId": "request-supporting-region",
           "displayName": "Supporting Notes",
           "binding": { "entityBindingId": "request-primary", "fieldId": "supporting-notes" },
-          "behavior": { "requiredRuleIds": [], "visibleRuleIds": ["supporting-details-needed"], "editableRuleIds": [] }
+          "behavior": { "requiredRuleIds": [], "visibleRuleIds": ["supporting-details-needed"], "editableRuleIds": [] },
+          "providerBindings": { "dataverse": { "controlName": "dbm_supportingnotes" } }
+        },
+        {
+          "id": "screening-result-element",
+          "elementType": "choice",
+          "regionId": "request-screening-region",
+          "displayName": "Screening Result",
+          "binding": { "entityBindingId": "request-primary", "fieldId": "screening-result" },
+          "behavior": { "requiredRuleIds": [], "visibleRuleIds": [], "editableRuleIds": [] },
+          "providerBindings": { "dataverse": { "controlName": "dbm_screeningresult" } }
         }
       ],
       "formStates": [
@@ -283,6 +343,22 @@
               "elementId": "request-title-element",
               "label": "Request Title",
               "hint": "Enter the request title.",
+              "requiredRuleIds": ["request-basic-fields-present"],
+              "visibleRuleIds": [],
+              "editableRuleIds": []
+            },
+            {
+              "elementId": "request-amount-element",
+              "label": "Request Amount",
+              "hint": "Enter the amount requested.",
+              "requiredRuleIds": ["request-basic-fields-present"],
+              "visibleRuleIds": [],
+              "editableRuleIds": []
+            },
+            {
+              "elementId": "assigned-approver-element",
+              "label": "Assigned Approver",
+              "hint": "Capture the assigned approver name.",
               "requiredRuleIds": ["request-basic-fields-present"],
               "visibleRuleIds": [],
               "editableRuleIds": []
@@ -302,6 +378,22 @@
               "requiredRuleIds": [],
               "visibleRuleIds": ["supporting-details-needed"],
               "editableRuleIds": []
+            },
+            {
+              "elementId": "request-title-element",
+              "label": "Request Title",
+              "hint": "Review the title while adding supporting notes.",
+              "requiredRuleIds": ["request-basic-fields-present"],
+              "visibleRuleIds": [],
+              "editableRuleIds": []
+            },
+            {
+              "elementId": "request-amount-element",
+              "label": "Request Amount",
+              "hint": "Review the amount while adding supporting notes.",
+              "requiredRuleIds": ["request-basic-fields-present"],
+              "visibleRuleIds": [],
+              "editableRuleIds": []
             }
           ]
         },
@@ -310,46 +402,102 @@
           "displayName": "Screening",
           "activationRuleIds": [],
           "visibleEntityBindingIds": ["request-primary"],
-          "elementBehaviors": []
+          "elementBehaviors": [
+            {
+              "elementId": "request-title-element",
+              "label": "Request Title",
+              "hint": "Review the request title during screening.",
+              "requiredRuleIds": [],
+              "visibleRuleIds": [],
+              "editableRuleIds": []
+            },
+            {
+              "elementId": "request-amount-element",
+              "label": "Request Amount",
+              "hint": "Review the request amount during screening.",
+              "requiredRuleIds": [],
+              "visibleRuleIds": [],
+              "editableRuleIds": []
+            },
+            {
+              "elementId": "screening-result-element",
+              "label": "Screening Result",
+              "hint": "Capture the screening outcome.",
+              "requiredRuleIds": ["screening-complete"],
+              "visibleRuleIds": [],
+              "editableRuleIds": []
+            }
+          ]
         }
       ]
     },
     {
       "id": "review-form",
       "displayName": "Review Form",
-      "primaryEntityBindingId": "review-request",
+      "primaryEntityBindingId": "review-decision",
+      "providerBindings": {
+        "dataverse": {
+          "formId": "{4e37e2e6-61cb-544d-848a-9f870ec4cf4d}"
+        }
+      },
       "entityBindings": [
-        { "id": "review-request", "displayName": "Request", "entityId": "request", "relationshipId": null, "role": "primary" },
-        { "id": "review-decision", "displayName": "Decision", "entityId": "request-decision", "relationshipId": "request-to-decision", "role": "related" }
+        { "id": "review-request", "displayName": "Request", "entityId": "request", "relationshipId": "request-to-decision", "role": "related" },
+        { "id": "review-decision", "displayName": "Decision", "entityId": "request-decision", "relationshipId": null, "role": "primary" }
       ],
       "layout": {
         "layoutType": "single-page",
-        "regions": [{ "id": "main", "displayName": "Main", "order": 1 }]
+        "regions": [
+          {
+            "id": "review-summary-region",
+            "displayName": "Review Summary",
+            "order": 1,
+            "providerBindings": {
+              "dataverse": {
+                "tabName": "review_main_tab",
+                "sectionName": "review_summary_section"
+              }
+            }
+          },
+          {
+            "id": "review-resolution-region",
+            "displayName": "Resolution",
+            "order": 2,
+            "providerBindings": {
+              "dataverse": {
+                "tabName": "review_main_tab",
+                "sectionName": "review_resolution_section"
+              }
+            }
+          }
+        ]
       },
       "elements": [
         {
-          "id": "review-title-element",
-          "elementType": "read-only-text",
-          "regionId": "main",
-          "displayName": "Request Title",
-          "binding": { "entityBindingId": "review-request", "fieldId": "request-title" },
-          "behavior": { "requiredRuleIds": [], "visibleRuleIds": [], "editableRuleIds": [] }
+          "id": "review-request-link-element",
+          "elementType": "lookup",
+          "regionId": "review-summary-region",
+          "displayName": "Request",
+          "binding": { "entityBindingId": "review-decision", "fieldId": "decision-request" },
+          "behavior": { "requiredRuleIds": [], "visibleRuleIds": [], "editableRuleIds": [] },
+          "providerBindings": { "dataverse": { "controlName": "dbm_requestid" } }
         },
         {
           "id": "decision-summary-element",
           "elementType": "read-only-text",
-          "regionId": "main",
+          "regionId": "review-summary-region",
           "displayName": "Decision Summary",
           "binding": { "entityBindingId": "review-decision", "fieldId": "decision-summary" },
-          "behavior": { "requiredRuleIds": [], "visibleRuleIds": [], "editableRuleIds": [] }
+          "behavior": { "requiredRuleIds": [], "visibleRuleIds": [], "editableRuleIds": [] },
+          "providerBindings": { "dataverse": { "controlName": "dbm_decisionsummary" } }
         },
         {
           "id": "decision-comment-element",
           "elementType": "multiline-text",
-          "regionId": "main",
+          "regionId": "review-resolution-region",
           "displayName": "Decision Comment",
           "binding": { "entityBindingId": "review-decision", "fieldId": "decision-comment" },
-          "behavior": { "requiredRuleIds": ["rejection-step-complete"], "visibleRuleIds": [], "editableRuleIds": [] }
+          "behavior": { "requiredRuleIds": ["rejection-step-complete"], "visibleRuleIds": [], "editableRuleIds": [] },
+          "providerBindings": { "dataverse": { "controlName": "dbm_decisioncomment" } }
         }
       ],
       "formStates": [
@@ -358,14 +506,48 @@
           "displayName": "Decision",
           "activationRuleIds": [],
           "visibleEntityBindingIds": ["review-request", "review-decision"],
-          "elementBehaviors": []
+          "elementBehaviors": [
+            {
+              "elementId": "review-request-link-element",
+              "label": "Request",
+              "hint": "Review the linked request.",
+              "requiredRuleIds": [],
+              "visibleRuleIds": [],
+              "editableRuleIds": []
+            },
+            {
+              "elementId": "decision-summary-element",
+              "label": "Decision Summary",
+              "hint": "Review the request summary.",
+              "requiredRuleIds": [],
+              "visibleRuleIds": [],
+              "editableRuleIds": []
+            }
+          ]
         },
         {
           "id": "review-approval-state",
           "displayName": "Approval Capture",
           "activationRuleIds": ["approval-path-selected"],
           "visibleEntityBindingIds": ["review-request", "review-decision"],
-          "elementBehaviors": []
+          "elementBehaviors": [
+            {
+              "elementId": "review-request-link-element",
+              "label": "Request",
+              "hint": "Review the linked request before approval.",
+              "requiredRuleIds": [],
+              "visibleRuleIds": [],
+              "editableRuleIds": []
+            },
+            {
+              "elementId": "decision-summary-element",
+              "label": "Decision Summary",
+              "hint": "Confirm the approval summary.",
+              "requiredRuleIds": [],
+              "visibleRuleIds": [],
+              "editableRuleIds": []
+            }
+          ]
         },
         {
           "id": "review-rejection-state",
@@ -378,6 +560,22 @@
               "label": "Rejection Reason",
               "hint": "Required when rejecting the request.",
               "requiredRuleIds": ["rejection-step-complete"],
+              "visibleRuleIds": [],
+              "editableRuleIds": []
+            },
+            {
+              "elementId": "review-request-link-element",
+              "label": "Request",
+              "hint": "Review the linked request before rejection.",
+              "requiredRuleIds": [],
+              "visibleRuleIds": [],
+              "editableRuleIds": []
+            },
+            {
+              "elementId": "decision-summary-element",
+              "label": "Decision Summary",
+              "hint": "Confirm the rejection summary.",
+              "requiredRuleIds": [],
               "visibleRuleIds": [],
               "editableRuleIds": []
             }
@@ -398,7 +596,7 @@
           { "id": "request-title", "displayName": "Request Title", "dataType": "string", "providerBindings": { "dataverse": { "logicalName": "dbm_title" } }, "isRequired": true, "isReadOnly": false },
           { "id": "request-amount", "displayName": "Request Amount", "dataType": "currency", "providerBindings": { "dataverse": { "logicalName": "dbm_amount" } }, "isRequired": true, "isReadOnly": false },
           { "id": "supporting-notes", "displayName": "Supporting Notes", "dataType": "multiline-string", "providerBindings": { "dataverse": { "logicalName": "dbm_supportingnotes" } }, "isRequired": false, "isReadOnly": false },
-          { "id": "assigned-approver", "displayName": "Assigned Approver", "dataType": "lookup", "providerBindings": { "dataverse": { "logicalName": "dbm_assignedapproverid" } }, "isRequired": true, "isReadOnly": false, "lookupTargetEntityId": null },
+          { "id": "assigned-approver", "displayName": "Assigned Approver", "dataType": "string", "providerBindings": { "dataverse": { "logicalName": "dbm_assignedapprover" } }, "isRequired": true, "isReadOnly": false },
           {
             "id": "screening-result",
             "displayName": "Screening Result",

@@ -12,6 +12,12 @@ exports.getEntityById = getEntityById;
 exports.getFieldById = getFieldById;
 exports.getPublisherPrefix = getPublisherPrefix;
 exports.sanitizeFileName = sanitizeFileName;
+exports.createDeterministicGuid = createDeterministicGuid;
+exports.normalizeXmlContent = normalizeXmlContent;
+exports.normalizeTextContent = normalizeTextContent;
+exports.tryDecodeBase64Utf8 = tryDecodeBase64Utf8;
+exports.toDataverseWebResourceFileName = toDataverseWebResourceFileName;
+const node_crypto_1 = require("node:crypto");
 exports.DEFAULT_GENERATED_METADATA_SOLUTION_NAME = 'DynamicsBusinessMachineGeneratedMetadata';
 exports.DEFAULT_GENERATED_METADATA_SOLUTION_PUBLISHER_UNIQUE_NAME = 'yagasoft';
 exports.DEFAULT_GENERATED_METADATA_SOLUTION_VERSION = '0.2.0.0';
@@ -89,4 +95,49 @@ function getPublisherPrefix(logicalName) {
 }
 function sanitizeFileName(value) {
     return value.replace(/[^A-Za-z0-9_.-]/g, '_');
+}
+function createDeterministicGuid(seed) {
+    const hash = (0, node_crypto_1.createHash)('sha1').update(seed).digest();
+    const bytes = Buffer.from(hash.subarray(0, 16));
+    bytes[6] = (bytes[6] & 0x0f) | 0x50;
+    bytes[8] = (bytes[8] & 0x3f) | 0x80;
+    const hex = bytes.toString('hex');
+    const parts = [
+        hex.slice(0, 8),
+        hex.slice(8, 12),
+        hex.slice(12, 16),
+        hex.slice(16, 20),
+        hex.slice(20, 32)
+    ];
+    return `{${parts.join('-')}}`;
+}
+function normalizeXmlContent(value) {
+    return value
+        .replace(/\r\n/g, '\n')
+        .replace(/^\uFEFF/, '')
+        .replace(/<\?xml[^>]*\?>\s*/i, '')
+        .replace(/>\s+</g, '><')
+        .trim();
+}
+function normalizeTextContent(value) {
+    return value.replace(/\r\n/g, '\n').replace(/^\uFEFF/, '').trim();
+}
+function tryDecodeBase64Utf8(value) {
+    try {
+        const decoded = Buffer.from(value, 'base64').toString('utf8');
+        const reencoded = Buffer.from(decoded, 'utf8').toString('base64').replace(/=+$/g, '');
+        const normalizedInput = value.replace(/\s+/g, '').replace(/=+$/g, '');
+        if (reencoded === normalizedInput) {
+            return decoded;
+        }
+    }
+    catch {
+        // Fall through to raw value.
+    }
+    return value;
+}
+function toDataverseWebResourceFileName(webResourceName, webResourceId) {
+    const normalizedName = webResourceName.replace(/[^A-Za-z0-9_]/g, '');
+    const normalizedId = webResourceId.replace(/[{}-]/g, '').toUpperCase();
+    return `${normalizedName}${normalizedId}`;
 }

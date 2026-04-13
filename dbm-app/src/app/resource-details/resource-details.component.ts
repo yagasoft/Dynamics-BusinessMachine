@@ -9,6 +9,8 @@ import { TreeModule } from 'primeng/tree';
 import { InputTextModule } from 'primeng/inputtext';
 import { FieldsetModule } from 'primeng/fieldset';
 import { ProgressSpinnerModule } from 'primeng/progressspinner';
+import { getDbmHostBridge, type DbmHostModelDocumentRecord } from '../host-bridge';
+import { decodeUtf8Base64, encodeUtf8Base64 } from '../utf8-base64';
 import {
 	addNode,
 	createApprovalRequestTemplate,
@@ -609,14 +611,28 @@ export class ResourceDetailsComponent
 			const model = serializeModel(this.document);
 			const displayname = this.resourceRecord.displayname || model.package.displayName || this.resourceNameSuffix;
 			const content = JSON.stringify(model, null, 2);
+			const hostBridge = getDbmHostBridge();
 			const record = {
 				displayname,
 				name: this.resourceRecord.name,
 				webresourcetype: 3,
-				content: btoa(content)
+				content: encodeUtf8Base64(content)
 			};
 
-			if (globalThis.Xrm)
+			if (hostBridge)
+			{
+				const savedRecord = await hostBridge.saveModelDocument({
+					id: this.resourceRecord.id,
+					name: this.resourceRecord.name,
+					displayname,
+					content: record.content
+				});
+
+				this.resourceRecord.id = savedRecord.id ?? this.resourceRecord.id;
+				this.resourceRecord.name = savedRecord.name ?? this.resourceRecord.name;
+				this.resourceRecord.modifiedon = savedRecord.modifiedon ? new Date(savedRecord.modifiedon) : new Date();
+			}
+			else if (globalThis.Xrm)
 			{
 				const resourceId = this.resourceRecord.id ??= await this.lookupResourceId(this.resourceRecord.name);
 				const response = await fetch(
@@ -1043,9 +1059,12 @@ export class ResourceDetailsComponent
 
 		try
 		{
-			const existingRecord = globalThis.Xrm
-				? await this.loadFromDataverse(this._webResourceName)
-				: await this.loadFromIndexedDb(this._webResourceName);
+			const hostBridge = getDbmHostBridge();
+			const existingRecord = hostBridge
+				? await this.loadFromHostBridge(hostBridge, this._webResourceName)
+				: globalThis.Xrm
+					? await this.loadFromDataverse(this._webResourceName)
+					: await this.loadFromIndexedDb(this._webResourceName);
 
 			this.resourceRecord = existingRecord ?? {
 				name: this._webResourceName,
@@ -1082,8 +1101,22 @@ export class ResourceDetailsComponent
 			name: resource.name,
 			displayname: resource.displayname || this.toFallbackLabel(resource.name),
 			modifiedon: resource.modifiedon ? new Date(resource.modifiedon) : null,
-			model: resource.content ? JSON.parse(atob(resource.content)) : createApprovalRequestTemplate()
+			model: resource.content ? JSON.parse(decodeUtf8Base64(resource.content)) : createApprovalRequestTemplate()
 		};
+	}
+
+	private async loadFromHostBridge(
+		hostBridge: NonNullable<ReturnType<typeof getDbmHostBridge>>,
+		name: string
+	): Promise<ModelDocumentRecord | null>
+	{
+		const resource = await hostBridge.loadModelDocument(name);
+		if (!resource)
+		{
+			return null;
+		}
+
+		return this.mapHostBridgeRecord(resource);
 	}
 
 	private async loadFromIndexedDb(name: string): Promise<ModelDocumentRecord | null>
@@ -1108,6 +1141,17 @@ export class ResourceDetailsComponent
 			};
 			getRequest.onerror = () => resolve(null);
 		});
+	}
+
+	private mapHostBridgeRecord(resource: DbmHostModelDocumentRecord): ModelDocumentRecord
+	{
+		return {
+			id: resource.id ?? undefined,
+			name: resource.name,
+			displayname: resource.displayname || this.toFallbackLabel(resource.name),
+			modifiedon: resource.modifiedon ? new Date(resource.modifiedon) : null,
+			model: resource.content ? JSON.parse(decodeUtf8Base64(resource.content)) : createApprovalRequestTemplate()
+		};
 	}
 
 	private async lookupResourceId(name: string): Promise<string | undefined>

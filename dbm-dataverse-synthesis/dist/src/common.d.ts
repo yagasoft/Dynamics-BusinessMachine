@@ -21,3 +21,8 @@ export declare function getEntityById(model: DbmModelV1, entityId: string): DbmE
 export declare function getFieldById(entity: DbmEntityV1, fieldId: string): DbmFieldV1 | undefined;
 export declare function getPublisherPrefix(logicalName: string): string;
 export declare function sanitizeFileName(value: string): string;
+export declare function createDeterministicGuid(seed: string): string;
+export declare function normalizeXmlContent(value: string): string;
+export declare function normalizeTextContent(value: string): string;
+export declare function tryDecodeBase64Utf8(value: string): string;
+export declare function toDataverseWebResourceFileName(webResourceName: string, webResourceId: string): string;

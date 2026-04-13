@@ -2,7 +2,7 @@
 
 ## Goal
 
-Give architects and developers a real designer-first platform that can define and run one approval/request process through a DBM-owned model-driven experience, generated Dataverse authoring, a shared runtime, and portal-compatible state projection.
+Give architects and developers a real designer-first platform that can define and run one approval/request process through a DBM-owned model-driven experience, a shared runtime, supported Dataverse form behavior, and portal-compatible state projection.
 
 ## Feature set and deliverables
 
@@ -11,7 +11,7 @@ Give architects and developers a real designer-first platform that can define an
 - reusable condition component
 - designer core extracted from host-specific UI
 - advanced model-driven designer host
-- generated Dataverse columns and model-driven forms
+- existing Dataverse forms plus supported JS behavior
 - XrmToolBox designer host
 - first real DBM-owned model-driven process runtime
 - backend execution engine v1
@@ -69,16 +69,23 @@ Must include:
 - drift detection between emitted artifacts and live Dataverse
 - packaged import order that preserves `DynamicsBusinessMachine` as the core solution and layers generated metadata after it
 
-### R1.2.3b Generated forms and behavior synthesis
+### R1.2.3b Existing forms and behavior synthesis
 
 Output:
-- generated model-driven forms and same-table form-state behavior emitted through the synthesis layer
+- existing Dataverse forms bound to DBM-managed supported JS behavior through the synthesis layer
 
 Must include:
+- canonical forms mapped to existing Dataverse forms through provider bindings
+- DBM-managed JS behavior for tabs, sections, and fields on those existing forms
+- readback and diff support for the DBM-managed form fragments and behavior web resources
+- packaged import of the patched form artifacts and behavior web resources through the layered generated-metadata solution
+
+Deferred to post-R1:
 - generated model-driven main forms from the canonical model
-- same-table form variation through generated behavior rather than duplicate full forms
-- readback and diff support for generated forms
-- packaged import of generated form artifacts through the layered generated-metadata solution
+- generated quick-view forms for related bindings
+- designer-driven table and column authoring
+- full-form XML ownership by DBM
+- whole-form drift enforcement against live Dataverse
 
 ### R1.2.4 Host adapters and portability completion
 
@@ -117,7 +124,7 @@ Must include:
 
 - one approval/request flow can be fully authored in the designer
 - the same model can be edited from both supported hosts
-- Dataverse columns and model-driven forms for the scenario can be generated or updated by the designer engine
-- the flow runs through the backend runtime and renders through the DBM-owned model-driven process experience
+- existing Dataverse forms for the scenario can be bound to DBM-managed behavior and the scenario can run through the backend runtime and render through the DBM-owned model-driven process experience
+- columns remain solution-owned and do not require designer-driven authoring in this release
 - portal-visible state projection is defined in the model even though the live portal runtime lands in `R2`
 - the release is deployable through the formal pipeline

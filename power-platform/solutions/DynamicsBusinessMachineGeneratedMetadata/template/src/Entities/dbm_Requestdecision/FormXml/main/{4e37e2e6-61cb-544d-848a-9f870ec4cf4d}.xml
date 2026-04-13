@@ -1,0 +1,84 @@
+<?xml version="1.0" encoding="utf-8"?>
+<forms xmlns:xsi="http://www.w3.org/2001/XMLSchema-instance">
+  <systemform>
+    <formid>{4e37e2e6-61cb-544d-848a-9f870ec4cf4d}</formid>
+    <IntroducedVersion>1.0.0.0</IntroducedVersion>
+    <FormPresentation>1</FormPresentation>
+    <FormActivationState>1</FormActivationState>
+    <form headerdensity="HighWithControls">
+      <tabs>
+        <tab name="review_main_tab" id="{4e37e2e6-61cb-544d-848a-9f870ec4cf40}" IsUserDefined="1" expanded="true" showlabel="true">
+          <labels>
+            <label description="Review" languagecode="1033" />
+          </labels>
+          <columns>
+            <column width="50%">
+              <sections>
+                <section name="review_summary_section" id="{4e37e2e6-61cb-544d-848a-9f870ec4cf41}" IsUserDefined="1" showlabel="true" showbar="false" columns="1">
+                  <labels>
+                    <label description="Review Summary" languagecode="1033" />
+                  </labels>
+                  <rows>
+                    <row>
+                      <cell id="{4e37e2e6-61cb-544d-848a-9f870ec4cf42}" showlabel="true">
+                        <labels>
+                          <label description="Request" languagecode="1033" />
+                        </labels>
+                        <control id="dbm_requestid" datafieldname="dbm_requestid" classid="{270BD3DB-D9AF-4782-9025-509E298DEC0A}" />
+                      </cell>
+                    </row>
+                    <row>
+                      <cell id="{4e37e2e6-61cb-544d-848a-9f870ec4cf43}" showlabel="true" rowspan="3">
+                        <labels>
+                          <label description="Decision Summary" languagecode="1033" />
+                        </labels>
+                        <control id="dbm_decisionsummary" datafieldname="dbm_decisionsummary" classid="{E0DECE4B-6FC8-4a8f-A065-082708572369}" />
+                      </cell>
+                    </row>
+                    <row />
+                    <row />
+                  </rows>
+                </section>
+              </sections>
+            </column>
+            <column width="50%">
+              <sections>
+                <section name="review_resolution_section" id="{4e37e2e6-61cb-544d-848a-9f870ec4cf44}" IsUserDefined="1" showlabel="true" showbar="false" columns="1">
+                  <labels>
+                    <label description="Resolution" languagecode="1033" />
+                  </labels>
+                  <rows>
+                    <row>
+                      <cell id="{4e37e2e6-61cb-544d-848a-9f870ec4cf45}" showlabel="true" rowspan="4">
+                        <labels>
+                          <label description="Decision Comment" languagecode="1033" />
+                        </labels>
+                        <control id="dbm_decisioncomment" datafieldname="dbm_decisioncomment" classid="{E0DECE4B-6FC8-4a8f-A065-082708572369}" />
+                      </cell>
+                    </row>
+                    <row />
+                    <row />
+                    <row />
+                  </rows>
+                </section>
+              </sections>
+            </column>
+          </columns>
+        </tab>
+      </tabs>
+      <header id="{4e37e2e6-61cb-544d-848a-9f870ec4cf46}" columns="111" celllabelposition="Top" labelwidth="115">
+        <rows />
+      </header>
+      <formLibraries />
+      <events />
+    </form>
+    <IsCustomizable>1</IsCustomizable>
+    <CanBeDeleted>1</CanBeDeleted>
+    <LocalizedNames>
+      <LocalizedName description="DBM Review" languagecode="1033" />
+    </LocalizedNames>
+    <Descriptions>
+      <Description description="Baseline review form for DBM-managed supported behavior." languagecode="1033" />
+    </Descriptions>
+  </systemform>
+</forms>

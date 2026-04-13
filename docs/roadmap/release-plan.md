@@ -65,15 +65,16 @@ Details: [release-0-engineering-foundation.md](release-0-engineering-foundation.
 ### Release 1
 
 Goal:
-- give architects and developers a real designer-first platform that can define and run one approval/request process through a DBM-owned model-driven experience, generated Dataverse authoring, a shared runtime, and portal-compatible state projection
+- give architects and developers a real designer-first platform that can define and run one approval/request process through a DBM-owned model-driven experience, supported Dataverse synthesis, existing Dataverse forms plus DBM-managed behavior, a shared runtime, and portal-compatible state projection
 
 Feature set and deliverables:
 - canonical DBM process model v1
 - stage + step + form-state semantics
 - reusable condition component
 - advanced designer core and host adapters
-- hybrid Dataverse synthesis pipeline for direct `Dev` authoring proof plus packaged promotion
-- generated Dataverse columns, relationships, and model-driven forms
+- hybrid Dataverse synthesis pipeline for direct `Dev` proof plus packaged promotion
+- Dataverse schema synthesis foundation for tables, columns, and relationships
+- existing Dataverse forms plus supported JS behavior
 - first real DBM-owned model-driven process runtime
 - backend execution engine v1
 - one approval/request reference solution
@@ -84,7 +85,7 @@ Stages:
 - `R1.2.1` Process semantics and contract alignment
 - `R1.2.2` Advanced designer UX foundation
 - `R1.2.3a` Dataverse synthesis foundation
-- `R1.2.3b` Generated forms and behavior synthesis
+- `R1.2.3b` Existing forms and behavior synthesis
 - `R1.2.4` Host adapters and portability completion
 - `R1.3` Execution engine and model-driven runtime
 - `R1.4` Reference solution and release hardening
@@ -133,7 +134,7 @@ Details: [release-3-ai-assisted-platform.md](release-3-ai-assisted-platform.md)
 ## Release-specific acceptance scenarios
 
 - `R0`: the current PoC can be rebuilt, packaged, deployed to `Dev`, promoted to `UAT`, and rolled back without manual secret handling
-- `R1`: one approval/request flow can be authored in the designer, synthesized into Dataverse columns and model-driven forms, edited from both model-driven and XrmToolBox hosts, rendered through the DBM-owned model-driven process experience, projected to portal-visible status, and executed through the backend runtime
+- `R1`: one approval/request flow can be authored in the designer, synthesized into the required Dataverse schema, bound to existing Dataverse forms with DBM-managed supported behavior, edited from both model-driven and XrmToolBox hosts, rendered through the DBM-owned model-driven process experience, projected to portal-visible status, and executed through the backend runtime
 - `R2`: the same approval/request flow can start in Power Pages, traverse Dataverse and Azure, return state to the portal, pass `UAT`, and be supported with documented rollback and operational diagnostics
 - `R3`: AI can generate drafts and recommendations with full traceability, mandatory human review, and no direct unreviewed production mutation
 

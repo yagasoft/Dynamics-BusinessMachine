@@ -1,6 +1,7 @@
 "use strict";
 Object.defineProperty(exports, "__esModule", { value: true });
 exports.diffSynthesisPlan = diffSynthesisPlan;
+const common_1 = require("./common");
 function compareColumn(plan, snapshot) {
     if (!plan.supported) {
         return [];
@@ -129,6 +130,72 @@ function compareRelationship(plan, snapshot) {
     }
     return [];
 }
+function compareForm(planForm, snapshotForm) {
+    if (!planForm.supported) {
+        return [];
+    }
+    if (!snapshotForm) {
+        return [
+            {
+                kind: 'form',
+                severity: 'error',
+                logicalName: planForm.systemFormId,
+                message: `Form '${planForm.displayName}' (${planForm.systemFormId}) is missing from the Dataverse snapshot.`
+            }
+        ];
+    }
+    const differences = [];
+    if ((0, common_1.normalizeXmlContent)(snapshotForm.managedFormLibrariesXml) !== (0, common_1.normalizeXmlContent)(planForm.managedFormLibrariesXml)) {
+        differences.push({
+            kind: 'form',
+            severity: 'error',
+            logicalName: planForm.systemFormId,
+            message: `Form '${planForm.displayName}' libraries fragment does not match the DBM-managed plan.`
+        });
+    }
+    if ((0, common_1.normalizeXmlContent)(snapshotForm.managedEventsXml) !== (0, common_1.normalizeXmlContent)(planForm.managedEventsXml)) {
+        differences.push({
+            kind: 'form',
+            severity: 'error',
+            logicalName: planForm.systemFormId,
+            message: `Form '${planForm.displayName}' onload events fragment does not match the DBM-managed plan.`
+        });
+    }
+    return differences;
+}
+function compareWebResource(planBehavior, snapshotWebResource) {
+    if (!planBehavior.supported) {
+        return [];
+    }
+    if (!snapshotWebResource) {
+        return [
+            {
+                kind: 'webresource',
+                severity: 'error',
+                logicalName: planBehavior.webResourceName,
+                message: `Web resource '${planBehavior.webResourceName}' is missing from the Dataverse snapshot.`
+            }
+        ];
+    }
+    const differences = [];
+    if (snapshotWebResource.webResourceType !== planBehavior.webResourceType) {
+        differences.push({
+            kind: 'webresource',
+            severity: 'error',
+            logicalName: planBehavior.webResourceName,
+            message: `Web resource '${planBehavior.webResourceName}' expected type '${planBehavior.webResourceType}' but found '${snapshotWebResource.webResourceType}'.`
+        });
+    }
+    if ((0, common_1.normalizeTextContent)(snapshotWebResource.content) !== (0, common_1.normalizeTextContent)(planBehavior.content)) {
+        differences.push({
+            kind: 'webresource',
+            severity: 'error',
+            logicalName: planBehavior.webResourceName,
+            message: `Web resource '${planBehavior.webResourceName}' content does not match the DBM-generated plan.`
+        });
+    }
+    return differences;
+}
 function diffSynthesisPlan(plan, snapshot) {
     const differences = [];
     for (const entityPlan of plan.entities) {
@@ -137,6 +204,12 @@ function diffSynthesisPlan(plan, snapshot) {
     for (const relationshipPlan of plan.relationships) {
         differences.push(...compareRelationship(relationshipPlan, snapshot.relationships.find((relationship) => relationship.logicalName === relationshipPlan.logicalName ||
             relationship.schemaName === relationshipPlan.schemaName)));
+    }
+    for (const formPlan of plan.forms) {
+        differences.push(...compareForm(formPlan, snapshot.forms.find((form) => form.formId.replace(/[{}]/g, '').toLowerCase() === formPlan.systemFormId.replace(/[{}]/g, '').toLowerCase())));
+    }
+    for (const behaviorPlan of plan.behaviors) {
+        differences.push(...compareWebResource(behaviorPlan, snapshot.webResources.find((webResource) => webResource.name === behaviorPlan.webResourceName)));
     }
     return {
         generatedUtc: new Date().toISOString(),

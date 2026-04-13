@@ -39,11 +39,16 @@ async function main(): Promise<void> {
     }
     case 'emit-source': {
       const outputRoot = getArgument('--output-root');
+      const templateRoot = getArgument('--template-root');
       if (!outputRoot) {
         throw new Error('emit-source requires --output-root');
       }
 
-      await emitGeneratedMetadataSolution(plan, path.resolve(outputRoot));
+      await emitGeneratedMetadataSolution(
+        plan,
+        path.resolve(outputRoot),
+        templateRoot ? path.resolve(templateRoot) : undefined
+      );
       return;
     }
     case 'readback': {
