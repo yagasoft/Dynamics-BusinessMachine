@@ -7,6 +7,7 @@ This section holds operational runbooks that support delivery, promotion, rollba
 - [local-bootstrap-and-build.md](local-bootstrap-and-build.md)
 - [dev-rapid-deploy.md](dev-rapid-deploy.md)
 - [dev-deployment-runbook.md](dev-deployment-runbook.md)
+- [designer-hosted-validation.md](designer-hosted-validation.md)
 - [uat-promotion-runbook.md](uat-promotion-runbook.md)
 - [prod-promotion-runbook.md](prod-promotion-runbook.md)
 - [rollback-runbook.md](rollback-runbook.md)

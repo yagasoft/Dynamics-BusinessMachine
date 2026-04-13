@@ -87,6 +87,30 @@ To run the local `Dev` rapid deploy path:
 
 Use `-Components` to force a scoped local build and `-InteractiveLogin` if PAC needs a local interactive sign-in for `Dev`.
 
+## Hosted designer access in Dev
+
+The recommended way to use the current DBM designer is the Dataverse-hosted app in `Dev`, not plain localhost. The checked-in Angular MSAL environment values are still placeholders, so localhost remains a build/test path rather than the primary interactive usage path.
+
+To resolve the current hosted designer URL:
+
+```powershell
+.\eng\scripts\Get-DbmDesignerHost.ps1 -TargetEnvironment Dev
+```
+
+To open the hosted designer directly in your browser:
+
+```powershell
+.\eng\scripts\Get-DbmDesignerHost.ps1 -TargetEnvironment Dev -Open
+```
+
+To validate the hosted designer prerequisites and capture evidence:
+
+```powershell
+.\eng\scripts\Test-DbmDesignerHost.ps1 -TargetEnvironment Dev
+```
+
+For the exact manual create/edit/save/reopen walkthrough, use [designer-hosted-validation.md](designer-hosted-validation.md).
+
 Preferred one-time local PAC profile setup:
 
 ```powershell

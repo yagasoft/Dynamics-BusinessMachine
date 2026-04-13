@@ -61,6 +61,8 @@ GitHub Environment variables must match [`../../azure/config/dev.json`](../../az
 - `environment-baseline.json` confirms workflow variables matched the tracked baseline
 - `core/online-version.txt` and `generated-metadata/online-version.txt` in deployment evidence match or exceed the expected solution version
 - `smoke-test-results.json` shows automated checks passed for both solutions and generated metadata drift validation
+- `designer-host/designer-host-results.json` confirms the hosted designer app module and required web resources are present
+- `designer-host/designer-host-summary.md` records the exact hosted designer URL and manual validation checklist
 - `smoke-test-summary.md` is retained with any manual follow-up notes
 - basic designer entry flow and one representative runtime action load successfully
 
@@ -77,6 +79,8 @@ GitHub Environment variables must match [`../../azure/config/dev.json`](../../az
 - `environment-baseline.json`
 - `smoke-test-results.json`
 - `smoke-test-summary.md`
+- `designer-host/designer-host-results.json`
+- `designer-host/designer-host-summary.md`
 - Azure deployment workflow link if applicable
 - smoke-test notes
 - issues or follow-up work opened from the promotion

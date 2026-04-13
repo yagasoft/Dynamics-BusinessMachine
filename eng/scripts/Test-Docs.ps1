@@ -18,6 +18,7 @@ $requiredDocs = @(
     'docs\runbooks\prod-promotion-runbook.md',
     'docs\runbooks\secret-rotation-and-identity-recovery.md',
     'docs\runbooks\local-bootstrap-and-build.md',
+    'docs\runbooks\designer-hosted-validation.md',
     'docs\runbooks\codex-dataverse-metadata-synthesis-skill-handoff.md'
 )
 
