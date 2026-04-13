@@ -209,9 +209,27 @@ if (-not $SkipGeneratedMetadataValidation) {
     }
 }
 
+$designerHostRoot = Join-Path $EvidenceRoot 'designer-host'
+& (Join-Path $PSScriptRoot 'Test-DbmDesignerHost.ps1') `
+    -RepoRoot (Resolve-Path (Join-Path $PSScriptRoot '..\..')).Path `
+    -TargetEnvironment $TargetEnvironment `
+    -DataverseUrl $DataverseUrl `
+    -EvidenceRoot $designerHostRoot | Out-Null
+
+$designerHostResultsPath = Join-Path $designerHostRoot 'designer-host-results.json'
+$designerHostSummaryPath = Join-Path $designerHostRoot 'designer-host-summary.md'
+$designerHostResults = Get-Content -Path $designerHostResultsPath -Raw | ConvertFrom-Json
+
+$automatedChecks += [ordered]@{
+    name = 'designer-host-prerequisites-valid'
+    passed = $true
+    details = "Designer app module and required web resources are present in '$TargetEnvironment'."
+}
+
 $manualChecks = @(
     'Review the deployment workflow logs for import warnings or component issues.',
-    'Verify the designer entry flow loads successfully in the target environment.',
+    "Open the hosted designer using '$($designerHostResults.designerUrl)' or review '$designerHostSummaryPath', then verify the designer entry flow loads successfully in the target environment.",
+    'Create one new model document, save it, refresh, and reopen it without host or validation dead ends.',
     'Verify one representative DBM runtime action loads successfully in the target environment.'
 )
 
@@ -227,6 +245,11 @@ $result = [ordered]@{
     actualSolutionVersions = $actualVersions
     generatedMetadataValidation = if ($SkipGeneratedMetadataValidation) { 'skipped' } else { 'pass' }
     generatedMetadataArtifacts = $generatedMetadataArtifacts
+    designerHostArtifacts = [ordered]@{
+        result = $designerHostResultsPath
+        summary = $designerHostSummaryPath
+        designerUrl = [string]$designerHostResults.designerUrl
+    }
     status = 'pass'
     automatedChecks = $automatedChecks
     manualChecksRequired = $manualChecks
@@ -255,6 +278,8 @@ if (-not [string]::IsNullOrWhiteSpace($ExpectedSolutionVersion)) {
 if (-not $SkipGeneratedMetadataValidation) {
     $summaryLines += "- Generated metadata drift validation: pass"
 }
+$summaryLines += "- Designer host validation: pass"
+$summaryLines += "- Designer URL: $($designerHostResults.designerUrl)"
 
 $summaryLines += ''
 $summaryLines += '## Automated checks'
