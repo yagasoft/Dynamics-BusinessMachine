@@ -1,38 +1,47 @@
 /* You can add global styles to this file, and also import other style files */
-@import "primeng/resources/themes/bootstrap4-light-blue/theme.css";
 @import "primeicons/primeicons.css";
-@import "primeng/resources/primeng.css";
+
+:root {
+	--dbm-surface: #f6f8fb;
+	--dbm-panel: #ffffff;
+	--dbm-border: #d6deeb;
+	--dbm-text: #17324d;
+	--dbm-muted: #5b6f87;
+	--dbm-accent: #0e7490;
+	--dbm-accent-soft: #e0f2fe;
+	--dbm-danger: #b42318;
+}
 
 html,
 body {
 	height: 100%;
 	margin: 0;
-	padding: 2px;
+	padding: 0;
+	background: linear-gradient(180deg, #eef6ff 0%, #f7fbff 100%);
+	color: var(--dbm-text);
+	font-family: "Segoe UI", Tahoma, Geneva, Verdana, sans-serif;
 }
 
-.p-toolbar {
-	background: none;
-	padding: 2px;
+body {
+	padding: 8px;
 }
 
-.p-divider {
-	margin: 5px 0 5px 0;
+a {
+	color: inherit;
 }
 
-.p-splitter {
-	height: 100%;
+button,
+input,
+select,
+textarea {
+	font: inherit;
 }
 
-.p-fieldset {
-	.p-fieldset-legend {
-		padding: 2px;
-		border: unset;
-		background: unset;
-	}
-
-	.p-fieldset-content {
-		padding: 2px;
-	}
+.panel {
+	background: var(--dbm-panel);
+	border: 1px solid var(--dbm-border);
+	border-radius: 14px;
+	box-shadow: 0 16px 40px rgba(15, 23, 42, 0.06);
 }
 
 .button-group {
@@ -73,6 +82,22 @@ body {
 
 .overflow {
 	overflow: auto;
+}
+
+.muted {
+	color: var(--dbm-muted);
+}
+
+.pill {
+	display: inline-flex;
+	align-items: center;
+	gap: 0.35rem;
+	padding: 0.2rem 0.6rem;
+	border-radius: 999px;
+	background: var(--dbm-accent-soft);
+	color: var(--dbm-accent);
+	font-size: 0.85rem;
+	font-weight: 600;
 }
 
 .editor-wrapper {

@@ -1,11 +1,8 @@
 import { ApplicationConfig } from '@angular/core';
 import { provideRouter } from '@angular/router';
-import { BrowserAnimationsModule } from '@angular/platform-browser/animations';
-import { importProvidersFrom } from '@angular/core';
+import { provideAnimations } from '@angular/platform-browser/animations';
 
 import { routes } from './app.routes';
-
-import { BrowserModule } from '@angular/platform-browser';
 import
 {
 	provideHttpClient,
@@ -33,6 +30,7 @@ import
 	MsalGuard,
 	MsalBroadcastService,
 } from '@azure/msal-angular';
+import { providePrimeNG } from 'primeng/config';
 import { environment } from '../environments/environment';
 
 export function loggerCallback(logLevel: LogLevel, message: string)
@@ -53,7 +51,7 @@ export function MSALInstanceFactory(): IPublicClientApplication
 			cacheLocation: BrowserCacheLocation.LocalStorage,
 		},
 		system: {
-			allowNativeBroker: false, // Disables WAM Broker
+			allowPlatformBroker: false,
 			loggerOptions: {
 				loggerCallback,
 				logLevel: LogLevel.Info,
@@ -89,27 +87,33 @@ export function MSALGuardConfigFactory(): MsalGuardConfiguration
 }
 
 export const appConfig: ApplicationConfig = {
-	providers: [provideRouter(routes),
-	importProvidersFrom([BrowserAnimationsModule, BrowserModule]),
-	provideHttpClient(withInterceptorsFromDi(), withFetch()),
-	{
-		provide: HTTP_INTERCEPTORS,
-		useClass: MsalInterceptor,
-		multi: true,
-	},
-	{
-		provide: MSAL_INSTANCE,
-		useFactory: MSALInstanceFactory,
-	},
-	{
-		provide: MSAL_GUARD_CONFIG,
-		useFactory: MSALGuardConfigFactory,
-	},
-	{
-		provide: MSAL_INTERCEPTOR_CONFIG,
-		useFactory: MSALInterceptorConfigFactory,
-	},
+	providers: [
+		provideRouter(routes),
+		provideAnimations(),
+		providePrimeNG({
+			theme: 'none',
+			ripple: false
+		}),
+		provideHttpClient(withInterceptorsFromDi(), withFetch()),
+		{
+			provide: HTTP_INTERCEPTORS,
+			useClass: MsalInterceptor,
+			multi: true,
+		},
+		{
+			provide: MSAL_INSTANCE,
+			useFactory: MSALInstanceFactory,
+		},
+		{
+			provide: MSAL_GUARD_CONFIG,
+			useFactory: MSALGuardConfigFactory,
+		},
+		{
+			provide: MSAL_INTERCEPTOR_CONFIG,
+			useFactory: MSALInterceptorConfigFactory,
+		},
 		MsalService,
 		MsalGuard,
-		MsalBroadcastService]
+		MsalBroadcastService
+	]
 };

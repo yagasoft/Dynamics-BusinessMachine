@@ -1,4 +1,4 @@
-import { Component, OnInit, Inject, OnDestroy } from '@angular/core';
+import { Component, Inject, OnDestroy } from '@angular/core';
 import { FormsModule } from '@angular/forms';
 import { ResourcesListComponent } from "./resources-list/resources-list.component";
 import { ButtonModule } from 'primeng/button';
@@ -28,7 +28,7 @@ import { filter, takeUntil } from 'rxjs/operators';
 import { HttpClient } from '@angular/common/http';
 import { xrmGlobal } from './global';
 
-import { RouterLink, RouterOutlet } from '@angular/router';
+import { RouterOutlet } from '@angular/router';
 
 import * as $ from 'jquery';
 
@@ -37,7 +37,7 @@ import * as $ from 'jquery';
 	standalone: true,
 	templateUrl: './app.component.html',
 	styleUrl: './app.component.scss',
-	imports: [ResourcesListComponent, MsalModule, RouterOutlet, RouterLink, FormsModule, ButtonModule]
+	imports: [ResourcesListComponent, MsalModule, RouterOutlet, FormsModule, ButtonModule]
 })
 export class AppComponent
 {
@@ -83,29 +83,34 @@ export class AppComponent
 		if (!this.isReady)
 		{
 			await firstValueFrom(this.authService.initialize());
-			this.authService.handleRedirectObservable().subscribe();
+			const redirectResult = await firstValueFrom(this.authService.handleRedirectObservable());
+			if (redirectResult?.account)
+			{
+				this.authService.instance.setActiveAccount(redirectResult.account);
+			}
+
 			this.isIframe = window !== window.parent && !window.opener; // Remove this line to use Angular Universal
 
 			this.setLoginDisplay();
 
-			this.authService.instance.enableAccountStorageEvents(); // Optional - This will enable ACCOUNT_ADDED and ACCOUNT_REMOVED events emitted when a user logs in or out of another tab or window
 			this.msalBroadcastService.msalSubject$
 				.pipe(
 					filter(
 						(msg: EventMessage) =>
-							msg.eventType === EventType.ACCOUNT_ADDED ||
-							msg.eventType === EventType.ACCOUNT_REMOVED
-					)
+							msg.eventType === EventType.LOGIN_SUCCESS ||
+							msg.eventType === EventType.ACQUIRE_TOKEN_SUCCESS
+					),
+					takeUntil(this._destroying$)
 				)
 				.subscribe((result: EventMessage) =>
 				{
-					if (this.authService.instance.getAllAccounts().length === 0)
+					const payload = result.payload as AuthenticationResult | null;
+					if (payload?.account)
 					{
-						window.location.pathname = '/';
-					} else
-					{
-						this.setLoginDisplay();
+						this.authService.instance.setActiveAccount(payload.account);
 					}
+
+					this.setLoginDisplay();
 				});
 
 			this.msalBroadcastService.inProgress$
@@ -178,7 +183,7 @@ export class AppComponent
 					const request =
 					{
 						scopes: [`${xrmGlobal.baseUrl}/.default`],
-						account: this.authService.instance.getAccountByUsername(response.account.username)
+						account: this.authService.instance.getAccount({ username: response.account.username }) ?? response.account
 					};
 
 					this.authService.instance.acquireTokenSilent(request)
