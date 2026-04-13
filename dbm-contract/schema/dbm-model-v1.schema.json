@@ -98,6 +98,21 @@
           },
           "title": "supportedRuntimes"
         },
+        "processUiSurfaces": {
+          "type": "array",
+          "items": {
+            "$ref": "#/definitions/DbmSupportedHostV1"
+          },
+          "title": "processUiSurfaces"
+        },
+        "exposesPortalState": {
+          "type": "boolean",
+          "title": "exposesPortalState"
+        },
+        "ownsGeneratedDataverseArtifacts": {
+          "type": "boolean",
+          "title": "ownsGeneratedDataverseArtifacts"
+        },
         "compatibility": {
           "$ref": "#/definitions/DbmPackageCompatibilityV1",
           "title": "compatibility"
@@ -113,7 +128,10 @@
         "deployment",
         "displayName",
         "entryProcessId",
+        "exposesPortalState",
         "id",
+        "ownsGeneratedDataverseArtifacts",
+        "processUiSurfaces",
         "publisher",
         "supportedHosts",
         "supportedRuntimes",
@@ -243,6 +261,27 @@
           },
           "title": "variables"
         },
+        "statuses": {
+          "type": "array",
+          "items": {
+            "$ref": "#/definitions/DbmStatusV1"
+          },
+          "title": "statuses"
+        },
+        "tasks": {
+          "type": "array",
+          "items": {
+            "$ref": "#/definitions/DbmTaskDefinitionV1"
+          },
+          "title": "tasks"
+        },
+        "notifications": {
+          "type": "array",
+          "items": {
+            "$ref": "#/definitions/DbmNotificationDefinitionV1"
+          },
+          "title": "notifications"
+        },
         "stages": {
           "type": "array",
           "items": {
@@ -250,12 +289,26 @@
           },
           "title": "stages"
         },
+        "steps": {
+          "type": "array",
+          "items": {
+            "$ref": "#/definitions/DbmStepV1"
+          },
+          "title": "steps"
+        },
         "transitions": {
           "type": "array",
           "items": {
             "$ref": "#/definitions/DbmTransitionV1"
           },
           "title": "transitions"
+        },
+        "stepTransitions": {
+          "type": "array",
+          "items": {
+            "$ref": "#/definitions/DbmStepTransitionV1"
+          },
+          "title": "stepTransitions"
         },
         "outcomes": {
           "type": "array",
@@ -270,9 +323,14 @@
         "actors",
         "displayName",
         "id",
+        "notifications",
         "outcomes",
         "scenarioType",
         "stages",
+        "statuses",
+        "stepTransitions",
+        "steps",
+        "tasks",
         "transitions",
         "variables"
       ]
@@ -393,6 +451,133 @@
       ],
       "type": "string"
     },
+    "DbmStatusV1": {
+      "title": "DbmStatusV1",
+      "type": "object",
+      "properties": {
+        "id": {
+          "type": "string",
+          "title": "id"
+        },
+        "displayName": {
+          "type": "string",
+          "title": "displayName"
+        },
+        "audience": {
+          "$ref": "#/definitions/DbmStatusAudienceV1",
+          "title": "audience"
+        },
+        "kind": {
+          "$ref": "#/definitions/DbmStatusKindV1",
+          "title": "kind"
+        }
+      },
+      "additionalProperties": false,
+      "required": [
+        "audience",
+        "displayName",
+        "id",
+        "kind"
+      ]
+    },
+    "DbmStatusAudienceV1": {
+      "title": "DbmStatusAudienceV1",
+      "enum": [
+        "internal",
+        "portal",
+        "shared"
+      ],
+      "type": "string"
+    },
+    "DbmStatusKindV1": {
+      "title": "DbmStatusKindV1",
+      "enum": [
+        "decision",
+        "progress",
+        "terminal"
+      ],
+      "type": "string"
+    },
+    "DbmTaskDefinitionV1": {
+      "title": "DbmTaskDefinitionV1",
+      "type": "object",
+      "properties": {
+        "id": {
+          "type": "string",
+          "title": "id"
+        },
+        "displayName": {
+          "type": "string",
+          "title": "displayName"
+        },
+        "taskType": {
+          "$ref": "#/definitions/DbmTaskTypeV1",
+          "title": "taskType"
+        },
+        "instructions": {
+          "type": [
+            "null",
+            "string"
+          ],
+          "title": "instructions"
+        }
+      },
+      "additionalProperties": false,
+      "required": [
+        "displayName",
+        "id",
+        "instructions",
+        "taskType"
+      ]
+    },
+    "DbmTaskTypeV1": {
+      "title": "DbmTaskTypeV1",
+      "enum": [
+        "approval",
+        "data-entry",
+        "review",
+        "system"
+      ],
+      "type": "string"
+    },
+    "DbmNotificationDefinitionV1": {
+      "title": "DbmNotificationDefinitionV1",
+      "type": "object",
+      "properties": {
+        "id": {
+          "type": "string",
+          "title": "id"
+        },
+        "displayName": {
+          "type": "string",
+          "title": "displayName"
+        },
+        "channel": {
+          "$ref": "#/definitions/DbmNotificationChannelV1",
+          "title": "channel"
+        },
+        "templateRef": {
+          "type": "string",
+          "title": "templateRef"
+        }
+      },
+      "additionalProperties": false,
+      "required": [
+        "channel",
+        "displayName",
+        "id",
+        "templateRef"
+      ]
+    },
+    "DbmNotificationChannelV1": {
+      "title": "DbmNotificationChannelV1",
+      "enum": [
+        "both",
+        "email",
+        "in-app"
+      ],
+      "type": "string"
+    },
     "DbmStageV1": {
       "title": "DbmStageV1",
       "type": "object",
@@ -420,6 +605,24 @@
           ],
           "title": "formId"
         },
+        "portalVisibility": {
+          "$ref": "#/definitions/DbmStagePortalVisibilityV1",
+          "title": "portalVisibility"
+        },
+        "stepIds": {
+          "type": "array",
+          "items": {
+            "type": "string"
+          },
+          "title": "stepIds"
+        },
+        "defaultStepId": {
+          "type": [
+            "null",
+            "string"
+          ],
+          "title": "defaultStepId"
+        },
         "entryRuleIds": {
           "type": "array",
           "items": {
@@ -446,12 +649,15 @@
       "required": [
         "actorId",
         "allowedOutcomeIds",
+        "defaultStepId",
         "displayName",
         "entryRuleIds",
         "exitRuleIds",
         "formId",
         "id",
-        "stageType"
+        "portalVisibility",
+        "stageType",
+        "stepIds"
       ]
     },
     "DbmStageTypeV1": {
@@ -462,6 +668,111 @@
         "start",
         "system",
         "task"
+      ],
+      "type": "string"
+    },
+    "DbmStagePortalVisibilityV1": {
+      "title": "DbmStagePortalVisibilityV1",
+      "enum": [
+        "hidden",
+        "visible"
+      ],
+      "type": "string"
+    },
+    "DbmStepV1": {
+      "title": "DbmStepV1",
+      "type": "object",
+      "properties": {
+        "id": {
+          "type": "string",
+          "title": "id"
+        },
+        "stageId": {
+          "type": "string",
+          "title": "stageId"
+        },
+        "displayName": {
+          "type": "string",
+          "title": "displayName"
+        },
+        "stepType": {
+          "$ref": "#/definitions/DbmStepTypeV1",
+          "title": "stepType"
+        },
+        "ownerActorId": {
+          "type": "string",
+          "title": "ownerActorId"
+        },
+        "notificationId": {
+          "type": [
+            "null",
+            "string"
+          ],
+          "title": "notificationId"
+        },
+        "taskId": {
+          "type": [
+            "null",
+            "string"
+          ],
+          "title": "taskId"
+        },
+        "internalStatusId": {
+          "type": "string",
+          "title": "internalStatusId"
+        },
+        "portalStatusId": {
+          "type": [
+            "null",
+            "string"
+          ],
+          "title": "portalStatusId"
+        },
+        "formStateId": {
+          "type": [
+            "null",
+            "string"
+          ],
+          "title": "formStateId"
+        },
+        "entryRuleIds": {
+          "type": "array",
+          "items": {
+            "type": "string"
+          },
+          "title": "entryRuleIds"
+        },
+        "exitRuleIds": {
+          "type": "array",
+          "items": {
+            "type": "string"
+          },
+          "title": "exitRuleIds"
+        }
+      },
+      "additionalProperties": false,
+      "required": [
+        "displayName",
+        "entryRuleIds",
+        "exitRuleIds",
+        "formStateId",
+        "id",
+        "internalStatusId",
+        "notificationId",
+        "ownerActorId",
+        "portalStatusId",
+        "stageId",
+        "stepType",
+        "taskId"
+      ]
+    },
+    "DbmStepTypeV1": {
+      "title": "DbmStepTypeV1",
+      "enum": [
+        "approval",
+        "data-entry",
+        "review",
+        "system"
       ],
       "type": "string"
     },
@@ -499,6 +810,79 @@
         "toStageId"
       ]
     },
+    "DbmStepTransitionV1": {
+      "title": "DbmStepTransitionV1",
+      "type": "object",
+      "properties": {
+        "id": {
+          "type": "string",
+          "title": "id"
+        },
+        "fromStepId": {
+          "type": "string",
+          "title": "fromStepId"
+        },
+        "guardRuleId": {
+          "type": "string",
+          "title": "guardRuleId"
+        },
+        "target": {
+          "$ref": "#/definitions/DbmStepTransitionTargetV1",
+          "title": "target"
+        }
+      },
+      "additionalProperties": false,
+      "required": [
+        "fromStepId",
+        "guardRuleId",
+        "id",
+        "target"
+      ]
+    },
+    "DbmStepTransitionTargetV1": {
+      "title": "DbmStepTransitionTargetV1",
+      "anyOf": [
+        {
+          "type": "object",
+          "properties": {
+            "stepId": {
+              "type": "string",
+              "title": "stepId"
+            }
+          },
+          "additionalProperties": false,
+          "required": [
+            "stepId"
+          ]
+        },
+        {
+          "type": "object",
+          "properties": {
+            "stageId": {
+              "type": "string",
+              "title": "stageId"
+            }
+          },
+          "additionalProperties": false,
+          "required": [
+            "stageId"
+          ]
+        },
+        {
+          "type": "object",
+          "properties": {
+            "outcomeId": {
+              "type": "string",
+              "title": "outcomeId"
+            }
+          },
+          "additionalProperties": false,
+          "required": [
+            "outcomeId"
+          ]
+        }
+      ]
+    },
     "DbmOutcomeV1": {
       "title": "DbmOutcomeV1",
       "type": "object",
@@ -530,9 +914,16 @@
           "type": "string",
           "title": "displayName"
         },
-        "entityId": {
+        "primaryEntityBindingId": {
           "type": "string",
-          "title": "entityId"
+          "title": "primaryEntityBindingId"
+        },
+        "entityBindings": {
+          "type": "array",
+          "items": {
+            "$ref": "#/definitions/DbmFormEntityBindingV1"
+          },
+          "title": "entityBindings"
         },
         "layout": {
           "$ref": "#/definitions/DbmFormLayoutV1",
@@ -544,16 +935,70 @@
             "$ref": "#/definitions/DbmFormElementV1"
           },
           "title": "elements"
+        },
+        "formStates": {
+          "type": "array",
+          "items": {
+            "$ref": "#/definitions/DbmFormStateV1"
+          },
+          "title": "formStates"
         }
       },
       "additionalProperties": false,
       "required": [
         "displayName",
         "elements",
+        "entityBindings",
+        "formStates",
+        "id",
+        "layout",
+        "primaryEntityBindingId"
+      ]
+    },
+    "DbmFormEntityBindingV1": {
+      "title": "DbmFormEntityBindingV1",
+      "type": "object",
+      "properties": {
+        "id": {
+          "type": "string",
+          "title": "id"
+        },
+        "displayName": {
+          "type": "string",
+          "title": "displayName"
+        },
+        "entityId": {
+          "type": "string",
+          "title": "entityId"
+        },
+        "relationshipId": {
+          "type": [
+            "null",
+            "string"
+          ],
+          "title": "relationshipId"
+        },
+        "role": {
+          "$ref": "#/definitions/DbmFormEntityBindingRoleV1",
+          "title": "role"
+        }
+      },
+      "additionalProperties": false,
+      "required": [
+        "displayName",
         "entityId",
         "id",
-        "layout"
+        "relationshipId",
+        "role"
       ]
+    },
+    "DbmFormEntityBindingRoleV1": {
+      "title": "DbmFormEntityBindingRoleV1",
+      "enum": [
+        "primary",
+        "related"
+      ],
+      "type": "string"
     },
     "DbmFormLayoutV1": {
       "title": "DbmFormLayoutV1",
@@ -661,6 +1106,10 @@
         {
           "type": "object",
           "properties": {
+            "entityBindingId": {
+              "type": "string",
+              "title": "entityBindingId"
+            },
             "fieldId": {
               "type": "string",
               "title": "fieldId"
@@ -668,6 +1117,7 @@
           },
           "additionalProperties": false,
           "required": [
+            "entityBindingId",
             "fieldId"
           ]
         },
@@ -715,6 +1165,103 @@
       "additionalProperties": false,
       "required": [
         "editableRuleIds",
+        "requiredRuleIds",
+        "visibleRuleIds"
+      ]
+    },
+    "DbmFormStateV1": {
+      "title": "DbmFormStateV1",
+      "type": "object",
+      "properties": {
+        "id": {
+          "type": "string",
+          "title": "id"
+        },
+        "displayName": {
+          "type": "string",
+          "title": "displayName"
+        },
+        "activationRuleIds": {
+          "type": "array",
+          "items": {
+            "type": "string"
+          },
+          "title": "activationRuleIds"
+        },
+        "visibleEntityBindingIds": {
+          "type": "array",
+          "items": {
+            "type": "string"
+          },
+          "title": "visibleEntityBindingIds"
+        },
+        "elementBehaviors": {
+          "type": "array",
+          "items": {
+            "$ref": "#/definitions/DbmFormStateElementBehaviorV1"
+          },
+          "title": "elementBehaviors"
+        }
+      },
+      "additionalProperties": false,
+      "required": [
+        "activationRuleIds",
+        "displayName",
+        "elementBehaviors",
+        "id",
+        "visibleEntityBindingIds"
+      ]
+    },
+    "DbmFormStateElementBehaviorV1": {
+      "title": "DbmFormStateElementBehaviorV1",
+      "type": "object",
+      "properties": {
+        "elementId": {
+          "type": "string",
+          "title": "elementId"
+        },
+        "label": {
+          "type": [
+            "null",
+            "string"
+          ],
+          "title": "label"
+        },
+        "hint": {
+          "type": [
+            "null",
+            "string"
+          ],
+          "title": "hint"
+        },
+        "requiredRuleIds": {
+          "type": "array",
+          "items": {
+            "type": "string"
+          },
+          "title": "requiredRuleIds"
+        },
+        "visibleRuleIds": {
+          "type": "array",
+          "items": {
+            "type": "string"
+          },
+          "title": "visibleRuleIds"
+        },
+        "editableRuleIds": {
+          "type": "array",
+          "items": {
+            "type": "string"
+          },
+          "title": "editableRuleIds"
+        }
+      },
+      "additionalProperties": false,
+      "required": [
+        "editableRuleIds",
+        "elementId",
+        "hint",
+        "label",
         "requiredRuleIds",
         "visibleRuleIds"
       ]
@@ -941,8 +1488,11 @@
       "enum": [
         "field",
         "form",
+        "form-state",
         "process",
         "stage",
+        "step",
+        "step-transition",
         "transition"
       ],
       "type": "string"

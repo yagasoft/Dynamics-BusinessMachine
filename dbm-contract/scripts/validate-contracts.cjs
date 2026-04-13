@@ -80,6 +80,6 @@ runPositiveValidation(
 runExpectedFailureValidation(
   validateModel,
   'invalid model fixture',
-  path.join(projectRoot, 'fixtures', 'invalid', 'model-missing-package-v1.json'),
-  (error) => error.keyword === 'required' && error.params && error.params.missingProperty === 'package'
+  path.join(projectRoot, 'fixtures', 'invalid', 'model-missing-stage-step-flow-v1.json'),
+  (error) => error.keyword === 'required' && error.params && error.params.missingProperty === 'stepIds'
 );

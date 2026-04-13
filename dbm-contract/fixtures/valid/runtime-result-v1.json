@@ -3,13 +3,29 @@
   "status": "ok",
   "state": {
     "stageId": "approved",
-    "fields": {
-      "request-status": "approved",
-      "decision-comment": "Approved for Q2 delivery."
-    },
+    "stepId": "record-approval",
+    "formStateId": "review-approval-state",
+    "internalStatusId": "approved",
+    "portalStatusId": "approved",
+    "records": [
+      {
+        "entityId": "request",
+        "recordId": "REQ-1001",
+        "fieldValues": {
+          "request-status": "approved"
+        }
+      },
+      {
+        "entityId": "request-decision",
+        "recordId": "DEC-1001",
+        "fieldValues": {
+          "decision-comment": "Approved for Q2 delivery."
+        }
+      }
+    ],
     "variables": {
       "request-status": "approved",
-      "decision-comment": "Approved for Q2 delivery."
+      "portal-status": "approved"
     }
   },
   "effects": {

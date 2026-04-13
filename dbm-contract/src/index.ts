@@ -9,7 +9,17 @@ export type DbmActorTypeV1 = 'requester' | 'approver' | 'system';
 export type DbmActorSourceV1 = 'current-user' | 'field-binding' | 'rule-derived' | 'system';
 export type DbmVariableScopeV1 = 'process';
 export type DbmVariablePersistenceV1 = 'runtime-only' | 'persisted';
+
 export type DbmStageTypeV1 = 'start' | 'task' | 'approval' | 'system' | 'end';
+export type DbmStagePortalVisibilityV1 = 'visible' | 'hidden';
+
+export type DbmStepTypeV1 = 'data-entry' | 'review' | 'approval' | 'system';
+
+export type DbmStatusAudienceV1 = 'internal' | 'portal' | 'shared';
+export type DbmStatusKindV1 = 'progress' | 'decision' | 'terminal';
+
+export type DbmTaskTypeV1 = 'data-entry' | 'review' | 'approval' | 'system';
+export type DbmNotificationChannelV1 = 'in-app' | 'email' | 'both';
 
 export type DbmElementTypeV1 =
   | 'text'
@@ -35,7 +45,15 @@ export type DbmFieldDataTypeV1 =
 
 export type DbmRelationshipTypeV1 = 'one-to-many' | 'many-to-one';
 export type DbmRuleTypeV1 = 'condition' | 'validation' | 'derivation' | 'action';
-export type DbmRuleScopeV1 = 'process' | 'stage' | 'transition' | 'form' | 'field';
+export type DbmRuleScopeV1 =
+  | 'process'
+  | 'stage'
+  | 'step'
+  | 'transition'
+  | 'step-transition'
+  | 'form'
+  | 'form-state'
+  | 'field';
 export type DbmRuleLanguageV1 = 'dbm-expression-v1' | 'javascript-artifact-v1';
 
 export type DbmRuntimeCapabilityV1 =
@@ -62,6 +80,9 @@ export type DbmArtifactTypeV1 =
 export type DbmPackagingTargetV1 = 'dataverse-webresource' | 'dataverse-plugin' | 'repo-only' | 'azure-app';
 export type DbmLayoutTypeV1 = 'single-page';
 export type DbmBreakingChangePolicyV1 = 'reject-newer-major';
+
+export type DbmFormEntityBindingRoleV1 = 'primary' | 'related';
+export type DbmSubjectRecordRoleV1 = 'primary' | 'related';
 
 export type DbmScalarValueV1 = string | number | boolean | null;
 
@@ -91,6 +112,9 @@ export interface DbmPackageV1 {
   entryProcessId: string;
   supportedHosts: DbmSupportedHostV1[];
   supportedRuntimes: DbmRuntimeEngineV1[];
+  processUiSurfaces: DbmSupportedHostV1[];
+  exposesPortalState: boolean;
+  ownsGeneratedDataverseArtifacts: boolean;
   compatibility: DbmPackageCompatibilityV1;
   deployment: DbmPackageDeploymentV1;
 }
@@ -110,15 +134,54 @@ export interface DbmVariableV1 {
   persistence: DbmVariablePersistenceV1;
 }
 
+export interface DbmStatusV1 {
+  id: string;
+  displayName: string;
+  audience: DbmStatusAudienceV1;
+  kind: DbmStatusKindV1;
+}
+
+export interface DbmTaskDefinitionV1 {
+  id: string;
+  displayName: string;
+  taskType: DbmTaskTypeV1;
+  instructions: string | null;
+}
+
+export interface DbmNotificationDefinitionV1 {
+  id: string;
+  displayName: string;
+  channel: DbmNotificationChannelV1;
+  templateRef: string;
+}
+
 export interface DbmStageV1 {
   id: string;
   displayName: string;
   stageType: DbmStageTypeV1;
   actorId: string;
   formId: string | null;
+  portalVisibility: DbmStagePortalVisibilityV1;
+  stepIds: string[];
+  defaultStepId: string | null;
   entryRuleIds: string[];
   exitRuleIds: string[];
   allowedOutcomeIds: string[];
+}
+
+export interface DbmStepV1 {
+  id: string;
+  stageId: string;
+  displayName: string;
+  stepType: DbmStepTypeV1;
+  ownerActorId: string;
+  notificationId: string | null;
+  taskId: string | null;
+  internalStatusId: string;
+  portalStatusId: string | null;
+  formStateId: string | null;
+  entryRuleIds: string[];
+  exitRuleIds: string[];
 }
 
 export interface DbmTransitionV1 {
@@ -127,6 +190,15 @@ export interface DbmTransitionV1 {
   toStageId: string;
   outcomeId: string;
   guardRuleId: string;
+}
+
+export type DbmStepTransitionTargetV1 = { stepId: string } | { stageId: string } | { outcomeId: string };
+
+export interface DbmStepTransitionV1 {
+  id: string;
+  fromStepId: string;
+  guardRuleId: string;
+  target: DbmStepTransitionTargetV1;
 }
 
 export interface DbmOutcomeV1 {
@@ -140,8 +212,13 @@ export interface DbmProcessV1 {
   scenarioType: 'approval-request';
   actors: DbmActorV1[];
   variables: DbmVariableV1[];
+  statuses: DbmStatusV1[];
+  tasks: DbmTaskDefinitionV1[];
+  notifications: DbmNotificationDefinitionV1[];
   stages: DbmStageV1[];
+  steps: DbmStepV1[];
   transitions: DbmTransitionV1[];
+  stepTransitions: DbmStepTransitionV1[];
   outcomes: DbmOutcomeV1[];
 }
 
@@ -156,7 +233,15 @@ export interface DbmFormLayoutV1 {
   regions: DbmLayoutRegionV1[];
 }
 
-export type DbmElementBindingV1 = { fieldId: string } | { variableId: string };
+export interface DbmFormEntityBindingV1 {
+  id: string;
+  displayName: string;
+  entityId: string;
+  relationshipId: string | null;
+  role: DbmFormEntityBindingRoleV1;
+}
+
+export type DbmElementBindingV1 = { entityBindingId: string; fieldId: string } | { variableId: string };
 
 export interface DbmElementBehaviorV1 {
   requiredRuleIds: string[];
@@ -173,12 +258,31 @@ export interface DbmFormElementV1 {
   behavior: DbmElementBehaviorV1;
 }
 
+export interface DbmFormStateElementBehaviorV1 {
+  elementId: string;
+  label: string | null;
+  hint: string | null;
+  requiredRuleIds: string[];
+  visibleRuleIds: string[];
+  editableRuleIds: string[];
+}
+
+export interface DbmFormStateV1 {
+  id: string;
+  displayName: string;
+  activationRuleIds: string[];
+  visibleEntityBindingIds: string[];
+  elementBehaviors: DbmFormStateElementBehaviorV1[];
+}
+
 export interface DbmFormV1 {
   id: string;
   displayName: string;
-  entityId: string;
+  primaryEntityBindingId: string;
+  entityBindings: DbmFormEntityBindingV1[];
   layout: DbmFormLayoutV1;
   elements: DbmFormElementV1[];
+  formStates: DbmFormStateV1[];
 }
 
 export interface DbmDataverseBindingV1 {
@@ -298,14 +402,31 @@ export interface DbmRuntimeActorContextV1 {
   roleIds: string[];
 }
 
-export interface DbmRuntimeSubjectV1 {
+export interface DbmRuntimeSubjectRecordV1 {
+  id: string;
   entityId: string;
   recordId: string;
+  relationshipId: string | null;
+  role: DbmSubjectRecordRoleV1;
+}
+
+export interface DbmRuntimeSubjectV1 {
+  records: DbmRuntimeSubjectRecordV1[];
+}
+
+export interface DbmRuntimeRecordStateV1 {
+  entityId: string;
+  recordId: string;
+  fieldValues: Record<string, DbmScalarValueV1>;
 }
 
 export interface DbmRuntimeStateV1 {
   stageId: string;
-  fields: Record<string, DbmScalarValueV1>;
+  stepId: string;
+  formStateId: string | null;
+  internalStatusId: string;
+  portalStatusId: string | null;
+  records: DbmRuntimeRecordStateV1[];
   variables: Record<string, DbmScalarValueV1>;
 }
 

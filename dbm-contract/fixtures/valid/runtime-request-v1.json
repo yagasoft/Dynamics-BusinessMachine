@@ -3,7 +3,7 @@
   "operation": "transition",
   "model": {
     "packageId": "dbm-approval-request",
-    "packageVersion": "1.0.0",
+    "packageVersion": "1.2.1",
     "processId": "approval-request-process"
   },
   "runtime": {
@@ -22,27 +22,54 @@
   "actor": {
     "actorId": "manager-approver",
     "userId": "00000000-0000-0000-0000-000000000001",
-    "roleIds": [
-      "manager"
-    ]
+    "roleIds": ["manager"]
   },
   "subject": {
-    "entityId": "request",
-    "recordId": "REQ-1001"
+    "records": [
+      {
+        "id": "request-primary",
+        "entityId": "request",
+        "recordId": "REQ-1001",
+        "relationshipId": null,
+        "role": "primary"
+      },
+      {
+        "id": "review-decision",
+        "entityId": "request-decision",
+        "recordId": "DEC-1001",
+        "relationshipId": "request-to-decision",
+        "role": "related"
+      }
+    ]
   },
   "state": {
     "stageId": "manager-review",
-    "fields": {
-      "request-title": "Travel Budget Increase",
-      "request-amount": 12500,
-      "request-justification": "Budget uplift needed for regional workshops.",
-      "request-status": "submitted",
-      "assigned-approver": "00000000-0000-0000-0000-000000000001",
-      "decision-comment": "Approved for Q2 delivery."
-    },
+    "stepId": "record-approval",
+    "formStateId": "review-approval-state",
+    "internalStatusId": "approved",
+    "portalStatusId": "approved",
+    "records": [
+      {
+        "entityId": "request",
+        "recordId": "REQ-1001",
+        "fieldValues": {
+          "request-title": "Travel Budget Increase",
+          "request-amount": 12500,
+          "assigned-approver": "00000000-0000-0000-0000-000000000001"
+        }
+      },
+      {
+        "entityId": "request-decision",
+        "recordId": "DEC-1001",
+        "fieldValues": {
+          "decision-summary": "Approved for regional workshops.",
+          "decision-comment": "Approved for Q2 delivery."
+        }
+      }
+    ],
     "variables": {
-      "request-status": "submitted",
-      "decision-comment": "Approved for Q2 delivery."
+      "request-status": "approved",
+      "portal-status": "approved"
     }
   },
   "command": {

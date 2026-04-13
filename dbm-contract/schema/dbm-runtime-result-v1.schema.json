@@ -70,9 +70,34 @@
           "type": "string",
           "title": "stageId"
         },
-        "fields": {
-          "$ref": "#/definitions/Record%3Cstring%2CDbmScalarValueV1%3E",
-          "title": "fields"
+        "stepId": {
+          "type": "string",
+          "title": "stepId"
+        },
+        "formStateId": {
+          "type": [
+            "null",
+            "string"
+          ],
+          "title": "formStateId"
+        },
+        "internalStatusId": {
+          "type": "string",
+          "title": "internalStatusId"
+        },
+        "portalStatusId": {
+          "type": [
+            "null",
+            "string"
+          ],
+          "title": "portalStatusId"
+        },
+        "records": {
+          "type": "array",
+          "items": {
+            "$ref": "#/definitions/DbmRuntimeRecordStateV1"
+          },
+          "title": "records"
         },
         "variables": {
           "$ref": "#/definitions/Record%3Cstring%2CDbmScalarValueV1%3E",
@@ -81,9 +106,37 @@
       },
       "additionalProperties": false,
       "required": [
-        "fields",
+        "formStateId",
+        "internalStatusId",
+        "portalStatusId",
+        "records",
         "stageId",
+        "stepId",
         "variables"
+      ]
+    },
+    "DbmRuntimeRecordStateV1": {
+      "title": "DbmRuntimeRecordStateV1",
+      "type": "object",
+      "properties": {
+        "entityId": {
+          "type": "string",
+          "title": "entityId"
+        },
+        "recordId": {
+          "type": "string",
+          "title": "recordId"
+        },
+        "fieldValues": {
+          "$ref": "#/definitions/Record%3Cstring%2CDbmScalarValueV1%3E",
+          "title": "fieldValues"
+        }
+      },
+      "additionalProperties": false,
+      "required": [
+        "entityId",
+        "fieldValues",
+        "recordId"
       ]
     },
     "Record<string,DbmScalarValueV1>": {

@@ -180,6 +180,27 @@
       "title": "DbmRuntimeSubjectV1",
       "type": "object",
       "properties": {
+        "records": {
+          "type": "array",
+          "items": {
+            "$ref": "#/definitions/DbmRuntimeSubjectRecordV1"
+          },
+          "title": "records"
+        }
+      },
+      "additionalProperties": false,
+      "required": [
+        "records"
+      ]
+    },
+    "DbmRuntimeSubjectRecordV1": {
+      "title": "DbmRuntimeSubjectRecordV1",
+      "type": "object",
+      "properties": {
+        "id": {
+          "type": "string",
+          "title": "id"
+        },
         "entityId": {
           "type": "string",
           "title": "entityId"
@@ -187,13 +208,35 @@
         "recordId": {
           "type": "string",
           "title": "recordId"
+        },
+        "relationshipId": {
+          "type": [
+            "null",
+            "string"
+          ],
+          "title": "relationshipId"
+        },
+        "role": {
+          "$ref": "#/definitions/DbmSubjectRecordRoleV1",
+          "title": "role"
         }
       },
       "additionalProperties": false,
       "required": [
         "entityId",
-        "recordId"
+        "id",
+        "recordId",
+        "relationshipId",
+        "role"
       ]
+    },
+    "DbmSubjectRecordRoleV1": {
+      "title": "DbmSubjectRecordRoleV1",
+      "enum": [
+        "primary",
+        "related"
+      ],
+      "type": "string"
     },
     "DbmRuntimeStateV1": {
       "title": "DbmRuntimeStateV1",
@@ -203,9 +246,34 @@
           "type": "string",
           "title": "stageId"
         },
-        "fields": {
-          "$ref": "#/definitions/Record%3Cstring%2CDbmScalarValueV1%3E",
-          "title": "fields"
+        "stepId": {
+          "type": "string",
+          "title": "stepId"
+        },
+        "formStateId": {
+          "type": [
+            "null",
+            "string"
+          ],
+          "title": "formStateId"
+        },
+        "internalStatusId": {
+          "type": "string",
+          "title": "internalStatusId"
+        },
+        "portalStatusId": {
+          "type": [
+            "null",
+            "string"
+          ],
+          "title": "portalStatusId"
+        },
+        "records": {
+          "type": "array",
+          "items": {
+            "$ref": "#/definitions/DbmRuntimeRecordStateV1"
+          },
+          "title": "records"
         },
         "variables": {
           "$ref": "#/definitions/Record%3Cstring%2CDbmScalarValueV1%3E",
@@ -214,9 +282,37 @@
       },
       "additionalProperties": false,
       "required": [
-        "fields",
+        "formStateId",
+        "internalStatusId",
+        "portalStatusId",
+        "records",
         "stageId",
+        "stepId",
         "variables"
+      ]
+    },
+    "DbmRuntimeRecordStateV1": {
+      "title": "DbmRuntimeRecordStateV1",
+      "type": "object",
+      "properties": {
+        "entityId": {
+          "type": "string",
+          "title": "entityId"
+        },
+        "recordId": {
+          "type": "string",
+          "title": "recordId"
+        },
+        "fieldValues": {
+          "$ref": "#/definitions/Record%3Cstring%2CDbmScalarValueV1%3E",
+          "title": "fieldValues"
+        }
+      },
+      "additionalProperties": false,
+      "required": [
+        "entityId",
+        "fieldValues",
+        "recordId"
       ]
     },
     "Record<string,DbmScalarValueV1>": {

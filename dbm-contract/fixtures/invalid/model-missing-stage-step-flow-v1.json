@@ -1,0 +1,80 @@
+{
+  "schemaVersion": "dbm.model/v1",
+  "package": {
+    "id": "dbm-approval-request",
+    "displayName": "DBM Approval Request",
+    "version": "1.2.1",
+    "publisher": {
+      "name": "Dynamics Business Machine",
+      "website": "https://example.invalid/dbm",
+      "prefix": "dbm"
+    },
+    "entryProcessId": "approval-request-process",
+    "supportedHosts": ["model-driven"],
+    "supportedRuntimes": ["dataverse"],
+    "processUiSurfaces": ["model-driven"],
+    "exposesPortalState": true,
+    "ownsGeneratedDataverseArtifacts": true,
+    "compatibility": {
+      "minimumReaderSchemaVersion": "dbm.model/v1",
+      "maximumReaderSchemaVersion": "dbm.model/v1",
+      "breakingChangePolicy": "reject-newer-major"
+    },
+    "deployment": {
+      "solutionName": "DBM Approval Request",
+      "releaseLine": "R1.2.1",
+      "artifactRoot": "artifacts/dbm-approval-request"
+    }
+  },
+  "process": {
+    "id": "approval-request-process",
+    "displayName": "Approval Request",
+    "scenarioType": "approval-request",
+    "actors": [],
+    "variables": [],
+    "statuses": [],
+    "tasks": [],
+    "notifications": [],
+    "stages": [
+      {
+        "id": "draft-request",
+        "displayName": "Draft Request",
+        "stageType": "start",
+        "actorId": "requester",
+        "formId": null,
+        "portalVisibility": "visible",
+        "defaultStepId": null,
+        "entryRuleIds": [],
+        "exitRuleIds": [],
+        "allowedOutcomeIds": []
+      }
+    ],
+    "steps": [],
+    "transitions": [],
+    "stepTransitions": [],
+    "outcomes": []
+  },
+  "forms": [],
+  "metadata": {
+    "entities": [],
+    "relationships": []
+  },
+  "rules": [],
+  "runtime": {
+    "capabilities": [],
+    "requestContract": {
+      "schemaVersion": "dbm.runtime.request/v1",
+      "operations": []
+    },
+    "resultContract": {
+      "schemaVersion": "dbm.runtime.result/v1",
+      "statuses": []
+    },
+    "ownership": {
+      "pcf": { "responsibilities": [] },
+      "dataverse": { "responsibilities": [] },
+      "azure": { "responsibilities": ["support-services-only"] }
+    }
+  },
+  "artifacts": []
+}
