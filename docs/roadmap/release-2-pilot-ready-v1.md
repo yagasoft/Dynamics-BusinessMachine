@@ -2,11 +2,11 @@
 
 ## Goal
 
-Turn the builder MVP into a pilot-ready platform where a real approval/request process starts in Power Pages, runs through Dataverse and Azure, returns to the front door, and is supportable in `UAT` and `Prod`.
+Turn the builder MVP into a pilot-ready platform where a real approval/request process uses the portal projection semantics defined in `R1`, starts in Power Pages, runs through Dataverse and Azure where needed, returns to the front door, and is supportable in `UAT` and `Prod`.
 
 ## Feature set and deliverables
 
-- Power Pages front-door integration
+- Power Pages runtime built on the `R1` portal projection contract
 - Azure orchestration and integration services
 - end-to-end state return to the portal
 - browser- or Azure-hosted administration surfaces where needed for pilot operation
@@ -14,16 +14,16 @@ Turn the builder MVP into a pilot-ready platform where a real approval/request p
 
 ## Stages
 
-### R2.1 Portal contract and external entry
+### R2.1 Portal runtime and external entry
 
 Output:
-- portal-entry path for the approval/request scenario
+- real portal entry and process experience for the approval/request scenario
 
 Must define and implement:
 - Power Pages authentication and identity assumptions
 - context handoff into the DBM runtime
 - process initiation contract
-- state return contract
+- use of the portal-visible status and state projection defined in `R1`
 
 ### R2.2 Azure orchestration and service plane
 
@@ -42,8 +42,8 @@ Output:
 - one coherent, pilot-ready reference solution
 
 Must connect:
-- Power Pages
-- PCF runtime
+- Power Pages runtime
+- model-driven DBM process runtime
 - Dataverse backend execution
 - Azure orchestration and supporting services
 - state return to the portal
@@ -63,5 +63,6 @@ Must include:
 ## Exit criteria
 
 - the reference approval/request solution works end-to-end from portal to completion and back
+- portal-facing status remains coherent with the internal process model without exposing hidden internal stages or steps
 - the solution is supportable in `UAT` and `Prod`
 - rollback, diagnostics, and operational documentation are ready for pilot use

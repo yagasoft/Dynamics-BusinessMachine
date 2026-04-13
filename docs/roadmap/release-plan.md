@@ -16,8 +16,8 @@ This document defines the approved high-level release ladder for DBM and the sta
 | Release | Name | Goal |
 | --- | --- | --- |
 | `R0` | Engineering Foundation And Product Baseline | make the repo, environments, docs, and delivery posture production-grade enough to support later feature work |
-| `R1` | Builder Platform MVP | let architects and developers define and run one real approval/request process through a designer-first experience |
-| `R2` | Pilot-Ready End-To-End Platform | complete the portal-to-Dataverse-to-Azure-to-portal loop and harden to pilot-ready `v1.0.0` |
+| `R1` | Builder Platform MVP | let architects and developers define and run one real approval/request process through a DBM-owned designer-first experience with portal-compatible state projection |
+| `R2` | Pilot-Ready End-To-End Platform | complete the live portal-to-Dataverse-to-Azure-to-portal loop and harden to pilot-ready `v1.0.0` |
 | `R3` | AI-Assisted Platform | add trustworthy AI assistance only after the core platform and operations are stable |
 
 ## Cross-release rules
@@ -26,7 +26,8 @@ This document defines the approved high-level release ladder for DBM and the sta
 - No release bypasses `Dev` and `UAT`.
 - Every stage must end with testable output and clear exit criteria.
 - The designer remains the primary product surface.
-- Release 1 must include a real PCF runtime on model-driven forms.
+- Release 1 must include a real DBM-owned model-driven runtime.
+- Portal projection semantics are defined in Release 1 before the live Power Pages runtime arrives in Release 2.
 - AI is out of scope until after `v1.0.0`.
 
 ## Shared release gates
@@ -64,22 +65,26 @@ Details: [release-0-engineering-foundation.md](release-0-engineering-foundation.
 ### Release 1
 
 Goal:
-- give architects and developers a real designer-first platform that can define and run one approval/request process through a model-driven experience, a portable XrmToolBox designer host, a shared runtime, and a real PCF form runtime
+- give architects and developers a real designer-first platform that can define and run one approval/request process through a DBM-owned model-driven experience, generated Dataverse authoring, a shared runtime, and portal-compatible state projection
 
 Feature set and deliverables:
 - canonical DBM process model v1
-- designer core extracted from host-specific UI
-- model-driven designer host
-- XrmToolBox designer host
-- first real PCF process runtime on forms
+- stage + step + form-state semantics
+- reusable condition component
+- advanced designer core and host adapters
+- generated Dataverse columns and model-driven forms
+- first real DBM-owned model-driven process runtime
 - backend execution engine v1
 - one approval/request reference solution
 - Azure support services only where they clearly add value
 
 Stages:
 - `R1.1` Canonical model and runtime contract
-- `R1.2` Designer core and host adapters
-- `R1.3` Execution engine and PCF runtime
+- `R1.2.1` Process semantics and contract alignment
+- `R1.2.2` Advanced designer UX foundation
+- `R1.2.3` Generated Dataverse authoring
+- `R1.2.4` Host adapters and portability completion
+- `R1.3` Execution engine and model-driven runtime
 - `R1.4` Reference solution and release hardening
 
 Details: [release-1-builder-platform-mvp.md](release-1-builder-platform-mvp.md)
@@ -87,17 +92,17 @@ Details: [release-1-builder-platform-mvp.md](release-1-builder-platform-mvp.md)
 ### Release 2
 
 Goal:
-- turn the builder MVP into a pilot-ready platform where a real approval/request process starts in Power Pages, runs through Dataverse and Azure, returns to the front door, and is supportable in `UAT` and `Prod`
+- turn the builder MVP into a pilot-ready platform where the same approval/request process uses the portal projection semantics defined in `R1`, starts in Power Pages, runs through Dataverse and Azure, returns to the front door, and is supportable in `UAT` and `Prod`
 
 Feature set and deliverables:
-- Power Pages front-door integration
+- Power Pages runtime built on the `R1` portal projection contract
 - Azure orchestration and integration services
 - end-to-end state return to the portal
 - browser- or Azure-hosted administration surfaces where needed for pilot operation
 - observability, supportability, rollback, and pilot runbooks
 
 Stages:
-- `R2.1` Portal contract and external entry
+- `R2.1` Portal runtime and external entry
 - `R2.2` Azure orchestration and service plane
 - `R2.3` End-to-end lifecycle completion
 - `R2.4` Pilot readiness and operational hardening
@@ -126,7 +131,7 @@ Details: [release-3-ai-assisted-platform.md](release-3-ai-assisted-platform.md)
 ## Release-specific acceptance scenarios
 
 - `R0`: the current PoC can be rebuilt, packaged, deployed to `Dev`, promoted to `UAT`, and rolled back without manual secret handling
-- `R1`: one approval/request flow can be authored in the designer, edited from both model-driven and XrmToolBox hosts, deployed by pipeline, rendered through PCF on forms, and executed through the backend runtime
+- `R1`: one approval/request flow can be authored in the designer, synthesized into Dataverse columns and model-driven forms, edited from both model-driven and XrmToolBox hosts, rendered through the DBM-owned model-driven process experience, projected to portal-visible status, and executed through the backend runtime
 - `R2`: the same approval/request flow can start in Power Pages, traverse Dataverse and Azure, return state to the portal, pass `UAT`, and be supported with documented rollback and operational diagnostics
 - `R3`: AI can generate drafts and recommendations with full traceability, mandatory human review, and no direct unreviewed production mutation
 
