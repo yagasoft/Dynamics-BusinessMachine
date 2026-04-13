@@ -36,6 +36,7 @@ jobs:
           cache-dependency-path: |
             dbm-app/package-lock.json
             dbm-contract/package-lock.json
+            dbm-designer-core/package-lock.json
             dbm-script-lib/package-lock.json
             dbm-js-vm/package-lock.json
             dbm-web-resources/package-lock.json
@@ -70,6 +71,10 @@ jobs:
       - name: Validate DBM contract
         shell: pwsh
         run: .\eng\scripts\Test-DbmContract.ps1
+
+      - name: Validate DBM designer core
+        shell: pwsh
+        run: .\eng\scripts\Test-DbmDesignerCore.ps1
 
       - name: Restore legacy NuGet packages
         shell: pwsh

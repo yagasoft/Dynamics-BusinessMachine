@@ -10,6 +10,7 @@ $ErrorActionPreference = 'Stop'
 $nodeProjects = @(
     'dbm-app',
     'dbm-contract',
+    'dbm-designer-core',
     'dbm-script-lib',
     'dbm-js-vm',
     'dbm-web-resources'

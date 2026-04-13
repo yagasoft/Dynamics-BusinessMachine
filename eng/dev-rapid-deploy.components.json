@@ -74,6 +74,19 @@
       "notes": "This package is validated in CI but not staged into Dataverse artifacts."
     },
     {
+      "name": "DbmDesignerCore",
+      "description": "Host-agnostic DBM designer core and semantic validation layer.",
+      "sourcePatterns": [
+        "dbm-designer-core/*"
+      ],
+      "nodeProjects": [
+        "dbm-designer-core"
+      ],
+      "requiresDotNetBuild": false,
+      "deployable": false,
+      "notes": "This package supports the model-driven designer host but is not staged into Dataverse artifacts."
+    },
+    {
       "name": "SolutionAssets",
       "description": "Files that affect Dataverse solution staging or package metadata.",
       "sourcePatterns": [
@@ -86,6 +99,7 @@
         "eng/scripts/Invoke-DataversePackaging.ps1"
       ],
       "nodeProjects": [
+        "dbm-designer-core",
         "dbm-app",
         "dbm-script-lib",
         "dbm-js-vm",
