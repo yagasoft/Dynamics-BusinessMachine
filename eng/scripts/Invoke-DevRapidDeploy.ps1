@@ -283,12 +283,12 @@ if ([string]$devConfig.environment -ne 'Dev') {
     throw "Dev rapid deploy expected azure/config/dev.json to declare environment 'Dev' but found '$($devConfig.environment)'."
 }
 
-$changedFiles = Get-DbmChangedFiles -GitPath $gitPath -RepoRoot $RepoRoot
+$changedFiles = @(Get-DbmChangedFiles -GitPath $gitPath -RepoRoot $RepoRoot)
 if ((-not $Components -or $Components.Count -eq 0) -and $changedFiles.Count -eq 0) {
     throw 'No local changes were detected relative to HEAD. Commit, edit files, or pass -Components to force a scoped Dev rapid deploy.'
 }
 
-$detectedComponents = Get-DbmMatchedComponents -RegistryComponents $registryComponents -ChangedFiles $changedFiles
+$detectedComponents = @(Get-DbmMatchedComponents -RegistryComponents $registryComponents -ChangedFiles $changedFiles)
 if ((-not $Components -or $Components.Count -eq 0) -and $detectedComponents.Count -eq 0) {
     $changedFileText = if ($changedFiles.Count -gt 0) { $changedFiles -join ', ' } else { 'none' }
     throw "No changed files matched the tracked Dev rapid deploy component registry. Changed files: $changedFileText"
