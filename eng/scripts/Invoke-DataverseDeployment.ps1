@@ -15,7 +15,9 @@ param(
     [string]$PluginAssemblyName = 'Yagasoft.Dbm.Plugins',
     [string]$ExpectedSolutionVersion,
     [string]$EvidenceRoot = (Join-Path $PackageRoot 'deployment-evidence'),
-    [switch]$AllowSolutionReplaceOnPluginIdentityChange
+    [switch]$AllowSolutionReplaceOnPluginIdentityChange,
+    [switch]$AllowSameVersionImport,
+    [switch]$SkipGeneratedMetadataDeployment
 )
 
 $ErrorActionPreference = 'Stop'
@@ -406,9 +408,12 @@ function Import-DbmSolutionPackage {
         '--path', $package.FullName,
         '--environment', $DataverseUrl,
         '--publish-changes',
-        '--skip-lower-version',
         '--max-async-wait-time', '60'
     )
+
+    if (-not $AllowSameVersionImport) {
+        $importArguments += '--skip-lower-version'
+    }
 
     if ($settingsFile) {
         $importArguments += @('--settings-file', $settingsFile)
@@ -595,21 +600,26 @@ $deploymentResults += Import-DbmSolutionPackage `
     -PluginAssemblyName $PluginAssemblyName `
     -ExpectedSolutionVersion $ExpectedSolutionVersion `
     -AllowPluginIdentityReplace:$AllowSolutionReplaceOnPluginIdentityChange `
+    -AllowSameVersionImport:$AllowSameVersionImport `
     -AllowLegacySettingsAlias
 
-$deploymentResults += Import-DbmSolutionPackage `
-    -SolutionName $GeneratedMetadataSolutionName `
-    -PackageRoot $PackageRoot `
-    -DataverseUrl $DataverseUrl `
-    -TargetEnvironment $TargetEnvironment `
-    -EvidenceRoot (Join-Path $EvidenceRoot 'generated-metadata') `
-    -ExpectedSolutionVersion $ExpectedSolutionVersion
+if (-not $SkipGeneratedMetadataDeployment) {
+    $deploymentResults += Import-DbmSolutionPackage `
+        -SolutionName $GeneratedMetadataSolutionName `
+        -PackageRoot $PackageRoot `
+        -DataverseUrl $DataverseUrl `
+        -TargetEnvironment $TargetEnvironment `
+        -EvidenceRoot (Join-Path $EvidenceRoot 'generated-metadata') `
+        -ExpectedSolutionVersion $ExpectedSolutionVersion `
+        -AllowSameVersionImport:$AllowSameVersionImport
+}
 
 $summary = [ordered]@{
     generatedUtc = (Get-Date).ToUniversalTime().ToString('o')
     targetEnvironment = $TargetEnvironment
     dataverseUrl = $DataverseUrl
-    solutionImportOrder = @($SolutionName, $GeneratedMetadataSolutionName)
+    solutionImportOrder = if ($SkipGeneratedMetadataDeployment) { @($SolutionName) } else { @($SolutionName, $GeneratedMetadataSolutionName) }
+    generatedMetadataDeployment = if ($SkipGeneratedMetadataDeployment) { 'skipped' } else { 'imported' }
     deployments = $deploymentResults
 }
 

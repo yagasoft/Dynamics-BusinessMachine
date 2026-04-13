@@ -3,7 +3,8 @@ param(
     [string]$RepoRoot = (Resolve-Path (Join-Path $PSScriptRoot '..\..')).Path,
     [string]$OutputRoot = (Join-Path (Resolve-Path (Join-Path $PSScriptRoot '..\..')).Path 'artifacts\dev-rapid-deploy'),
     [string[]]$Components,
-    [switch]$InteractiveLogin
+    [switch]$InteractiveLogin,
+    [switch]$SkipGeneratedMetadataDeployment
 )
 
 $ErrorActionPreference = 'Stop'
@@ -314,6 +315,7 @@ Set-Content -Path $changedFilesPath -Value $changedFiles -Encoding UTF8
 $planPayload = [ordered]@{
     generatedUtc = (Get-Date).ToUniversalTime().ToString('o')
     requestedComponents = @($Components | Select-Object -Unique)
+    skipGeneratedMetadataDeployment = [bool]$SkipGeneratedMetadataDeployment
     detectedComponents = $plan.detectedComponentNames
     selectedComponents = $plan.selectedComponentNames
     effectiveComponents = $plan.effectiveComponentNames
@@ -367,14 +369,17 @@ if ($pacProfileSelection -and $pacProfileSelection.profileName) {
     -DataverseUrl ([string]$devConfig.dataverseUrl) `
     -SolutionName ([string]$version.solutionName) `
     -ExpectedSolutionVersion ([string]$version.solutionVersion) `
-    -EvidenceRoot $evidenceRoot
+    -EvidenceRoot $evidenceRoot `
+    -AllowSameVersionImport `
+    -SkipGeneratedMetadataDeployment:$SkipGeneratedMetadataDeployment
 
 & (Join-Path $PSScriptRoot 'Test-DataverseSmoke.ps1') `
     -TargetEnvironment Dev `
     -DataverseUrl ([string]$devConfig.dataverseUrl) `
     -SolutionName ([string]$version.solutionName) `
     -ExpectedSolutionVersion ([string]$version.solutionVersion) `
-    -EvidenceRoot $evidenceRoot
+    -EvidenceRoot $evidenceRoot `
+    -SkipGeneratedMetadataValidation:$SkipGeneratedMetadataDeployment
 
 $currentBranch = (& $gitPath -C $RepoRoot branch --show-current | Select-Object -First 1).Trim()
 $currentCommit = (& $gitPath -C $RepoRoot rev-parse HEAD | Select-Object -First 1).Trim()
@@ -392,6 +397,7 @@ $summary = [ordered]@{
     nodeProjectsBuilt = $plan.nodeProjects
     dotNetBuilt = $plan.requiresDotNetBuild
     forceFullBuild = $plan.forceFullBuild
+    skipGeneratedMetadataDeployment = [bool]$SkipGeneratedMetadataDeployment
     expectedSolutionVersion = [string]$version.solutionVersion
     packageRoot = $packageRoot
     evidenceRoot = $evidenceRoot
