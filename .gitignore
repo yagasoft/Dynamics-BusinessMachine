@@ -443,6 +443,7 @@ packages*/
 
 # compiled output
 /dist
+/dbm-contract/dist/
 /tmp
 /out-tsc
 

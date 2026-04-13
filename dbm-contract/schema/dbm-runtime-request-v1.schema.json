@@ -1,0 +1,253 @@
+{
+  "$ref": "#/definitions/DbmRuntimeRequestV1",
+  "definitions": {
+    "DbmRuntimeRequestV1": {
+      "title": "DbmRuntimeRequestV1",
+      "type": "object",
+      "properties": {
+        "schemaVersion": {
+          "type": "string",
+          "const": "dbm.runtime.request/v1",
+          "title": "schemaVersion"
+        },
+        "operation": {
+          "$ref": "#/definitions/DbmRuntimeOperationV1",
+          "title": "operation"
+        },
+        "model": {
+          "$ref": "#/definitions/DbmRuntimeModelReferenceV1",
+          "title": "model"
+        },
+        "runtime": {
+          "$ref": "#/definitions/DbmRuntimeContextV1",
+          "title": "runtime"
+        },
+        "actor": {
+          "$ref": "#/definitions/DbmRuntimeActorContextV1",
+          "title": "actor"
+        },
+        "subject": {
+          "$ref": "#/definitions/DbmRuntimeSubjectV1",
+          "title": "subject"
+        },
+        "state": {
+          "$ref": "#/definitions/DbmRuntimeStateV1",
+          "title": "state"
+        },
+        "command": {
+          "$ref": "#/definitions/DbmRuntimeCommandV1",
+          "title": "command"
+        },
+        "correlationId": {
+          "type": "string",
+          "title": "correlationId"
+        }
+      },
+      "additionalProperties": false,
+      "required": [
+        "actor",
+        "command",
+        "correlationId",
+        "model",
+        "operation",
+        "runtime",
+        "schemaVersion",
+        "state",
+        "subject"
+      ]
+    },
+    "DbmRuntimeOperationV1": {
+      "title": "DbmRuntimeOperationV1",
+      "enum": [
+        "initialize",
+        "load-form",
+        "submit",
+        "transition",
+        "validate"
+      ],
+      "type": "string"
+    },
+    "DbmRuntimeModelReferenceV1": {
+      "title": "DbmRuntimeModelReferenceV1",
+      "type": "object",
+      "properties": {
+        "packageId": {
+          "type": "string",
+          "title": "packageId"
+        },
+        "packageVersion": {
+          "type": "string",
+          "title": "packageVersion"
+        },
+        "processId": {
+          "type": "string",
+          "title": "processId"
+        }
+      },
+      "additionalProperties": false,
+      "required": [
+        "packageId",
+        "packageVersion",
+        "processId"
+      ]
+    },
+    "DbmRuntimeContextV1": {
+      "title": "DbmRuntimeContextV1",
+      "type": "object",
+      "properties": {
+        "host": {
+          "$ref": "#/definitions/DbmSupportedHostV1",
+          "title": "host"
+        },
+        "engine": {
+          "$ref": "#/definitions/DbmRuntimeEngineV1",
+          "title": "engine"
+        },
+        "capabilities": {
+          "type": "array",
+          "items": {
+            "$ref": "#/definitions/DbmRuntimeCapabilityV1"
+          },
+          "title": "capabilities"
+        }
+      },
+      "additionalProperties": false,
+      "required": [
+        "capabilities",
+        "engine",
+        "host"
+      ]
+    },
+    "DbmSupportedHostV1": {
+      "title": "DbmSupportedHostV1",
+      "enum": [
+        "model-driven",
+        "xrmtoolbox"
+      ],
+      "type": "string"
+    },
+    "DbmRuntimeEngineV1": {
+      "title": "DbmRuntimeEngineV1",
+      "enum": [
+        "azure",
+        "dataverse",
+        "pcf"
+      ],
+      "type": "string"
+    },
+    "DbmRuntimeCapabilityV1": {
+      "title": "DbmRuntimeCapabilityV1",
+      "enum": [
+        "advance-stage",
+        "emit-notification",
+        "evaluate-rules",
+        "invoke-artifact",
+        "load-record",
+        "persist-record",
+        "render-form",
+        "validate-input"
+      ],
+      "type": "string"
+    },
+    "DbmRuntimeActorContextV1": {
+      "title": "DbmRuntimeActorContextV1",
+      "type": "object",
+      "properties": {
+        "actorId": {
+          "type": "string",
+          "title": "actorId"
+        },
+        "userId": {
+          "type": "string",
+          "title": "userId"
+        },
+        "roleIds": {
+          "type": "array",
+          "items": {
+            "type": "string"
+          },
+          "title": "roleIds"
+        }
+      },
+      "additionalProperties": false,
+      "required": [
+        "actorId",
+        "roleIds",
+        "userId"
+      ]
+    },
+    "DbmRuntimeSubjectV1": {
+      "title": "DbmRuntimeSubjectV1",
+      "type": "object",
+      "properties": {
+        "entityId": {
+          "type": "string",
+          "title": "entityId"
+        },
+        "recordId": {
+          "type": "string",
+          "title": "recordId"
+        }
+      },
+      "additionalProperties": false,
+      "required": [
+        "entityId",
+        "recordId"
+      ]
+    },
+    "DbmRuntimeStateV1": {
+      "title": "DbmRuntimeStateV1",
+      "type": "object",
+      "properties": {
+        "stageId": {
+          "type": "string",
+          "title": "stageId"
+        },
+        "fields": {
+          "$ref": "#/definitions/Record%3Cstring%2CDbmScalarValueV1%3E",
+          "title": "fields"
+        },
+        "variables": {
+          "$ref": "#/definitions/Record%3Cstring%2CDbmScalarValueV1%3E",
+          "title": "variables"
+        }
+      },
+      "additionalProperties": false,
+      "required": [
+        "fields",
+        "stageId",
+        "variables"
+      ]
+    },
+    "Record<string,DbmScalarValueV1>": {
+      "title": "Record<string,DbmScalarValueV1>",
+      "type": "object",
+      "additionalProperties": {
+        "type": [
+          "string",
+          "number",
+          "boolean",
+          "null"
+        ]
+      }
+    },
+    "DbmRuntimeCommandV1": {
+      "title": "DbmRuntimeCommandV1",
+      "type": "object",
+      "properties": {
+        "requestedOutcomeId": {
+          "type": [
+            "null",
+            "string"
+          ],
+          "title": "requestedOutcomeId"
+        }
+      },
+      "additionalProperties": false,
+      "required": [
+        "requestedOutcomeId"
+      ]
+    }
+  },
+  "$schema": "http://json-schema.org/draft-07/schema#"
+}

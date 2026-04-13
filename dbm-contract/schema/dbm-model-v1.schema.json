@@ -1,0 +1,1236 @@
+{
+  "$ref": "#/definitions/DbmModelV1",
+  "definitions": {
+    "DbmModelV1": {
+      "title": "DbmModelV1",
+      "type": "object",
+      "properties": {
+        "schemaVersion": {
+          "type": "string",
+          "const": "dbm.model/v1",
+          "title": "schemaVersion"
+        },
+        "package": {
+          "$ref": "#/definitions/DbmPackageV1",
+          "title": "package"
+        },
+        "process": {
+          "$ref": "#/definitions/DbmProcessV1",
+          "title": "process"
+        },
+        "forms": {
+          "type": "array",
+          "items": {
+            "$ref": "#/definitions/DbmFormV1"
+          },
+          "title": "forms"
+        },
+        "metadata": {
+          "$ref": "#/definitions/DbmMetadataV1",
+          "title": "metadata"
+        },
+        "rules": {
+          "type": "array",
+          "items": {
+            "$ref": "#/definitions/DbmRuleV1"
+          },
+          "title": "rules"
+        },
+        "runtime": {
+          "$ref": "#/definitions/DbmRuntimeModelV1",
+          "title": "runtime"
+        },
+        "artifacts": {
+          "type": "array",
+          "items": {
+            "$ref": "#/definitions/DbmArtifactV1"
+          },
+          "title": "artifacts"
+        }
+      },
+      "additionalProperties": false,
+      "required": [
+        "artifacts",
+        "forms",
+        "metadata",
+        "package",
+        "process",
+        "rules",
+        "runtime",
+        "schemaVersion"
+      ]
+    },
+    "DbmPackageV1": {
+      "title": "DbmPackageV1",
+      "type": "object",
+      "properties": {
+        "id": {
+          "type": "string",
+          "title": "id"
+        },
+        "displayName": {
+          "type": "string",
+          "title": "displayName"
+        },
+        "version": {
+          "type": "string",
+          "title": "version"
+        },
+        "publisher": {
+          "$ref": "#/definitions/DbmPublisherV1",
+          "title": "publisher"
+        },
+        "entryProcessId": {
+          "type": "string",
+          "title": "entryProcessId"
+        },
+        "supportedHosts": {
+          "type": "array",
+          "items": {
+            "$ref": "#/definitions/DbmSupportedHostV1"
+          },
+          "title": "supportedHosts"
+        },
+        "supportedRuntimes": {
+          "type": "array",
+          "items": {
+            "$ref": "#/definitions/DbmRuntimeEngineV1"
+          },
+          "title": "supportedRuntimes"
+        },
+        "compatibility": {
+          "$ref": "#/definitions/DbmPackageCompatibilityV1",
+          "title": "compatibility"
+        },
+        "deployment": {
+          "$ref": "#/definitions/DbmPackageDeploymentV1",
+          "title": "deployment"
+        }
+      },
+      "additionalProperties": false,
+      "required": [
+        "compatibility",
+        "deployment",
+        "displayName",
+        "entryProcessId",
+        "id",
+        "publisher",
+        "supportedHosts",
+        "supportedRuntimes",
+        "version"
+      ]
+    },
+    "DbmPublisherV1": {
+      "title": "DbmPublisherV1",
+      "type": "object",
+      "properties": {
+        "name": {
+          "type": "string",
+          "title": "name"
+        },
+        "website": {
+          "type": "string",
+          "title": "website"
+        },
+        "prefix": {
+          "type": "string",
+          "title": "prefix"
+        }
+      },
+      "additionalProperties": false,
+      "required": [
+        "name",
+        "prefix",
+        "website"
+      ]
+    },
+    "DbmSupportedHostV1": {
+      "title": "DbmSupportedHostV1",
+      "enum": [
+        "model-driven",
+        "xrmtoolbox"
+      ],
+      "type": "string"
+    },
+    "DbmRuntimeEngineV1": {
+      "title": "DbmRuntimeEngineV1",
+      "enum": [
+        "azure",
+        "dataverse",
+        "pcf"
+      ],
+      "type": "string"
+    },
+    "DbmPackageCompatibilityV1": {
+      "title": "DbmPackageCompatibilityV1",
+      "type": "object",
+      "properties": {
+        "minimumReaderSchemaVersion": {
+          "type": "string",
+          "const": "dbm.model/v1",
+          "title": "minimumReaderSchemaVersion"
+        },
+        "maximumReaderSchemaVersion": {
+          "type": "string",
+          "const": "dbm.model/v1",
+          "title": "maximumReaderSchemaVersion"
+        },
+        "breakingChangePolicy": {
+          "type": "string",
+          "const": "reject-newer-major",
+          "title": "breakingChangePolicy"
+        }
+      },
+      "additionalProperties": false,
+      "required": [
+        "breakingChangePolicy",
+        "maximumReaderSchemaVersion",
+        "minimumReaderSchemaVersion"
+      ]
+    },
+    "DbmPackageDeploymentV1": {
+      "title": "DbmPackageDeploymentV1",
+      "type": "object",
+      "properties": {
+        "solutionName": {
+          "type": "string",
+          "title": "solutionName"
+        },
+        "releaseLine": {
+          "type": "string",
+          "title": "releaseLine"
+        },
+        "artifactRoot": {
+          "type": "string",
+          "title": "artifactRoot"
+        }
+      },
+      "additionalProperties": false,
+      "required": [
+        "artifactRoot",
+        "releaseLine",
+        "solutionName"
+      ]
+    },
+    "DbmProcessV1": {
+      "title": "DbmProcessV1",
+      "type": "object",
+      "properties": {
+        "id": {
+          "type": "string",
+          "title": "id"
+        },
+        "displayName": {
+          "type": "string",
+          "title": "displayName"
+        },
+        "scenarioType": {
+          "type": "string",
+          "const": "approval-request",
+          "title": "scenarioType"
+        },
+        "actors": {
+          "type": "array",
+          "items": {
+            "$ref": "#/definitions/DbmActorV1"
+          },
+          "title": "actors"
+        },
+        "variables": {
+          "type": "array",
+          "items": {
+            "$ref": "#/definitions/DbmVariableV1"
+          },
+          "title": "variables"
+        },
+        "stages": {
+          "type": "array",
+          "items": {
+            "$ref": "#/definitions/DbmStageV1"
+          },
+          "title": "stages"
+        },
+        "transitions": {
+          "type": "array",
+          "items": {
+            "$ref": "#/definitions/DbmTransitionV1"
+          },
+          "title": "transitions"
+        },
+        "outcomes": {
+          "type": "array",
+          "items": {
+            "$ref": "#/definitions/DbmOutcomeV1"
+          },
+          "title": "outcomes"
+        }
+      },
+      "additionalProperties": false,
+      "required": [
+        "actors",
+        "displayName",
+        "id",
+        "outcomes",
+        "scenarioType",
+        "stages",
+        "transitions",
+        "variables"
+      ]
+    },
+    "DbmActorV1": {
+      "title": "DbmActorV1",
+      "type": "object",
+      "properties": {
+        "id": {
+          "type": "string",
+          "title": "id"
+        },
+        "displayName": {
+          "type": "string",
+          "title": "displayName"
+        },
+        "actorType": {
+          "$ref": "#/definitions/DbmActorTypeV1",
+          "title": "actorType"
+        },
+        "source": {
+          "$ref": "#/definitions/DbmActorSourceV1",
+          "title": "source"
+        }
+      },
+      "additionalProperties": false,
+      "required": [
+        "actorType",
+        "displayName",
+        "id",
+        "source"
+      ]
+    },
+    "DbmActorTypeV1": {
+      "title": "DbmActorTypeV1",
+      "enum": [
+        "approver",
+        "requester",
+        "system"
+      ],
+      "type": "string"
+    },
+    "DbmActorSourceV1": {
+      "title": "DbmActorSourceV1",
+      "enum": [
+        "current-user",
+        "field-binding",
+        "rule-derived",
+        "system"
+      ],
+      "type": "string"
+    },
+    "DbmVariableV1": {
+      "title": "DbmVariableV1",
+      "type": "object",
+      "properties": {
+        "id": {
+          "type": "string",
+          "title": "id"
+        },
+        "dataType": {
+          "$ref": "#/definitions/DbmFieldDataTypeV1",
+          "title": "dataType"
+        },
+        "scope": {
+          "type": "string",
+          "const": "process",
+          "title": "scope"
+        },
+        "defaultValue": {
+          "$ref": "#/definitions/DbmScalarValueV1",
+          "title": "defaultValue"
+        },
+        "persistence": {
+          "$ref": "#/definitions/DbmVariablePersistenceV1",
+          "title": "persistence"
+        }
+      },
+      "additionalProperties": false,
+      "required": [
+        "dataType",
+        "defaultValue",
+        "id",
+        "persistence",
+        "scope"
+      ]
+    },
+    "DbmFieldDataTypeV1": {
+      "title": "DbmFieldDataTypeV1",
+      "enum": [
+        "boolean",
+        "choice",
+        "currency",
+        "date",
+        "datetime",
+        "decimal",
+        "integer",
+        "lookup",
+        "multiline-string",
+        "string"
+      ],
+      "type": "string"
+    },
+    "DbmScalarValueV1": {
+      "title": "DbmScalarValueV1",
+      "type": [
+        "null",
+        "string",
+        "number",
+        "boolean"
+      ]
+    },
+    "DbmVariablePersistenceV1": {
+      "title": "DbmVariablePersistenceV1",
+      "enum": [
+        "persisted",
+        "runtime-only"
+      ],
+      "type": "string"
+    },
+    "DbmStageV1": {
+      "title": "DbmStageV1",
+      "type": "object",
+      "properties": {
+        "id": {
+          "type": "string",
+          "title": "id"
+        },
+        "displayName": {
+          "type": "string",
+          "title": "displayName"
+        },
+        "stageType": {
+          "$ref": "#/definitions/DbmStageTypeV1",
+          "title": "stageType"
+        },
+        "actorId": {
+          "type": "string",
+          "title": "actorId"
+        },
+        "formId": {
+          "type": [
+            "null",
+            "string"
+          ],
+          "title": "formId"
+        },
+        "entryRuleIds": {
+          "type": "array",
+          "items": {
+            "type": "string"
+          },
+          "title": "entryRuleIds"
+        },
+        "exitRuleIds": {
+          "type": "array",
+          "items": {
+            "type": "string"
+          },
+          "title": "exitRuleIds"
+        },
+        "allowedOutcomeIds": {
+          "type": "array",
+          "items": {
+            "type": "string"
+          },
+          "title": "allowedOutcomeIds"
+        }
+      },
+      "additionalProperties": false,
+      "required": [
+        "actorId",
+        "allowedOutcomeIds",
+        "displayName",
+        "entryRuleIds",
+        "exitRuleIds",
+        "formId",
+        "id",
+        "stageType"
+      ]
+    },
+    "DbmStageTypeV1": {
+      "title": "DbmStageTypeV1",
+      "enum": [
+        "approval",
+        "end",
+        "start",
+        "system",
+        "task"
+      ],
+      "type": "string"
+    },
+    "DbmTransitionV1": {
+      "title": "DbmTransitionV1",
+      "type": "object",
+      "properties": {
+        "id": {
+          "type": "string",
+          "title": "id"
+        },
+        "fromStageId": {
+          "type": "string",
+          "title": "fromStageId"
+        },
+        "toStageId": {
+          "type": "string",
+          "title": "toStageId"
+        },
+        "outcomeId": {
+          "type": "string",
+          "title": "outcomeId"
+        },
+        "guardRuleId": {
+          "type": "string",
+          "title": "guardRuleId"
+        }
+      },
+      "additionalProperties": false,
+      "required": [
+        "fromStageId",
+        "guardRuleId",
+        "id",
+        "outcomeId",
+        "toStageId"
+      ]
+    },
+    "DbmOutcomeV1": {
+      "title": "DbmOutcomeV1",
+      "type": "object",
+      "properties": {
+        "id": {
+          "type": "string",
+          "title": "id"
+        },
+        "displayName": {
+          "type": "string",
+          "title": "displayName"
+        }
+      },
+      "additionalProperties": false,
+      "required": [
+        "displayName",
+        "id"
+      ]
+    },
+    "DbmFormV1": {
+      "title": "DbmFormV1",
+      "type": "object",
+      "properties": {
+        "id": {
+          "type": "string",
+          "title": "id"
+        },
+        "displayName": {
+          "type": "string",
+          "title": "displayName"
+        },
+        "entityId": {
+          "type": "string",
+          "title": "entityId"
+        },
+        "layout": {
+          "$ref": "#/definitions/DbmFormLayoutV1",
+          "title": "layout"
+        },
+        "elements": {
+          "type": "array",
+          "items": {
+            "$ref": "#/definitions/DbmFormElementV1"
+          },
+          "title": "elements"
+        }
+      },
+      "additionalProperties": false,
+      "required": [
+        "displayName",
+        "elements",
+        "entityId",
+        "id",
+        "layout"
+      ]
+    },
+    "DbmFormLayoutV1": {
+      "title": "DbmFormLayoutV1",
+      "type": "object",
+      "properties": {
+        "layoutType": {
+          "type": "string",
+          "const": "single-page",
+          "title": "layoutType"
+        },
+        "regions": {
+          "type": "array",
+          "items": {
+            "$ref": "#/definitions/DbmLayoutRegionV1"
+          },
+          "title": "regions"
+        }
+      },
+      "additionalProperties": false,
+      "required": [
+        "layoutType",
+        "regions"
+      ]
+    },
+    "DbmLayoutRegionV1": {
+      "title": "DbmLayoutRegionV1",
+      "type": "object",
+      "properties": {
+        "id": {
+          "type": "string",
+          "title": "id"
+        },
+        "displayName": {
+          "type": "string",
+          "title": "displayName"
+        },
+        "order": {
+          "type": "number",
+          "title": "order"
+        }
+      },
+      "additionalProperties": false,
+      "required": [
+        "displayName",
+        "id",
+        "order"
+      ]
+    },
+    "DbmFormElementV1": {
+      "title": "DbmFormElementV1",
+      "type": "object",
+      "properties": {
+        "id": {
+          "type": "string",
+          "title": "id"
+        },
+        "elementType": {
+          "$ref": "#/definitions/DbmElementTypeV1",
+          "title": "elementType"
+        },
+        "regionId": {
+          "type": "string",
+          "title": "regionId"
+        },
+        "displayName": {
+          "type": "string",
+          "title": "displayName"
+        },
+        "binding": {
+          "$ref": "#/definitions/DbmElementBindingV1",
+          "title": "binding"
+        },
+        "behavior": {
+          "$ref": "#/definitions/DbmElementBehaviorV1",
+          "title": "behavior"
+        }
+      },
+      "additionalProperties": false,
+      "required": [
+        "behavior",
+        "binding",
+        "displayName",
+        "elementType",
+        "id",
+        "regionId"
+      ]
+    },
+    "DbmElementTypeV1": {
+      "title": "DbmElementTypeV1",
+      "enum": [
+        "choice",
+        "currency",
+        "date",
+        "lookup",
+        "multiline-text",
+        "number",
+        "read-only-text",
+        "text"
+      ],
+      "type": "string"
+    },
+    "DbmElementBindingV1": {
+      "title": "DbmElementBindingV1",
+      "anyOf": [
+        {
+          "type": "object",
+          "properties": {
+            "fieldId": {
+              "type": "string",
+              "title": "fieldId"
+            }
+          },
+          "additionalProperties": false,
+          "required": [
+            "fieldId"
+          ]
+        },
+        {
+          "type": "object",
+          "properties": {
+            "variableId": {
+              "type": "string",
+              "title": "variableId"
+            }
+          },
+          "additionalProperties": false,
+          "required": [
+            "variableId"
+          ]
+        }
+      ]
+    },
+    "DbmElementBehaviorV1": {
+      "title": "DbmElementBehaviorV1",
+      "type": "object",
+      "properties": {
+        "requiredRuleIds": {
+          "type": "array",
+          "items": {
+            "type": "string"
+          },
+          "title": "requiredRuleIds"
+        },
+        "visibleRuleIds": {
+          "type": "array",
+          "items": {
+            "type": "string"
+          },
+          "title": "visibleRuleIds"
+        },
+        "editableRuleIds": {
+          "type": "array",
+          "items": {
+            "type": "string"
+          },
+          "title": "editableRuleIds"
+        }
+      },
+      "additionalProperties": false,
+      "required": [
+        "editableRuleIds",
+        "requiredRuleIds",
+        "visibleRuleIds"
+      ]
+    },
+    "DbmMetadataV1": {
+      "title": "DbmMetadataV1",
+      "type": "object",
+      "properties": {
+        "entities": {
+          "type": "array",
+          "items": {
+            "$ref": "#/definitions/DbmEntityV1"
+          },
+          "title": "entities"
+        },
+        "relationships": {
+          "type": "array",
+          "items": {
+            "$ref": "#/definitions/DbmRelationshipV1"
+          },
+          "title": "relationships"
+        }
+      },
+      "additionalProperties": false,
+      "required": [
+        "entities",
+        "relationships"
+      ]
+    },
+    "DbmEntityV1": {
+      "title": "DbmEntityV1",
+      "type": "object",
+      "properties": {
+        "id": {
+          "type": "string",
+          "title": "id"
+        },
+        "displayName": {
+          "type": "string",
+          "title": "displayName"
+        },
+        "providerBindings": {
+          "$ref": "#/definitions/DbmProviderBindingsV1",
+          "title": "providerBindings"
+        },
+        "primaryKeyFieldId": {
+          "type": "string",
+          "title": "primaryKeyFieldId"
+        },
+        "fields": {
+          "type": "array",
+          "items": {
+            "$ref": "#/definitions/DbmFieldV1"
+          },
+          "title": "fields"
+        }
+      },
+      "additionalProperties": false,
+      "required": [
+        "displayName",
+        "fields",
+        "id",
+        "primaryKeyFieldId",
+        "providerBindings"
+      ]
+    },
+    "DbmProviderBindingsV1": {
+      "title": "DbmProviderBindingsV1",
+      "type": "object",
+      "properties": {
+        "dataverse": {
+          "$ref": "#/definitions/DbmDataverseBindingV1",
+          "title": "dataverse"
+        }
+      },
+      "additionalProperties": false
+    },
+    "DbmDataverseBindingV1": {
+      "title": "DbmDataverseBindingV1",
+      "type": "object",
+      "properties": {
+        "logicalName": {
+          "type": "string",
+          "title": "logicalName"
+        }
+      },
+      "additionalProperties": false,
+      "required": [
+        "logicalName"
+      ]
+    },
+    "DbmFieldV1": {
+      "title": "DbmFieldV1",
+      "type": "object",
+      "properties": {
+        "id": {
+          "type": "string",
+          "title": "id"
+        },
+        "displayName": {
+          "type": "string",
+          "title": "displayName"
+        },
+        "dataType": {
+          "$ref": "#/definitions/DbmFieldDataTypeV1",
+          "title": "dataType"
+        },
+        "providerBindings": {
+          "$ref": "#/definitions/DbmProviderBindingsV1",
+          "title": "providerBindings"
+        },
+        "isRequired": {
+          "type": "boolean",
+          "title": "isRequired"
+        },
+        "isReadOnly": {
+          "type": "boolean",
+          "title": "isReadOnly"
+        }
+      },
+      "additionalProperties": false,
+      "required": [
+        "dataType",
+        "displayName",
+        "id",
+        "isReadOnly",
+        "isRequired",
+        "providerBindings"
+      ]
+    },
+    "DbmRelationshipV1": {
+      "title": "DbmRelationshipV1",
+      "type": "object",
+      "properties": {
+        "id": {
+          "type": "string",
+          "title": "id"
+        },
+        "fromEntityId": {
+          "type": "string",
+          "title": "fromEntityId"
+        },
+        "toEntityId": {
+          "type": "string",
+          "title": "toEntityId"
+        },
+        "relationshipType": {
+          "$ref": "#/definitions/DbmRelationshipTypeV1",
+          "title": "relationshipType"
+        },
+        "providerBindings": {
+          "$ref": "#/definitions/DbmProviderBindingsV1",
+          "title": "providerBindings"
+        }
+      },
+      "additionalProperties": false,
+      "required": [
+        "fromEntityId",
+        "id",
+        "providerBindings",
+        "relationshipType",
+        "toEntityId"
+      ]
+    },
+    "DbmRelationshipTypeV1": {
+      "title": "DbmRelationshipTypeV1",
+      "enum": [
+        "many-to-one",
+        "one-to-many"
+      ],
+      "type": "string"
+    },
+    "DbmRuleV1": {
+      "title": "DbmRuleV1",
+      "type": "object",
+      "properties": {
+        "id": {
+          "type": "string",
+          "title": "id"
+        },
+        "displayName": {
+          "type": "string",
+          "title": "displayName"
+        },
+        "ruleType": {
+          "$ref": "#/definitions/DbmRuleTypeV1",
+          "title": "ruleType"
+        },
+        "scope": {
+          "$ref": "#/definitions/DbmRuleScopeV1",
+          "title": "scope"
+        },
+        "language": {
+          "$ref": "#/definitions/DbmRuleLanguageV1",
+          "title": "language"
+        },
+        "body": {
+          "type": "string",
+          "title": "body"
+        }
+      },
+      "additionalProperties": false,
+      "required": [
+        "body",
+        "displayName",
+        "id",
+        "language",
+        "ruleType",
+        "scope"
+      ]
+    },
+    "DbmRuleTypeV1": {
+      "title": "DbmRuleTypeV1",
+      "enum": [
+        "action",
+        "condition",
+        "derivation",
+        "validation"
+      ],
+      "type": "string"
+    },
+    "DbmRuleScopeV1": {
+      "title": "DbmRuleScopeV1",
+      "enum": [
+        "field",
+        "form",
+        "process",
+        "stage",
+        "transition"
+      ],
+      "type": "string"
+    },
+    "DbmRuleLanguageV1": {
+      "title": "DbmRuleLanguageV1",
+      "enum": [
+        "dbm-expression-v1",
+        "javascript-artifact-v1"
+      ],
+      "type": "string"
+    },
+    "DbmRuntimeModelV1": {
+      "title": "DbmRuntimeModelV1",
+      "type": "object",
+      "properties": {
+        "capabilities": {
+          "type": "array",
+          "items": {
+            "$ref": "#/definitions/DbmRuntimeCapabilityV1"
+          },
+          "title": "capabilities"
+        },
+        "requestContract": {
+          "$ref": "#/definitions/DbmRuntimeContractDefinitionV1",
+          "title": "requestContract"
+        },
+        "resultContract": {
+          "$ref": "#/definitions/DbmRuntimeResultContractDefinitionV1",
+          "title": "resultContract"
+        },
+        "ownership": {
+          "$ref": "#/definitions/DbmRuntimeOwnershipV1",
+          "title": "ownership"
+        }
+      },
+      "additionalProperties": false,
+      "required": [
+        "capabilities",
+        "ownership",
+        "requestContract",
+        "resultContract"
+      ]
+    },
+    "DbmRuntimeCapabilityV1": {
+      "title": "DbmRuntimeCapabilityV1",
+      "enum": [
+        "advance-stage",
+        "emit-notification",
+        "evaluate-rules",
+        "invoke-artifact",
+        "load-record",
+        "persist-record",
+        "render-form",
+        "validate-input"
+      ],
+      "type": "string"
+    },
+    "DbmRuntimeContractDefinitionV1": {
+      "title": "DbmRuntimeContractDefinitionV1",
+      "type": "object",
+      "properties": {
+        "schemaVersion": {
+          "type": "string",
+          "const": "dbm.runtime.request/v1",
+          "title": "schemaVersion"
+        },
+        "operations": {
+          "type": "array",
+          "items": {
+            "$ref": "#/definitions/DbmRuntimeOperationV1"
+          },
+          "title": "operations"
+        }
+      },
+      "additionalProperties": false,
+      "required": [
+        "operations",
+        "schemaVersion"
+      ]
+    },
+    "DbmRuntimeOperationV1": {
+      "title": "DbmRuntimeOperationV1",
+      "enum": [
+        "initialize",
+        "load-form",
+        "submit",
+        "transition",
+        "validate"
+      ],
+      "type": "string"
+    },
+    "DbmRuntimeResultContractDefinitionV1": {
+      "title": "DbmRuntimeResultContractDefinitionV1",
+      "type": "object",
+      "properties": {
+        "schemaVersion": {
+          "type": "string",
+          "const": "dbm.runtime.result/v1",
+          "title": "schemaVersion"
+        },
+        "statuses": {
+          "type": "array",
+          "items": {
+            "$ref": "#/definitions/DbmRuntimeStatusV1"
+          },
+          "title": "statuses"
+        }
+      },
+      "additionalProperties": false,
+      "required": [
+        "schemaVersion",
+        "statuses"
+      ]
+    },
+    "DbmRuntimeStatusV1": {
+      "title": "DbmRuntimeStatusV1",
+      "enum": [
+        "blocked",
+        "error",
+        "ok",
+        "validation-failed"
+      ],
+      "type": "string"
+    },
+    "DbmRuntimeOwnershipV1": {
+      "title": "DbmRuntimeOwnershipV1",
+      "type": "object",
+      "properties": {
+        "pcf": {
+          "$ref": "#/definitions/DbmRuntimeOwnershipSliceV1%3CDbmPcfResponsibilityV1%3E",
+          "title": "pcf"
+        },
+        "dataverse": {
+          "$ref": "#/definitions/DbmRuntimeOwnershipSliceV1%3CDbmDataverseResponsibilityV1%3E",
+          "title": "dataverse"
+        },
+        "azure": {
+          "$ref": "#/definitions/DbmRuntimeOwnershipSliceV1%3C%22support-services-only%22%3E",
+          "title": "azure"
+        }
+      },
+      "additionalProperties": false,
+      "required": [
+        "azure",
+        "dataverse",
+        "pcf"
+      ]
+    },
+    "DbmRuntimeOwnershipSliceV1<DbmPcfResponsibilityV1>": {
+      "title": "DbmRuntimeOwnershipSliceV1<DbmPcfResponsibilityV1>",
+      "type": "object",
+      "properties": {
+        "responsibilities": {
+          "type": "array",
+          "items": {
+            "$ref": "#/definitions/DbmPcfResponsibilityV1"
+          },
+          "title": "responsibilities"
+        }
+      },
+      "additionalProperties": false,
+      "required": [
+        "responsibilities"
+      ]
+    },
+    "DbmPcfResponsibilityV1": {
+      "title": "DbmPcfResponsibilityV1",
+      "enum": [
+        "form-rendering",
+        "local-interaction",
+        "responsive-validation"
+      ],
+      "type": "string"
+    },
+    "DbmRuntimeOwnershipSliceV1<DbmDataverseResponsibilityV1>": {
+      "title": "DbmRuntimeOwnershipSliceV1<DbmDataverseResponsibilityV1>",
+      "type": "object",
+      "properties": {
+        "responsibilities": {
+          "type": "array",
+          "items": {
+            "$ref": "#/definitions/DbmDataverseResponsibilityV1"
+          },
+          "title": "responsibilities"
+        }
+      },
+      "additionalProperties": false,
+      "required": [
+        "responsibilities"
+      ]
+    },
+    "DbmDataverseResponsibilityV1": {
+      "title": "DbmDataverseResponsibilityV1",
+      "enum": [
+        "artifact-execution",
+        "authoritative-persistence",
+        "stage-transition"
+      ],
+      "type": "string"
+    },
+    "DbmRuntimeOwnershipSliceV1<\"support-services-only\">": {
+      "title": "DbmRuntimeOwnershipSliceV1<\"support-services-only\">",
+      "type": "object",
+      "properties": {
+        "responsibilities": {
+          "type": "array",
+          "items": {
+            "type": "string",
+            "const": "support-services-only"
+          },
+          "title": "responsibilities"
+        }
+      },
+      "additionalProperties": false,
+      "required": [
+        "responsibilities"
+      ]
+    },
+    "DbmArtifactV1": {
+      "title": "DbmArtifactV1",
+      "type": "object",
+      "properties": {
+        "id": {
+          "type": "string",
+          "title": "id"
+        },
+        "artifactType": {
+          "$ref": "#/definitions/DbmArtifactTypeV1",
+          "title": "artifactType"
+        },
+        "displayName": {
+          "type": "string",
+          "title": "displayName"
+        },
+        "runtimeTargets": {
+          "type": "array",
+          "items": {
+            "$ref": "#/definitions/DbmRuntimeEngineV1"
+          },
+          "title": "runtimeTargets"
+        },
+        "packagingTarget": {
+          "$ref": "#/definitions/DbmPackagingTargetV1",
+          "title": "packagingTarget"
+        },
+        "sourceRef": {
+          "type": "string",
+          "title": "sourceRef"
+        },
+        "required": {
+          "type": "boolean",
+          "title": "required"
+        }
+      },
+      "additionalProperties": false,
+      "required": [
+        "artifactType",
+        "displayName",
+        "id",
+        "packagingTarget",
+        "required",
+        "runtimeTargets",
+        "sourceRef"
+      ]
+    },
+    "DbmArtifactTypeV1": {
+      "title": "DbmArtifactTypeV1",
+      "enum": [
+        "config",
+        "pcf-control",
+        "plugin-assembly",
+        "script",
+        "static-asset",
+        "template"
+      ],
+      "type": "string"
+    },
+    "DbmPackagingTargetV1": {
+      "title": "DbmPackagingTargetV1",
+      "enum": [
+        "azure-app",
+        "dataverse-plugin",
+        "dataverse-webresource",
+        "repo-only"
+      ],
+      "type": "string"
+    }
+  },
+  "$schema": "http://json-schema.org/draft-07/schema#"
+}

@@ -1,0 +1,17 @@
+{
+  "name": "dbm-contract",
+  "version": "0.0.0",
+  "private": true,
+  "main": "dist/index.js",
+  "types": "dist/index.d.ts",
+  "scripts": {
+    "schema": "node ./scripts/generate-schema.cjs",
+    "build": "npm run schema && tsc -p tsconfig.json",
+    "validate": "node ./scripts/validate-contracts.cjs"
+  },
+  "devDependencies": {
+    "ajv": "^8.18.0",
+    "typescript": "^6.0.2",
+    "typescript-json-schema": "^0.67.1"
+  }
+}

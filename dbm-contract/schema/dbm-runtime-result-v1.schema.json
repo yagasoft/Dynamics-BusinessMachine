@@ -1,0 +1,285 @@
+{
+  "$ref": "#/definitions/DbmRuntimeResultV1",
+  "definitions": {
+    "DbmRuntimeResultV1": {
+      "title": "DbmRuntimeResultV1",
+      "type": "object",
+      "properties": {
+        "schemaVersion": {
+          "type": "string",
+          "const": "dbm.runtime.result/v1",
+          "title": "schemaVersion"
+        },
+        "status": {
+          "$ref": "#/definitions/DbmRuntimeStatusV1",
+          "title": "status"
+        },
+        "state": {
+          "$ref": "#/definitions/DbmRuntimeStateV1",
+          "title": "state"
+        },
+        "effects": {
+          "$ref": "#/definitions/DbmRuntimeEffectsV1",
+          "title": "effects"
+        },
+        "messages": {
+          "type": "array",
+          "items": {
+            "$ref": "#/definitions/DbmRuntimeMessageV1"
+          },
+          "title": "messages"
+        },
+        "errors": {
+          "type": "array",
+          "items": {
+            "$ref": "#/definitions/DbmRuntimeErrorV1"
+          },
+          "title": "errors"
+        },
+        "correlationId": {
+          "type": "string",
+          "title": "correlationId"
+        }
+      },
+      "additionalProperties": false,
+      "required": [
+        "correlationId",
+        "effects",
+        "errors",
+        "messages",
+        "schemaVersion",
+        "state",
+        "status"
+      ]
+    },
+    "DbmRuntimeStatusV1": {
+      "title": "DbmRuntimeStatusV1",
+      "enum": [
+        "blocked",
+        "error",
+        "ok",
+        "validation-failed"
+      ],
+      "type": "string"
+    },
+    "DbmRuntimeStateV1": {
+      "title": "DbmRuntimeStateV1",
+      "type": "object",
+      "properties": {
+        "stageId": {
+          "type": "string",
+          "title": "stageId"
+        },
+        "fields": {
+          "$ref": "#/definitions/Record%3Cstring%2CDbmScalarValueV1%3E",
+          "title": "fields"
+        },
+        "variables": {
+          "$ref": "#/definitions/Record%3Cstring%2CDbmScalarValueV1%3E",
+          "title": "variables"
+        }
+      },
+      "additionalProperties": false,
+      "required": [
+        "fields",
+        "stageId",
+        "variables"
+      ]
+    },
+    "Record<string,DbmScalarValueV1>": {
+      "title": "Record<string,DbmScalarValueV1>",
+      "type": "object",
+      "additionalProperties": {
+        "type": [
+          "string",
+          "number",
+          "boolean",
+          "null"
+        ]
+      }
+    },
+    "DbmRuntimeEffectsV1": {
+      "title": "DbmRuntimeEffectsV1",
+      "type": "object",
+      "properties": {
+        "persist": {
+          "type": "array",
+          "items": {
+            "$ref": "#/definitions/DbmRuntimePersistEffectV1"
+          },
+          "title": "persist"
+        },
+        "notifications": {
+          "type": "array",
+          "items": {
+            "$ref": "#/definitions/DbmRuntimeNotificationEffectV1"
+          },
+          "title": "notifications"
+        },
+        "artifactCalls": {
+          "type": "array",
+          "items": {
+            "$ref": "#/definitions/DbmRuntimeArtifactCallEffectV1"
+          },
+          "title": "artifactCalls"
+        }
+      },
+      "additionalProperties": false,
+      "required": [
+        "artifactCalls",
+        "notifications",
+        "persist"
+      ]
+    },
+    "DbmRuntimePersistEffectV1": {
+      "title": "DbmRuntimePersistEffectV1",
+      "type": "object",
+      "properties": {
+        "entityId": {
+          "type": "string",
+          "title": "entityId"
+        },
+        "recordId": {
+          "type": "string",
+          "title": "recordId"
+        },
+        "fields": {
+          "$ref": "#/definitions/Record%3Cstring%2CDbmScalarValueV1%3E",
+          "title": "fields"
+        }
+      },
+      "additionalProperties": false,
+      "required": [
+        "entityId",
+        "fields",
+        "recordId"
+      ]
+    },
+    "DbmRuntimeNotificationEffectV1": {
+      "title": "DbmRuntimeNotificationEffectV1",
+      "type": "object",
+      "properties": {
+        "channel": {
+          "type": "string",
+          "title": "channel"
+        },
+        "targetActorId": {
+          "type": "string",
+          "title": "targetActorId"
+        },
+        "message": {
+          "type": "string",
+          "title": "message"
+        }
+      },
+      "additionalProperties": false,
+      "required": [
+        "channel",
+        "message",
+        "targetActorId"
+      ]
+    },
+    "DbmRuntimeArtifactCallEffectV1": {
+      "title": "DbmRuntimeArtifactCallEffectV1",
+      "type": "object",
+      "properties": {
+        "artifactId": {
+          "type": "string",
+          "title": "artifactId"
+        },
+        "runtimeTarget": {
+          "$ref": "#/definitions/DbmRuntimeEngineV1",
+          "title": "runtimeTarget"
+        },
+        "status": {
+          "$ref": "#/definitions/DbmArtifactCallStatusV1",
+          "title": "status"
+        }
+      },
+      "additionalProperties": false,
+      "required": [
+        "artifactId",
+        "runtimeTarget",
+        "status"
+      ]
+    },
+    "DbmRuntimeEngineV1": {
+      "title": "DbmRuntimeEngineV1",
+      "enum": [
+        "azure",
+        "dataverse",
+        "pcf"
+      ],
+      "type": "string"
+    },
+    "DbmArtifactCallStatusV1": {
+      "title": "DbmArtifactCallStatusV1",
+      "enum": [
+        "completed",
+        "failed",
+        "requested"
+      ],
+      "type": "string"
+    },
+    "DbmRuntimeMessageV1": {
+      "title": "DbmRuntimeMessageV1",
+      "type": "object",
+      "properties": {
+        "level": {
+          "$ref": "#/definitions/DbmMessageLevelV1",
+          "title": "level"
+        },
+        "code": {
+          "type": "string",
+          "title": "code"
+        },
+        "text": {
+          "type": "string",
+          "title": "text"
+        }
+      },
+      "additionalProperties": false,
+      "required": [
+        "code",
+        "level",
+        "text"
+      ]
+    },
+    "DbmMessageLevelV1": {
+      "title": "DbmMessageLevelV1",
+      "enum": [
+        "error",
+        "info",
+        "warning"
+      ],
+      "type": "string"
+    },
+    "DbmRuntimeErrorV1": {
+      "title": "DbmRuntimeErrorV1",
+      "type": "object",
+      "properties": {
+        "code": {
+          "type": "string",
+          "title": "code"
+        },
+        "message": {
+          "type": "string",
+          "title": "message"
+        },
+        "detail": {
+          "type": [
+            "null",
+            "string"
+          ],
+          "title": "detail"
+        }
+      },
+      "additionalProperties": false,
+      "required": [
+        "code",
+        "message"
+      ]
+    }
+  },
+  "$schema": "http://json-schema.org/draft-07/schema#"
+}

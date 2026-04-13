@@ -1,0 +1,52 @@
+{
+  "schemaVersion": "dbm.runtime.request/v1",
+  "operation": "transition",
+  "model": {
+    "packageId": "dbm-approval-request",
+    "packageVersion": "1.0.0",
+    "processId": "approval-request-process"
+  },
+  "runtime": {
+    "host": "model-driven",
+    "engine": "dataverse",
+    "capabilities": [
+      "load-record",
+      "validate-input",
+      "evaluate-rules",
+      "persist-record",
+      "advance-stage",
+      "invoke-artifact",
+      "emit-notification"
+    ]
+  },
+  "actor": {
+    "actorId": "manager-approver",
+    "userId": "00000000-0000-0000-0000-000000000001",
+    "roleIds": [
+      "manager"
+    ]
+  },
+  "subject": {
+    "entityId": "request",
+    "recordId": "REQ-1001"
+  },
+  "state": {
+    "stageId": "manager-review",
+    "fields": {
+      "request-title": "Travel Budget Increase",
+      "request-amount": 12500,
+      "request-justification": "Budget uplift needed for regional workshops.",
+      "request-status": "submitted",
+      "assigned-approver": "00000000-0000-0000-0000-000000000001",
+      "decision-comment": "Approved for Q2 delivery."
+    },
+    "variables": {
+      "request-status": "submitted",
+      "decision-comment": "Approved for Q2 delivery."
+    }
+  },
+  "command": {
+    "requestedOutcomeId": "approve"
+  },
+  "correlationId": "corr-approval-request-1001"
+}

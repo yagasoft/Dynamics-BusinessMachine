@@ -1,0 +1,49 @@
+{
+  "schemaVersion": "dbm.runtime.result/v1",
+  "status": "ok",
+  "state": {
+    "stageId": "approved",
+    "fields": {
+      "request-status": "approved",
+      "decision-comment": "Approved for Q2 delivery."
+    },
+    "variables": {
+      "request-status": "approved",
+      "decision-comment": "Approved for Q2 delivery."
+    }
+  },
+  "effects": {
+    "persist": [
+      {
+        "entityId": "request",
+        "recordId": "REQ-1001",
+        "fields": {
+          "request-status": "approved"
+        }
+      }
+    ],
+    "notifications": [
+      {
+        "channel": "in-app",
+        "targetActorId": "requester",
+        "message": "Your request has been approved."
+      }
+    ],
+    "artifactCalls": [
+      {
+        "artifactId": "request-status-update-script",
+        "runtimeTarget": "dataverse",
+        "status": "completed"
+      }
+    ]
+  },
+  "messages": [
+    {
+      "level": "info",
+      "code": "transition-completed",
+      "text": "Request moved to approved."
+    }
+  ],
+  "errors": [],
+  "correlationId": "corr-approval-request-1001"
+}
