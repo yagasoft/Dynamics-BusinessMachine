@@ -444,6 +444,7 @@ packages*/
 # compiled output
 /dist
 /dbm-contract/dist/
+/dbm-designer-core/dist/
 /tmp
 /out-tsc
 

@@ -95,7 +95,7 @@
           "request-approver-assigned"
         ],
         "exitRuleIds": [
-          "decision-comment-required"
+          "rejection-comment-required"
         ],
         "allowedOutcomeIds": [
           "approve",
@@ -286,7 +286,7 @@
           },
           "behavior": {
             "requiredRuleIds": [
-              "decision-comment-required"
+              "rejection-comment-required"
             ],
             "visibleRuleIds": [],
             "editableRuleIds": []
