@@ -109,6 +109,73 @@ export interface DataverseFormStatePlan {
     requiredControlNames: string[];
     lockedControlNames: string[];
 }
+export interface DataverseRuntimeStateFieldPlan {
+    stageId: string;
+    stepId: string;
+    formStateId: string;
+    internalStatusId: string;
+    portalStatusId: string;
+}
+export interface DataverseRuntimeValueBindingPlan {
+    token: string;
+    entityLogicalName: string;
+    fieldLogicalName: string;
+    fieldType: DbmFieldDataTypeV1 | 'string';
+    choiceMap?: Record<string, string>;
+}
+export interface DataverseRuntimeStatusPlan {
+    id: string;
+    displayName: string;
+}
+export interface DataverseRuntimeStagePlan {
+    id: string;
+    displayName: string;
+    stageType: string;
+    formId: string | null;
+    defaultStepId: string | null;
+}
+export interface DataverseRuntimeStepPlan {
+    id: string;
+    stageId: string;
+    displayName: string;
+    internalStatusId: string;
+    portalStatusId: string | null;
+    formStateId: string | null;
+    entryRuleIds: string[];
+    exitRuleIds: string[];
+}
+export interface DataverseRuntimeStepTransitionTargetPlan {
+    stepId?: string;
+    stageId?: string;
+    outcomeId?: string;
+}
+export interface DataverseRuntimeStepTransitionPlan {
+    id: string;
+    fromStepId: string;
+    guardRuleId: string;
+    target: DataverseRuntimeStepTransitionTargetPlan;
+}
+export interface DataverseFormRuntimePlan {
+    requestEntityLogicalName: string;
+    requestEntityPrimaryIdLogicalName: string;
+    currentFormEntityLogicalName: string;
+    relatedRequestLookupFieldLogicalName: string | null;
+    reviewEntityLogicalName: string | null;
+    reviewEntityRequestLookupFieldLogicalName: string | null;
+    runtimeStateFieldLogicalNames: DataverseRuntimeStateFieldPlan;
+    decisionOutcomeFieldLogicalName: string | null;
+    decisionSummaryFieldLogicalName: string | null;
+    decisionCommentFieldLogicalName: string | null;
+    defaultStageId: string;
+    defaultStepId: string;
+    defaultFormStateId: string | null;
+    statuses: DataverseRuntimeStatusPlan[];
+    stages: DataverseRuntimeStagePlan[];
+    steps: DataverseRuntimeStepPlan[];
+    stepTransitions: DataverseRuntimeStepTransitionPlan[];
+    rules: Record<string, string>;
+    valueBindings: DataverseRuntimeValueBindingPlan[];
+}
 export interface DataverseFormPlan {
     id: string;
     sourceFormId: string;
@@ -131,6 +198,7 @@ export interface DataverseFormPlan {
     defaultFormStateId: string | null;
     states: DataverseFormStatePlan[];
     configBehaviorId: string;
+    runtime: DataverseFormRuntimePlan | null;
 }
 export interface DataverseBehaviorPlan {
     id: string;

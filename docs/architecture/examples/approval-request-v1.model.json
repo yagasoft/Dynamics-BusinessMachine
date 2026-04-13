@@ -151,7 +151,7 @@
         "portalStatusId": "draft",
         "formStateId": "request-supporting-state",
         "entryRuleIds": ["supporting-details-needed"],
-        "exitRuleIds": ["request-ready-for-screening"]
+        "exitRuleIds": ["supporting-details-complete"]
       },
       {
         "id": "screen-request",
@@ -219,7 +219,7 @@
     "stepTransitions": [
       { "id": "capture-to-supporting", "fromStepId": "capture-request", "guardRuleId": "supporting-details-needed", "target": { "stepId": "capture-supporting-details" } },
       { "id": "capture-to-screening", "fromStepId": "capture-request", "guardRuleId": "request-ready-for-screening", "target": { "stageId": "internal-screening-stage" } },
-      { "id": "supporting-to-screening", "fromStepId": "capture-supporting-details", "guardRuleId": "request-ready-for-screening", "target": { "stageId": "internal-screening-stage" } },
+      { "id": "supporting-to-screening", "fromStepId": "capture-supporting-details", "guardRuleId": "supporting-details-complete", "target": { "stageId": "internal-screening-stage" } },
       { "id": "screening-to-review", "fromStepId": "screen-request", "guardRuleId": "screening-complete", "target": { "stageId": "manager-review" } },
       { "id": "choose-to-approval", "fromStepId": "choose-decision", "guardRuleId": "approval-path-selected", "target": { "stepId": "record-approval" } },
       { "id": "choose-to-rejection", "fromStepId": "choose-decision", "guardRuleId": "rejection-path-selected", "target": { "stepId": "record-rejection" } },
@@ -491,6 +491,15 @@
           "providerBindings": { "dataverse": { "controlName": "dbm_decisionsummary" } }
         },
         {
+          "id": "decision-outcome-element",
+          "elementType": "choice",
+          "regionId": "review-resolution-region",
+          "displayName": "Decision Outcome",
+          "binding": { "entityBindingId": "review-decision", "fieldId": "decision-outcome" },
+          "behavior": { "requiredRuleIds": [], "visibleRuleIds": [], "editableRuleIds": [] },
+          "providerBindings": { "dataverse": { "controlName": "dbm_decisionoutcome" } }
+        },
+        {
           "id": "decision-comment-element",
           "elementType": "multiline-text",
           "regionId": "review-resolution-region",
@@ -522,6 +531,14 @@
               "requiredRuleIds": [],
               "visibleRuleIds": [],
               "editableRuleIds": []
+            },
+            {
+              "elementId": "decision-outcome-element",
+              "label": "Decision Outcome",
+              "hint": "Choose whether to approve or reject the request.",
+              "requiredRuleIds": [],
+              "visibleRuleIds": [],
+              "editableRuleIds": []
             }
           ]
         },
@@ -543,6 +560,14 @@
               "elementId": "decision-summary-element",
               "label": "Decision Summary",
               "hint": "Confirm the approval summary.",
+              "requiredRuleIds": [],
+              "visibleRuleIds": [],
+              "editableRuleIds": []
+            },
+            {
+              "elementId": "decision-outcome-element",
+              "label": "Decision Outcome",
+              "hint": "Confirm that this request is approved.",
               "requiredRuleIds": [],
               "visibleRuleIds": [],
               "editableRuleIds": []
@@ -575,6 +600,14 @@
               "elementId": "decision-summary-element",
               "label": "Decision Summary",
               "hint": "Confirm the rejection summary.",
+              "requiredRuleIds": [],
+              "visibleRuleIds": [],
+              "editableRuleIds": []
+            },
+            {
+              "elementId": "decision-outcome-element",
+              "label": "Decision Outcome",
+              "hint": "Confirm that this request is rejected.",
               "requiredRuleIds": [],
               "visibleRuleIds": [],
               "editableRuleIds": []
@@ -628,6 +661,18 @@
             "isReadOnly": false,
             "lookupTargetEntityId": "request"
           },
+          {
+            "id": "decision-outcome",
+            "displayName": "Decision Outcome",
+            "dataType": "choice",
+            "providerBindings": { "dataverse": { "logicalName": "dbm_decisionoutcome" } },
+            "isRequired": false,
+            "isReadOnly": false,
+            "choiceOptions": [
+              { "id": "approve", "displayName": "Approve", "value": 100000000 },
+              { "id": "reject", "displayName": "Reject", "value": 100000001 }
+            ]
+          },
           { "id": "decision-summary", "displayName": "Decision Summary", "dataType": "multiline-string", "providerBindings": { "dataverse": { "logicalName": "dbm_decisionsummary" } }, "isRequired": false, "isReadOnly": true },
           { "id": "decision-comment", "displayName": "Decision Comment", "dataType": "multiline-string", "providerBindings": { "dataverse": { "logicalName": "dbm_decisioncomment" } }, "isRequired": false, "isReadOnly": false }
         ]
@@ -647,6 +692,7 @@
   "rules": [
     { "id": "request-basic-fields-present", "displayName": "Request Basic Fields Present", "ruleType": "validation", "scope": "step", "language": "dbm-expression-v1", "body": "notEmpty(request-title) and notEmpty(request-amount) and notEmpty(assigned-approver)" },
     { "id": "supporting-details-needed", "displayName": "Supporting Details Needed", "ruleType": "condition", "scope": "step-transition", "language": "dbm-expression-v1", "body": "request-amount >= 5000" },
+    { "id": "supporting-details-complete", "displayName": "Supporting Details Complete", "ruleType": "condition", "scope": "step-transition", "language": "dbm-expression-v1", "body": "request-amount < 5000 or notEmpty(supporting-notes)" },
     { "id": "request-ready-for-screening", "displayName": "Request Ready For Screening", "ruleType": "condition", "scope": "transition", "language": "dbm-expression-v1", "body": "notEmpty(request-title) and notEmpty(request-amount) and notEmpty(assigned-approver)" },
     { "id": "screening-complete", "displayName": "Screening Complete", "ruleType": "condition", "scope": "step-transition", "language": "dbm-expression-v1", "body": "screening-result == 'complete'" },
     { "id": "approval-path-selected", "displayName": "Approval Path Selected", "ruleType": "condition", "scope": "step-transition", "language": "dbm-expression-v1", "body": "requestedOutcomeId == 'approve'" },

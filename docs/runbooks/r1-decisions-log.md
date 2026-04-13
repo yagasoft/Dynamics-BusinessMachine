@@ -32,6 +32,14 @@ This document collects the major product and implementation decisions made durin
 - Keep columns solution-owned instead of designer-authored for this release.
 - Keep the canonical model authoritative for behavior planning and form bindings.
 
+### Runtime posture
+
+- Treat `R1.3` as a Dataverse-backed, model-driven runtime v1 rather than a larger server-first orchestration layer.
+- Persist the authoritative DBM process state on the request record through the synthetic Dataverse runtime fields introduced by the synthesis layer.
+- Render the in-form DBM process experience through supported form JS, top-of-form notifications, and form-state-driven control behavior on existing Dataverse forms.
+- Use generated runtime-behavior tests plus deployed `Dev` and `UAT` smoke validation as the formal R1 runtime proof boundary.
+- Defer broader browser automation and richer runtime hosting concerns until after the MVP is stable.
+
 ### Host portability
 
 - Complete `R1.2.4` by reusing the same browser editor bundle across hosts instead of building a second bespoke XrmToolBox UI.
@@ -50,3 +58,25 @@ This document collects the major product and implementation decisions made durin
 - Confirm the ADR describes the same post-R1 deferrals.
 - Confirm no doc still promises generated Dataverse forms or designer-driven column authoring as part of R1.
 - Confirm the decisions log remains the single place to review the release-shaping calls made on the user's behalf.
+
+## R1 Closeout
+
+- Release line: `0.3.0`
+- Validated environments:
+  - `Dev` through the timed release baseline in `artifacts/releases/r1/0.3.0.0/dev-performance/performance-baseline.md`
+  - `UAT` through `artifacts/releases/r1/0.3.0.0/uat-deployment/deployment-summary.json` and `artifacts/releases/r1/0.3.0.0/uat-smoke/smoke-test-summary.md`
+- Formal release record:
+  - [R1 Close-Out: 0.3.0](../releases/r1-close-out-0.3.0.md)
+- Formal release note:
+  - [R1 Release Note: 0.3.0](../releases/r1-release-note-0.3.0.md)
+
+Deferred beyond `R1`:
+
+- generated model-driven main forms from the canonical model
+- generated quick-view forms for related bindings
+- designer-driven table and column authoring
+- full-form XML ownership by DBM
+- whole-form drift enforcement against live Dataverse
+- editable multi-table composition on model-driven forms
+- live Power Pages runtime and full portal loop in `R2`
+- AI-assisted authoring and optimization in `R3`

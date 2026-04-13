@@ -49,6 +49,14 @@
                   </labels>
                   <rows>
                     <row>
+                      <cell id="{4e37e2e6-61cb-544d-848a-9f870ec4cf47}" showlabel="true">
+                        <labels>
+                          <label description="Decision Outcome" languagecode="1033" />
+                        </labels>
+                        <control id="dbm_decisionoutcome" datafieldname="dbm_decisionoutcome" classid="{3EF39988-22BB-4F0B-BBBE-64B5A3748AEE}" />
+                      </cell>
+                    </row>
+                    <row>
                       <cell id="{4e37e2e6-61cb-544d-848a-9f870ec4cf45}" showlabel="true" rowspan="4">
                         <labels>
                           <label description="Decision Comment" languagecode="1033" />

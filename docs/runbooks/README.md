@@ -12,6 +12,8 @@ This section holds operational runbooks that support delivery, promotion, rollba
 - [prod-promotion-runbook.md](prod-promotion-runbook.md)
 - [rollback-runbook.md](rollback-runbook.md)
 - [secret-rotation-and-identity-recovery.md](secret-rotation-and-identity-recovery.md)
+- [release-performance-baseline.md](release-performance-baseline.md)
+- [r1-decisions-log.md](r1-decisions-log.md)
 - [codex-dataverse-metadata-synthesis-skill-handoff.md](codex-dataverse-metadata-synthesis-skill-handoff.md)
 - [deployment-promotion-runbook-template.md](deployment-promotion-runbook-template.md)
 - [rollback-runbook-template.md](rollback-runbook-template.md)

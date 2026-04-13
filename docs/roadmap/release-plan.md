@@ -92,6 +92,8 @@ Stages:
 
 Details: [release-1-builder-platform-mvp.md](release-1-builder-platform-mvp.md)
 
+Closeout: [r1-close-out-0.3.0.md](../releases/r1-close-out-0.3.0.md)
+
 ### Release 2
 
 Goal:

@@ -72,6 +72,63 @@ function mapChoiceOptions(field: DbmFieldV1): DataverseChoiceOptionPlan[] {
   }));
 }
 
+function getRuntimeOwnerEntityId(model: DbmModelV1): string | null {
+  const startStage = model.process.stages.find((stage) => stage.stageType === 'start') ?? model.process.stages[0];
+  if (!startStage?.formId) {
+    return null;
+  }
+
+  const form = model.forms.find((entry) => entry.id === startStage.formId);
+  if (!form) {
+    return null;
+  }
+
+  const primaryBinding = form.entityBindings.find((binding) => binding.id === form.primaryEntityBindingId);
+  return primaryBinding?.entityId ?? null;
+}
+
+function createSyntheticRuntimeStateColumns(entityId: string, entityLogicalName: string): DataverseColumnPlan[] {
+  const prefix = getPublisherPrefix(entityLogicalName);
+  const fieldDefinitions: Array<{ id: string; logicalName: string; displayName: string }> = [
+    { id: 'runtime-current-stage-id', logicalName: `${prefix}_currentstageid`, displayName: 'Current Stage Id' },
+    { id: 'runtime-current-step-id', logicalName: `${prefix}_currentstepid`, displayName: 'Current Step Id' },
+    { id: 'runtime-current-form-state-id', logicalName: `${prefix}_currentformstateid`, displayName: 'Current Form State Id' },
+    { id: 'runtime-internal-status-id', logicalName: `${prefix}_internalstatusid`, displayName: 'Internal Status Id' },
+    { id: 'runtime-portal-status-id', logicalName: `${prefix}_portalstatusid`, displayName: 'Portal Status Id' }
+  ];
+
+  return fieldDefinitions.map((definition) => ({
+    id: `${entityId}:${definition.id}`,
+    entityId,
+    fieldId: null,
+    logicalName: definition.logicalName,
+    schemaName: toSchemaName(definition.logicalName),
+    displayName: definition.displayName,
+    dataType: 'string',
+    attributeType: 'String',
+    required: false,
+    readOnly: true,
+    supported: true,
+    unsupportedReason: null,
+    source: 'synthetic',
+    isPrimaryNameAttribute: false,
+    maxLength: 200
+  }));
+}
+
+function appendUniqueColumns(columns: DataverseColumnPlan[], additionalColumns: DataverseColumnPlan[]): DataverseColumnPlan[] {
+  const existingLogicalNames = new Set(columns.map((column) => column.logicalName));
+  const normalized = [...columns];
+  for (const column of additionalColumns) {
+    if (!existingLogicalNames.has(column.logicalName)) {
+      normalized.push(column);
+      existingLogicalNames.add(column.logicalName);
+    }
+  }
+
+  return normalized;
+}
+
 function planColumn(
   model: DbmModelV1,
   entity: DbmEntityV1,
@@ -372,6 +429,7 @@ export function planDataverseSynthesis(model: DbmModelV1): DataverseSynthesisPla
   const diagnostics: DataverseSynthesisDiagnostic[] = [];
   const entities: DataverseEntityPlan[] = [];
   const entityPlans = new Map<string, DataverseEntityPlan>();
+  const runtimeOwnerEntityId = getRuntimeOwnerEntityId(model);
 
   for (const entity of model.metadata.entities) {
     const modelPath = `metadata.entities.${entity.id}`;
@@ -386,7 +444,7 @@ export function planDataverseSynthesis(model: DbmModelV1): DataverseSynthesisPla
       .filter((column): column is DataverseColumnPlan => column !== null);
 
     const primaryNameColumn = choosePrimaryNameColumn(entity, columns, logicalName);
-    const normalizedColumns = columns.map((column) =>
+    let normalizedColumns = columns.map((column) =>
       column.logicalName === primaryNameColumn.logicalName
         ? { ...column, required: true, isPrimaryNameAttribute: true }
         : column
@@ -394,6 +452,10 @@ export function planDataverseSynthesis(model: DbmModelV1): DataverseSynthesisPla
 
     if (!normalizedColumns.some((column) => column.logicalName === primaryNameColumn.logicalName)) {
       normalizedColumns.unshift(primaryNameColumn);
+    }
+
+    if (entity.id === runtimeOwnerEntityId) {
+      normalizedColumns = appendUniqueColumns(normalizedColumns, createSyntheticRuntimeStateColumns(entity.id, logicalName));
     }
 
     const primaryKeyField = getFieldById(entity, entity.primaryKeyFieldId);

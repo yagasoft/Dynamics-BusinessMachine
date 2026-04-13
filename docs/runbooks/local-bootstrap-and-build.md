@@ -88,6 +88,14 @@ To exercise the script-driven synthesis path directly in `Dev`:
 
 Use direct `ApplyDev` only for authoring proof in `Dev`. `UAT` and `Prod` remain packaged-import-only.
 
+To capture the release-shaped `R1` performance baseline:
+
+```powershell
+.\eng\scripts\Test-ReleasePerformanceBaseline.ps1 -TargetEnvironment Dev
+```
+
+This records the timed repo-validation, synthesis, packaging, deployment, and smoke path under `artifacts/performance/r1/`.
+
 To run the local `Dev` rapid deploy path:
 
 ```powershell

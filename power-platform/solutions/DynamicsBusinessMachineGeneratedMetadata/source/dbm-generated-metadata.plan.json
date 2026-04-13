@@ -1,5 +1,5 @@
 {
-  "generatedUtc": "2026-04-13T17:08:10.135Z",
+  "generatedUtc": "2026-04-13T18:57:42.421Z",
   "modelId": "dbm-approval-request",
   "modelVersion": "1.2.1",
   "model": {
@@ -280,7 +280,7 @@
             "supporting-details-needed"
           ],
           "exitRuleIds": [
-            "request-ready-for-screening"
+            "supporting-details-complete"
           ]
         },
         {
@@ -400,7 +400,7 @@
         {
           "id": "supporting-to-screening",
           "fromStepId": "capture-supporting-details",
-          "guardRuleId": "request-ready-for-screening",
+          "guardRuleId": "supporting-details-complete",
           "target": {
             "stageId": "internal-screening-stage"
           }
@@ -778,7 +778,7 @@
             "id": "review-decision",
             "displayName": "Decision",
             "entityId": "request-decision",
-            "relationshipId": "request-to-decision",
+            "relationshipId": null,
             "role": "primary"
           }
         ],
@@ -851,6 +851,26 @@
             }
           },
           {
+            "id": "decision-outcome-element",
+            "elementType": "choice",
+            "regionId": "review-resolution-region",
+            "displayName": "Decision Outcome",
+            "binding": {
+              "entityBindingId": "review-decision",
+              "fieldId": "decision-outcome"
+            },
+            "behavior": {
+              "requiredRuleIds": [],
+              "visibleRuleIds": [],
+              "editableRuleIds": []
+            },
+            "providerBindings": {
+              "dataverse": {
+                "controlName": "dbm_decisionoutcome"
+              }
+            }
+          },
+          {
             "id": "decision-comment-element",
             "elementType": "multiline-text",
             "regionId": "review-resolution-region",
@@ -898,6 +918,14 @@
                 "requiredRuleIds": [],
                 "visibleRuleIds": [],
                 "editableRuleIds": []
+              },
+              {
+                "elementId": "decision-outcome-element",
+                "label": "Decision Outcome",
+                "hint": "Choose whether to approve or reject the request.",
+                "requiredRuleIds": [],
+                "visibleRuleIds": [],
+                "editableRuleIds": []
               }
             ]
           },
@@ -924,6 +952,14 @@
                 "elementId": "decision-summary-element",
                 "label": "Decision Summary",
                 "hint": "Confirm the approval summary.",
+                "requiredRuleIds": [],
+                "visibleRuleIds": [],
+                "editableRuleIds": []
+              },
+              {
+                "elementId": "decision-outcome-element",
+                "label": "Decision Outcome",
+                "hint": "Confirm that this request is approved.",
                 "requiredRuleIds": [],
                 "visibleRuleIds": [],
                 "editableRuleIds": []
@@ -963,6 +999,14 @@
                 "elementId": "decision-summary-element",
                 "label": "Decision Summary",
                 "hint": "Confirm the rejection summary.",
+                "requiredRuleIds": [],
+                "visibleRuleIds": [],
+                "editableRuleIds": []
+              },
+              {
+                "elementId": "decision-outcome-element",
+                "label": "Decision Outcome",
+                "hint": "Confirm that this request is rejected.",
                 "requiredRuleIds": [],
                 "visibleRuleIds": [],
                 "editableRuleIds": []
@@ -1111,6 +1155,30 @@
               "lookupTargetEntityId": "request"
             },
             {
+              "id": "decision-outcome",
+              "displayName": "Decision Outcome",
+              "dataType": "choice",
+              "providerBindings": {
+                "dataverse": {
+                  "logicalName": "dbm_decisionoutcome"
+                }
+              },
+              "isRequired": false,
+              "isReadOnly": false,
+              "choiceOptions": [
+                {
+                  "id": "approve",
+                  "displayName": "Approve",
+                  "value": 100000000
+                },
+                {
+                  "id": "reject",
+                  "displayName": "Reject",
+                  "value": 100000001
+                }
+              ]
+            },
+            {
               "id": "decision-summary",
               "displayName": "Decision Summary",
               "dataType": "multiline-string",
@@ -1168,6 +1236,14 @@
         "scope": "step-transition",
         "language": "dbm-expression-v1",
         "body": "request-amount >= 5000"
+      },
+      {
+        "id": "supporting-details-complete",
+        "displayName": "Supporting Details Complete",
+        "ruleType": "condition",
+        "scope": "step-transition",
+        "language": "dbm-expression-v1",
+        "body": "request-amount < 5000 or notEmpty(supporting-notes)"
       },
       {
         "id": "request-ready-for-screening",
@@ -1405,6 +1481,91 @@
               "value": 100000002
             }
           ]
+        },
+        {
+          "id": "request:runtime-current-stage-id",
+          "entityId": "request",
+          "fieldId": null,
+          "logicalName": "dbm_currentstageid",
+          "schemaName": "dbm_Currentstageid",
+          "displayName": "Current Stage Id",
+          "dataType": "string",
+          "attributeType": "String",
+          "required": false,
+          "readOnly": true,
+          "supported": true,
+          "unsupportedReason": null,
+          "source": "synthetic",
+          "isPrimaryNameAttribute": false,
+          "maxLength": 200
+        },
+        {
+          "id": "request:runtime-current-step-id",
+          "entityId": "request",
+          "fieldId": null,
+          "logicalName": "dbm_currentstepid",
+          "schemaName": "dbm_Currentstepid",
+          "displayName": "Current Step Id",
+          "dataType": "string",
+          "attributeType": "String",
+          "required": false,
+          "readOnly": true,
+          "supported": true,
+          "unsupportedReason": null,
+          "source": "synthetic",
+          "isPrimaryNameAttribute": false,
+          "maxLength": 200
+        },
+        {
+          "id": "request:runtime-current-form-state-id",
+          "entityId": "request",
+          "fieldId": null,
+          "logicalName": "dbm_currentformstateid",
+          "schemaName": "dbm_Currentformstateid",
+          "displayName": "Current Form State Id",
+          "dataType": "string",
+          "attributeType": "String",
+          "required": false,
+          "readOnly": true,
+          "supported": true,
+          "unsupportedReason": null,
+          "source": "synthetic",
+          "isPrimaryNameAttribute": false,
+          "maxLength": 200
+        },
+        {
+          "id": "request:runtime-internal-status-id",
+          "entityId": "request",
+          "fieldId": null,
+          "logicalName": "dbm_internalstatusid",
+          "schemaName": "dbm_Internalstatusid",
+          "displayName": "Internal Status Id",
+          "dataType": "string",
+          "attributeType": "String",
+          "required": false,
+          "readOnly": true,
+          "supported": true,
+          "unsupportedReason": null,
+          "source": "synthetic",
+          "isPrimaryNameAttribute": false,
+          "maxLength": 200
+        },
+        {
+          "id": "request:runtime-portal-status-id",
+          "entityId": "request",
+          "fieldId": null,
+          "logicalName": "dbm_portalstatusid",
+          "schemaName": "dbm_Portalstatusid",
+          "displayName": "Portal Status Id",
+          "dataType": "string",
+          "attributeType": "String",
+          "required": false,
+          "readOnly": true,
+          "supported": true,
+          "unsupportedReason": null,
+          "source": "synthetic",
+          "isPrimaryNameAttribute": false,
+          "maxLength": 200
         }
       ],
       "relationships": [
@@ -1468,6 +1629,34 @@
           "isPrimaryNameAttribute": false,
           "lookupTargetEntityId": "request",
           "lookupTargetLogicalName": "dbm_request"
+        },
+        {
+          "id": "request-decision:decision-outcome",
+          "entityId": "request-decision",
+          "fieldId": "decision-outcome",
+          "logicalName": "dbm_decisionoutcome",
+          "schemaName": "dbm_Decisionoutcome",
+          "displayName": "Decision Outcome",
+          "dataType": "choice",
+          "attributeType": "Picklist",
+          "required": false,
+          "readOnly": false,
+          "supported": true,
+          "unsupportedReason": null,
+          "source": "field",
+          "isPrimaryNameAttribute": false,
+          "choiceOptions": [
+            {
+              "id": "approve",
+              "displayName": "Approve",
+              "value": 100000000
+            },
+            {
+              "id": "reject",
+              "displayName": "Reject",
+              "value": 100000001
+            }
+          ]
         },
         {
           "id": "request-decision:decision-summary",
@@ -1708,7 +1897,333 @@
           "lockedControlNames": []
         }
       ],
-      "configBehaviorId": "request-form:behavior-config"
+      "configBehaviorId": "request-form:behavior-config",
+      "runtime": {
+        "requestEntityLogicalName": "dbm_request",
+        "requestEntityPrimaryIdLogicalName": "dbm_requestid",
+        "currentFormEntityLogicalName": "dbm_request",
+        "relatedRequestLookupFieldLogicalName": null,
+        "reviewEntityLogicalName": "dbm_requestdecision",
+        "reviewEntityRequestLookupFieldLogicalName": "dbm_requestid",
+        "runtimeStateFieldLogicalNames": {
+          "stageId": "dbm_currentstageid",
+          "stepId": "dbm_currentstepid",
+          "formStateId": "dbm_currentformstateid",
+          "internalStatusId": "dbm_internalstatusid",
+          "portalStatusId": "dbm_portalstatusid"
+        },
+        "decisionOutcomeFieldLogicalName": "dbm_decisionoutcome",
+        "decisionSummaryFieldLogicalName": "dbm_decisionsummary",
+        "decisionCommentFieldLogicalName": "dbm_decisioncomment",
+        "defaultStageId": "draft-request",
+        "defaultStepId": "capture-request",
+        "defaultFormStateId": "request-edit-state",
+        "statuses": [
+          {
+            "id": "draft",
+            "displayName": "Draft"
+          },
+          {
+            "id": "under-review",
+            "displayName": "Under Review"
+          },
+          {
+            "id": "internal-screening",
+            "displayName": "Internal Screening"
+          },
+          {
+            "id": "awaiting-manager-decision",
+            "displayName": "Awaiting Manager Decision"
+          },
+          {
+            "id": "approved",
+            "displayName": "Approved"
+          },
+          {
+            "id": "rejected",
+            "displayName": "Rejected"
+          }
+        ],
+        "stages": [
+          {
+            "id": "draft-request",
+            "displayName": "Draft Request",
+            "stageType": "start",
+            "formId": "request-form",
+            "defaultStepId": "capture-request"
+          },
+          {
+            "id": "internal-screening-stage",
+            "displayName": "Internal Screening",
+            "stageType": "system",
+            "formId": "request-form",
+            "defaultStepId": "screen-request"
+          },
+          {
+            "id": "manager-review",
+            "displayName": "Manager Review",
+            "stageType": "approval",
+            "formId": "review-form",
+            "defaultStepId": "choose-decision"
+          },
+          {
+            "id": "approved",
+            "displayName": "Approved",
+            "stageType": "end",
+            "formId": null,
+            "defaultStepId": null
+          },
+          {
+            "id": "rejected",
+            "displayName": "Rejected",
+            "stageType": "end",
+            "formId": null,
+            "defaultStepId": null
+          }
+        ],
+        "steps": [
+          {
+            "id": "capture-request",
+            "stageId": "draft-request",
+            "displayName": "Capture Request",
+            "internalStatusId": "draft",
+            "portalStatusId": "draft",
+            "formStateId": "request-edit-state",
+            "entryRuleIds": [],
+            "exitRuleIds": [
+              "request-basic-fields-present"
+            ]
+          },
+          {
+            "id": "capture-supporting-details",
+            "stageId": "draft-request",
+            "displayName": "Capture Supporting Details",
+            "internalStatusId": "draft",
+            "portalStatusId": "draft",
+            "formStateId": "request-supporting-state",
+            "entryRuleIds": [
+              "supporting-details-needed"
+            ],
+            "exitRuleIds": [
+              "supporting-details-complete"
+            ]
+          },
+          {
+            "id": "screen-request",
+            "stageId": "internal-screening-stage",
+            "displayName": "Screen Request",
+            "internalStatusId": "internal-screening",
+            "portalStatusId": "under-review",
+            "formStateId": "request-screening-state",
+            "entryRuleIds": [],
+            "exitRuleIds": [
+              "screening-complete"
+            ]
+          },
+          {
+            "id": "choose-decision",
+            "stageId": "manager-review",
+            "displayName": "Choose Decision",
+            "internalStatusId": "awaiting-manager-decision",
+            "portalStatusId": "under-review",
+            "formStateId": "review-decision-state",
+            "entryRuleIds": [],
+            "exitRuleIds": []
+          },
+          {
+            "id": "record-approval",
+            "stageId": "manager-review",
+            "displayName": "Record Approval",
+            "internalStatusId": "approved",
+            "portalStatusId": "approved",
+            "formStateId": "review-approval-state",
+            "entryRuleIds": [
+              "approval-path-selected"
+            ],
+            "exitRuleIds": [
+              "approval-step-complete"
+            ]
+          },
+          {
+            "id": "record-rejection",
+            "stageId": "manager-review",
+            "displayName": "Record Rejection",
+            "internalStatusId": "rejected",
+            "portalStatusId": "rejected",
+            "formStateId": "review-rejection-state",
+            "entryRuleIds": [
+              "rejection-path-selected"
+            ],
+            "exitRuleIds": [
+              "rejection-step-complete"
+            ]
+          }
+        ],
+        "stepTransitions": [
+          {
+            "id": "capture-to-supporting",
+            "fromStepId": "capture-request",
+            "guardRuleId": "supporting-details-needed",
+            "target": {
+              "stepId": "capture-supporting-details"
+            }
+          },
+          {
+            "id": "capture-to-screening",
+            "fromStepId": "capture-request",
+            "guardRuleId": "request-ready-for-screening",
+            "target": {
+              "stageId": "internal-screening-stage"
+            }
+          },
+          {
+            "id": "supporting-to-screening",
+            "fromStepId": "capture-supporting-details",
+            "guardRuleId": "supporting-details-complete",
+            "target": {
+              "stageId": "internal-screening-stage"
+            }
+          },
+          {
+            "id": "screening-to-review",
+            "fromStepId": "screen-request",
+            "guardRuleId": "screening-complete",
+            "target": {
+              "stageId": "manager-review"
+            }
+          },
+          {
+            "id": "choose-to-approval",
+            "fromStepId": "choose-decision",
+            "guardRuleId": "approval-path-selected",
+            "target": {
+              "stepId": "record-approval"
+            }
+          },
+          {
+            "id": "choose-to-rejection",
+            "fromStepId": "choose-decision",
+            "guardRuleId": "rejection-path-selected",
+            "target": {
+              "stepId": "record-rejection"
+            }
+          },
+          {
+            "id": "approval-to-approved",
+            "fromStepId": "record-approval",
+            "guardRuleId": "approval-step-complete",
+            "target": {
+              "stageId": "approved"
+            }
+          },
+          {
+            "id": "rejection-to-rejected",
+            "fromStepId": "record-rejection",
+            "guardRuleId": "rejection-step-complete",
+            "target": {
+              "stageId": "rejected"
+            }
+          }
+        ],
+        "rules": {
+          "request-basic-fields-present": "notEmpty(request-title) and notEmpty(request-amount) and notEmpty(assigned-approver)",
+          "supporting-details-needed": "request-amount >= 5000",
+          "supporting-details-complete": "request-amount < 5000 or notEmpty(supporting-notes)",
+          "request-ready-for-screening": "notEmpty(request-title) and notEmpty(request-amount) and notEmpty(assigned-approver)",
+          "screening-complete": "screening-result == 'complete'",
+          "approval-path-selected": "requestedOutcomeId == 'approve'",
+          "rejection-path-selected": "requestedOutcomeId == 'reject'",
+          "approval-step-complete": "requestedOutcomeId == 'approve'",
+          "rejection-step-complete": "requestedOutcomeId != 'reject' or notEmpty(decision-comment)"
+        },
+        "valueBindings": [
+          {
+            "token": "request-id",
+            "entityLogicalName": "dbm_request",
+            "fieldLogicalName": "dbm_requestid",
+            "fieldType": "string"
+          },
+          {
+            "token": "request-title",
+            "entityLogicalName": "dbm_request",
+            "fieldLogicalName": "dbm_title",
+            "fieldType": "string"
+          },
+          {
+            "token": "request-amount",
+            "entityLogicalName": "dbm_request",
+            "fieldLogicalName": "dbm_amount",
+            "fieldType": "currency"
+          },
+          {
+            "token": "supporting-notes",
+            "entityLogicalName": "dbm_request",
+            "fieldLogicalName": "dbm_supportingnotes",
+            "fieldType": "multiline-string"
+          },
+          {
+            "token": "assigned-approver",
+            "entityLogicalName": "dbm_request",
+            "fieldLogicalName": "dbm_assignedapprover",
+            "fieldType": "string"
+          },
+          {
+            "token": "screening-result",
+            "entityLogicalName": "dbm_request",
+            "fieldLogicalName": "dbm_screeningresult",
+            "fieldType": "choice",
+            "choiceMap": {
+              "100000000": "pending",
+              "100000001": "complete",
+              "100000002": "blocked"
+            }
+          },
+          {
+            "token": "decision-id",
+            "entityLogicalName": "dbm_requestdecision",
+            "fieldLogicalName": "dbm_requestdecisionid",
+            "fieldType": "string"
+          },
+          {
+            "token": "decision-request",
+            "entityLogicalName": "dbm_requestdecision",
+            "fieldLogicalName": "dbm_requestid",
+            "fieldType": "lookup"
+          },
+          {
+            "token": "decision-outcome",
+            "entityLogicalName": "dbm_requestdecision",
+            "fieldLogicalName": "dbm_decisionoutcome",
+            "fieldType": "choice",
+            "choiceMap": {
+              "100000000": "approve",
+              "100000001": "reject"
+            }
+          },
+          {
+            "token": "decision-summary",
+            "entityLogicalName": "dbm_requestdecision",
+            "fieldLogicalName": "dbm_decisionsummary",
+            "fieldType": "multiline-string"
+          },
+          {
+            "token": "decision-comment",
+            "entityLogicalName": "dbm_requestdecision",
+            "fieldLogicalName": "dbm_decisioncomment",
+            "fieldType": "multiline-string"
+          },
+          {
+            "token": "requestedOutcomeId",
+            "entityLogicalName": "dbm_requestdecision",
+            "fieldLogicalName": "dbm_decisionoutcome",
+            "fieldType": "choice",
+            "choiceMap": {
+              "100000000": "approve",
+              "100000001": "reject"
+            }
+          }
+        ]
+      }
     },
     {
       "id": "review-form",
@@ -1770,6 +2285,20 @@
           "sectionName": "review_resolution_section",
           "controls": [
             {
+              "id": "decision-outcome-element",
+              "displayName": "Decision Outcome",
+              "elementType": "choice",
+              "entityBindingId": "review-decision",
+              "entityLogicalName": "dbm_requestdecision",
+              "dataFieldName": "dbm_decisionoutcome",
+              "controlName": "dbm_decisionoutcome",
+              "readOnly": false,
+              "requiredByDefault": false,
+              "sourceElementIds": [
+                "decision-outcome-element"
+              ]
+            },
+            {
               "id": "decision-comment-element",
               "displayName": "Decision Comment",
               "elementType": "multiline-text",
@@ -1819,7 +2348,8 @@
           "displayName": "Decision",
           "visibleControlNames": [
             "dbm_requestid",
-            "dbm_decisionsummary"
+            "dbm_decisionsummary",
+            "dbm_decisionoutcome"
           ],
           "requiredControlNames": [],
           "lockedControlNames": [
@@ -1831,7 +2361,8 @@
           "displayName": "Approval Capture",
           "visibleControlNames": [
             "dbm_requestid",
-            "dbm_decisionsummary"
+            "dbm_decisionsummary",
+            "dbm_decisionoutcome"
           ],
           "requiredControlNames": [],
           "lockedControlNames": [
@@ -1844,7 +2375,8 @@
           "visibleControlNames": [
             "dbm_decisioncomment",
             "dbm_requestid",
-            "dbm_decisionsummary"
+            "dbm_decisionsummary",
+            "dbm_decisionoutcome"
           ],
           "requiredControlNames": [
             "dbm_decisioncomment"
@@ -1854,7 +2386,333 @@
           ]
         }
       ],
-      "configBehaviorId": "review-form:behavior-config"
+      "configBehaviorId": "review-form:behavior-config",
+      "runtime": {
+        "requestEntityLogicalName": "dbm_request",
+        "requestEntityPrimaryIdLogicalName": "dbm_requestid",
+        "currentFormEntityLogicalName": "dbm_requestdecision",
+        "relatedRequestLookupFieldLogicalName": "dbm_requestid",
+        "reviewEntityLogicalName": "dbm_requestdecision",
+        "reviewEntityRequestLookupFieldLogicalName": "dbm_requestid",
+        "runtimeStateFieldLogicalNames": {
+          "stageId": "dbm_currentstageid",
+          "stepId": "dbm_currentstepid",
+          "formStateId": "dbm_currentformstateid",
+          "internalStatusId": "dbm_internalstatusid",
+          "portalStatusId": "dbm_portalstatusid"
+        },
+        "decisionOutcomeFieldLogicalName": "dbm_decisionoutcome",
+        "decisionSummaryFieldLogicalName": "dbm_decisionsummary",
+        "decisionCommentFieldLogicalName": "dbm_decisioncomment",
+        "defaultStageId": "draft-request",
+        "defaultStepId": "capture-request",
+        "defaultFormStateId": "request-edit-state",
+        "statuses": [
+          {
+            "id": "draft",
+            "displayName": "Draft"
+          },
+          {
+            "id": "under-review",
+            "displayName": "Under Review"
+          },
+          {
+            "id": "internal-screening",
+            "displayName": "Internal Screening"
+          },
+          {
+            "id": "awaiting-manager-decision",
+            "displayName": "Awaiting Manager Decision"
+          },
+          {
+            "id": "approved",
+            "displayName": "Approved"
+          },
+          {
+            "id": "rejected",
+            "displayName": "Rejected"
+          }
+        ],
+        "stages": [
+          {
+            "id": "draft-request",
+            "displayName": "Draft Request",
+            "stageType": "start",
+            "formId": "request-form",
+            "defaultStepId": "capture-request"
+          },
+          {
+            "id": "internal-screening-stage",
+            "displayName": "Internal Screening",
+            "stageType": "system",
+            "formId": "request-form",
+            "defaultStepId": "screen-request"
+          },
+          {
+            "id": "manager-review",
+            "displayName": "Manager Review",
+            "stageType": "approval",
+            "formId": "review-form",
+            "defaultStepId": "choose-decision"
+          },
+          {
+            "id": "approved",
+            "displayName": "Approved",
+            "stageType": "end",
+            "formId": null,
+            "defaultStepId": null
+          },
+          {
+            "id": "rejected",
+            "displayName": "Rejected",
+            "stageType": "end",
+            "formId": null,
+            "defaultStepId": null
+          }
+        ],
+        "steps": [
+          {
+            "id": "capture-request",
+            "stageId": "draft-request",
+            "displayName": "Capture Request",
+            "internalStatusId": "draft",
+            "portalStatusId": "draft",
+            "formStateId": "request-edit-state",
+            "entryRuleIds": [],
+            "exitRuleIds": [
+              "request-basic-fields-present"
+            ]
+          },
+          {
+            "id": "capture-supporting-details",
+            "stageId": "draft-request",
+            "displayName": "Capture Supporting Details",
+            "internalStatusId": "draft",
+            "portalStatusId": "draft",
+            "formStateId": "request-supporting-state",
+            "entryRuleIds": [
+              "supporting-details-needed"
+            ],
+            "exitRuleIds": [
+              "supporting-details-complete"
+            ]
+          },
+          {
+            "id": "screen-request",
+            "stageId": "internal-screening-stage",
+            "displayName": "Screen Request",
+            "internalStatusId": "internal-screening",
+            "portalStatusId": "under-review",
+            "formStateId": "request-screening-state",
+            "entryRuleIds": [],
+            "exitRuleIds": [
+              "screening-complete"
+            ]
+          },
+          {
+            "id": "choose-decision",
+            "stageId": "manager-review",
+            "displayName": "Choose Decision",
+            "internalStatusId": "awaiting-manager-decision",
+            "portalStatusId": "under-review",
+            "formStateId": "review-decision-state",
+            "entryRuleIds": [],
+            "exitRuleIds": []
+          },
+          {
+            "id": "record-approval",
+            "stageId": "manager-review",
+            "displayName": "Record Approval",
+            "internalStatusId": "approved",
+            "portalStatusId": "approved",
+            "formStateId": "review-approval-state",
+            "entryRuleIds": [
+              "approval-path-selected"
+            ],
+            "exitRuleIds": [
+              "approval-step-complete"
+            ]
+          },
+          {
+            "id": "record-rejection",
+            "stageId": "manager-review",
+            "displayName": "Record Rejection",
+            "internalStatusId": "rejected",
+            "portalStatusId": "rejected",
+            "formStateId": "review-rejection-state",
+            "entryRuleIds": [
+              "rejection-path-selected"
+            ],
+            "exitRuleIds": [
+              "rejection-step-complete"
+            ]
+          }
+        ],
+        "stepTransitions": [
+          {
+            "id": "capture-to-supporting",
+            "fromStepId": "capture-request",
+            "guardRuleId": "supporting-details-needed",
+            "target": {
+              "stepId": "capture-supporting-details"
+            }
+          },
+          {
+            "id": "capture-to-screening",
+            "fromStepId": "capture-request",
+            "guardRuleId": "request-ready-for-screening",
+            "target": {
+              "stageId": "internal-screening-stage"
+            }
+          },
+          {
+            "id": "supporting-to-screening",
+            "fromStepId": "capture-supporting-details",
+            "guardRuleId": "supporting-details-complete",
+            "target": {
+              "stageId": "internal-screening-stage"
+            }
+          },
+          {
+            "id": "screening-to-review",
+            "fromStepId": "screen-request",
+            "guardRuleId": "screening-complete",
+            "target": {
+              "stageId": "manager-review"
+            }
+          },
+          {
+            "id": "choose-to-approval",
+            "fromStepId": "choose-decision",
+            "guardRuleId": "approval-path-selected",
+            "target": {
+              "stepId": "record-approval"
+            }
+          },
+          {
+            "id": "choose-to-rejection",
+            "fromStepId": "choose-decision",
+            "guardRuleId": "rejection-path-selected",
+            "target": {
+              "stepId": "record-rejection"
+            }
+          },
+          {
+            "id": "approval-to-approved",
+            "fromStepId": "record-approval",
+            "guardRuleId": "approval-step-complete",
+            "target": {
+              "stageId": "approved"
+            }
+          },
+          {
+            "id": "rejection-to-rejected",
+            "fromStepId": "record-rejection",
+            "guardRuleId": "rejection-step-complete",
+            "target": {
+              "stageId": "rejected"
+            }
+          }
+        ],
+        "rules": {
+          "request-basic-fields-present": "notEmpty(request-title) and notEmpty(request-amount) and notEmpty(assigned-approver)",
+          "supporting-details-needed": "request-amount >= 5000",
+          "supporting-details-complete": "request-amount < 5000 or notEmpty(supporting-notes)",
+          "request-ready-for-screening": "notEmpty(request-title) and notEmpty(request-amount) and notEmpty(assigned-approver)",
+          "screening-complete": "screening-result == 'complete'",
+          "approval-path-selected": "requestedOutcomeId == 'approve'",
+          "rejection-path-selected": "requestedOutcomeId == 'reject'",
+          "approval-step-complete": "requestedOutcomeId == 'approve'",
+          "rejection-step-complete": "requestedOutcomeId != 'reject' or notEmpty(decision-comment)"
+        },
+        "valueBindings": [
+          {
+            "token": "request-id",
+            "entityLogicalName": "dbm_request",
+            "fieldLogicalName": "dbm_requestid",
+            "fieldType": "string"
+          },
+          {
+            "token": "request-title",
+            "entityLogicalName": "dbm_request",
+            "fieldLogicalName": "dbm_title",
+            "fieldType": "string"
+          },
+          {
+            "token": "request-amount",
+            "entityLogicalName": "dbm_request",
+            "fieldLogicalName": "dbm_amount",
+            "fieldType": "currency"
+          },
+          {
+            "token": "supporting-notes",
+            "entityLogicalName": "dbm_request",
+            "fieldLogicalName": "dbm_supportingnotes",
+            "fieldType": "multiline-string"
+          },
+          {
+            "token": "assigned-approver",
+            "entityLogicalName": "dbm_request",
+            "fieldLogicalName": "dbm_assignedapprover",
+            "fieldType": "string"
+          },
+          {
+            "token": "screening-result",
+            "entityLogicalName": "dbm_request",
+            "fieldLogicalName": "dbm_screeningresult",
+            "fieldType": "choice",
+            "choiceMap": {
+              "100000000": "pending",
+              "100000001": "complete",
+              "100000002": "blocked"
+            }
+          },
+          {
+            "token": "decision-id",
+            "entityLogicalName": "dbm_requestdecision",
+            "fieldLogicalName": "dbm_requestdecisionid",
+            "fieldType": "string"
+          },
+          {
+            "token": "decision-request",
+            "entityLogicalName": "dbm_requestdecision",
+            "fieldLogicalName": "dbm_requestid",
+            "fieldType": "lookup"
+          },
+          {
+            "token": "decision-outcome",
+            "entityLogicalName": "dbm_requestdecision",
+            "fieldLogicalName": "dbm_decisionoutcome",
+            "fieldType": "choice",
+            "choiceMap": {
+              "100000000": "approve",
+              "100000001": "reject"
+            }
+          },
+          {
+            "token": "decision-summary",
+            "entityLogicalName": "dbm_requestdecision",
+            "fieldLogicalName": "dbm_decisionsummary",
+            "fieldType": "multiline-string"
+          },
+          {
+            "token": "decision-comment",
+            "entityLogicalName": "dbm_requestdecision",
+            "fieldLogicalName": "dbm_decisioncomment",
+            "fieldType": "multiline-string"
+          },
+          {
+            "token": "requestedOutcomeId",
+            "entityLogicalName": "dbm_requestdecision",
+            "fieldLogicalName": "dbm_decisionoutcome",
+            "fieldType": "choice",
+            "choiceMap": {
+              "100000000": "approve",
+              "100000001": "reject"
+            }
+          }
+        ]
+      }
     }
   ],
   "behaviors": [
@@ -1868,7 +2726,7 @@
       "reason": null,
       "webResourceType": 3,
       "relativePath": "src/WebResources/ys_/dbm/forms/runtime.js",
-      "content": "(function (global) {\n  const DBM = (global.DBM = global.DBM || {});\n  function getFormContext(executionContext) {\n    if (!executionContext) {\n      return null;\n    }\n    if (typeof executionContext.getFormContext === 'function') {\n      return executionContext.getFormContext();\n    }\n    return executionContext;\n  }\n  function getTab(formContext, tabName) {\n    return formContext?.ui?.tabs?.get ? formContext.ui.tabs.get(tabName) : null;\n  }\n  function getSection(formContext, tabName, sectionName) {\n    const tab = getTab(formContext, tabName);\n    return tab?.sections?.get ? tab.sections.get(sectionName) : null;\n  }\n  function getControl(formContext, controlName) {\n    return formContext?.getControl ? formContext.getControl(controlName) : null;\n  }\n  function setRequiredLevel(control, isRequired) {\n    if (typeof control?.getAttribute !== \"function\") {\n      return;\n    }\n    const attribute = control.getAttribute();\n    if (!attribute || typeof attribute.setRequiredLevel !== \"function\") {\n      return;\n    }\n    attribute.setRequiredLevel(isRequired ? \"required\" : \"none\");\n  }\n  function applyState(executionContext, config, activeStateId) {\n    const formContext = getFormContext(executionContext);\n    if (!formContext || !config) {\n      return;\n    }\n    const states = config.states || [];\n    const activeState = states.find((entry) => entry.id === activeStateId) || states[0] || null;\n    const visibleControls = new Set(activeState?.visibleControlNames || []);\n    const requiredControls = new Set(activeState?.requiredControlNames || []);\n    const lockedControls = new Set(activeState?.lockedControlNames || []);\n    (config.sections || []).forEach((sectionConfig) => {\n      const section = getSection(formContext, sectionConfig.tabName, sectionConfig.sectionName);\n      const tab = getTab(formContext, sectionConfig.tabName);\n      const hasVisibleControl = (sectionConfig.controls || []).some((control) => visibleControls.has(control.controlName));\n      if (section && typeof section.setVisible === \"function\") {\n        section.setVisible(hasVisibleControl);\n      }\n      if (tab && typeof tab.setVisible === \"function\") {\n        const tabHasVisibleControl = (config.sections || []).some((candidateSection) =>\n          candidateSection.tabName === sectionConfig.tabName &&\n          (candidateSection.controls || []).some((candidateControl) => visibleControls.has(candidateControl.controlName))\n        );\n        tab.setVisible(tabHasVisibleControl);\n      }\n      (sectionConfig.controls || []).forEach((controlConfig) => {\n        const control = getControl(formContext, controlConfig.controlName);\n        if (!control) {\n          return;\n        }\n        const shouldBeVisible = visibleControls.has(controlConfig.controlName);\n        if (typeof control.setVisible === \"function\") {\n          control.setVisible(shouldBeVisible);\n        }\n        if (!shouldBeVisible) {\n          setRequiredLevel(control, false);\n          return;\n        }\n        if (typeof control.setDisabled === \"function\") {\n          control.setDisabled(Boolean(controlConfig.readOnly) || lockedControls.has(controlConfig.controlName));\n        }\n        setRequiredLevel(control, requiredControls.has(controlConfig.controlName));\n      });\n    });\n  }\n  DBM.FormBehavior = {\n    apply: applyState\n  };\n})(window);\n",
+      "content": "(function (global) {\n  const DBM = (global.DBM = global.DBM || {});\n  const STATE_NOTIFICATION_ID = 'dbm-runtime-state';\n  const ACTION_NOTIFICATION_ID = 'dbm-runtime-action';\n  function getFormContext(executionContext) {\n    if (!executionContext) {\n      return null;\n    }\n    if (typeof executionContext.getFormContext === 'function') {\n      return executionContext.getFormContext();\n    }\n    return executionContext;\n  }\n  function normalizeId(value) {\n    if (!value) {\n      return '';\n    }\n    return String(value).replace(/[{}]/g, '').toLowerCase();\n  }\n  function getTab(formContext, tabName) {\n    return formContext?.ui?.tabs?.get ? formContext.ui.tabs.get(tabName) : null;\n  }\n  function getSection(formContext, tabName, sectionName) {\n    const tab = getTab(formContext, tabName);\n    return tab?.sections?.get ? tab.sections.get(sectionName) : null;\n  }\n  function getControl(formContext, controlName) {\n    return formContext?.getControl ? formContext.getControl(controlName) : null;\n  }\n  function setRequiredLevel(control, isRequired) {\n    if (typeof control?.getAttribute !== 'function') {\n      return;\n    }\n    const attribute = control.getAttribute();\n    if (!attribute || typeof attribute.setRequiredLevel !== 'function') {\n      return;\n    }\n    attribute.setRequiredLevel(isRequired ? 'required' : 'none');\n  }\n  function setControlDisabled(control, isDisabled) {\n    if (typeof control?.setDisabled === 'function') {\n      control.setDisabled(Boolean(isDisabled));\n    }\n  }\n  function applyState(executionContext, config, activeStateId) {\n    const formContext = getFormContext(executionContext);\n    if (!formContext || !config) {\n      return;\n    }\n    const states = config.states || [];\n    const activeState = states.find((entry) => entry.id === activeStateId) || states[0] || null;\n    const visibleControls = new Set(activeState?.visibleControlNames || []);\n    const requiredControls = new Set(activeState?.requiredControlNames || []);\n    const lockedControls = new Set(activeState?.lockedControlNames || []);\n    (config.sections || []).forEach((sectionConfig) => {\n      const section = getSection(formContext, sectionConfig.tabName, sectionConfig.sectionName);\n      const tab = getTab(formContext, sectionConfig.tabName);\n      const hasVisibleControl = (sectionConfig.controls || []).some((control) => visibleControls.has(control.controlName));\n      if (section && typeof section.setVisible === 'function') {\n        section.setVisible(hasVisibleControl);\n      }\n      if (tab && typeof tab.setVisible === 'function') {\n        const tabHasVisibleControl = (config.sections || []).some((candidateSection) =>\n          candidateSection.tabName === sectionConfig.tabName &&\n          (candidateSection.controls || []).some((candidateControl) => visibleControls.has(candidateControl.controlName))\n        );\n        tab.setVisible(tabHasVisibleControl);\n      }\n      (sectionConfig.controls || []).forEach((controlConfig) => {\n        const control = getControl(formContext, controlConfig.controlName);\n        if (!control) {\n          return;\n        }\n        const shouldBeVisible = visibleControls.has(controlConfig.controlName);\n        if (typeof control.setVisible === 'function') {\n          control.setVisible(shouldBeVisible);\n        }\n        if (!shouldBeVisible) {\n          setRequiredLevel(control, false);\n          return;\n        }\n        setControlDisabled(control, Boolean(controlConfig.readOnly) || lockedControls.has(controlConfig.controlName));\n        setRequiredLevel(control, requiredControls.has(controlConfig.controlName));\n      });\n    });\n  }\n  function applyInactiveState(executionContext, config) {\n    const formContext = getFormContext(executionContext);\n    if (!formContext || !config) {\n      return;\n    }\n    (config.sections || []).forEach((sectionConfig) => {\n      const section = getSection(formContext, sectionConfig.tabName, sectionConfig.sectionName);\n      const tab = getTab(formContext, sectionConfig.tabName);\n      if (section && typeof section.setVisible === 'function') {\n        section.setVisible(true);\n      }\n      if (tab && typeof tab.setVisible === 'function') {\n        tab.setVisible(true);\n      }\n      (sectionConfig.controls || []).forEach((controlConfig) => {\n        const control = getControl(formContext, controlConfig.controlName);\n        if (!control) {\n          return;\n        }\n        if (typeof control.setVisible === 'function') {\n          control.setVisible(true);\n        }\n        setControlDisabled(control, true);\n        setRequiredLevel(control, false);\n      });\n    });\n  }\n  function splitExpression(expression, separator) {\n    const segments = [];\n    let depth = 0;\n    let start = 0;\n    for (let index = 0; index < expression.length; index += 1) {\n      const current = expression[index];\n      if (current === '(') {\n        depth += 1;\n      } else if (current === ')') {\n        depth = Math.max(0, depth - 1);\n      }\n      if (depth === 0 && expression.slice(index, index + separator.length) === separator) {\n        segments.push(expression.slice(start, index).trim());\n        start = index + separator.length;\n        index += separator.length - 1;\n      }\n    }\n    const tail = expression.slice(start).trim();\n    if (tail) {\n      segments.push(tail);\n    }\n    return segments;\n  }\n  function parseLiteral(value) {\n    const trimmed = String(value || '').trim();\n    if (trimmed === 'true') {\n      return true;\n    }\n    if (trimmed === 'false') {\n      return false;\n    }\n    if (trimmed === 'null') {\n      return null;\n    }\n    if ((trimmed.startsWith(\"'\") && trimmed.endsWith(\"'\")) || (trimmed.startsWith('\"') && trimmed.endsWith('\"'))) {\n      return trimmed.slice(1, -1);\n    }\n    if (/^-?\\d+(\\.\\d+)?$/.test(trimmed)) {\n      return Number(trimmed);\n    }\n    return trimmed;\n  }\n  function compareValues(left, operator, right) {\n    if (operator === '==') {\n      return left === right;\n    }\n    if (operator === '!=') {\n      return left !== right;\n    }\n    if (operator === '>=') {\n      return Number(left) >= Number(right);\n    }\n    if (operator === '<=') {\n      return Number(left) <= Number(right);\n    }\n    if (operator === '>') {\n      return Number(left) > Number(right);\n    }\n    if (operator === '<') {\n      return Number(left) < Number(right);\n    }\n    return false;\n  }\n  function notEmpty(value) {\n    return !(value === null || value === undefined || value === '');\n  }\n  function evaluateExpression(expression, values) {\n    const normalized = String(expression || '').trim();\n    if (!normalized) {\n      return true;\n    }\n    const orSegments = splitExpression(normalized, ' or ');\n    if (orSegments.length > 1) {\n      return orSegments.some((segment) => evaluateExpression(segment, values));\n    }\n    const andSegments = splitExpression(normalized, ' and ');\n    if (andSegments.length > 1) {\n      return andSegments.every((segment) => evaluateExpression(segment, values));\n    }\n    const notEmptyMatch = /^notEmpty\\(([^)]+)\\)$/.exec(normalized);\n    if (notEmptyMatch) {\n      return notEmpty(values[notEmptyMatch[1].trim()]);\n    }\n    const comparisonMatch = /^([A-Za-z][A-Za-z0-9-]*)\\s*(==|!=|>=|<=|>|<)\\s*(.+)$/.exec(normalized);\n    if (comparisonMatch) {\n      const left = values[comparisonMatch[1]];\n      const right = parseLiteral(comparisonMatch[3]);\n      return compareValues(left, comparisonMatch[2], right);\n    }\n    if (normalized in values) {\n      return Boolean(values[normalized]);\n    }\n    return false;\n  }\n  function getStatusDisplayName(runtime, statusId) {\n    return (runtime.statuses || []).find((status) => status.id === statusId)?.displayName || statusId || 'Unknown';\n  }\n  function getStage(runtime, stageId) {\n    return (runtime.stages || []).find((stage) => stage.id === stageId) || null;\n  }\n  function getStep(runtime, stepId) {\n    return (runtime.steps || []).find((step) => step.id === stepId) || null;\n  }\n  function getValueFromRecord(record, binding) {\n    if (!record || !binding) {\n      return null;\n    }\n    let rawValue = record[binding.fieldLogicalName];\n    if ((rawValue === null || rawValue === undefined) && binding.fieldType === 'lookup') {\n      rawValue = record['_' + binding.fieldLogicalName + '_value'];\n    }\n    if (binding.choiceMap && rawValue !== null && rawValue !== undefined) {\n      const mapped = binding.choiceMap[String(rawValue)];\n      return mapped ?? rawValue;\n    }\n    return rawValue;\n  }\n  function buildValueMap(runtime, requestRecord, currentFormRecord) {\n    const values = {};\n    (runtime.valueBindings || []).forEach((binding) => {\n      const source = binding.entityLogicalName === runtime.requestEntityLogicalName ? requestRecord : currentFormRecord;\n      values[binding.token] = getValueFromRecord(source, binding);\n    });\n    return values;\n  }\n  function overlayCurrentFormValues(formContext, runtime, currentFormRecord) {\n    const projected = Object.assign({}, currentFormRecord || {});\n    if (!formContext?.getAttribute) {\n      return projected;\n    }\n    (runtime.valueBindings || [])\n      .filter((binding) => binding.entityLogicalName === runtime.currentFormEntityLogicalName)\n      .forEach((binding) => {\n        const attribute = formContext.getAttribute(binding.fieldLogicalName);\n        if (!attribute || typeof attribute.getValue !== 'function') {\n          return;\n        }\n        let value = attribute.getValue();\n        if (Array.isArray(value) && value[0]?.id) {\n          value = normalizeId(value[0].id);\n        }\n        projected[binding.fieldLogicalName] = value;\n      });\n    return projected;\n  }\n  function getDefaultRuntimeState(runtime, currentFormId, fallbackFormStateId) {\n    const defaultStep = getStep(runtime, runtime.defaultStepId);\n    const defaultState = {\n      stageId: runtime.defaultStageId,\n      stepId: runtime.defaultStepId,\n      formStateId: defaultStep?.formStateId || runtime.defaultFormStateId || fallbackFormStateId || null,\n      internalStatusId: defaultStep?.internalStatusId || '',\n      portalStatusId: defaultStep?.portalStatusId || null\n    };\n    if (!currentFormId) {\n      return defaultState;\n    }\n    const matchingStage = (runtime.stages || []).find(\n      (stage) => stage.formId === currentFormId && stage.defaultStepId\n    );\n    if (!matchingStage?.defaultStepId) {\n      return defaultState;\n    }\n    const matchingStep = getStep(runtime, matchingStage.defaultStepId);\n    return {\n      stageId: matchingStage.id,\n      stepId: matchingStep?.id || defaultState.stepId,\n      formStateId:\n        matchingStep?.formStateId ||\n        fallbackFormStateId ||\n        defaultState.formStateId,\n      internalStatusId: matchingStep?.internalStatusId || defaultState.internalStatusId,\n      portalStatusId: matchingStep?.portalStatusId || defaultState.portalStatusId\n    };\n  }\n  function getRuntimeStateFromRecord(runtime, requestRecord, config) {\n    const fields = runtime.runtimeStateFieldLogicalNames;\n    const defaultState = getDefaultRuntimeState(runtime, config?.formId, config?.defaultStateId);\n    if (!requestRecord) {\n      return defaultState;\n    }\n    return {\n      stageId: requestRecord[fields.stageId] || defaultState.stageId,\n      stepId: requestRecord[fields.stepId] || defaultState.stepId,\n      formStateId: requestRecord[fields.formStateId] || defaultState.formStateId,\n      internalStatusId: requestRecord[fields.internalStatusId] || defaultState.internalStatusId,\n      portalStatusId: requestRecord[fields.portalStatusId] || defaultState.portalStatusId\n    };\n  }\n  function deriveStateFromTarget(runtime, currentState, target) {\n    if (target.stepId) {\n      const nextStep = getStep(runtime, target.stepId);\n      if (!nextStep) {\n        return currentState;\n      }\n      return {\n        stageId: nextStep.stageId,\n        stepId: nextStep.id,\n        formStateId: nextStep.formStateId || currentState.formStateId,\n        internalStatusId: nextStep.internalStatusId,\n        portalStatusId: nextStep.portalStatusId\n      };\n    }\n    if (target.stageId) {\n      const nextStage = getStage(runtime, target.stageId);\n      const nextStep = nextStage?.defaultStepId ? getStep(runtime, nextStage.defaultStepId) : null;\n      return {\n        stageId: target.stageId,\n        stepId: nextStep?.id || currentState.stepId,\n        formStateId: nextStep?.formStateId || currentState.formStateId,\n        internalStatusId: nextStep?.internalStatusId || currentState.internalStatusId,\n        portalStatusId: nextStep?.portalStatusId || currentState.portalStatusId\n      };\n    }\n    return currentState;\n  }\n  function evaluate(runtime, values, currentState, correlationId) {\n    let nextState = { ...currentState };\n    const messages = [];\n    let iterations = 0;\n    while (iterations < 5) {\n      const currentStep = getStep(runtime, nextState.stepId);\n      if (!currentStep) {\n        break;\n      }\n      const transition = (runtime.stepTransitions || [])\n        .filter((candidate) => candidate.fromStepId === currentStep.id)\n        .find((candidate) => evaluateExpression(runtime.rules[candidate.guardRuleId], values));\n      if (!transition) {\n        break;\n      }\n      const derived = deriveStateFromTarget(runtime, nextState, transition.target || {});\n      if (\n        derived.stageId === nextState.stageId &&\n        derived.stepId === nextState.stepId &&\n        derived.formStateId === nextState.formStateId &&\n        derived.internalStatusId === nextState.internalStatusId &&\n        derived.portalStatusId === nextState.portalStatusId\n      ) {\n        break;\n      }\n      nextState = derived;\n      messages.push({\n        level: 'info',\n        code: 'transition-completed',\n        text: 'Request moved to ' + (getStage(runtime, nextState.stageId)?.displayName || nextState.stageId) + '.'\n      });\n      iterations += 1;\n    }\n    return {\n      schemaVersion: 'dbm.runtime.result/v1',\n      status: 'ok',\n      state: nextState,\n      effects: {\n        persist: [],\n        notifications: [],\n        artifactCalls: []\n      },\n      messages,\n      errors: [],\n      correlationId: correlationId || 'dbm-runtime'\n    };\n  }\n  function getClientUrl() {\n    return global.Xrm?.Utility?.getGlobalContext?.()?.getClientUrl?.() || null;\n  }\n  function createHeaders() {\n    return {\n      Accept: 'application/json',\n      'Content-Type': 'application/json; charset=utf-8',\n      'OData-Version': '4.0',\n      'OData-MaxVersion': '4.0'\n    };\n  }\n  async function retrieveRecord(entityLogicalName, recordId, selectFields) {\n    const clientUrl = getClientUrl();\n    if (!clientUrl || !entityLogicalName || !recordId) {\n      return null;\n    }\n    const query = selectFields?.length ? '?$select=' + Array.from(new Set(selectFields)).join(',') : '';\n    const response = await global.fetch(clientUrl + '/api/data/v9.2/' + entityLogicalName + 's(' + recordId + ')' + query, {\n      method: 'GET',\n      headers: createHeaders(),\n      credentials: 'same-origin'\n    });\n    if (!response.ok) {\n      return null;\n    }\n    return await response.json();\n  }\n  async function retrieveMultiple(entityLogicalName, query) {\n    const clientUrl = getClientUrl();\n    if (!clientUrl || !entityLogicalName) {\n      return [];\n    }\n    const response = await global.fetch(clientUrl + '/api/data/v9.2/' + entityLogicalName + 's' + (query || ''), {\n      method: 'GET',\n      headers: createHeaders(),\n      credentials: 'same-origin'\n    });\n    if (!response.ok) {\n      return [];\n    }\n    const payload = await response.json();\n    return payload.value || [];\n  }\n  async function updateRecord(entityLogicalName, recordId, payload) {\n    const clientUrl = getClientUrl();\n    if (!clientUrl || !entityLogicalName || !recordId || !payload || Object.keys(payload).length === 0) {\n      return;\n    }\n    await global.fetch(clientUrl + '/api/data/v9.2/' + entityLogicalName + 's(' + recordId + ')', {\n      method: 'PATCH',\n      headers: createHeaders(),\n      credentials: 'same-origin',\n      body: JSON.stringify(payload)\n    });\n  }\n  async function createRecord(entityLogicalName, payload) {\n    const clientUrl = getClientUrl();\n    if (!clientUrl || !entityLogicalName || !payload) {\n      return null;\n    }\n    const response = await global.fetch(clientUrl + '/api/data/v9.2/' + entityLogicalName + 's', {\n      method: 'POST',\n      headers: createHeaders(),\n      credentials: 'same-origin',\n      body: JSON.stringify(payload)\n    });\n    if (!response.ok) {\n      return null;\n    }\n    return await response.json().catch(() => null);\n  }\n  function clearNotifications(formContext) {\n    if (typeof formContext?.ui?.clearFormNotification === 'function') {\n      formContext.ui.clearFormNotification(STATE_NOTIFICATION_ID);\n      formContext.ui.clearFormNotification(ACTION_NOTIFICATION_ID);\n    }\n  }\n  function renderProcessExperience(formContext, config, result) {\n    if (!formContext?.ui?.setFormNotification) {\n      return;\n    }\n    clearNotifications(formContext);\n    const runtime = config.runtime;\n    const stage = getStage(runtime, result.state.stageId);\n    const step = getStep(runtime, result.state.stepId);\n    const stageText = stage?.displayName || result.state.stageId;\n    const stepText = step?.displayName || result.state.stepId;\n    const internalStatus = getStatusDisplayName(runtime, result.state.internalStatusId);\n    const portalStatus = result.state.portalStatusId ? getStatusDisplayName(runtime, result.state.portalStatusId) : 'None';\n    formContext.ui.setFormNotification(\n      'DBM Process: ' + stageText + ' -> ' + stepText + ' | Internal: ' + internalStatus + ' | Portal: ' + portalStatus,\n      'INFO',\n      STATE_NOTIFICATION_ID\n    );\n    const activeStage = getStage(runtime, result.state.stageId);\n    if (activeStage?.formId && activeStage.formId !== config.formId) {\n      formContext.ui.setFormNotification(\n        'This record has moved to a different DBM form. Open the active form to continue the process.',\n        'INFO',\n        ACTION_NOTIFICATION_ID\n      );\n    }\n  }\n  async function ensureReviewRecord(runtime, requestId, values) {\n    if (!requestId || !runtime.reviewEntityLogicalName || !runtime.reviewEntityRequestLookupFieldLogicalName || !runtime.decisionSummaryFieldLogicalName) {\n      return null;\n    }\n    const existing = await retrieveMultiple(\n      runtime.reviewEntityLogicalName,\n      '?$select=' + [runtime.reviewEntityLogicalName + 'id', runtime.reviewEntityRequestLookupFieldLogicalName, runtime.decisionSummaryFieldLogicalName].join(',') +\n        '&$filter=_' + runtime.reviewEntityRequestLookupFieldLogicalName + '_value eq ' + requestId\n    );\n    const summaryText = 'Review request ' + (values['request-title'] || requestId) + '.';\n    if (existing.length > 0) {\n      const existingSummary = existing[0][runtime.decisionSummaryFieldLogicalName];\n      if (existingSummary !== summaryText && existing[0][runtime.reviewEntityLogicalName + 'id']) {\n        await updateRecord(runtime.reviewEntityLogicalName, normalizeId(existing[0][runtime.reviewEntityLogicalName + 'id']), {\n          [runtime.decisionSummaryFieldLogicalName]: summaryText\n        });\n      }\n      return existing[0];\n    }\n    const payload = {};\n    payload[runtime.reviewEntityRequestLookupFieldLogicalName + '@odata.bind'] = '/' + runtime.requestEntityLogicalName + 's(' + requestId + ')';\n    payload[runtime.decisionSummaryFieldLogicalName] = summaryText;\n    return await createRecord(runtime.reviewEntityLogicalName, payload);\n  }\n  function selectFields(runtime, entityLogicalName) {\n    const fields = [];\n    (runtime.valueBindings || [])\n      .filter((binding) => binding.entityLogicalName === entityLogicalName)\n      .forEach((binding) => fields.push(binding.fieldLogicalName));\n    if (entityLogicalName === runtime.requestEntityLogicalName) {\n      const stateFields = runtime.runtimeStateFieldLogicalNames;\n      fields.push(stateFields.stageId, stateFields.stepId, stateFields.formStateId, stateFields.internalStatusId, stateFields.portalStatusId);\n    }\n    return Array.from(new Set(fields.filter(Boolean)));\n  }\n  async function sync(executionContext, config) {\n    const formContext = getFormContext(executionContext);\n    if (!formContext || !config?.runtime) {\n      applyState(executionContext, config, config?.defaultStateId || null);\n      return null;\n    }\n    const runtime = config.runtime;\n    const currentRecordId = normalizeId(formContext.data?.entity?.getId?.());\n    if (!currentRecordId) {\n      applyState(executionContext, config, config.defaultStateId);\n      return null;\n    }\n    const requestId =\n      runtime.currentFormEntityLogicalName === runtime.requestEntityLogicalName\n        ? currentRecordId\n        : normalizeId(formContext.getAttribute(runtime.relatedRequestLookupFieldLogicalName)?.getValue?.()?.[0]?.id);\n    const requestRecord = requestId\n      ? await retrieveRecord(runtime.requestEntityLogicalName, requestId, selectFields(runtime, runtime.requestEntityLogicalName))\n      : null;\n    const currentFormRecord = await retrieveRecord(\n      runtime.currentFormEntityLogicalName,\n      currentRecordId,\n      selectFields(runtime, runtime.currentFormEntityLogicalName)\n    );\n    const projectedCurrentFormRecord = overlayCurrentFormValues(formContext, runtime, currentFormRecord);\n    const values = buildValueMap(runtime, requestRecord, projectedCurrentFormRecord);\n    const currentState = getRuntimeStateFromRecord(runtime, requestRecord, config);\n    const result = evaluate(runtime, values, currentState, 'dbm-runtime-' + currentRecordId);\n    if (requestId) {\n      const stateFields = runtime.runtimeStateFieldLogicalNames;\n      const payload = {};\n      payload[stateFields.stageId] = result.state.stageId;\n      payload[stateFields.stepId] = result.state.stepId;\n      payload[stateFields.formStateId] = result.state.formStateId;\n      payload[stateFields.internalStatusId] = result.state.internalStatusId;\n      payload[stateFields.portalStatusId] = result.state.portalStatusId;\n      await updateRecord(runtime.requestEntityLogicalName, requestId, payload);\n      const activeStage = getStage(runtime, result.state.stageId);\n      if (activeStage?.id === 'manager-review') {\n        await ensureReviewRecord(runtime, requestId, values);\n      }\n    }\n    const activeStage = getStage(runtime, result.state.stageId);\n    if (activeStage?.formId && activeStage.formId !== config.formId) {\n      applyInactiveState(executionContext, config);\n    } else {\n      applyState(executionContext, config, result.state.formStateId || config.defaultStateId);\n    }\n    renderProcessExperience(formContext, config, result);\n    return result;\n  }\n  function initialize(executionContext, config) {\n    const formContext = getFormContext(executionContext);\n    if (!formContext) {\n      return;\n    }\n    if (formContext.__dbmRuntimeInitialized) {\n      void sync(executionContext, config);\n      return;\n    }\n    formContext.__dbmRuntimeInitialized = true;\n    if (typeof formContext.data?.entity?.addOnSave === 'function') {\n      formContext.data.entity.addOnSave(function () {\n        global.setTimeout(function () {\n          void sync(executionContext, config);\n        }, 750);\n      });\n    }\n    void sync(executionContext, config);\n  }\n  DBM.FormBehavior = {\n    apply: applyState,\n    applyInactiveState: applyInactiveState\n  };\n  DBM.ProcessRuntime = {\n    evaluate: evaluate,\n    initialize: initialize,\n    sync: sync\n  };\n})(window);\n\n",
       "attachedFormIds": [
         "request-form",
         "review-form"
@@ -1884,7 +2742,7 @@
       "reason": null,
       "webResourceType": 3,
       "relativePath": "src/WebResources/ys_/dbm/forms/config/request-form.js",
-      "content": "(function (global) {\n  const config = {\n  \"formId\": \"request-form\",\n  \"displayName\": \"Request Form\",\n  \"defaultStateId\": \"request-edit-state\",\n  \"sections\": [\n    {\n      \"id\": \"request-details-region\",\n      \"tabName\": \"request_main_tab\",\n      \"sectionName\": \"request_details_section\",\n      \"controls\": [\n        {\n          \"controlName\": \"dbm_title\",\n          \"readOnly\": false\n        },\n        {\n          \"controlName\": \"dbm_amount\",\n          \"readOnly\": false\n        },\n        {\n          \"controlName\": \"dbm_assignedapprover\",\n          \"readOnly\": false\n        }\n      ]\n    },\n    {\n      \"id\": \"request-supporting-region\",\n      \"tabName\": \"request_main_tab\",\n      \"sectionName\": \"request_supporting_section\",\n      \"controls\": [\n        {\n          \"controlName\": \"dbm_supportingnotes\",\n          \"readOnly\": false\n        }\n      ]\n    },\n    {\n      \"id\": \"request-screening-region\",\n      \"tabName\": \"request_main_tab\",\n      \"sectionName\": \"request_screening_section\",\n      \"controls\": [\n        {\n          \"controlName\": \"dbm_screeningresult\",\n          \"readOnly\": false\n        }\n      ]\n    }\n  ],\n  \"states\": [\n    {\n      \"id\": \"request-edit-state\",\n      \"displayName\": \"Request Edit\",\n      \"visibleControlNames\": [\n        \"dbm_title\",\n        \"dbm_amount\",\n        \"dbm_assignedapprover\"\n      ],\n      \"requiredControlNames\": [\n        \"dbm_title\",\n        \"dbm_amount\",\n        \"dbm_assignedapprover\"\n      ],\n      \"lockedControlNames\": []\n    },\n    {\n      \"id\": \"request-supporting-state\",\n      \"displayName\": \"Supporting Details\",\n      \"visibleControlNames\": [\n        \"dbm_supportingnotes\",\n        \"dbm_title\",\n        \"dbm_amount\"\n      ],\n      \"requiredControlNames\": [\n        \"dbm_title\",\n        \"dbm_amount\"\n      ],\n      \"lockedControlNames\": []\n    },\n    {\n      \"id\": \"request-screening-state\",\n      \"displayName\": \"Screening\",\n      \"visibleControlNames\": [\n        \"dbm_title\",\n        \"dbm_amount\",\n        \"dbm_screeningresult\"\n      ],\n      \"requiredControlNames\": [\n        \"dbm_screeningresult\"\n      ],\n      \"lockedControlNames\": []\n    }\n  ]\n};\n  function dbmOnLoad_request_form(executionContext) {\n    if (!global.DBM || !global.DBM.FormBehavior || typeof global.DBM.FormBehavior.apply !== \"function\") {\n      return;\n    }\n    global.DBM.FormBehavior.apply(executionContext, config, config.defaultStateId);\n  }\n  global.dbmOnLoad_request_form = dbmOnLoad_request_form;\n})(window);\n",
+      "content": "(function (global) {\n  const config = {\n  \"formId\": \"request-form\",\n  \"displayName\": \"Request Form\",\n  \"defaultStateId\": \"request-edit-state\",\n  \"sections\": [\n    {\n      \"id\": \"request-details-region\",\n      \"tabName\": \"request_main_tab\",\n      \"sectionName\": \"request_details_section\",\n      \"controls\": [\n        {\n          \"controlName\": \"dbm_title\",\n          \"readOnly\": false\n        },\n        {\n          \"controlName\": \"dbm_amount\",\n          \"readOnly\": false\n        },\n        {\n          \"controlName\": \"dbm_assignedapprover\",\n          \"readOnly\": false\n        }\n      ]\n    },\n    {\n      \"id\": \"request-supporting-region\",\n      \"tabName\": \"request_main_tab\",\n      \"sectionName\": \"request_supporting_section\",\n      \"controls\": [\n        {\n          \"controlName\": \"dbm_supportingnotes\",\n          \"readOnly\": false\n        }\n      ]\n    },\n    {\n      \"id\": \"request-screening-region\",\n      \"tabName\": \"request_main_tab\",\n      \"sectionName\": \"request_screening_section\",\n      \"controls\": [\n        {\n          \"controlName\": \"dbm_screeningresult\",\n          \"readOnly\": false\n        }\n      ]\n    }\n  ],\n  \"states\": [\n    {\n      \"id\": \"request-edit-state\",\n      \"displayName\": \"Request Edit\",\n      \"visibleControlNames\": [\n        \"dbm_title\",\n        \"dbm_amount\",\n        \"dbm_assignedapprover\"\n      ],\n      \"requiredControlNames\": [\n        \"dbm_title\",\n        \"dbm_amount\",\n        \"dbm_assignedapprover\"\n      ],\n      \"lockedControlNames\": []\n    },\n    {\n      \"id\": \"request-supporting-state\",\n      \"displayName\": \"Supporting Details\",\n      \"visibleControlNames\": [\n        \"dbm_supportingnotes\",\n        \"dbm_title\",\n        \"dbm_amount\"\n      ],\n      \"requiredControlNames\": [\n        \"dbm_title\",\n        \"dbm_amount\"\n      ],\n      \"lockedControlNames\": []\n    },\n    {\n      \"id\": \"request-screening-state\",\n      \"displayName\": \"Screening\",\n      \"visibleControlNames\": [\n        \"dbm_title\",\n        \"dbm_amount\",\n        \"dbm_screeningresult\"\n      ],\n      \"requiredControlNames\": [\n        \"dbm_screeningresult\"\n      ],\n      \"lockedControlNames\": []\n    }\n  ],\n  \"runtime\": {\n    \"requestEntityLogicalName\": \"dbm_request\",\n    \"requestEntityPrimaryIdLogicalName\": \"dbm_requestid\",\n    \"currentFormEntityLogicalName\": \"dbm_request\",\n    \"relatedRequestLookupFieldLogicalName\": null,\n    \"reviewEntityLogicalName\": \"dbm_requestdecision\",\n    \"reviewEntityRequestLookupFieldLogicalName\": \"dbm_requestid\",\n    \"runtimeStateFieldLogicalNames\": {\n      \"stageId\": \"dbm_currentstageid\",\n      \"stepId\": \"dbm_currentstepid\",\n      \"formStateId\": \"dbm_currentformstateid\",\n      \"internalStatusId\": \"dbm_internalstatusid\",\n      \"portalStatusId\": \"dbm_portalstatusid\"\n    },\n    \"decisionOutcomeFieldLogicalName\": \"dbm_decisionoutcome\",\n    \"decisionSummaryFieldLogicalName\": \"dbm_decisionsummary\",\n    \"decisionCommentFieldLogicalName\": \"dbm_decisioncomment\",\n    \"defaultStageId\": \"draft-request\",\n    \"defaultStepId\": \"capture-request\",\n    \"defaultFormStateId\": \"request-edit-state\",\n    \"statuses\": [\n      {\n        \"id\": \"draft\",\n        \"displayName\": \"Draft\"\n      },\n      {\n        \"id\": \"under-review\",\n        \"displayName\": \"Under Review\"\n      },\n      {\n        \"id\": \"internal-screening\",\n        \"displayName\": \"Internal Screening\"\n      },\n      {\n        \"id\": \"awaiting-manager-decision\",\n        \"displayName\": \"Awaiting Manager Decision\"\n      },\n      {\n        \"id\": \"approved\",\n        \"displayName\": \"Approved\"\n      },\n      {\n        \"id\": \"rejected\",\n        \"displayName\": \"Rejected\"\n      }\n    ],\n    \"stages\": [\n      {\n        \"id\": \"draft-request\",\n        \"displayName\": \"Draft Request\",\n        \"stageType\": \"start\",\n        \"formId\": \"request-form\",\n        \"defaultStepId\": \"capture-request\"\n      },\n      {\n        \"id\": \"internal-screening-stage\",\n        \"displayName\": \"Internal Screening\",\n        \"stageType\": \"system\",\n        \"formId\": \"request-form\",\n        \"defaultStepId\": \"screen-request\"\n      },\n      {\n        \"id\": \"manager-review\",\n        \"displayName\": \"Manager Review\",\n        \"stageType\": \"approval\",\n        \"formId\": \"review-form\",\n        \"defaultStepId\": \"choose-decision\"\n      },\n      {\n        \"id\": \"approved\",\n        \"displayName\": \"Approved\",\n        \"stageType\": \"end\",\n        \"formId\": null,\n        \"defaultStepId\": null\n      },\n      {\n        \"id\": \"rejected\",\n        \"displayName\": \"Rejected\",\n        \"stageType\": \"end\",\n        \"formId\": null,\n        \"defaultStepId\": null\n      }\n    ],\n    \"steps\": [\n      {\n        \"id\": \"capture-request\",\n        \"stageId\": \"draft-request\",\n        \"displayName\": \"Capture Request\",\n        \"internalStatusId\": \"draft\",\n        \"portalStatusId\": \"draft\",\n        \"formStateId\": \"request-edit-state\",\n        \"entryRuleIds\": [],\n        \"exitRuleIds\": [\n          \"request-basic-fields-present\"\n        ]\n      },\n      {\n        \"id\": \"capture-supporting-details\",\n        \"stageId\": \"draft-request\",\n        \"displayName\": \"Capture Supporting Details\",\n        \"internalStatusId\": \"draft\",\n        \"portalStatusId\": \"draft\",\n        \"formStateId\": \"request-supporting-state\",\n        \"entryRuleIds\": [\n          \"supporting-details-needed\"\n        ],\n        \"exitRuleIds\": [\n          \"supporting-details-complete\"\n        ]\n      },\n      {\n        \"id\": \"screen-request\",\n        \"stageId\": \"internal-screening-stage\",\n        \"displayName\": \"Screen Request\",\n        \"internalStatusId\": \"internal-screening\",\n        \"portalStatusId\": \"under-review\",\n        \"formStateId\": \"request-screening-state\",\n        \"entryRuleIds\": [],\n        \"exitRuleIds\": [\n          \"screening-complete\"\n        ]\n      },\n      {\n        \"id\": \"choose-decision\",\n        \"stageId\": \"manager-review\",\n        \"displayName\": \"Choose Decision\",\n        \"internalStatusId\": \"awaiting-manager-decision\",\n        \"portalStatusId\": \"under-review\",\n        \"formStateId\": \"review-decision-state\",\n        \"entryRuleIds\": [],\n        \"exitRuleIds\": []\n      },\n      {\n        \"id\": \"record-approval\",\n        \"stageId\": \"manager-review\",\n        \"displayName\": \"Record Approval\",\n        \"internalStatusId\": \"approved\",\n        \"portalStatusId\": \"approved\",\n        \"formStateId\": \"review-approval-state\",\n        \"entryRuleIds\": [\n          \"approval-path-selected\"\n        ],\n        \"exitRuleIds\": [\n          \"approval-step-complete\"\n        ]\n      },\n      {\n        \"id\": \"record-rejection\",\n        \"stageId\": \"manager-review\",\n        \"displayName\": \"Record Rejection\",\n        \"internalStatusId\": \"rejected\",\n        \"portalStatusId\": \"rejected\",\n        \"formStateId\": \"review-rejection-state\",\n        \"entryRuleIds\": [\n          \"rejection-path-selected\"\n        ],\n        \"exitRuleIds\": [\n          \"rejection-step-complete\"\n        ]\n      }\n    ],\n    \"stepTransitions\": [\n      {\n        \"id\": \"capture-to-supporting\",\n        \"fromStepId\": \"capture-request\",\n        \"guardRuleId\": \"supporting-details-needed\",\n        \"target\": {\n          \"stepId\": \"capture-supporting-details\"\n        }\n      },\n      {\n        \"id\": \"capture-to-screening\",\n        \"fromStepId\": \"capture-request\",\n        \"guardRuleId\": \"request-ready-for-screening\",\n        \"target\": {\n          \"stageId\": \"internal-screening-stage\"\n        }\n      },\n      {\n        \"id\": \"supporting-to-screening\",\n        \"fromStepId\": \"capture-supporting-details\",\n        \"guardRuleId\": \"supporting-details-complete\",\n        \"target\": {\n          \"stageId\": \"internal-screening-stage\"\n        }\n      },\n      {\n        \"id\": \"screening-to-review\",\n        \"fromStepId\": \"screen-request\",\n        \"guardRuleId\": \"screening-complete\",\n        \"target\": {\n          \"stageId\": \"manager-review\"\n        }\n      },\n      {\n        \"id\": \"choose-to-approval\",\n        \"fromStepId\": \"choose-decision\",\n        \"guardRuleId\": \"approval-path-selected\",\n        \"target\": {\n          \"stepId\": \"record-approval\"\n        }\n      },\n      {\n        \"id\": \"choose-to-rejection\",\n        \"fromStepId\": \"choose-decision\",\n        \"guardRuleId\": \"rejection-path-selected\",\n        \"target\": {\n          \"stepId\": \"record-rejection\"\n        }\n      },\n      {\n        \"id\": \"approval-to-approved\",\n        \"fromStepId\": \"record-approval\",\n        \"guardRuleId\": \"approval-step-complete\",\n        \"target\": {\n          \"stageId\": \"approved\"\n        }\n      },\n      {\n        \"id\": \"rejection-to-rejected\",\n        \"fromStepId\": \"record-rejection\",\n        \"guardRuleId\": \"rejection-step-complete\",\n        \"target\": {\n          \"stageId\": \"rejected\"\n        }\n      }\n    ],\n    \"rules\": {\n      \"request-basic-fields-present\": \"notEmpty(request-title) and notEmpty(request-amount) and notEmpty(assigned-approver)\",\n      \"supporting-details-needed\": \"request-amount >= 5000\",\n      \"supporting-details-complete\": \"request-amount < 5000 or notEmpty(supporting-notes)\",\n      \"request-ready-for-screening\": \"notEmpty(request-title) and notEmpty(request-amount) and notEmpty(assigned-approver)\",\n      \"screening-complete\": \"screening-result == 'complete'\",\n      \"approval-path-selected\": \"requestedOutcomeId == 'approve'\",\n      \"rejection-path-selected\": \"requestedOutcomeId == 'reject'\",\n      \"approval-step-complete\": \"requestedOutcomeId == 'approve'\",\n      \"rejection-step-complete\": \"requestedOutcomeId != 'reject' or notEmpty(decision-comment)\"\n    },\n    \"valueBindings\": [\n      {\n        \"token\": \"request-id\",\n        \"entityLogicalName\": \"dbm_request\",\n        \"fieldLogicalName\": \"dbm_requestid\",\n        \"fieldType\": \"string\"\n      },\n      {\n        \"token\": \"request-title\",\n        \"entityLogicalName\": \"dbm_request\",\n        \"fieldLogicalName\": \"dbm_title\",\n        \"fieldType\": \"string\"\n      },\n      {\n        \"token\": \"request-amount\",\n        \"entityLogicalName\": \"dbm_request\",\n        \"fieldLogicalName\": \"dbm_amount\",\n        \"fieldType\": \"currency\"\n      },\n      {\n        \"token\": \"supporting-notes\",\n        \"entityLogicalName\": \"dbm_request\",\n        \"fieldLogicalName\": \"dbm_supportingnotes\",\n        \"fieldType\": \"multiline-string\"\n      },\n      {\n        \"token\": \"assigned-approver\",\n        \"entityLogicalName\": \"dbm_request\",\n        \"fieldLogicalName\": \"dbm_assignedapprover\",\n        \"fieldType\": \"string\"\n      },\n      {\n        \"token\": \"screening-result\",\n        \"entityLogicalName\": \"dbm_request\",\n        \"fieldLogicalName\": \"dbm_screeningresult\",\n        \"fieldType\": \"choice\",\n        \"choiceMap\": {\n          \"100000000\": \"pending\",\n          \"100000001\": \"complete\",\n          \"100000002\": \"blocked\"\n        }\n      },\n      {\n        \"token\": \"decision-id\",\n        \"entityLogicalName\": \"dbm_requestdecision\",\n        \"fieldLogicalName\": \"dbm_requestdecisionid\",\n        \"fieldType\": \"string\"\n      },\n      {\n        \"token\": \"decision-request\",\n        \"entityLogicalName\": \"dbm_requestdecision\",\n        \"fieldLogicalName\": \"dbm_requestid\",\n        \"fieldType\": \"lookup\"\n      },\n      {\n        \"token\": \"decision-outcome\",\n        \"entityLogicalName\": \"dbm_requestdecision\",\n        \"fieldLogicalName\": \"dbm_decisionoutcome\",\n        \"fieldType\": \"choice\",\n        \"choiceMap\": {\n          \"100000000\": \"approve\",\n          \"100000001\": \"reject\"\n        }\n      },\n      {\n        \"token\": \"decision-summary\",\n        \"entityLogicalName\": \"dbm_requestdecision\",\n        \"fieldLogicalName\": \"dbm_decisionsummary\",\n        \"fieldType\": \"multiline-string\"\n      },\n      {\n        \"token\": \"decision-comment\",\n        \"entityLogicalName\": \"dbm_requestdecision\",\n        \"fieldLogicalName\": \"dbm_decisioncomment\",\n        \"fieldType\": \"multiline-string\"\n      },\n      {\n        \"token\": \"requestedOutcomeId\",\n        \"entityLogicalName\": \"dbm_requestdecision\",\n        \"fieldLogicalName\": \"dbm_decisionoutcome\",\n        \"fieldType\": \"choice\",\n        \"choiceMap\": {\n          \"100000000\": \"approve\",\n          \"100000001\": \"reject\"\n        }\n      }\n    ]\n  }\n};\n  function dbmOnLoad_request_form(executionContext) {\n    if (!global.DBM || !global.DBM.ProcessRuntime || typeof global.DBM.ProcessRuntime.initialize !== \"function\") {\n      return;\n    }\n    global.DBM.ProcessRuntime.initialize(executionContext, config);\n  }\n  global.dbmOnLoad_request_form = dbmOnLoad_request_form;\n})(window);\n",
       "attachedFormIds": [
         "request-form"
       ]
@@ -1899,7 +2757,7 @@
       "reason": null,
       "webResourceType": 3,
       "relativePath": "src/WebResources/ys_/dbm/forms/config/review-form.js",
-      "content": "(function (global) {\n  const config = {\n  \"formId\": \"review-form\",\n  \"displayName\": \"Review Form\",\n  \"defaultStateId\": \"review-decision-state\",\n  \"sections\": [\n    {\n      \"id\": \"review-summary-region\",\n      \"tabName\": \"review_main_tab\",\n      \"sectionName\": \"review_summary_section\",\n      \"controls\": [\n        {\n          \"controlName\": \"dbm_requestid\",\n          \"readOnly\": false\n        },\n        {\n          \"controlName\": \"dbm_decisionsummary\",\n          \"readOnly\": true\n        }\n      ]\n    },\n    {\n      \"id\": \"review-resolution-region\",\n      \"tabName\": \"review_main_tab\",\n      \"sectionName\": \"review_resolution_section\",\n      \"controls\": [\n        {\n          \"controlName\": \"dbm_decisioncomment\",\n          \"readOnly\": false\n        }\n      ]\n    }\n  ],\n  \"states\": [\n    {\n      \"id\": \"review-decision-state\",\n      \"displayName\": \"Decision\",\n      \"visibleControlNames\": [\n        \"dbm_requestid\",\n        \"dbm_decisionsummary\"\n      ],\n      \"requiredControlNames\": [],\n      \"lockedControlNames\": [\n        \"dbm_decisionsummary\"\n      ]\n    },\n    {\n      \"id\": \"review-approval-state\",\n      \"displayName\": \"Approval Capture\",\n      \"visibleControlNames\": [\n        \"dbm_requestid\",\n        \"dbm_decisionsummary\"\n      ],\n      \"requiredControlNames\": [],\n      \"lockedControlNames\": [\n        \"dbm_decisionsummary\"\n      ]\n    },\n    {\n      \"id\": \"review-rejection-state\",\n      \"displayName\": \"Rejection Capture\",\n      \"visibleControlNames\": [\n        \"dbm_decisioncomment\",\n        \"dbm_requestid\",\n        \"dbm_decisionsummary\"\n      ],\n      \"requiredControlNames\": [\n        \"dbm_decisioncomment\"\n      ],\n      \"lockedControlNames\": [\n        \"dbm_decisionsummary\"\n      ]\n    }\n  ]\n};\n  function dbmOnLoad_review_form(executionContext) {\n    if (!global.DBM || !global.DBM.FormBehavior || typeof global.DBM.FormBehavior.apply !== \"function\") {\n      return;\n    }\n    global.DBM.FormBehavior.apply(executionContext, config, config.defaultStateId);\n  }\n  global.dbmOnLoad_review_form = dbmOnLoad_review_form;\n})(window);\n",
+      "content": "(function (global) {\n  const config = {\n  \"formId\": \"review-form\",\n  \"displayName\": \"Review Form\",\n  \"defaultStateId\": \"review-decision-state\",\n  \"sections\": [\n    {\n      \"id\": \"review-summary-region\",\n      \"tabName\": \"review_main_tab\",\n      \"sectionName\": \"review_summary_section\",\n      \"controls\": [\n        {\n          \"controlName\": \"dbm_requestid\",\n          \"readOnly\": false\n        },\n        {\n          \"controlName\": \"dbm_decisionsummary\",\n          \"readOnly\": true\n        }\n      ]\n    },\n    {\n      \"id\": \"review-resolution-region\",\n      \"tabName\": \"review_main_tab\",\n      \"sectionName\": \"review_resolution_section\",\n      \"controls\": [\n        {\n          \"controlName\": \"dbm_decisionoutcome\",\n          \"readOnly\": false\n        },\n        {\n          \"controlName\": \"dbm_decisioncomment\",\n          \"readOnly\": false\n        }\n      ]\n    }\n  ],\n  \"states\": [\n    {\n      \"id\": \"review-decision-state\",\n      \"displayName\": \"Decision\",\n      \"visibleControlNames\": [\n        \"dbm_requestid\",\n        \"dbm_decisionsummary\",\n        \"dbm_decisionoutcome\"\n      ],\n      \"requiredControlNames\": [],\n      \"lockedControlNames\": [\n        \"dbm_decisionsummary\"\n      ]\n    },\n    {\n      \"id\": \"review-approval-state\",\n      \"displayName\": \"Approval Capture\",\n      \"visibleControlNames\": [\n        \"dbm_requestid\",\n        \"dbm_decisionsummary\",\n        \"dbm_decisionoutcome\"\n      ],\n      \"requiredControlNames\": [],\n      \"lockedControlNames\": [\n        \"dbm_decisionsummary\"\n      ]\n    },\n    {\n      \"id\": \"review-rejection-state\",\n      \"displayName\": \"Rejection Capture\",\n      \"visibleControlNames\": [\n        \"dbm_decisioncomment\",\n        \"dbm_requestid\",\n        \"dbm_decisionsummary\",\n        \"dbm_decisionoutcome\"\n      ],\n      \"requiredControlNames\": [\n        \"dbm_decisioncomment\"\n      ],\n      \"lockedControlNames\": [\n        \"dbm_decisionsummary\"\n      ]\n    }\n  ],\n  \"runtime\": {\n    \"requestEntityLogicalName\": \"dbm_request\",\n    \"requestEntityPrimaryIdLogicalName\": \"dbm_requestid\",\n    \"currentFormEntityLogicalName\": \"dbm_requestdecision\",\n    \"relatedRequestLookupFieldLogicalName\": \"dbm_requestid\",\n    \"reviewEntityLogicalName\": \"dbm_requestdecision\",\n    \"reviewEntityRequestLookupFieldLogicalName\": \"dbm_requestid\",\n    \"runtimeStateFieldLogicalNames\": {\n      \"stageId\": \"dbm_currentstageid\",\n      \"stepId\": \"dbm_currentstepid\",\n      \"formStateId\": \"dbm_currentformstateid\",\n      \"internalStatusId\": \"dbm_internalstatusid\",\n      \"portalStatusId\": \"dbm_portalstatusid\"\n    },\n    \"decisionOutcomeFieldLogicalName\": \"dbm_decisionoutcome\",\n    \"decisionSummaryFieldLogicalName\": \"dbm_decisionsummary\",\n    \"decisionCommentFieldLogicalName\": \"dbm_decisioncomment\",\n    \"defaultStageId\": \"draft-request\",\n    \"defaultStepId\": \"capture-request\",\n    \"defaultFormStateId\": \"request-edit-state\",\n    \"statuses\": [\n      {\n        \"id\": \"draft\",\n        \"displayName\": \"Draft\"\n      },\n      {\n        \"id\": \"under-review\",\n        \"displayName\": \"Under Review\"\n      },\n      {\n        \"id\": \"internal-screening\",\n        \"displayName\": \"Internal Screening\"\n      },\n      {\n        \"id\": \"awaiting-manager-decision\",\n        \"displayName\": \"Awaiting Manager Decision\"\n      },\n      {\n        \"id\": \"approved\",\n        \"displayName\": \"Approved\"\n      },\n      {\n        \"id\": \"rejected\",\n        \"displayName\": \"Rejected\"\n      }\n    ],\n    \"stages\": [\n      {\n        \"id\": \"draft-request\",\n        \"displayName\": \"Draft Request\",\n        \"stageType\": \"start\",\n        \"formId\": \"request-form\",\n        \"defaultStepId\": \"capture-request\"\n      },\n      {\n        \"id\": \"internal-screening-stage\",\n        \"displayName\": \"Internal Screening\",\n        \"stageType\": \"system\",\n        \"formId\": \"request-form\",\n        \"defaultStepId\": \"screen-request\"\n      },\n      {\n        \"id\": \"manager-review\",\n        \"displayName\": \"Manager Review\",\n        \"stageType\": \"approval\",\n        \"formId\": \"review-form\",\n        \"defaultStepId\": \"choose-decision\"\n      },\n      {\n        \"id\": \"approved\",\n        \"displayName\": \"Approved\",\n        \"stageType\": \"end\",\n        \"formId\": null,\n        \"defaultStepId\": null\n      },\n      {\n        \"id\": \"rejected\",\n        \"displayName\": \"Rejected\",\n        \"stageType\": \"end\",\n        \"formId\": null,\n        \"defaultStepId\": null\n      }\n    ],\n    \"steps\": [\n      {\n        \"id\": \"capture-request\",\n        \"stageId\": \"draft-request\",\n        \"displayName\": \"Capture Request\",\n        \"internalStatusId\": \"draft\",\n        \"portalStatusId\": \"draft\",\n        \"formStateId\": \"request-edit-state\",\n        \"entryRuleIds\": [],\n        \"exitRuleIds\": [\n          \"request-basic-fields-present\"\n        ]\n      },\n      {\n        \"id\": \"capture-supporting-details\",\n        \"stageId\": \"draft-request\",\n        \"displayName\": \"Capture Supporting Details\",\n        \"internalStatusId\": \"draft\",\n        \"portalStatusId\": \"draft\",\n        \"formStateId\": \"request-supporting-state\",\n        \"entryRuleIds\": [\n          \"supporting-details-needed\"\n        ],\n        \"exitRuleIds\": [\n          \"supporting-details-complete\"\n        ]\n      },\n      {\n        \"id\": \"screen-request\",\n        \"stageId\": \"internal-screening-stage\",\n        \"displayName\": \"Screen Request\",\n        \"internalStatusId\": \"internal-screening\",\n        \"portalStatusId\": \"under-review\",\n        \"formStateId\": \"request-screening-state\",\n        \"entryRuleIds\": [],\n        \"exitRuleIds\": [\n          \"screening-complete\"\n        ]\n      },\n      {\n        \"id\": \"choose-decision\",\n        \"stageId\": \"manager-review\",\n        \"displayName\": \"Choose Decision\",\n        \"internalStatusId\": \"awaiting-manager-decision\",\n        \"portalStatusId\": \"under-review\",\n        \"formStateId\": \"review-decision-state\",\n        \"entryRuleIds\": [],\n        \"exitRuleIds\": []\n      },\n      {\n        \"id\": \"record-approval\",\n        \"stageId\": \"manager-review\",\n        \"displayName\": \"Record Approval\",\n        \"internalStatusId\": \"approved\",\n        \"portalStatusId\": \"approved\",\n        \"formStateId\": \"review-approval-state\",\n        \"entryRuleIds\": [\n          \"approval-path-selected\"\n        ],\n        \"exitRuleIds\": [\n          \"approval-step-complete\"\n        ]\n      },\n      {\n        \"id\": \"record-rejection\",\n        \"stageId\": \"manager-review\",\n        \"displayName\": \"Record Rejection\",\n        \"internalStatusId\": \"rejected\",\n        \"portalStatusId\": \"rejected\",\n        \"formStateId\": \"review-rejection-state\",\n        \"entryRuleIds\": [\n          \"rejection-path-selected\"\n        ],\n        \"exitRuleIds\": [\n          \"rejection-step-complete\"\n        ]\n      }\n    ],\n    \"stepTransitions\": [\n      {\n        \"id\": \"capture-to-supporting\",\n        \"fromStepId\": \"capture-request\",\n        \"guardRuleId\": \"supporting-details-needed\",\n        \"target\": {\n          \"stepId\": \"capture-supporting-details\"\n        }\n      },\n      {\n        \"id\": \"capture-to-screening\",\n        \"fromStepId\": \"capture-request\",\n        \"guardRuleId\": \"request-ready-for-screening\",\n        \"target\": {\n          \"stageId\": \"internal-screening-stage\"\n        }\n      },\n      {\n        \"id\": \"supporting-to-screening\",\n        \"fromStepId\": \"capture-supporting-details\",\n        \"guardRuleId\": \"supporting-details-complete\",\n        \"target\": {\n          \"stageId\": \"internal-screening-stage\"\n        }\n      },\n      {\n        \"id\": \"screening-to-review\",\n        \"fromStepId\": \"screen-request\",\n        \"guardRuleId\": \"screening-complete\",\n        \"target\": {\n          \"stageId\": \"manager-review\"\n        }\n      },\n      {\n        \"id\": \"choose-to-approval\",\n        \"fromStepId\": \"choose-decision\",\n        \"guardRuleId\": \"approval-path-selected\",\n        \"target\": {\n          \"stepId\": \"record-approval\"\n        }\n      },\n      {\n        \"id\": \"choose-to-rejection\",\n        \"fromStepId\": \"choose-decision\",\n        \"guardRuleId\": \"rejection-path-selected\",\n        \"target\": {\n          \"stepId\": \"record-rejection\"\n        }\n      },\n      {\n        \"id\": \"approval-to-approved\",\n        \"fromStepId\": \"record-approval\",\n        \"guardRuleId\": \"approval-step-complete\",\n        \"target\": {\n          \"stageId\": \"approved\"\n        }\n      },\n      {\n        \"id\": \"rejection-to-rejected\",\n        \"fromStepId\": \"record-rejection\",\n        \"guardRuleId\": \"rejection-step-complete\",\n        \"target\": {\n          \"stageId\": \"rejected\"\n        }\n      }\n    ],\n    \"rules\": {\n      \"request-basic-fields-present\": \"notEmpty(request-title) and notEmpty(request-amount) and notEmpty(assigned-approver)\",\n      \"supporting-details-needed\": \"request-amount >= 5000\",\n      \"supporting-details-complete\": \"request-amount < 5000 or notEmpty(supporting-notes)\",\n      \"request-ready-for-screening\": \"notEmpty(request-title) and notEmpty(request-amount) and notEmpty(assigned-approver)\",\n      \"screening-complete\": \"screening-result == 'complete'\",\n      \"approval-path-selected\": \"requestedOutcomeId == 'approve'\",\n      \"rejection-path-selected\": \"requestedOutcomeId == 'reject'\",\n      \"approval-step-complete\": \"requestedOutcomeId == 'approve'\",\n      \"rejection-step-complete\": \"requestedOutcomeId != 'reject' or notEmpty(decision-comment)\"\n    },\n    \"valueBindings\": [\n      {\n        \"token\": \"request-id\",\n        \"entityLogicalName\": \"dbm_request\",\n        \"fieldLogicalName\": \"dbm_requestid\",\n        \"fieldType\": \"string\"\n      },\n      {\n        \"token\": \"request-title\",\n        \"entityLogicalName\": \"dbm_request\",\n        \"fieldLogicalName\": \"dbm_title\",\n        \"fieldType\": \"string\"\n      },\n      {\n        \"token\": \"request-amount\",\n        \"entityLogicalName\": \"dbm_request\",\n        \"fieldLogicalName\": \"dbm_amount\",\n        \"fieldType\": \"currency\"\n      },\n      {\n        \"token\": \"supporting-notes\",\n        \"entityLogicalName\": \"dbm_request\",\n        \"fieldLogicalName\": \"dbm_supportingnotes\",\n        \"fieldType\": \"multiline-string\"\n      },\n      {\n        \"token\": \"assigned-approver\",\n        \"entityLogicalName\": \"dbm_request\",\n        \"fieldLogicalName\": \"dbm_assignedapprover\",\n        \"fieldType\": \"string\"\n      },\n      {\n        \"token\": \"screening-result\",\n        \"entityLogicalName\": \"dbm_request\",\n        \"fieldLogicalName\": \"dbm_screeningresult\",\n        \"fieldType\": \"choice\",\n        \"choiceMap\": {\n          \"100000000\": \"pending\",\n          \"100000001\": \"complete\",\n          \"100000002\": \"blocked\"\n        }\n      },\n      {\n        \"token\": \"decision-id\",\n        \"entityLogicalName\": \"dbm_requestdecision\",\n        \"fieldLogicalName\": \"dbm_requestdecisionid\",\n        \"fieldType\": \"string\"\n      },\n      {\n        \"token\": \"decision-request\",\n        \"entityLogicalName\": \"dbm_requestdecision\",\n        \"fieldLogicalName\": \"dbm_requestid\",\n        \"fieldType\": \"lookup\"\n      },\n      {\n        \"token\": \"decision-outcome\",\n        \"entityLogicalName\": \"dbm_requestdecision\",\n        \"fieldLogicalName\": \"dbm_decisionoutcome\",\n        \"fieldType\": \"choice\",\n        \"choiceMap\": {\n          \"100000000\": \"approve\",\n          \"100000001\": \"reject\"\n        }\n      },\n      {\n        \"token\": \"decision-summary\",\n        \"entityLogicalName\": \"dbm_requestdecision\",\n        \"fieldLogicalName\": \"dbm_decisionsummary\",\n        \"fieldType\": \"multiline-string\"\n      },\n      {\n        \"token\": \"decision-comment\",\n        \"entityLogicalName\": \"dbm_requestdecision\",\n        \"fieldLogicalName\": \"dbm_decisioncomment\",\n        \"fieldType\": \"multiline-string\"\n      },\n      {\n        \"token\": \"requestedOutcomeId\",\n        \"entityLogicalName\": \"dbm_requestdecision\",\n        \"fieldLogicalName\": \"dbm_decisionoutcome\",\n        \"fieldType\": \"choice\",\n        \"choiceMap\": {\n          \"100000000\": \"approve\",\n          \"100000001\": \"reject\"\n        }\n      }\n    ]\n  }\n};\n  function dbmOnLoad_review_form(executionContext) {\n    if (!global.DBM || !global.DBM.ProcessRuntime || typeof global.DBM.ProcessRuntime.initialize !== \"function\") {\n      return;\n    }\n    global.DBM.ProcessRuntime.initialize(executionContext, config);\n  }\n  global.dbmOnLoad_review_form = dbmOnLoad_review_form;\n})(window);\n",
       "attachedFormIds": [
         "review-form"
       ]
@@ -1908,7 +2766,7 @@
   "diagnostics": [],
   "summary": {
     "supportedEntities": 2,
-    "supportedColumns": 9,
+    "supportedColumns": 15,
     "supportedRelationships": 1,
     "supportedForms": 2,
     "supportedBehaviors": 3,

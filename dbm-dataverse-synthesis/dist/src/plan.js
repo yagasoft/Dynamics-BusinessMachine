@@ -40,6 +40,56 @@ function mapChoiceOptions(field) {
         value: option.value
     }));
 }
+function getRuntimeOwnerEntityId(model) {
+    const startStage = model.process.stages.find((stage) => stage.stageType === 'start') ?? model.process.stages[0];
+    if (!startStage?.formId) {
+        return null;
+    }
+    const form = model.forms.find((entry) => entry.id === startStage.formId);
+    if (!form) {
+        return null;
+    }
+    const primaryBinding = form.entityBindings.find((binding) => binding.id === form.primaryEntityBindingId);
+    return primaryBinding?.entityId ?? null;
+}
+function createSyntheticRuntimeStateColumns(entityId, entityLogicalName) {
+    const prefix = (0, common_1.getPublisherPrefix)(entityLogicalName);
+    const fieldDefinitions = [
+        { id: 'runtime-current-stage-id', logicalName: `${prefix}_currentstageid`, displayName: 'Current Stage Id' },
+        { id: 'runtime-current-step-id', logicalName: `${prefix}_currentstepid`, displayName: 'Current Step Id' },
+        { id: 'runtime-current-form-state-id', logicalName: `${prefix}_currentformstateid`, displayName: 'Current Form State Id' },
+        { id: 'runtime-internal-status-id', logicalName: `${prefix}_internalstatusid`, displayName: 'Internal Status Id' },
+        { id: 'runtime-portal-status-id', logicalName: `${prefix}_portalstatusid`, displayName: 'Portal Status Id' }
+    ];
+    return fieldDefinitions.map((definition) => ({
+        id: `${entityId}:${definition.id}`,
+        entityId,
+        fieldId: null,
+        logicalName: definition.logicalName,
+        schemaName: (0, common_1.toSchemaName)(definition.logicalName),
+        displayName: definition.displayName,
+        dataType: 'string',
+        attributeType: 'String',
+        required: false,
+        readOnly: true,
+        supported: true,
+        unsupportedReason: null,
+        source: 'synthetic',
+        isPrimaryNameAttribute: false,
+        maxLength: 200
+    }));
+}
+function appendUniqueColumns(columns, additionalColumns) {
+    const existingLogicalNames = new Set(columns.map((column) => column.logicalName));
+    const normalized = [...columns];
+    for (const column of additionalColumns) {
+        if (!existingLogicalNames.has(column.logicalName)) {
+            normalized.push(column);
+            existingLogicalNames.add(column.logicalName);
+        }
+    }
+    return normalized;
+}
 function planColumn(model, entity, field, diagnostics) {
     const modelPath = `metadata.entities.${entity.id}.fields.${field.id}`;
     const logicalName = tryGetLogicalName(field, `field '${field.id}'`, diagnostics, modelPath);
@@ -243,6 +293,7 @@ function planDataverseSynthesis(model) {
     const diagnostics = [];
     const entities = [];
     const entityPlans = new Map();
+    const runtimeOwnerEntityId = getRuntimeOwnerEntityId(model);
     for (const entity of model.metadata.entities) {
         const modelPath = `metadata.entities.${entity.id}`;
         const logicalName = tryGetLogicalName(entity, `entity '${entity.id}'`, diagnostics, modelPath);
@@ -254,11 +305,14 @@ function planDataverseSynthesis(model) {
             .map((field) => planColumn(model, entity, field, diagnostics))
             .filter((column) => column !== null);
         const primaryNameColumn = choosePrimaryNameColumn(entity, columns, logicalName);
-        const normalizedColumns = columns.map((column) => column.logicalName === primaryNameColumn.logicalName
+        let normalizedColumns = columns.map((column) => column.logicalName === primaryNameColumn.logicalName
             ? { ...column, required: true, isPrimaryNameAttribute: true }
             : column);
         if (!normalizedColumns.some((column) => column.logicalName === primaryNameColumn.logicalName)) {
             normalizedColumns.unshift(primaryNameColumn);
+        }
+        if (entity.id === runtimeOwnerEntityId) {
+            normalizedColumns = appendUniqueColumns(normalizedColumns, createSyntheticRuntimeStateColumns(entity.id, logicalName));
         }
         const primaryKeyField = (0, common_1.getFieldById)(entity, entity.primaryKeyFieldId);
         const primaryIdLogicalName = primaryKeyField?.providerBindings?.dataverse?.logicalName?.trim() ||
