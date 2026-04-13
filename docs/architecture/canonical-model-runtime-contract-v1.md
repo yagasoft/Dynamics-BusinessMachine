@@ -633,8 +633,8 @@ The next implementation slice should create the executable contract, not revisit
 
 - encode `DbmModelV1` as TypeScript types
 - encode the same contract as JSON Schema
-- add one checked-in approval/request example model owned by tracked docs
-- keep the executable schema in a dedicated top-level contract package
+- add one checked-in example model for the approval/request scenario at [examples/approval-request-v1.model.json](examples/approval-request-v1.model.json)
+- keep the executable schema in `dbm-contract/schema/`
 - validate that example model in CI
 - leave host and runtime rewiring for the following slice unless explicitly expanded
 

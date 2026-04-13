@@ -3,6 +3,7 @@ const path = require('path');
 const Ajv = require('ajv');
 
 const projectRoot = path.resolve(__dirname, '..');
+const repoRoot = path.resolve(projectRoot, '..');
 const schemaRoot = path.join(projectRoot, 'schema');
 
 function loadJson(filePath) {
@@ -57,6 +58,12 @@ const resultSchema = loadJson(path.join(schemaRoot, 'dbm-runtime-result-v1.schem
 const validateRequest = ajv.compile(requestSchema);
 const validateResult = ajv.compile(resultSchema);
 const validateModel = ajv.compile(modelSchema);
+
+runPositiveValidation(
+  validateModel,
+  'docs approval/request example model',
+  path.join(repoRoot, 'docs', 'architecture', 'examples', 'approval-request-v1.model.json')
+);
 
 runPositiveValidation(
   validateRequest,

@@ -1,0 +1,574 @@
+{
+  "schemaVersion": "dbm.model/v1",
+  "package": {
+    "id": "dbm-approval-request",
+    "displayName": "DBM Approval Request",
+    "version": "1.0.0",
+    "publisher": {
+      "name": "Dynamics Business Machine",
+      "website": "https://example.invalid/dbm",
+      "prefix": "dbm"
+    },
+    "entryProcessId": "approval-request-process",
+    "supportedHosts": [
+      "model-driven",
+      "xrmtoolbox"
+    ],
+    "supportedRuntimes": [
+      "pcf",
+      "dataverse"
+    ],
+    "compatibility": {
+      "minimumReaderSchemaVersion": "dbm.model/v1",
+      "maximumReaderSchemaVersion": "dbm.model/v1",
+      "breakingChangePolicy": "reject-newer-major"
+    },
+    "deployment": {
+      "solutionName": "DBM Approval Request",
+      "releaseLine": "R1.1",
+      "artifactRoot": "artifacts/dbm-approval-request"
+    }
+  },
+  "process": {
+    "id": "approval-request-process",
+    "displayName": "Approval Request",
+    "scenarioType": "approval-request",
+    "actors": [
+      {
+        "id": "requester",
+        "displayName": "Requester",
+        "actorType": "requester",
+        "source": "current-user"
+      },
+      {
+        "id": "manager-approver",
+        "displayName": "Manager Approver",
+        "actorType": "approver",
+        "source": "field-binding"
+      },
+      {
+        "id": "platform",
+        "displayName": "Platform",
+        "actorType": "system",
+        "source": "system"
+      }
+    ],
+    "variables": [
+      {
+        "id": "request-status",
+        "dataType": "choice",
+        "scope": "process",
+        "defaultValue": "draft",
+        "persistence": "persisted"
+      },
+      {
+        "id": "decision-comment",
+        "dataType": "multiline-string",
+        "scope": "process",
+        "defaultValue": null,
+        "persistence": "runtime-only"
+      }
+    ],
+    "stages": [
+      {
+        "id": "draft-request",
+        "displayName": "Draft Request",
+        "stageType": "start",
+        "actorId": "requester",
+        "formId": "request-entry-form",
+        "entryRuleIds": [],
+        "exitRuleIds": [
+          "request-required-fields-present"
+        ],
+        "allowedOutcomeIds": [
+          "submit",
+          "cancel"
+        ]
+      },
+      {
+        "id": "manager-review",
+        "displayName": "Manager Review",
+        "stageType": "approval",
+        "actorId": "manager-approver",
+        "formId": "manager-decision-form",
+        "entryRuleIds": [
+          "request-approver-assigned"
+        ],
+        "exitRuleIds": [
+          "decision-comment-required"
+        ],
+        "allowedOutcomeIds": [
+          "approve",
+          "reject"
+        ]
+      },
+      {
+        "id": "approved",
+        "displayName": "Approved",
+        "stageType": "end",
+        "actorId": "platform",
+        "formId": null,
+        "entryRuleIds": [],
+        "exitRuleIds": [],
+        "allowedOutcomeIds": [
+          "approved"
+        ]
+      },
+      {
+        "id": "rejected",
+        "displayName": "Rejected",
+        "stageType": "end",
+        "actorId": "platform",
+        "formId": null,
+        "entryRuleIds": [],
+        "exitRuleIds": [],
+        "allowedOutcomeIds": [
+          "rejected"
+        ]
+      }
+    ],
+    "transitions": [
+      {
+        "id": "submit-request",
+        "fromStageId": "draft-request",
+        "toStageId": "manager-review",
+        "outcomeId": "submit",
+        "guardRuleId": "request-required-fields-present"
+      },
+      {
+        "id": "approve-request",
+        "fromStageId": "manager-review",
+        "toStageId": "approved",
+        "outcomeId": "approve",
+        "guardRuleId": "approval-selected"
+      },
+      {
+        "id": "reject-request",
+        "fromStageId": "manager-review",
+        "toStageId": "rejected",
+        "outcomeId": "reject",
+        "guardRuleId": "rejection-comment-required"
+      }
+    ],
+    "outcomes": [
+      {
+        "id": "approved",
+        "displayName": "Approved"
+      },
+      {
+        "id": "rejected",
+        "displayName": "Rejected"
+      },
+      {
+        "id": "cancel",
+        "displayName": "Cancelled"
+      }
+    ]
+  },
+  "forms": [
+    {
+      "id": "request-entry-form",
+      "displayName": "Request Entry Form",
+      "entityId": "request",
+      "layout": {
+        "layoutType": "single-page",
+        "regions": [
+          {
+            "id": "main",
+            "displayName": "Main",
+            "order": 1
+          }
+        ]
+      },
+      "elements": [
+        {
+          "id": "request-title-element",
+          "elementType": "text",
+          "regionId": "main",
+          "displayName": "Request Title",
+          "binding": {
+            "fieldId": "request-title"
+          },
+          "behavior": {
+            "requiredRuleIds": [
+              "request-required-fields-present"
+            ],
+            "visibleRuleIds": [],
+            "editableRuleIds": []
+          }
+        },
+        {
+          "id": "request-amount-element",
+          "elementType": "currency",
+          "regionId": "main",
+          "displayName": "Request Amount",
+          "binding": {
+            "fieldId": "request-amount"
+          },
+          "behavior": {
+            "requiredRuleIds": [
+              "request-required-fields-present"
+            ],
+            "visibleRuleIds": [],
+            "editableRuleIds": []
+          }
+        },
+        {
+          "id": "request-justification-element",
+          "elementType": "multiline-text",
+          "regionId": "main",
+          "displayName": "Justification",
+          "binding": {
+            "fieldId": "request-justification"
+          },
+          "behavior": {
+            "requiredRuleIds": [
+              "request-required-fields-present"
+            ],
+            "visibleRuleIds": [],
+            "editableRuleIds": []
+          }
+        },
+        {
+          "id": "assigned-approver-element",
+          "elementType": "lookup",
+          "regionId": "main",
+          "displayName": "Assigned Approver",
+          "binding": {
+            "fieldId": "assigned-approver"
+          },
+          "behavior": {
+            "requiredRuleIds": [
+              "request-approver-assigned"
+            ],
+            "visibleRuleIds": [],
+            "editableRuleIds": []
+          }
+        }
+      ]
+    },
+    {
+      "id": "manager-decision-form",
+      "displayName": "Manager Decision Form",
+      "entityId": "request-decision",
+      "layout": {
+        "layoutType": "single-page",
+        "regions": [
+          {
+            "id": "main",
+            "displayName": "Main",
+            "order": 1
+          }
+        ]
+      },
+      "elements": [
+        {
+          "id": "request-summary-element",
+          "elementType": "read-only-text",
+          "regionId": "main",
+          "displayName": "Request Summary",
+          "binding": {
+            "fieldId": "decision-summary"
+          },
+          "behavior": {
+            "requiredRuleIds": [],
+            "visibleRuleIds": [],
+            "editableRuleIds": []
+          }
+        },
+        {
+          "id": "decision-comment-element",
+          "elementType": "multiline-text",
+          "regionId": "main",
+          "displayName": "Decision Comment",
+          "binding": {
+            "fieldId": "decision-comment"
+          },
+          "behavior": {
+            "requiredRuleIds": [
+              "decision-comment-required"
+            ],
+            "visibleRuleIds": [],
+            "editableRuleIds": []
+          }
+        }
+      ]
+    }
+  ],
+  "metadata": {
+    "entities": [
+      {
+        "id": "request",
+        "displayName": "Request",
+        "providerBindings": {
+          "dataverse": {
+            "logicalName": "dbm_request"
+          }
+        },
+        "primaryKeyFieldId": "request-id",
+        "fields": [
+          {
+            "id": "request-id",
+            "displayName": "Request Id",
+            "dataType": "string",
+            "providerBindings": {
+              "dataverse": {
+                "logicalName": "dbm_requestid"
+              }
+            },
+            "isRequired": true,
+            "isReadOnly": true
+          },
+          {
+            "id": "request-title",
+            "displayName": "Request Title",
+            "dataType": "string",
+            "providerBindings": {
+              "dataverse": {
+                "logicalName": "dbm_title"
+              }
+            },
+            "isRequired": true,
+            "isReadOnly": false
+          },
+          {
+            "id": "request-amount",
+            "displayName": "Request Amount",
+            "dataType": "currency",
+            "providerBindings": {
+              "dataverse": {
+                "logicalName": "dbm_amount"
+              }
+            },
+            "isRequired": true,
+            "isReadOnly": false
+          },
+          {
+            "id": "request-justification",
+            "displayName": "Justification",
+            "dataType": "multiline-string",
+            "providerBindings": {
+              "dataverse": {
+                "logicalName": "dbm_justification"
+              }
+            },
+            "isRequired": true,
+            "isReadOnly": false
+          },
+          {
+            "id": "request-status",
+            "displayName": "Request Status",
+            "dataType": "choice",
+            "providerBindings": {
+              "dataverse": {
+                "logicalName": "dbm_status"
+              }
+            },
+            "isRequired": true,
+            "isReadOnly": false
+          },
+          {
+            "id": "assigned-approver",
+            "displayName": "Assigned Approver",
+            "dataType": "lookup",
+            "providerBindings": {
+              "dataverse": {
+                "logicalName": "dbm_assignedapproverid"
+              }
+            },
+            "isRequired": true,
+            "isReadOnly": false
+          }
+        ]
+      },
+      {
+        "id": "request-decision",
+        "displayName": "Request Decision",
+        "providerBindings": {
+          "dataverse": {
+            "logicalName": "dbm_requestdecision"
+          }
+        },
+        "primaryKeyFieldId": "decision-id",
+        "fields": [
+          {
+            "id": "decision-id",
+            "displayName": "Decision Id",
+            "dataType": "string",
+            "providerBindings": {
+              "dataverse": {
+                "logicalName": "dbm_requestdecisionid"
+              }
+            },
+            "isRequired": true,
+            "isReadOnly": true
+          },
+          {
+            "id": "decision-summary",
+            "displayName": "Decision Summary",
+            "dataType": "multiline-string",
+            "providerBindings": {
+              "dataverse": {
+                "logicalName": "dbm_decisionsummary"
+              }
+            },
+            "isRequired": false,
+            "isReadOnly": true
+          },
+          {
+            "id": "decision-comment",
+            "displayName": "Decision Comment",
+            "dataType": "multiline-string",
+            "providerBindings": {
+              "dataverse": {
+                "logicalName": "dbm_decisioncomment"
+              }
+            },
+            "isRequired": false,
+            "isReadOnly": false
+          }
+        ]
+      }
+    ],
+    "relationships": [
+      {
+        "id": "request-to-decision",
+        "fromEntityId": "request",
+        "toEntityId": "request-decision",
+        "relationshipType": "one-to-many",
+        "providerBindings": {
+          "dataverse": {
+            "logicalName": "dbm_request_dbm_requestdecision"
+          }
+        }
+      }
+    ]
+  },
+  "rules": [
+    {
+      "id": "request-required-fields-present",
+      "displayName": "Request Required Fields Present",
+      "ruleType": "condition",
+      "scope": "process",
+      "language": "dbm-expression-v1",
+      "body": "notEmpty(request-title) and notEmpty(request-amount) and notEmpty(request-justification) and notEmpty(assigned-approver)"
+    },
+    {
+      "id": "request-approver-assigned",
+      "displayName": "Request Approver Assigned",
+      "ruleType": "condition",
+      "scope": "stage",
+      "language": "dbm-expression-v1",
+      "body": "notEmpty(assigned-approver)"
+    },
+    {
+      "id": "approval-selected",
+      "displayName": "Approval Selected",
+      "ruleType": "condition",
+      "scope": "transition",
+      "language": "dbm-expression-v1",
+      "body": "requestedOutcomeId == 'approve'"
+    },
+    {
+      "id": "rejection-comment-required",
+      "displayName": "Rejection Comment Required",
+      "ruleType": "validation",
+      "scope": "stage",
+      "language": "dbm-expression-v1",
+      "body": "requestedOutcomeId != 'reject' or notEmpty(decision-comment)"
+    },
+    {
+      "id": "request-status-derived",
+      "displayName": "Request Status Derived",
+      "ruleType": "derivation",
+      "scope": "process",
+      "language": "dbm-expression-v1",
+      "body": "if(requestedOutcomeId == 'approve', 'approved', if(requestedOutcomeId == 'reject', 'rejected', request-status))"
+    },
+    {
+      "id": "request-status-persist",
+      "displayName": "Request Status Persist",
+      "ruleType": "action",
+      "scope": "transition",
+      "language": "javascript-artifact-v1",
+      "body": "artifact:request-status-update-script"
+    }
+  ],
+  "runtime": {
+    "capabilities": [
+      "load-record",
+      "render-form",
+      "validate-input",
+      "evaluate-rules",
+      "persist-record",
+      "advance-stage",
+      "invoke-artifact",
+      "emit-notification"
+    ],
+    "requestContract": {
+      "schemaVersion": "dbm.runtime.request/v1",
+      "operations": [
+        "initialize",
+        "load-form",
+        "validate",
+        "submit",
+        "transition"
+      ]
+    },
+    "resultContract": {
+      "schemaVersion": "dbm.runtime.result/v1",
+      "statuses": [
+        "ok",
+        "validation-failed",
+        "blocked",
+        "error"
+      ]
+    },
+    "ownership": {
+      "pcf": {
+        "responsibilities": [
+          "form-rendering",
+          "local-interaction",
+          "responsive-validation"
+        ]
+      },
+      "dataverse": {
+        "responsibilities": [
+          "authoritative-persistence",
+          "stage-transition",
+          "artifact-execution"
+        ]
+      },
+      "azure": {
+        "responsibilities": [
+          "support-services-only"
+        ]
+      }
+    }
+  },
+  "artifacts": [
+    {
+      "id": "request-status-update-script",
+      "artifactType": "script",
+      "displayName": "Request Status Update Script",
+      "runtimeTargets": [
+        "dataverse"
+      ],
+      "packagingTarget": "dataverse-webresource",
+      "sourceRef": "scripts/request-status-update.js",
+      "required": true
+    },
+    {
+      "id": "request-notification-config",
+      "artifactType": "config",
+      "displayName": "Request Notification Config",
+      "runtimeTargets": [
+        "dataverse",
+        "azure"
+      ],
+      "packagingTarget": "repo-only",
+      "sourceRef": "config/request-notification.json",
+      "required": false
+    }
+  ]
+}
