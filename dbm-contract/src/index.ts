@@ -293,6 +293,12 @@ export interface DbmProviderBindingsV1 {
   dataverse?: DbmDataverseBindingV1;
 }
 
+export interface DbmChoiceOptionV1 {
+  id: string;
+  displayName: string;
+  value: number;
+}
+
 export interface DbmFieldV1 {
   id: string;
   displayName: string;
@@ -300,6 +306,8 @@ export interface DbmFieldV1 {
   providerBindings: DbmProviderBindingsV1;
   isRequired: boolean;
   isReadOnly: boolean;
+  choiceOptions?: DbmChoiceOptionV1[];
+  lookupTargetEntityId?: string | null;
 }
 
 export interface DbmEntityV1 {
@@ -316,6 +324,7 @@ export interface DbmRelationshipV1 {
   toEntityId: string;
   relationshipType: DbmRelationshipTypeV1;
   providerBindings: DbmProviderBindingsV1;
+  referencingFieldId?: string | null;
 }
 
 export interface DbmMetadataV1 {

@@ -398,8 +398,20 @@
           { "id": "request-title", "displayName": "Request Title", "dataType": "string", "providerBindings": { "dataverse": { "logicalName": "dbm_title" } }, "isRequired": true, "isReadOnly": false },
           { "id": "request-amount", "displayName": "Request Amount", "dataType": "currency", "providerBindings": { "dataverse": { "logicalName": "dbm_amount" } }, "isRequired": true, "isReadOnly": false },
           { "id": "supporting-notes", "displayName": "Supporting Notes", "dataType": "multiline-string", "providerBindings": { "dataverse": { "logicalName": "dbm_supportingnotes" } }, "isRequired": false, "isReadOnly": false },
-          { "id": "assigned-approver", "displayName": "Assigned Approver", "dataType": "lookup", "providerBindings": { "dataverse": { "logicalName": "dbm_assignedapproverid" } }, "isRequired": true, "isReadOnly": false },
-          { "id": "screening-result", "displayName": "Screening Result", "dataType": "choice", "providerBindings": { "dataverse": { "logicalName": "dbm_screeningresult" } }, "isRequired": false, "isReadOnly": false }
+          { "id": "assigned-approver", "displayName": "Assigned Approver", "dataType": "lookup", "providerBindings": { "dataverse": { "logicalName": "dbm_assignedapproverid" } }, "isRequired": true, "isReadOnly": false, "lookupTargetEntityId": null },
+          {
+            "id": "screening-result",
+            "displayName": "Screening Result",
+            "dataType": "choice",
+            "providerBindings": { "dataverse": { "logicalName": "dbm_screeningresult" } },
+            "isRequired": false,
+            "isReadOnly": false,
+            "choiceOptions": [
+              { "id": "pending", "displayName": "Pending", "value": 100000000 },
+              { "id": "complete", "displayName": "Complete", "value": 100000001 },
+              { "id": "blocked", "displayName": "Blocked", "value": 100000002 }
+            ]
+          }
         ]
       },
       {
@@ -409,6 +421,15 @@
         "primaryKeyFieldId": "decision-id",
         "fields": [
           { "id": "decision-id", "displayName": "Decision Id", "dataType": "string", "providerBindings": { "dataverse": { "logicalName": "dbm_requestdecisionid" } }, "isRequired": true, "isReadOnly": true },
+          {
+            "id": "decision-request",
+            "displayName": "Request",
+            "dataType": "lookup",
+            "providerBindings": { "dataverse": { "logicalName": "dbm_requestid" } },
+            "isRequired": true,
+            "isReadOnly": false,
+            "lookupTargetEntityId": "request"
+          },
           { "id": "decision-summary", "displayName": "Decision Summary", "dataType": "multiline-string", "providerBindings": { "dataverse": { "logicalName": "dbm_decisionsummary" } }, "isRequired": false, "isReadOnly": true },
           { "id": "decision-comment", "displayName": "Decision Comment", "dataType": "multiline-string", "providerBindings": { "dataverse": { "logicalName": "dbm_decisioncomment" } }, "isRequired": false, "isReadOnly": false }
         ]
@@ -420,7 +441,8 @@
         "fromEntityId": "request",
         "toEntityId": "request-decision",
         "relationshipType": "one-to-many",
-        "providerBindings": { "dataverse": { "logicalName": "dbm_request_dbm_requestdecision" } }
+        "providerBindings": { "dataverse": { "logicalName": "dbm_request_dbm_requestdecision" } },
+        "referencingFieldId": "decision-request"
       }
     ]
   },

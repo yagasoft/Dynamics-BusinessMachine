@@ -1380,6 +1380,20 @@
         "isReadOnly": {
           "type": "boolean",
           "title": "isReadOnly"
+        },
+        "choiceOptions": {
+          "type": "array",
+          "items": {
+            "$ref": "#/definitions/DbmChoiceOptionV1"
+          },
+          "title": "choiceOptions"
+        },
+        "lookupTargetEntityId": {
+          "type": [
+            "null",
+            "string"
+          ],
+          "title": "lookupTargetEntityId"
         }
       },
       "additionalProperties": false,
@@ -1390,6 +1404,30 @@
         "isReadOnly",
         "isRequired",
         "providerBindings"
+      ]
+    },
+    "DbmChoiceOptionV1": {
+      "title": "DbmChoiceOptionV1",
+      "type": "object",
+      "properties": {
+        "id": {
+          "type": "string",
+          "title": "id"
+        },
+        "displayName": {
+          "type": "string",
+          "title": "displayName"
+        },
+        "value": {
+          "type": "number",
+          "title": "value"
+        }
+      },
+      "additionalProperties": false,
+      "required": [
+        "displayName",
+        "id",
+        "value"
       ]
     },
     "DbmRelationshipV1": {
@@ -1415,6 +1453,13 @@
         "providerBindings": {
           "$ref": "#/definitions/DbmProviderBindingsV1",
           "title": "providerBindings"
+        },
+        "referencingFieldId": {
+          "type": [
+            "null",
+            "string"
+          ],
+          "title": "referencingFieldId"
         }
       },
       "additionalProperties": false,
