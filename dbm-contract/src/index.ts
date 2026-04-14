@@ -1,5 +1,6 @@
 export type DbmSchemaVersionV1 = 'dbm.model/v1';
 export type DbmDesignerWorkspaceSchemaVersionV1 = 'dbm.designer.workspace/v1';
+export type DbmDesignerGraphDocumentSchemaVersionV1 = 'dbm.designer.graph-document/v1';
 export type DbmProcessExperienceSnapshotSchemaVersionV1 = 'dbm.process-experience.snapshot/v1';
 export type DbmRuntimeRequestSchemaVersionV1 = 'dbm.runtime.request/v1';
 export type DbmRuntimeResultSchemaVersionV1 = 'dbm.runtime.result/v1';
@@ -83,6 +84,11 @@ export type DbmPackagingTargetV1 = 'dataverse-webresource' | 'dataverse-plugin' 
 export type DbmLayoutTypeV1 = 'single-page';
 export type DbmBreakingChangePolicyV1 = 'reject-newer-major';
 export type DbmDesignerPreviewModeV1 = 'internal' | 'portal';
+export type DbmDesignerGraphGroupKindV1 = 'actor-lane';
+export type DbmDesignerGraphNodeKindV1 = 'stage' | 'step' | 'outcome';
+export type DbmDesignerGraphEdgeKindV1 = 'stage-transition' | 'step-transition';
+export type DbmDesignerGraphPortDirectionV1 = 'in' | 'out';
+export type DbmDesignerGraphPortRoleV1 = 'primary-in' | 'primary-out' | 'outcome';
 export type DbmProcessExperienceAudienceV1 = 'internal' | 'portal';
 export type DbmProcessExperienceItemStateV1 = 'completed' | 'current' | 'available' | 'upcoming';
 export type DbmProcessExperienceVisibilityV1 = 'visible' | 'collapsed-hidden';
@@ -433,6 +439,61 @@ export interface DbmDesignerPreviewStateV1 {
   mode: DbmDesignerPreviewModeV1;
   stageId: string | null;
   stepId: string | null;
+}
+
+export interface DbmDesignerGraphSemanticRefV1 {
+  actorId?: string;
+  stageId?: string;
+  stepId?: string;
+  outcomeId?: string;
+  transitionId?: string;
+  stepTransitionId?: string;
+}
+
+export interface DbmDesignerGraphPortV1 {
+  id: string;
+  label: string | null;
+  direction: DbmDesignerGraphPortDirectionV1;
+  role: DbmDesignerGraphPortRoleV1;
+}
+
+export interface DbmDesignerGraphGroupV1 {
+  id: string;
+  kind: DbmDesignerGraphGroupKindV1;
+  label: string;
+  parentGroupId: string | null;
+  semanticRef: DbmDesignerGraphSemanticRefV1;
+}
+
+export interface DbmDesignerGraphNodeV1 {
+  id: string;
+  kind: DbmDesignerGraphNodeKindV1;
+  label: string;
+  parentNodeId: string | null;
+  groupId: string | null;
+  semanticRef: DbmDesignerGraphSemanticRefV1;
+  ports: DbmDesignerGraphPortV1[];
+}
+
+export interface DbmDesignerGraphEdgeV1 {
+  id: string;
+  kind: DbmDesignerGraphEdgeKindV1;
+  label: string | null;
+  sourceNodeId: string;
+  sourcePortId: string;
+  targetNodeId: string;
+  targetPortId: string;
+  semanticRef: DbmDesignerGraphSemanticRefV1;
+}
+
+export interface DbmDesignerGraphDocumentV1 {
+  schemaVersion: DbmDesignerGraphDocumentSchemaVersionV1;
+  packageId: string;
+  packageVersion: string;
+  processId: string;
+  groups: DbmDesignerGraphGroupV1[];
+  nodes: DbmDesignerGraphNodeV1[];
+  edges: DbmDesignerGraphEdgeV1[];
 }
 
 export interface DbmDesignerWorkspaceV1 {

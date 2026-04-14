@@ -1,0 +1,29 @@
+{
+  "schemaVersion": "dbm.designer.graph-document/v1",
+  "packageId": "dbm-approval-request",
+  "packageVersion": "1.2.1",
+  "processId": "approval-request-process",
+  "groups": [],
+  "nodes": [
+    {
+      "id": "stage:draft-request",
+      "kind": "stage",
+      "label": "Draft Request",
+      "parentNodeId": null,
+      "groupId": null,
+      "selected": true,
+      "semanticRef": {
+        "stageId": "draft-request"
+      },
+      "ports": [
+        {
+          "id": "port:stage:draft-request:in",
+          "label": null,
+          "direction": "in",
+          "role": "primary-in"
+        }
+      ]
+    }
+  ],
+  "edges": []
+}

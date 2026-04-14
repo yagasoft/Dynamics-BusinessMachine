@@ -1,4 +1,5 @@
 import type {
+  DbmDesignerGraphDocumentV1,
   DbmDesignerWorkspaceV1,
   DbmModelV1,
   DbmProcessExperienceAudienceV1
@@ -62,6 +63,7 @@ export interface DesignerNodeRef {
 export interface DesignerDocument {
   model: DbmModelV1;
   workspace: DbmDesignerWorkspaceV1;
+  graph: DbmDesignerGraphDocumentV1;
   tree: DesignerNodeRef[];
   index: Record<string, DesignerNodeRef>;
   selectionId: string | null;
@@ -128,3 +130,27 @@ export interface MoveNodeCommand {
   targetIndex: number;
   targetParentId?: string;
 }
+
+export type DesignerCommand = AddNodeCommand | UpdateNodeCommand | RemoveNodeCommand | MoveNodeCommand;
+
+export type DesignerGraphIntent =
+  | {
+      kind: 'rename-node';
+      nodeId: string;
+      label: string;
+    }
+  | {
+      kind: 'remove-node';
+      nodeId: string;
+    }
+  | {
+      kind: 'move-stage';
+      stageId: string;
+      targetIndex: number;
+    }
+  | {
+      kind: 'move-step';
+      stepId: string;
+      targetStageId: string;
+      targetIndex: number;
+    };

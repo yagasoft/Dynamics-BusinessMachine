@@ -3,15 +3,20 @@ import test from 'node:test';
 import type { DbmDesignerWorkspaceV1, DbmFormStateV1, DbmRuntimeStateV1, DbmStatusV1, DbmStepV1 } from 'dbm-contract';
 import {
   addNode,
+  buildDesignerGraphDocument,
   buildProcessExperienceSnapshot,
   createDefaultWorkspace,
   createApprovalRequestTemplate,
+  graphStageOutcomePortId,
+  graphStepOutPortId,
+  isStableDesignerGraphNodeId,
   loadModel,
   loadModelPackage,
   moveNode,
   removeNode,
   serializeModel,
   serializeModelPackage,
+  translateGraphIntentToCommands,
   updateNode,
   validateDocument
 } from '../src/index';
@@ -72,6 +77,88 @@ test('workspace sidecar round-trips selection, viewport, and preview state indep
   assert.equal(serialized.workspace.preview.mode, 'portal');
   assert.equal(serialized.model.package.id, template.package.id);
   assert.equal(serialized.model.process.id, template.process.id);
+  assert.equal(document.graph.processId, template.process.id);
+  assert.equal(document.graph.nodes.some((node) => node.id === stageNodeId('manager-review')), true);
+});
+
+test('designer graph document is rebuilt from canonical process semantics with stable node, port, and edge identifiers', () => {
+  const template = createApprovalRequestTemplate();
+  const graph = buildDesignerGraphDocument(template);
+  const stageNode = graph.nodes.find((node) => node.id === stageNodeId('draft-request'));
+  const stepNode = graph.nodes.find((node) => node.id === stepNodeId('capture-request'));
+  const transitionEdge = graph.edges.find((edge) => edge.id === 'transition:submit-request');
+  const stepTransitionEdge = graph.edges.find((edge) => edge.id === 'step-transition:capture-to-screening');
+
+  assert.ok(stageNode);
+  assert.ok(stepNode);
+  assert.ok(transitionEdge);
+  assert.ok(stepTransitionEdge);
+  assert.equal(stageNode.groupId, 'group:actor:requester');
+  assert.equal(stepNode.parentNodeId, stageNodeId('draft-request'));
+  assert.equal(isStableDesignerGraphNodeId(stageNode.id), true);
+  assert.equal(isStableDesignerGraphNodeId(stepNode.id), true);
+  assert.equal(transitionEdge.sourcePortId, graphStageOutcomePortId('draft-request', 'submit'));
+  assert.equal(stepTransitionEdge.sourcePortId, graphStepOutPortId('capture-request'));
+  assert.deepEqual(buildDesignerGraphDocument(template), graph);
+});
+
+test('workspace node positions must use DBM-owned stable graph node identifiers', () => {
+  const template = createApprovalRequestTemplate();
+  const workspace: DbmDesignerWorkspaceV1 = {
+    ...createDefaultWorkspace(template),
+    nodePositions: {
+      'xyflow-node-1': {
+        x: 120,
+        y: 240
+      }
+    }
+  };
+
+  const document = loadModelPackage(template, workspace);
+
+  assert.equal(document.issues.some((issue) => issue.code === 'workspace-graph-node-id-invalid'), true);
+});
+
+test('graph intents translate into canonical designer commands rather than persisting library graph JSON', () => {
+  const document = loadModel(createApprovalRequestTemplate());
+
+  assert.deepEqual(
+    translateGraphIntentToCommands(
+      {
+        kind: 'rename-node',
+        nodeId: stageNodeId('manager-review'),
+        label: 'Manager Resolution'
+      },
+      document
+    ),
+    [
+      {
+        nodeId: stageNodeId('manager-review'),
+        value: {
+          displayName: 'Manager Resolution'
+        }
+      }
+    ]
+  );
+
+  assert.deepEqual(
+    translateGraphIntentToCommands(
+      {
+        kind: 'move-step',
+        stepId: 'record-approval',
+        targetStageId: 'manager-review',
+        targetIndex: 0
+      },
+      document
+    ),
+    [
+      {
+        nodeId: stepNodeId('record-approval'),
+        targetIndex: 0,
+        targetParentId: stageStepsNodeId('manager-review')
+      }
+    ]
+  );
 });
 
 test('designer commands support statuses, stage steps, and form states', () => {
@@ -212,4 +299,28 @@ test('process experience snapshot collapses hidden internal stages for portal pr
   assert.equal(snapshot.portalStatus?.id, 'under-review');
   assert.equal(snapshot.projection.message, 'Current work is progressing in an internal stage.');
   assert.equal(nextStage.state, 'available');
+});
+
+test('validateDocument rejects library-specific graph metadata and graph drift from the canonical model', () => {
+  const document = loadModel(createApprovalRequestTemplate());
+  const mutatedGraph = {
+    ...document.graph,
+    nodes: document.graph.nodes.map((node, index) => (
+      index === 0
+        ? {
+            ...node,
+            selected: true
+          }
+        : node
+    ))
+  };
+
+  const issues = validateDocument({
+    ...document,
+    graph: mutatedGraph as unknown as typeof document.graph
+  });
+
+  assert.equal(issues.some((entry) => entry.code === 'library-specific-graph-key'), true);
+  assert.equal(issues.some((entry) => entry.code === 'graph-schema-invalid'), true);
+  assert.equal(issues.some((entry) => entry.code === 'graph-document-not-derived'), true);
 });

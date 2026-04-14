@@ -41,8 +41,10 @@ Those gaps need their own release before the portal/pilot-ready release continue
 - Treat the current Angular shell as a temporary bridge rather than the future product foundation.
 - Keep model-driven and XrmToolBox as thin host adapters that both load the same browser bundle.
 - Add `DbmDesignerWorkspaceV1` as a non-authoritative sidecar for graph layout, viewport, preview, and other UI-only authoring state.
+- Add `DbmDesignerGraphDocumentV1` as the DBM-owned derived graph/interchange contract consumed by designer libraries.
 - Add `DbmProcessExperienceSnapshotV1` as the shared derived UI contract consumed by all process renderers.
 - Keep `DbmModelV1` authoritative and do not repurpose it to carry authoring-layout state or renderer-owned state.
+- Do not let any chosen designer-library graph document become authoritative or required for save/load.
 - Build one shared DBM-owned process-experience renderer that serves model-driven and future portal surfaces without forking the business-process visualization logic.
 - Keep forms mapping-first in `R2`; do not reopen `R1` into full generated main-form ownership.
 - Ship a supported model-driven baseline using a generated DBM Process host section at the top of the first business tab.

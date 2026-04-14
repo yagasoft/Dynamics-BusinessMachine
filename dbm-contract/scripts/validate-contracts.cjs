@@ -53,11 +53,13 @@ const ajv = new Ajv({
 
 const modelSchema = loadJson(path.join(schemaRoot, 'dbm-model-v1.schema.json'));
 const workspaceSchema = loadJson(path.join(schemaRoot, 'dbm-designer-workspace-v1.schema.json'));
+const graphDocumentSchema = loadJson(path.join(schemaRoot, 'dbm-designer-graph-document-v1.schema.json'));
 const snapshotSchema = loadJson(path.join(schemaRoot, 'dbm-process-experience-snapshot-v1.schema.json'));
 const requestSchema = loadJson(path.join(schemaRoot, 'dbm-runtime-request-v1.schema.json'));
 const resultSchema = loadJson(path.join(schemaRoot, 'dbm-runtime-result-v1.schema.json'));
 
 const validateWorkspace = ajv.compile(workspaceSchema);
+const validateGraphDocument = ajv.compile(graphDocumentSchema);
 const validateSnapshot = ajv.compile(snapshotSchema);
 const validateRequest = ajv.compile(requestSchema);
 const validateResult = ajv.compile(resultSchema);
@@ -73,6 +75,12 @@ runPositiveValidation(
   validateWorkspace,
   'valid designer workspace fixture',
   path.join(projectRoot, 'fixtures', 'valid', 'designer-workspace-v1.json')
+);
+
+runPositiveValidation(
+  validateGraphDocument,
+  'valid designer graph document fixture',
+  path.join(projectRoot, 'fixtures', 'valid', 'designer-graph-document-v1.json')
 );
 
 runPositiveValidation(
@@ -105,4 +113,11 @@ runExpectedFailureValidation(
   'invalid designer workspace fixture with canonical leakage',
   path.join(projectRoot, 'fixtures', 'invalid', 'designer-workspace-canonical-leakage-v1.json'),
   (error) => error.keyword === 'additionalProperties' && error.params && error.params.additionalProperty === 'process'
+);
+
+runExpectedFailureValidation(
+  validateGraphDocument,
+  'invalid designer graph document fixture with library leakage',
+  path.join(projectRoot, 'fixtures', 'invalid', 'designer-graph-document-library-leakage-v1.json'),
+  (error) => error.keyword === 'additionalProperties' && error.params && error.params.additionalProperty === 'selected'
 );

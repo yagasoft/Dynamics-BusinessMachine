@@ -8,6 +8,7 @@ import type {
 } from 'dbm-contract';
 import { buildProcessExperienceSnapshot, loadModelPackage, serializeModelPackage } from 'dbm-designer-core';
 import type { DesignerDocument } from 'dbm-designer-core';
+import { previewGraphAdapter } from './graphAdapter';
 import type { DbmHostModelPackageRecord, DbmHostModelPackageSummary } from './hostBridge';
 import {
   buildPackageResourceNames,
@@ -292,6 +293,9 @@ export function App() {
   const validationIssues = editorState.document?.issues ?? [];
   const errorIssues = validationIssues.filter((issue) => issue.level === 'error');
   const currentWorkspace = editorState.document?.workspace ?? null;
+  const graphDocument = editorState.document?.graph ?? null;
+  const previewGraph = graphDocument ? previewGraphAdapter.toLibraryGraph(graphDocument) : null;
+  const graphText = graphDocument ? JSON.stringify(graphDocument, null, 2) : '';
 
   return (
     <div style={appShellStyle}>
@@ -428,6 +432,23 @@ export function App() {
               <div style={mutedCopyStyle}>The current model passes designer-core validation.</div>
             )}
           </div>
+
+          <div style={controlCardStyle}>
+            <div style={eyebrowStyle}>Portability Boundary</div>
+            {previewGraph ? (
+              <div style={portabilitySummaryStyle}>
+                <span>{previewGraphAdapter.name}</span>
+                <span>{previewGraph.groups.length} group(s)</span>
+                <span>{previewGraph.nodes.length} node(s)</span>
+                <span>{previewGraph.edges.length} edge(s)</span>
+              </div>
+            ) : (
+              <div style={mutedCopyStyle}>The derived DBM graph document appears here after a package is loaded.</div>
+            )}
+            <div style={mutedCopyStyle}>
+              The shell consumes a DBM-owned graph document rebuilt from the canonical model instead of persisting library graph JSON.
+            </div>
+          </div>
         </section>
 
         <section style={editorGridStyle}>
@@ -460,6 +481,22 @@ export function App() {
               onChange={(event) => setWorkspaceText(event.target.value)}
               style={textareaStyle}
               placeholder="Workspace JSON"
+            />
+          </article>
+
+          <article style={editorPanelStyle}>
+            <div style={editorPanelHeaderStyle}>
+              <div>
+                <div style={eyebrowStyle}>Designer Graph Document</div>
+                <div style={editorPanelTitleStyle}>Derived, portable, and not persisted in R2.1</div>
+              </div>
+            </div>
+            <textarea
+              spellCheck={false}
+              value={graphText}
+              readOnly
+              style={textareaStyle}
+              placeholder="Derived graph document JSON"
             />
           </article>
         </section>
@@ -654,6 +691,13 @@ const selectStyle = {
 
 const validationSummaryStyle = {
   display: 'flex',
+  gap: '0.9rem',
+  fontSize: '0.92rem'
+} as const;
+
+const portabilitySummaryStyle = {
+  display: 'flex',
+  flexWrap: 'wrap',
   gap: '0.9rem',
   fontSize: '0.92rem'
 } as const;

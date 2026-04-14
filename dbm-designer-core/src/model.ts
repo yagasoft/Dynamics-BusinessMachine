@@ -1,8 +1,9 @@
 import type { DbmDesignerWorkspaceV1, DbmModelV1 } from 'dbm-contract';
 import { DOCUMENT_NODE_ID } from './node-ids';
+import { buildDesignerGraphDocument } from './graph-document';
 import { buildTree, indexTree } from './tree';
 import type { DesignerDocument, DesignerModelPackage } from './types';
-import { validateModel } from './validate';
+import { validateDocument } from './validate';
 
 function resolveDefaultPreviewStageId(model: DbmModelV1): string | null {
   return model.process.stages.find((stage) => stage.stageType === 'start')?.id ?? model.process.stages[0]?.id ?? null;
@@ -116,16 +117,22 @@ export function createDocument(
   const clonedModel = structuredClone(model);
   const tree = buildTree(clonedModel);
   const index = indexTree(tree);
+  const graph = buildDesignerGraphDocument(clonedModel);
   const normalizedWorkspace = normalizeWorkspace(clonedModel, workspace, selectionId, index);
-  const issues = validateModel(clonedModel);
-
-  return {
+  const nextDocument: DesignerDocument = {
     model: clonedModel,
     workspace: normalizedWorkspace,
+    graph,
     tree,
     index,
     selectionId: normalizedWorkspace.selectionNodeId,
     dirty,
+    issues: []
+  };
+  const issues = validateDocument(nextDocument);
+
+  return {
+    ...nextDocument,
     issues
   };
 }

@@ -1,0 +1,132 @@
+{
+  "schemaVersion": "dbm.designer.graph-document/v1",
+  "packageId": "dbm-approval-request",
+  "packageVersion": "1.2.1",
+  "processId": "approval-request-process",
+  "groups": [
+    {
+      "id": "group:actor:requester",
+      "kind": "actor-lane",
+      "label": "Requester",
+      "parentGroupId": null,
+      "semanticRef": {
+        "actorId": "requester"
+      }
+    }
+  ],
+  "nodes": [
+    {
+      "id": "stage:draft-request",
+      "kind": "stage",
+      "label": "Draft Request",
+      "parentNodeId": null,
+      "groupId": "group:actor:requester",
+      "semanticRef": {
+        "stageId": "draft-request",
+        "actorId": "requester"
+      },
+      "ports": [
+        {
+          "id": "port:stage:draft-request:in",
+          "label": null,
+          "direction": "in",
+          "role": "primary-in"
+        },
+        {
+          "id": "port:stage:draft-request:outcome:submit",
+          "label": "Submit",
+          "direction": "out",
+          "role": "outcome"
+        }
+      ]
+    },
+    {
+      "id": "step:capture-request",
+      "kind": "step",
+      "label": "Capture Request",
+      "parentNodeId": "stage:draft-request",
+      "groupId": null,
+      "semanticRef": {
+        "stageId": "draft-request",
+        "stepId": "capture-request"
+      },
+      "ports": [
+        {
+          "id": "port:step:capture-request:in",
+          "label": null,
+          "direction": "in",
+          "role": "primary-in"
+        },
+        {
+          "id": "port:step:capture-request:out",
+          "label": null,
+          "direction": "out",
+          "role": "primary-out"
+        }
+      ]
+    },
+    {
+      "id": "stage:internal-screening-stage",
+      "kind": "stage",
+      "label": "Internal Screening",
+      "parentNodeId": null,
+      "groupId": null,
+      "semanticRef": {
+        "stageId": "internal-screening-stage"
+      },
+      "ports": [
+        {
+          "id": "port:stage:internal-screening-stage:in",
+          "label": null,
+          "direction": "in",
+          "role": "primary-in"
+        }
+      ]
+    },
+    {
+      "id": "outcome:submit",
+      "kind": "outcome",
+      "label": "Submit",
+      "parentNodeId": null,
+      "groupId": null,
+      "semanticRef": {
+        "outcomeId": "submit"
+      },
+      "ports": [
+        {
+          "id": "port:outcome:submit:in",
+          "label": null,
+          "direction": "in",
+          "role": "primary-in"
+        }
+      ]
+    }
+  ],
+  "edges": [
+    {
+      "id": "transition:submit-request",
+      "kind": "stage-transition",
+      "label": "Submit",
+      "sourceNodeId": "stage:draft-request",
+      "sourcePortId": "port:stage:draft-request:outcome:submit",
+      "targetNodeId": "stage:internal-screening-stage",
+      "targetPortId": "port:stage:internal-screening-stage:in",
+      "semanticRef": {
+        "transitionId": "submit-request",
+        "outcomeId": "submit"
+      }
+    },
+    {
+      "id": "step-transition:capture-to-screening",
+      "kind": "step-transition",
+      "label": null,
+      "sourceNodeId": "step:capture-request",
+      "sourcePortId": "port:step:capture-request:out",
+      "targetNodeId": "stage:internal-screening-stage",
+      "targetPortId": "port:stage:internal-screening-stage:in",
+      "semanticRef": {
+        "stepTransitionId": "capture-to-screening"
+      }
+    }
+  ]
+}

@@ -3,12 +3,17 @@ import type {
   DbmArtifactV1,
   DbmEntityV1,
   DbmFormEntityBindingV1,
+  DbmDesignerGraphDocumentV1,
+  DbmDesignerWorkspaceV1,
   DbmModelV1,
   DbmRuleV1,
   DbmStatusV1,
   DbmStepTransitionV1
 } from 'dbm-contract';
+import graphDocumentSchema from '../../dbm-contract/schema/dbm-designer-graph-document-v1.schema.json';
 import modelSchema from '../../dbm-contract/schema/dbm-model-v1.schema.json';
+import workspaceSchema from '../../dbm-contract/schema/dbm-designer-workspace-v1.schema.json';
+import { buildDesignerGraphDocument, isStableDesignerGraphNodeId, validateDesignerGraphDocument } from './graph-document';
 import {
   actorNodeId,
   artifactNodeId,
@@ -42,6 +47,8 @@ const ajv = new Ajv({
 });
 
 const validateSchema = ajv.compile(modelSchema as object);
+const validateWorkspaceSchema = ajv.compile(workspaceSchema as object);
+const validateGraphDocumentSchema = ajv.compile(graphDocumentSchema as object);
 
 function issue(level: DesignerIssue['level'], code: string, message: string, path: string, nodeId?: string): DesignerIssue {
   return {
@@ -51,6 +58,26 @@ function issue(level: DesignerIssue['level'], code: string, message: string, pat
     path,
     nodeId
   };
+}
+
+function addSchemaIssues(
+  issues: DesignerIssue[],
+  valid: boolean,
+  errors: { instancePath?: string; message?: string }[] | null | undefined,
+  code: string,
+  pathPrefix: string
+): void {
+  if (valid) {
+    return;
+  }
+
+  (errors ?? []).forEach((error) => {
+    const instancePath = error.instancePath || '/';
+    const normalizedPath = instancePath === '/'
+      ? (pathPrefix || '/')
+      : `${pathPrefix}${instancePath}`;
+    issues.push(issue('error', code, `${normalizedPath} ${error.message ?? 'is invalid'}`.trim(), normalizedPath));
+  });
 }
 
 function addDuplicateIdIssues(
@@ -139,12 +166,7 @@ function validateStepTransitionTarget(
 export function validateModel(model: DbmModelV1): DesignerIssue[] {
   const issues: DesignerIssue[] = [];
   const schemaValid = validateSchema(model);
-
-  if (!schemaValid) {
-    (validateSchema.errors ?? []).forEach((error) => {
-      issues.push(issue('error', 'schema-invalid', `${error.instancePath || '/'} ${error.message ?? 'is invalid'}`.trim(), error.instancePath || '/'));
-    });
-  }
+  addSchemaIssues(issues, schemaValid, validateSchema.errors, 'schema-invalid', '');
 
   if (model.package.entryProcessId !== model.process.id) {
     issues.push(issue('error', 'package-entry-process-mismatch', 'package.entryProcessId must match process.id.', '/package/entryProcessId', PACKAGE_NODE_ID));
@@ -502,6 +524,83 @@ export function validateModel(model: DbmModelV1): DesignerIssue[] {
   return issues;
 }
 
+const librarySpecificGraphKeys = new Set([
+  'sourceHandle',
+  'targetHandle',
+  'markerStart',
+  'markerEnd',
+  'positionAbsolute',
+  'dragging',
+  'selected',
+  'deletable',
+  'selectable'
+]);
+
+function validateNoLibrarySpecificKeys(
+  issues: DesignerIssue[],
+  value: unknown,
+  path: string,
+  code: string
+): void {
+  if (!value || typeof value !== 'object') {
+    return;
+  }
+
+  if (Array.isArray(value)) {
+    value.forEach((entry, index) => validateNoLibrarySpecificKeys(issues, entry, `${path}/${index}`, code));
+    return;
+  }
+
+  Object.entries(value).forEach(([key, entry]) => {
+    const nextPath = path === '/' ? `/${key}` : `${path}/${key}`;
+    if (librarySpecificGraphKeys.has(key)) {
+      issues.push(issue('error', code, `Library-specific key '${key}' is not allowed in persisted DBM designer contracts.`, nextPath));
+    }
+
+    validateNoLibrarySpecificKeys(issues, entry, nextPath, code);
+  });
+}
+
+function validateWorkspace(workspace: DbmDesignerWorkspaceV1, graph: DbmDesignerGraphDocumentV1): DesignerIssue[] {
+  const issues: DesignerIssue[] = [];
+  const schemaValid = validateWorkspaceSchema(workspace);
+  addSchemaIssues(issues, schemaValid, validateWorkspaceSchema.errors, 'workspace-schema-invalid', '/workspace');
+
+  const graphNodeIds = new Set(graph.nodes.map((node) => node.id));
+  Object.keys(workspace.nodePositions).forEach((nodeId) => {
+    if (!isStableDesignerGraphNodeId(nodeId)) {
+      issues.push(issue('error', 'workspace-graph-node-id-invalid', `Workspace nodePositions key '${nodeId}' is not a DBM-owned stable graph node identifier.`, `/workspace/nodePositions/${nodeId}`));
+      return;
+    }
+
+    if (!graphNodeIds.has(nodeId)) {
+      issues.push(issue('error', 'workspace-graph-node-id-missing', `Workspace nodePositions key '${nodeId}' does not exist in the derived graph document.`, `/workspace/nodePositions/${nodeId}`));
+    }
+  });
+
+  return issues;
+}
+
+function validateGraphDocument(model: DbmModelV1, graph: DbmDesignerGraphDocumentV1): DesignerIssue[] {
+  const issues: DesignerIssue[] = [];
+  const schemaValid = validateGraphDocumentSchema(graph);
+  addSchemaIssues(issues, schemaValid, validateGraphDocumentSchema.errors, 'graph-schema-invalid', '/graph');
+  issues.push(...validateDesignerGraphDocument(graph));
+
+  const rebuiltGraph = buildDesignerGraphDocument(model);
+  if (JSON.stringify(rebuiltGraph) !== JSON.stringify(graph)) {
+    issues.push(issue('error', 'graph-document-not-derived', 'Designer graph document must be deterministically rebuildable from the canonical model.', '/graph'));
+  }
+
+  return issues;
+}
+
 export function validateDocument(document: DesignerDocument): DesignerIssue[] {
-  return validateModel(document.model);
+  const issues = validateModel(document.model);
+  validateNoLibrarySpecificKeys(issues, document.model, '/', 'library-specific-model-key');
+  validateNoLibrarySpecificKeys(issues, document.workspace, '/workspace', 'library-specific-workspace-key');
+  validateNoLibrarySpecificKeys(issues, document.graph, '/graph', 'library-specific-graph-key');
+  issues.push(...validateWorkspace(document.workspace, document.graph));
+  issues.push(...validateGraphDocument(document.model, document.graph));
+  return issues;
 }

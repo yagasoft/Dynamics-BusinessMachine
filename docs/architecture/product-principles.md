@@ -29,6 +29,7 @@ These principles are standing constraints for the revival and future evolution o
   - DBM owns the business-process experience and status projection. Native Dataverse business process flow can be generated later as an optional integration aid, but it is not the product boundary or source of truth.
 - Keep the designer portable.
   - The core designer must not be trapped inside one host shell.
+  - Persisted business-process definitions must remain DBM-owned and library-neutral so a future designer-library swap is a mapping exercise, not a product migration.
 - Prefer proven libraries and frameworks over loyalty to the current stack.
   - The designer should be elegant, advanced, and sophisticated. Framework choice is secondary to supportability, product quality, and long-term maintainability.
 - Make behavior explainable.

@@ -10,6 +10,7 @@ const schemaRoot = path.join(projectRoot, 'schema');
 const targets = [
   { typeName: 'DbmModelV1', fileName: 'dbm-model-v1.schema.json' },
   { typeName: 'DbmDesignerWorkspaceV1', fileName: 'dbm-designer-workspace-v1.schema.json' },
+  { typeName: 'DbmDesignerGraphDocumentV1', fileName: 'dbm-designer-graph-document-v1.schema.json' },
   { typeName: 'DbmProcessExperienceSnapshotV1', fileName: 'dbm-process-experience-snapshot-v1.schema.json' },
   { typeName: 'DbmRuntimeRequestV1', fileName: 'dbm-runtime-request-v1.schema.json' },
   { typeName: 'DbmRuntimeResultV1', fileName: 'dbm-runtime-result-v1.schema.json' }

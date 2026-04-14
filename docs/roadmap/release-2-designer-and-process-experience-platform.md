@@ -9,6 +9,7 @@ Turn the shipped `R1` builder-platform MVP into a product-grade authoring and ru
 - long-term designer shell built around a graph-first authoring experience
 - framework and library reset for the designer UX
 - `DbmDesignerWorkspaceV1` sidecar for visual authoring state
+- `DbmDesignerGraphDocumentV1` as the DBM-owned graph/interchange contract for designer-library portability
 - shared process-experience renderer driven by `DbmProcessExperienceSnapshotV1`
 - supported model-driven process host plus preferred above-tabs bridge overlay
 - synthesis support for process-host artifacts and placement patches on existing forms
@@ -38,7 +39,9 @@ Must include:
 - final framework and library decision for the long-term designer UX
 - preservation of the host-agnostic `dbm-designer-core` boundary
 - `DbmDesignerWorkspaceV1` sidecar definition for canvas, viewport, preview, and UI-only state
+- `DbmDesignerGraphDocumentV1` definition as a derived DBM-owned authoring/interchange graph rather than a library save format
 - package-level storage strategy for canonical model plus workspace sidecar
+- explicit adapter boundary so chosen graph libraries consume DBM graph documents without becoming authoritative persistence
 - migration bridge from the legacy Angular shell without treating it as the future foundation
 
 ### R2.2 Graph-first authoring and preview-first designer
@@ -86,6 +89,7 @@ Must include:
 
 - the approval/request scenario can be authored visually from the new designer without relying on the old tree-first shell for normal work
 - the same package can be opened and saved from model-driven and XrmToolBox hosts without divergence between canonical model and workspace sidecar
+- business-process definitions remain recoverable from `DbmModelV1` alone, with graph rendering rebuilt through `DbmDesignerGraphDocumentV1` rather than any library-native graph JSON
 - the approval/request scenario renders through the shared process-experience system with clear branching, current-state emphasis, audience projection, and cross-form handoff behavior
 - the same process renderer works in the supported model-driven host and the preferred above-tabs overlay without changing business logic
 - form-state-driven tabs, sections, controls, and field behavior remain coherent on the existing request and review forms

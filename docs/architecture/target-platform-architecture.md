@@ -44,11 +44,29 @@ That sidecar owns:
 - preview-mode preferences
 - other UI-only authoring state that must not become canonical business semantics
 
-### 3. Designer core
+### 3. Designer graph interchange boundary
+
+Graph-capable shells also need one DBM-owned graph/interchange contract that is independent of any chosen renderer or authoring library.
+
+That contract owns:
+
+- stable DBM graph node, edge, group, and port identifiers
+- semantic references back to canonical stage, step, outcome, and transition identifiers
+- a portable graph shape that can be mapped to multiple designer libraries without changing package persistence
+
+That contract does not own:
+
+- canonical process semantics
+- library-native renderer state
+- persisted authoring state that is required to recover business behavior
+
+The chosen graph library must sit behind adapters that consume this DBM-owned graph contract rather than becoming the save/load format.
+
+### 4. Designer core
 
 The designer core owns editing behavior, validation, model composition, semantic checks, serialization, and synthesis planning. It should remain host-agnostic.
 
-### 4. Process experience layer
+### 5. Process experience layer
 
 DBM owns the business-process experience itself. That experience must remain coherent across model-driven and portal surfaces even when some internal stages or steps are intentionally hidden from portal users.
 
@@ -62,7 +80,7 @@ For model-driven forms:
 
 Native Dataverse business process flow is not the source of truth. It may be generated later as an optional integration artifact where it adds value.
 
-### 5. Host adapters
+### 6. Host adapters
 
 The designer is hosted through adapters, not duplicated implementations.
 
@@ -70,9 +88,9 @@ The designer is hosted through adapters, not duplicated implementations.
 - first portable host: XrmToolBox
 - later hosts: browser- or Azure-hosted administration and management surfaces
 
-The host shell is replaceable. The canonical model and designer core are the enduring seams.
+The host shell is replaceable. The canonical model, designer graph interchange contract, and designer core are the enduring seams.
 
-### 6. Execution runtimes
+### 7. Execution runtimes
 
 The same platform contract should support several execution contexts:
 
@@ -81,7 +99,7 @@ The same platform contract should support several execution contexts:
 - Dataverse backend execution
 - Azure orchestration and service-plane execution
 
-### 7. Delivery and operations layer
+### 8. Delivery and operations layer
 
 The platform must include:
 
@@ -92,7 +110,7 @@ The platform must include:
 - Azure artifact promotion
 - release evidence, smoke tests, and rollback procedures
 
-### 8. Dataverse synthesis layer
+### 9. Dataverse synthesis layer
 
 DBM needs a dedicated Dataverse synthesis layer between the canonical model and Dataverse delivery artifacts.
 

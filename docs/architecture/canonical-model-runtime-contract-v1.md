@@ -27,11 +27,15 @@ This contract must:
 
 ## Adjacent Non-Authoritative Contracts
 
-The post-`R1` roadmap reset introduces two adjacent contracts that must stay outside the canonical envelope:
+The post-`R1` roadmap reset introduces three adjacent contracts that must stay outside the canonical envelope:
 
 - `DbmDesignerWorkspaceV1`
   - non-authoritative sidecar that stores graph layout, viewport, preview, and other UI-only authoring state
   - must never redefine process, form, metadata, rule, or runtime semantics
+- `DbmDesignerGraphDocumentV1`
+  - non-authoritative derived authoring graph and interchange document rebuilt from the canonical model
+  - gives DBM one library-neutral graph contract so the chosen designer library can change later without changing the saved process definition
+  - must never become the authoritative save/load format for business-process semantics
 - `DbmProcessExperienceSnapshotV1`
   - derived UI read model built from canonical model plus runtime state
   - consumed by model-driven and portal renderers so the same business-process experience can be projected across hosts without splitting the source of truth
@@ -55,6 +59,8 @@ These contracts are important platform interfaces, but they do not replace the c
   - portal-visible state projection
   - Dataverse provider bindings and synthesis-owned artifacts
   - runtime contracts
+- No designer-library-native graph document may become authoritative or required for package save/load.
+- `DbmDesignerGraphDocumentV1` is the DBM-owned authoring/interchange boundary for graph-capable designer shells. It is always derived from the canonical model.
 - Native Dataverse business process flow is not the source of truth. It may be generated later as an optional integration artifact where it adds value.
 - All cross-references inside the model use stable string IDs, not host-specific paths, FormXml identifiers, Dataverse web-resource names, or assembly-qualified names.
 - Host-specific and runtime-specific bindings are allowed only under explicit provider-binding fields. They must not replace portable IDs.

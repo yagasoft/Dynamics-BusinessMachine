@@ -1,0 +1,300 @@
+{
+  "$ref": "#/definitions/DbmDesignerGraphDocumentV1",
+  "definitions": {
+    "DbmDesignerGraphDocumentV1": {
+      "title": "DbmDesignerGraphDocumentV1",
+      "type": "object",
+      "properties": {
+        "schemaVersion": {
+          "type": "string",
+          "const": "dbm.designer.graph-document/v1",
+          "title": "schemaVersion"
+        },
+        "packageId": {
+          "type": "string",
+          "title": "packageId"
+        },
+        "packageVersion": {
+          "type": "string",
+          "title": "packageVersion"
+        },
+        "processId": {
+          "type": "string",
+          "title": "processId"
+        },
+        "groups": {
+          "type": "array",
+          "items": {
+            "$ref": "#/definitions/DbmDesignerGraphGroupV1"
+          },
+          "title": "groups"
+        },
+        "nodes": {
+          "type": "array",
+          "items": {
+            "$ref": "#/definitions/DbmDesignerGraphNodeV1"
+          },
+          "title": "nodes"
+        },
+        "edges": {
+          "type": "array",
+          "items": {
+            "$ref": "#/definitions/DbmDesignerGraphEdgeV1"
+          },
+          "title": "edges"
+        }
+      },
+      "additionalProperties": false,
+      "required": [
+        "edges",
+        "groups",
+        "nodes",
+        "packageId",
+        "packageVersion",
+        "processId",
+        "schemaVersion"
+      ]
+    },
+    "DbmDesignerGraphGroupV1": {
+      "title": "DbmDesignerGraphGroupV1",
+      "type": "object",
+      "properties": {
+        "id": {
+          "type": "string",
+          "title": "id"
+        },
+        "kind": {
+          "type": "string",
+          "const": "actor-lane",
+          "title": "kind"
+        },
+        "label": {
+          "type": "string",
+          "title": "label"
+        },
+        "parentGroupId": {
+          "type": [
+            "null",
+            "string"
+          ],
+          "title": "parentGroupId"
+        },
+        "semanticRef": {
+          "$ref": "#/definitions/DbmDesignerGraphSemanticRefV1",
+          "title": "semanticRef"
+        }
+      },
+      "additionalProperties": false,
+      "required": [
+        "id",
+        "kind",
+        "label",
+        "parentGroupId",
+        "semanticRef"
+      ]
+    },
+    "DbmDesignerGraphSemanticRefV1": {
+      "title": "DbmDesignerGraphSemanticRefV1",
+      "type": "object",
+      "properties": {
+        "actorId": {
+          "type": "string",
+          "title": "actorId"
+        },
+        "stageId": {
+          "type": "string",
+          "title": "stageId"
+        },
+        "stepId": {
+          "type": "string",
+          "title": "stepId"
+        },
+        "outcomeId": {
+          "type": "string",
+          "title": "outcomeId"
+        },
+        "transitionId": {
+          "type": "string",
+          "title": "transitionId"
+        },
+        "stepTransitionId": {
+          "type": "string",
+          "title": "stepTransitionId"
+        }
+      },
+      "additionalProperties": false
+    },
+    "DbmDesignerGraphNodeV1": {
+      "title": "DbmDesignerGraphNodeV1",
+      "type": "object",
+      "properties": {
+        "id": {
+          "type": "string",
+          "title": "id"
+        },
+        "kind": {
+          "$ref": "#/definitions/DbmDesignerGraphNodeKindV1",
+          "title": "kind"
+        },
+        "label": {
+          "type": "string",
+          "title": "label"
+        },
+        "parentNodeId": {
+          "type": [
+            "null",
+            "string"
+          ],
+          "title": "parentNodeId"
+        },
+        "groupId": {
+          "type": [
+            "null",
+            "string"
+          ],
+          "title": "groupId"
+        },
+        "semanticRef": {
+          "$ref": "#/definitions/DbmDesignerGraphSemanticRefV1",
+          "title": "semanticRef"
+        },
+        "ports": {
+          "type": "array",
+          "items": {
+            "$ref": "#/definitions/DbmDesignerGraphPortV1"
+          },
+          "title": "ports"
+        }
+      },
+      "additionalProperties": false,
+      "required": [
+        "groupId",
+        "id",
+        "kind",
+        "label",
+        "parentNodeId",
+        "ports",
+        "semanticRef"
+      ]
+    },
+    "DbmDesignerGraphNodeKindV1": {
+      "title": "DbmDesignerGraphNodeKindV1",
+      "enum": [
+        "outcome",
+        "stage",
+        "step"
+      ],
+      "type": "string"
+    },
+    "DbmDesignerGraphPortV1": {
+      "title": "DbmDesignerGraphPortV1",
+      "type": "object",
+      "properties": {
+        "id": {
+          "type": "string",
+          "title": "id"
+        },
+        "label": {
+          "type": [
+            "null",
+            "string"
+          ],
+          "title": "label"
+        },
+        "direction": {
+          "$ref": "#/definitions/DbmDesignerGraphPortDirectionV1",
+          "title": "direction"
+        },
+        "role": {
+          "$ref": "#/definitions/DbmDesignerGraphPortRoleV1",
+          "title": "role"
+        }
+      },
+      "additionalProperties": false,
+      "required": [
+        "direction",
+        "id",
+        "label",
+        "role"
+      ]
+    },
+    "DbmDesignerGraphPortDirectionV1": {
+      "title": "DbmDesignerGraphPortDirectionV1",
+      "enum": [
+        "in",
+        "out"
+      ],
+      "type": "string"
+    },
+    "DbmDesignerGraphPortRoleV1": {
+      "title": "DbmDesignerGraphPortRoleV1",
+      "enum": [
+        "outcome",
+        "primary-in",
+        "primary-out"
+      ],
+      "type": "string"
+    },
+    "DbmDesignerGraphEdgeV1": {
+      "title": "DbmDesignerGraphEdgeV1",
+      "type": "object",
+      "properties": {
+        "id": {
+          "type": "string",
+          "title": "id"
+        },
+        "kind": {
+          "$ref": "#/definitions/DbmDesignerGraphEdgeKindV1",
+          "title": "kind"
+        },
+        "label": {
+          "type": [
+            "null",
+            "string"
+          ],
+          "title": "label"
+        },
+        "sourceNodeId": {
+          "type": "string",
+          "title": "sourceNodeId"
+        },
+        "sourcePortId": {
+          "type": "string",
+          "title": "sourcePortId"
+        },
+        "targetNodeId": {
+          "type": "string",
+          "title": "targetNodeId"
+        },
+        "targetPortId": {
+          "type": "string",
+          "title": "targetPortId"
+        },
+        "semanticRef": {
+          "$ref": "#/definitions/DbmDesignerGraphSemanticRefV1",
+          "title": "semanticRef"
+        }
+      },
+      "additionalProperties": false,
+      "required": [
+        "id",
+        "kind",
+        "label",
+        "semanticRef",
+        "sourceNodeId",
+        "sourcePortId",
+        "targetNodeId",
+        "targetPortId"
+      ]
+    },
+    "DbmDesignerGraphEdgeKindV1": {
+      "title": "DbmDesignerGraphEdgeKindV1",
+      "enum": [
+        "stage-transition",
+        "step-transition"
+      ],
+      "type": "string"
+    }
+  },
+  "$schema": "http://json-schema.org/draft-07/schema#"
+}
