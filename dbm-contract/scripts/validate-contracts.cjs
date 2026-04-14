@@ -52,9 +52,13 @@ const ajv = new Ajv({
 });
 
 const modelSchema = loadJson(path.join(schemaRoot, 'dbm-model-v1.schema.json'));
+const workspaceSchema = loadJson(path.join(schemaRoot, 'dbm-designer-workspace-v1.schema.json'));
+const snapshotSchema = loadJson(path.join(schemaRoot, 'dbm-process-experience-snapshot-v1.schema.json'));
 const requestSchema = loadJson(path.join(schemaRoot, 'dbm-runtime-request-v1.schema.json'));
 const resultSchema = loadJson(path.join(schemaRoot, 'dbm-runtime-result-v1.schema.json'));
 
+const validateWorkspace = ajv.compile(workspaceSchema);
+const validateSnapshot = ajv.compile(snapshotSchema);
 const validateRequest = ajv.compile(requestSchema);
 const validateResult = ajv.compile(resultSchema);
 const validateModel = ajv.compile(modelSchema);
@@ -63,6 +67,18 @@ runPositiveValidation(
   validateModel,
   'docs approval/request example model',
   path.join(repoRoot, 'docs', 'architecture', 'examples', 'approval-request-v1.model.json')
+);
+
+runPositiveValidation(
+  validateWorkspace,
+  'valid designer workspace fixture',
+  path.join(projectRoot, 'fixtures', 'valid', 'designer-workspace-v1.json')
+);
+
+runPositiveValidation(
+  validateSnapshot,
+  'valid process experience snapshot fixture',
+  path.join(projectRoot, 'fixtures', 'valid', 'process-experience-snapshot-v1.json')
 );
 
 runPositiveValidation(
@@ -82,4 +98,11 @@ runExpectedFailureValidation(
   'invalid model fixture',
   path.join(projectRoot, 'fixtures', 'invalid', 'model-missing-stage-step-flow-v1.json'),
   (error) => error.keyword === 'required' && error.params && error.params.missingProperty === 'stepIds'
+);
+
+runExpectedFailureValidation(
+  validateWorkspace,
+  'invalid designer workspace fixture with canonical leakage',
+  path.join(projectRoot, 'fixtures', 'invalid', 'designer-workspace-canonical-leakage-v1.json'),
+  (error) => error.keyword === 'additionalProperties' && error.params && error.params.additionalProperty === 'process'
 );

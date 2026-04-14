@@ -1,0 +1,197 @@
+{
+  "$ref": "#/definitions/DbmDesignerWorkspaceV1",
+  "definitions": {
+    "DbmDesignerWorkspaceV1": {
+      "title": "DbmDesignerWorkspaceV1",
+      "type": "object",
+      "properties": {
+        "schemaVersion": {
+          "type": "string",
+          "const": "dbm.designer.workspace/v1",
+          "title": "schemaVersion"
+        },
+        "packageId": {
+          "type": "string",
+          "title": "packageId"
+        },
+        "packageVersion": {
+          "type": "string",
+          "title": "packageVersion"
+        },
+        "viewport": {
+          "$ref": "#/definitions/DbmDesignerViewportV1",
+          "title": "viewport"
+        },
+        "nodePositions": {
+          "$ref": "#/definitions/Record%3Cstring%2CDbmDesignerNodeCanvasStateV1%3E",
+          "title": "nodePositions"
+        },
+        "collapsedNodeIds": {
+          "type": "array",
+          "items": {
+            "type": "string"
+          },
+          "title": "collapsedNodeIds"
+        },
+        "selectionNodeId": {
+          "type": [
+            "null",
+            "string"
+          ],
+          "title": "selectionNodeId"
+        },
+        "panels": {
+          "$ref": "#/definitions/DbmDesignerPanelsV1",
+          "title": "panels"
+        },
+        "preview": {
+          "$ref": "#/definitions/DbmDesignerPreviewStateV1",
+          "title": "preview"
+        }
+      },
+      "additionalProperties": false,
+      "required": [
+        "collapsedNodeIds",
+        "nodePositions",
+        "packageId",
+        "packageVersion",
+        "panels",
+        "preview",
+        "schemaVersion",
+        "selectionNodeId",
+        "viewport"
+      ]
+    },
+    "DbmDesignerViewportV1": {
+      "title": "DbmDesignerViewportV1",
+      "type": "object",
+      "properties": {
+        "x": {
+          "type": "number",
+          "title": "x"
+        },
+        "y": {
+          "type": "number",
+          "title": "y"
+        },
+        "zoom": {
+          "type": "number",
+          "title": "zoom"
+        }
+      },
+      "additionalProperties": false,
+      "required": [
+        "x",
+        "y",
+        "zoom"
+      ]
+    },
+    "Record<string,DbmDesignerNodeCanvasStateV1>": {
+      "title": "Record<string,DbmDesignerNodeCanvasStateV1>",
+      "type": "object",
+      "additionalProperties": {
+        "type": "object",
+        "properties": {
+          "x": {
+            "type": "number"
+          },
+          "y": {
+            "type": "number"
+          }
+        },
+        "additionalProperties": false,
+        "required": [
+          "x",
+          "y"
+        ]
+      }
+    },
+    "DbmDesignerPanelsV1": {
+      "title": "DbmDesignerPanelsV1",
+      "type": "object",
+      "properties": {
+        "catalog": {
+          "$ref": "#/definitions/DbmDesignerPanelStateV1",
+          "title": "catalog"
+        },
+        "inspector": {
+          "$ref": "#/definitions/DbmDesignerPanelStateV1",
+          "title": "inspector"
+        },
+        "preview": {
+          "$ref": "#/definitions/DbmDesignerPanelStateV1",
+          "title": "preview"
+        },
+        "diagnostics": {
+          "$ref": "#/definitions/DbmDesignerPanelStateV1",
+          "title": "diagnostics"
+        }
+      },
+      "additionalProperties": false,
+      "required": [
+        "catalog",
+        "diagnostics",
+        "inspector",
+        "preview"
+      ]
+    },
+    "DbmDesignerPanelStateV1": {
+      "title": "DbmDesignerPanelStateV1",
+      "type": "object",
+      "properties": {
+        "open": {
+          "type": "boolean",
+          "title": "open"
+        },
+        "size": {
+          "type": "number",
+          "title": "size"
+        }
+      },
+      "additionalProperties": false,
+      "required": [
+        "open",
+        "size"
+      ]
+    },
+    "DbmDesignerPreviewStateV1": {
+      "title": "DbmDesignerPreviewStateV1",
+      "type": "object",
+      "properties": {
+        "mode": {
+          "$ref": "#/definitions/DbmDesignerPreviewModeV1",
+          "title": "mode"
+        },
+        "stageId": {
+          "type": [
+            "null",
+            "string"
+          ],
+          "title": "stageId"
+        },
+        "stepId": {
+          "type": [
+            "null",
+            "string"
+          ],
+          "title": "stepId"
+        }
+      },
+      "additionalProperties": false,
+      "required": [
+        "mode",
+        "stageId",
+        "stepId"
+      ]
+    },
+    "DbmDesignerPreviewModeV1": {
+      "title": "DbmDesignerPreviewModeV1",
+      "enum": [
+        "internal",
+        "portal"
+      ],
+      "type": "string"
+    }
+  },
+  "$schema": "http://json-schema.org/draft-07/schema#"
+}

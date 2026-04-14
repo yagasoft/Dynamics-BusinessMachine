@@ -1,4 +1,6 @@
 export type DbmSchemaVersionV1 = 'dbm.model/v1';
+export type DbmDesignerWorkspaceSchemaVersionV1 = 'dbm.designer.workspace/v1';
+export type DbmProcessExperienceSnapshotSchemaVersionV1 = 'dbm.process-experience.snapshot/v1';
 export type DbmRuntimeRequestSchemaVersionV1 = 'dbm.runtime.request/v1';
 export type DbmRuntimeResultSchemaVersionV1 = 'dbm.runtime.result/v1';
 
@@ -80,6 +82,10 @@ export type DbmArtifactTypeV1 =
 export type DbmPackagingTargetV1 = 'dataverse-webresource' | 'dataverse-plugin' | 'repo-only' | 'azure-app';
 export type DbmLayoutTypeV1 = 'single-page';
 export type DbmBreakingChangePolicyV1 = 'reject-newer-major';
+export type DbmDesignerPreviewModeV1 = 'internal' | 'portal';
+export type DbmProcessExperienceAudienceV1 = 'internal' | 'portal';
+export type DbmProcessExperienceItemStateV1 = 'completed' | 'current' | 'available' | 'upcoming';
+export type DbmProcessExperienceVisibilityV1 = 'visible' | 'collapsed-hidden';
 
 export type DbmFormEntityBindingRoleV1 = 'primary' | 'related';
 export type DbmSubjectRecordRoleV1 = 'primary' | 'related';
@@ -400,6 +406,47 @@ export interface DbmModelV1 {
   artifacts: DbmArtifactV1[];
 }
 
+export interface DbmDesignerViewportV1 {
+  x: number;
+  y: number;
+  zoom: number;
+}
+
+export interface DbmDesignerNodeCanvasStateV1 {
+  x: number;
+  y: number;
+}
+
+export interface DbmDesignerPanelStateV1 {
+  open: boolean;
+  size: number;
+}
+
+export interface DbmDesignerPanelsV1 {
+  catalog: DbmDesignerPanelStateV1;
+  inspector: DbmDesignerPanelStateV1;
+  preview: DbmDesignerPanelStateV1;
+  diagnostics: DbmDesignerPanelStateV1;
+}
+
+export interface DbmDesignerPreviewStateV1 {
+  mode: DbmDesignerPreviewModeV1;
+  stageId: string | null;
+  stepId: string | null;
+}
+
+export interface DbmDesignerWorkspaceV1 {
+  schemaVersion: DbmDesignerWorkspaceSchemaVersionV1;
+  packageId: string;
+  packageVersion: string;
+  viewport: DbmDesignerViewportV1;
+  nodePositions: Record<string, DbmDesignerNodeCanvasStateV1>;
+  collapsedNodeIds: string[];
+  selectionNodeId: string | null;
+  panels: DbmDesignerPanelsV1;
+  preview: DbmDesignerPreviewStateV1;
+}
+
 export interface DbmRuntimeModelReferenceV1 {
   packageId: string;
   packageVersion: string;
@@ -510,4 +557,82 @@ export interface DbmRuntimeResultV1 {
   messages: DbmRuntimeMessageV1[];
   errors: DbmRuntimeErrorV1[];
   correlationId: string;
+}
+
+export interface DbmProcessExperienceActorRefV1 {
+  id: string;
+  displayName: string;
+  actorType: DbmActorTypeV1;
+}
+
+export interface DbmProcessExperienceStatusRefV1 {
+  id: string;
+  displayName: string;
+  audience: DbmStatusAudienceV1;
+  kind: DbmStatusKindV1;
+}
+
+export interface DbmProcessExperienceOutcomeRefV1 {
+  id: string;
+  displayName: string;
+  isAvailable: boolean;
+}
+
+export interface DbmProcessExperienceStageV1 {
+  id: string;
+  displayName: string;
+  stageType: DbmStageTypeV1;
+  state: DbmProcessExperienceItemStateV1;
+  visibility: DbmProcessExperienceVisibilityV1;
+  actor: DbmProcessExperienceActorRefV1 | null;
+  formId: string | null;
+  currentStepId: string | null;
+  stepIds: string[];
+  availableOutcomeIds: string[];
+}
+
+export interface DbmProcessExperienceStepV1 {
+  id: string;
+  stageId: string;
+  displayName: string;
+  stepType: DbmStepTypeV1;
+  state: DbmProcessExperienceItemStateV1;
+  visibility: DbmProcessExperienceVisibilityV1;
+  owner: DbmProcessExperienceActorRefV1 | null;
+  formStateId: string | null;
+  internalStatus: DbmProcessExperienceStatusRefV1 | null;
+  portalStatus: DbmProcessExperienceStatusRefV1 | null;
+}
+
+export interface DbmProcessExperienceTransitionV1 {
+  id: string;
+  fromStageId: string;
+  toStageId: string;
+  outcome: DbmProcessExperienceOutcomeRefV1 | null;
+  state: DbmProcessExperienceItemStateV1;
+}
+
+export interface DbmProcessExperienceProjectionV1 {
+  projectedStageId: string | null;
+  projectedStepId: string | null;
+  message: string | null;
+}
+
+export interface DbmProcessExperienceSnapshotV1 {
+  schemaVersion: DbmProcessExperienceSnapshotSchemaVersionV1;
+  packageId: string;
+  packageVersion: string;
+  processId: string;
+  audience: DbmProcessExperienceAudienceV1;
+  currentStageId: string;
+  currentStepId: string;
+  activeFormId: string | null;
+  activeFormStateId: string | null;
+  internalStatus: DbmProcessExperienceStatusRefV1 | null;
+  portalStatus: DbmProcessExperienceStatusRefV1 | null;
+  availableOutcomes: DbmProcessExperienceOutcomeRefV1[];
+  stages: DbmProcessExperienceStageV1[];
+  steps: DbmProcessExperienceStepV1[];
+  transitions: DbmProcessExperienceTransitionV1[];
+  projection: DbmProcessExperienceProjectionV1;
 }

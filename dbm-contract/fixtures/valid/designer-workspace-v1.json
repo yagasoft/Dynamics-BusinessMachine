@@ -1,0 +1,47 @@
+{
+  "schemaVersion": "dbm.designer.workspace/v1",
+  "packageId": "dbm-approval-request",
+  "packageVersion": "1.2.1",
+  "viewport": {
+    "x": 240,
+    "y": 120,
+    "zoom": 0.9
+  },
+  "nodePositions": {
+    "stage:draft-request": {
+      "x": 160,
+      "y": 80
+    },
+    "stage:manager-review": {
+      "x": 520,
+      "y": 80
+    }
+  },
+  "collapsedNodeIds": [
+    "collection:process:variables"
+  ],
+  "selectionNodeId": "stage:manager-review",
+  "panels": {
+    "catalog": {
+      "open": true,
+      "size": 280
+    },
+    "inspector": {
+      "open": true,
+      "size": 360
+    },
+    "preview": {
+      "open": true,
+      "size": 420
+    },
+    "diagnostics": {
+      "open": false,
+      "size": 260
+    }
+  },
+  "preview": {
+    "mode": "portal",
+    "stageId": "internal-screening-stage",
+    "stepId": "screen-request"
+  }
+}

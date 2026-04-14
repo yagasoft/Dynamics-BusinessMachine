@@ -9,6 +9,8 @@ const schemaRoot = path.join(projectRoot, 'schema');
 
 const targets = [
   { typeName: 'DbmModelV1', fileName: 'dbm-model-v1.schema.json' },
+  { typeName: 'DbmDesignerWorkspaceV1', fileName: 'dbm-designer-workspace-v1.schema.json' },
+  { typeName: 'DbmProcessExperienceSnapshotV1', fileName: 'dbm-process-experience-snapshot-v1.schema.json' },
   { typeName: 'DbmRuntimeRequestV1', fileName: 'dbm-runtime-request-v1.schema.json' },
   { typeName: 'DbmRuntimeResultV1', fileName: 'dbm-runtime-result-v1.schema.json' }
 ];
@@ -32,16 +34,34 @@ const settings = {
 
 const program = TJS.getProgramFromFiles([sourcePath], compilerOptions, projectRoot);
 
-function patchScalarValueRecord(schema) {
+function patchRecordDefinition(schema, definitionName, additionalProperties) {
   const definitions = schema.definitions || {};
-  const scalarRecordDefinition = definitions['Record<string,DbmScalarValueV1>'];
-  if (!scalarRecordDefinition) {
+  const definition = definitions[definitionName];
+  if (!definition) {
     return;
   }
 
-  scalarRecordDefinition.additionalProperties = {
+  definition.additionalProperties = additionalProperties;
+}
+
+function patchRecordDefinitions(schema) {
+  patchRecordDefinition(schema, 'Record<string,DbmScalarValueV1>', {
     type: ['string', 'number', 'boolean', 'null']
-  };
+  });
+
+  patchRecordDefinition(schema, 'Record<string,DbmDesignerNodeCanvasStateV1>', {
+    type: 'object',
+    properties: {
+      x: {
+        type: 'number'
+      },
+      y: {
+        type: 'number'
+      }
+    },
+    additionalProperties: false,
+    required: ['x', 'y']
+  });
 }
 
 for (const target of targets) {
@@ -50,7 +70,7 @@ for (const target of targets) {
     throw new Error(`Failed to generate JSON schema for ${target.typeName}.`);
   }
 
-  patchScalarValueRecord(schema);
+  patchRecordDefinitions(schema);
 
   if (!schema.$schema) {
     schema.$schema = 'http://json-schema.org/draft-07/schema#';

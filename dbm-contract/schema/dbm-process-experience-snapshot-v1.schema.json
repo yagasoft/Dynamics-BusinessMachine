@@ -1,0 +1,514 @@
+{
+  "$ref": "#/definitions/DbmProcessExperienceSnapshotV1",
+  "definitions": {
+    "DbmProcessExperienceSnapshotV1": {
+      "title": "DbmProcessExperienceSnapshotV1",
+      "type": "object",
+      "properties": {
+        "schemaVersion": {
+          "type": "string",
+          "const": "dbm.process-experience.snapshot/v1",
+          "title": "schemaVersion"
+        },
+        "packageId": {
+          "type": "string",
+          "title": "packageId"
+        },
+        "packageVersion": {
+          "type": "string",
+          "title": "packageVersion"
+        },
+        "processId": {
+          "type": "string",
+          "title": "processId"
+        },
+        "audience": {
+          "$ref": "#/definitions/DbmProcessExperienceAudienceV1",
+          "title": "audience"
+        },
+        "currentStageId": {
+          "type": "string",
+          "title": "currentStageId"
+        },
+        "currentStepId": {
+          "type": "string",
+          "title": "currentStepId"
+        },
+        "activeFormId": {
+          "type": [
+            "null",
+            "string"
+          ],
+          "title": "activeFormId"
+        },
+        "activeFormStateId": {
+          "type": [
+            "null",
+            "string"
+          ],
+          "title": "activeFormStateId"
+        },
+        "internalStatus": {
+          "anyOf": [
+            {
+              "$ref": "#/definitions/DbmProcessExperienceStatusRefV1"
+            },
+            {
+              "type": "null"
+            }
+          ],
+          "title": "internalStatus"
+        },
+        "portalStatus": {
+          "anyOf": [
+            {
+              "$ref": "#/definitions/DbmProcessExperienceStatusRefV1"
+            },
+            {
+              "type": "null"
+            }
+          ],
+          "title": "portalStatus"
+        },
+        "availableOutcomes": {
+          "type": "array",
+          "items": {
+            "$ref": "#/definitions/DbmProcessExperienceOutcomeRefV1"
+          },
+          "title": "availableOutcomes"
+        },
+        "stages": {
+          "type": "array",
+          "items": {
+            "$ref": "#/definitions/DbmProcessExperienceStageV1"
+          },
+          "title": "stages"
+        },
+        "steps": {
+          "type": "array",
+          "items": {
+            "$ref": "#/definitions/DbmProcessExperienceStepV1"
+          },
+          "title": "steps"
+        },
+        "transitions": {
+          "type": "array",
+          "items": {
+            "$ref": "#/definitions/DbmProcessExperienceTransitionV1"
+          },
+          "title": "transitions"
+        },
+        "projection": {
+          "$ref": "#/definitions/DbmProcessExperienceProjectionV1",
+          "title": "projection"
+        }
+      },
+      "additionalProperties": false,
+      "required": [
+        "activeFormId",
+        "activeFormStateId",
+        "audience",
+        "availableOutcomes",
+        "currentStageId",
+        "currentStepId",
+        "internalStatus",
+        "packageId",
+        "packageVersion",
+        "portalStatus",
+        "processId",
+        "projection",
+        "schemaVersion",
+        "stages",
+        "steps",
+        "transitions"
+      ]
+    },
+    "DbmProcessExperienceAudienceV1": {
+      "title": "DbmProcessExperienceAudienceV1",
+      "enum": [
+        "internal",
+        "portal"
+      ],
+      "type": "string"
+    },
+    "DbmProcessExperienceStatusRefV1": {
+      "title": "DbmProcessExperienceStatusRefV1",
+      "type": "object",
+      "properties": {
+        "id": {
+          "type": "string",
+          "title": "id"
+        },
+        "displayName": {
+          "type": "string",
+          "title": "displayName"
+        },
+        "audience": {
+          "$ref": "#/definitions/DbmStatusAudienceV1",
+          "title": "audience"
+        },
+        "kind": {
+          "$ref": "#/definitions/DbmStatusKindV1",
+          "title": "kind"
+        }
+      },
+      "additionalProperties": false,
+      "required": [
+        "audience",
+        "displayName",
+        "id",
+        "kind"
+      ]
+    },
+    "DbmStatusAudienceV1": {
+      "title": "DbmStatusAudienceV1",
+      "enum": [
+        "internal",
+        "portal",
+        "shared"
+      ],
+      "type": "string"
+    },
+    "DbmStatusKindV1": {
+      "title": "DbmStatusKindV1",
+      "enum": [
+        "decision",
+        "progress",
+        "terminal"
+      ],
+      "type": "string"
+    },
+    "DbmProcessExperienceOutcomeRefV1": {
+      "title": "DbmProcessExperienceOutcomeRefV1",
+      "type": "object",
+      "properties": {
+        "id": {
+          "type": "string",
+          "title": "id"
+        },
+        "displayName": {
+          "type": "string",
+          "title": "displayName"
+        },
+        "isAvailable": {
+          "type": "boolean",
+          "title": "isAvailable"
+        }
+      },
+      "additionalProperties": false,
+      "required": [
+        "displayName",
+        "id",
+        "isAvailable"
+      ]
+    },
+    "DbmProcessExperienceStageV1": {
+      "title": "DbmProcessExperienceStageV1",
+      "type": "object",
+      "properties": {
+        "id": {
+          "type": "string",
+          "title": "id"
+        },
+        "displayName": {
+          "type": "string",
+          "title": "displayName"
+        },
+        "stageType": {
+          "$ref": "#/definitions/DbmStageTypeV1",
+          "title": "stageType"
+        },
+        "state": {
+          "$ref": "#/definitions/DbmProcessExperienceItemStateV1",
+          "title": "state"
+        },
+        "visibility": {
+          "$ref": "#/definitions/DbmProcessExperienceVisibilityV1",
+          "title": "visibility"
+        },
+        "actor": {
+          "anyOf": [
+            {
+              "$ref": "#/definitions/DbmProcessExperienceActorRefV1"
+            },
+            {
+              "type": "null"
+            }
+          ],
+          "title": "actor"
+        },
+        "formId": {
+          "type": [
+            "null",
+            "string"
+          ],
+          "title": "formId"
+        },
+        "currentStepId": {
+          "type": [
+            "null",
+            "string"
+          ],
+          "title": "currentStepId"
+        },
+        "stepIds": {
+          "type": "array",
+          "items": {
+            "type": "string"
+          },
+          "title": "stepIds"
+        },
+        "availableOutcomeIds": {
+          "type": "array",
+          "items": {
+            "type": "string"
+          },
+          "title": "availableOutcomeIds"
+        }
+      },
+      "additionalProperties": false,
+      "required": [
+        "actor",
+        "availableOutcomeIds",
+        "currentStepId",
+        "displayName",
+        "formId",
+        "id",
+        "stageType",
+        "state",
+        "stepIds",
+        "visibility"
+      ]
+    },
+    "DbmStageTypeV1": {
+      "title": "DbmStageTypeV1",
+      "enum": [
+        "approval",
+        "end",
+        "start",
+        "system",
+        "task"
+      ],
+      "type": "string"
+    },
+    "DbmProcessExperienceItemStateV1": {
+      "title": "DbmProcessExperienceItemStateV1",
+      "enum": [
+        "available",
+        "completed",
+        "current",
+        "upcoming"
+      ],
+      "type": "string"
+    },
+    "DbmProcessExperienceVisibilityV1": {
+      "title": "DbmProcessExperienceVisibilityV1",
+      "enum": [
+        "collapsed-hidden",
+        "visible"
+      ],
+      "type": "string"
+    },
+    "DbmProcessExperienceActorRefV1": {
+      "title": "DbmProcessExperienceActorRefV1",
+      "type": "object",
+      "properties": {
+        "id": {
+          "type": "string",
+          "title": "id"
+        },
+        "displayName": {
+          "type": "string",
+          "title": "displayName"
+        },
+        "actorType": {
+          "$ref": "#/definitions/DbmActorTypeV1",
+          "title": "actorType"
+        }
+      },
+      "additionalProperties": false,
+      "required": [
+        "actorType",
+        "displayName",
+        "id"
+      ]
+    },
+    "DbmActorTypeV1": {
+      "title": "DbmActorTypeV1",
+      "enum": [
+        "approver",
+        "requester",
+        "system"
+      ],
+      "type": "string"
+    },
+    "DbmProcessExperienceStepV1": {
+      "title": "DbmProcessExperienceStepV1",
+      "type": "object",
+      "properties": {
+        "id": {
+          "type": "string",
+          "title": "id"
+        },
+        "stageId": {
+          "type": "string",
+          "title": "stageId"
+        },
+        "displayName": {
+          "type": "string",
+          "title": "displayName"
+        },
+        "stepType": {
+          "$ref": "#/definitions/DbmStepTypeV1",
+          "title": "stepType"
+        },
+        "state": {
+          "$ref": "#/definitions/DbmProcessExperienceItemStateV1",
+          "title": "state"
+        },
+        "visibility": {
+          "$ref": "#/definitions/DbmProcessExperienceVisibilityV1",
+          "title": "visibility"
+        },
+        "owner": {
+          "anyOf": [
+            {
+              "$ref": "#/definitions/DbmProcessExperienceActorRefV1"
+            },
+            {
+              "type": "null"
+            }
+          ],
+          "title": "owner"
+        },
+        "formStateId": {
+          "type": [
+            "null",
+            "string"
+          ],
+          "title": "formStateId"
+        },
+        "internalStatus": {
+          "anyOf": [
+            {
+              "$ref": "#/definitions/DbmProcessExperienceStatusRefV1"
+            },
+            {
+              "type": "null"
+            }
+          ],
+          "title": "internalStatus"
+        },
+        "portalStatus": {
+          "anyOf": [
+            {
+              "$ref": "#/definitions/DbmProcessExperienceStatusRefV1"
+            },
+            {
+              "type": "null"
+            }
+          ],
+          "title": "portalStatus"
+        }
+      },
+      "additionalProperties": false,
+      "required": [
+        "displayName",
+        "formStateId",
+        "id",
+        "internalStatus",
+        "owner",
+        "portalStatus",
+        "stageId",
+        "state",
+        "stepType",
+        "visibility"
+      ]
+    },
+    "DbmStepTypeV1": {
+      "title": "DbmStepTypeV1",
+      "enum": [
+        "approval",
+        "data-entry",
+        "review",
+        "system"
+      ],
+      "type": "string"
+    },
+    "DbmProcessExperienceTransitionV1": {
+      "title": "DbmProcessExperienceTransitionV1",
+      "type": "object",
+      "properties": {
+        "id": {
+          "type": "string",
+          "title": "id"
+        },
+        "fromStageId": {
+          "type": "string",
+          "title": "fromStageId"
+        },
+        "toStageId": {
+          "type": "string",
+          "title": "toStageId"
+        },
+        "outcome": {
+          "anyOf": [
+            {
+              "$ref": "#/definitions/DbmProcessExperienceOutcomeRefV1"
+            },
+            {
+              "type": "null"
+            }
+          ],
+          "title": "outcome"
+        },
+        "state": {
+          "$ref": "#/definitions/DbmProcessExperienceItemStateV1",
+          "title": "state"
+        }
+      },
+      "additionalProperties": false,
+      "required": [
+        "fromStageId",
+        "id",
+        "outcome",
+        "state",
+        "toStageId"
+      ]
+    },
+    "DbmProcessExperienceProjectionV1": {
+      "title": "DbmProcessExperienceProjectionV1",
+      "type": "object",
+      "properties": {
+        "projectedStageId": {
+          "type": [
+            "null",
+            "string"
+          ],
+          "title": "projectedStageId"
+        },
+        "projectedStepId": {
+          "type": [
+            "null",
+            "string"
+          ],
+          "title": "projectedStepId"
+        },
+        "message": {
+          "type": [
+            "null",
+            "string"
+          ],
+          "title": "message"
+        }
+      },
+      "additionalProperties": false,
+      "required": [
+        "message",
+        "projectedStageId",
+        "projectedStepId"
+      ]
+    }
+  },
+  "$schema": "http://json-schema.org/draft-07/schema#"
+}

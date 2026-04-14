@@ -87,7 +87,7 @@ function normalizeStepMembership(model: DesignerDocument['model']): void {
 
 function rebuild(document: DesignerDocument, model: DesignerDocument['model'], affectedNodeId: string | null): DesignerCommandResult {
   normalizeStepMembership(model);
-  const nextDocument = createDocument(model, true, affectedNodeId ?? document.selectionId);
+  const nextDocument = createDocument(model, true, affectedNodeId ?? document.selectionId, document.workspace);
   return { document: nextDocument, affectedNodeId, issues: nextDocument.issues };
 }
 

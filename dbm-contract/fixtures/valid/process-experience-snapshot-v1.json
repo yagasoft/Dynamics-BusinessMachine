@@ -1,0 +1,200 @@
+{
+  "schemaVersion": "dbm.process-experience.snapshot/v1",
+  "packageId": "dbm-approval-request",
+  "packageVersion": "1.2.1",
+  "processId": "approval-request-process",
+  "audience": "portal",
+  "currentStageId": "internal-screening-stage",
+  "currentStepId": "screen-request",
+  "activeFormId": "request-form",
+  "activeFormStateId": "request-screening-state",
+  "internalStatus": {
+    "id": "internal-screening",
+    "displayName": "Internal Screening",
+    "audience": "internal",
+    "kind": "progress"
+  },
+  "portalStatus": {
+    "id": "under-review",
+    "displayName": "Under Review",
+    "audience": "shared",
+    "kind": "progress"
+  },
+  "availableOutcomes": [
+    {
+      "id": "screen-complete",
+      "displayName": "Screen Complete",
+      "isAvailable": true
+    }
+  ],
+  "stages": [
+    {
+      "id": "draft-request",
+      "displayName": "Draft Request",
+      "stageType": "start",
+      "state": "completed",
+      "visibility": "visible",
+      "actor": {
+        "id": "requester",
+        "displayName": "Requester",
+        "actorType": "requester"
+      },
+      "formId": "request-form",
+      "currentStepId": null,
+      "stepIds": [
+        "capture-request",
+        "capture-supporting-details"
+      ],
+      "availableOutcomeIds": []
+    },
+    {
+      "id": "internal-screening-stage",
+      "displayName": "Internal Screening",
+      "stageType": "system",
+      "state": "current",
+      "visibility": "collapsed-hidden",
+      "actor": {
+        "id": "finance-reviewer",
+        "displayName": "Finance Reviewer",
+        "actorType": "approver"
+      },
+      "formId": "request-form",
+      "currentStepId": "screen-request",
+      "stepIds": [
+        "screen-request"
+      ],
+      "availableOutcomeIds": [
+        "screen-complete"
+      ]
+    },
+    {
+      "id": "manager-review",
+      "displayName": "Manager Review",
+      "stageType": "approval",
+      "state": "available",
+      "visibility": "visible",
+      "actor": {
+        "id": "manager-approver",
+        "displayName": "Manager Approver",
+        "actorType": "approver"
+      },
+      "formId": "review-form",
+      "currentStepId": null,
+      "stepIds": [
+        "choose-decision",
+        "record-approval",
+        "record-rejection"
+      ],
+      "availableOutcomeIds": []
+    }
+  ],
+  "steps": [
+    {
+      "id": "capture-request",
+      "stageId": "draft-request",
+      "displayName": "Capture Request",
+      "stepType": "data-entry",
+      "state": "completed",
+      "visibility": "visible",
+      "owner": {
+        "id": "requester",
+        "displayName": "Requester",
+        "actorType": "requester"
+      },
+      "formStateId": "request-edit-state",
+      "internalStatus": {
+        "id": "draft",
+        "displayName": "Draft",
+        "audience": "shared",
+        "kind": "progress"
+      },
+      "portalStatus": {
+        "id": "draft",
+        "displayName": "Draft",
+        "audience": "shared",
+        "kind": "progress"
+      }
+    },
+    {
+      "id": "screen-request",
+      "stageId": "internal-screening-stage",
+      "displayName": "Screen Request",
+      "stepType": "review",
+      "state": "current",
+      "visibility": "collapsed-hidden",
+      "owner": {
+        "id": "finance-reviewer",
+        "displayName": "Finance Reviewer",
+        "actorType": "approver"
+      },
+      "formStateId": "request-screening-state",
+      "internalStatus": {
+        "id": "internal-screening",
+        "displayName": "Internal Screening",
+        "audience": "internal",
+        "kind": "progress"
+      },
+      "portalStatus": {
+        "id": "under-review",
+        "displayName": "Under Review",
+        "audience": "shared",
+        "kind": "progress"
+      }
+    },
+    {
+      "id": "choose-decision",
+      "stageId": "manager-review",
+      "displayName": "Choose Decision",
+      "stepType": "approval",
+      "state": "available",
+      "visibility": "visible",
+      "owner": {
+        "id": "manager-approver",
+        "displayName": "Manager Approver",
+        "actorType": "approver"
+      },
+      "formStateId": "review-decision-state",
+      "internalStatus": {
+        "id": "awaiting-manager-decision",
+        "displayName": "Awaiting Manager Decision",
+        "audience": "internal",
+        "kind": "progress"
+      },
+      "portalStatus": {
+        "id": "under-review",
+        "displayName": "Under Review",
+        "audience": "shared",
+        "kind": "progress"
+      }
+    }
+  ],
+  "transitions": [
+    {
+      "id": "submit-request",
+      "fromStageId": "draft-request",
+      "toStageId": "internal-screening-stage",
+      "outcome": {
+        "id": "submit",
+        "displayName": "Submit",
+        "isAvailable": false
+      },
+      "state": "completed"
+    },
+    {
+      "id": "screening-complete-transition",
+      "fromStageId": "internal-screening-stage",
+      "toStageId": "manager-review",
+      "outcome": {
+        "id": "screen-complete",
+        "displayName": "Screen Complete",
+        "isAvailable": true
+      },
+      "state": "available"
+    }
+  ],
+  "projection": {
+    "projectedStageId": null,
+    "projectedStepId": null,
+    "message": "Current work is progressing in an internal stage."
+  }
+}

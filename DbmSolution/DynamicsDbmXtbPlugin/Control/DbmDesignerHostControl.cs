@@ -6,6 +6,7 @@ using System.ComponentModel;
 using System.Drawing;
 using System.IO;
 using System.Linq;
+using System.Text;
 using System.Text.Json;
 using System.Text.Json.Serialization;
 using System.Threading.Tasks;
@@ -262,12 +263,12 @@ namespace Yagasoft.DynamicsDbmXtbPlugin.Control
 
 	installXrmShim();
 
-	globalThis.dbmHostBridge = window.dbmHostBridge = {
+		globalThis.dbmHostBridge = window.dbmHostBridge = {
 		hostKind: 'xrmtoolbox',
-		listModelDocuments: () => invoke('listModelDocuments'),
-		loadModelDocument: (name) => invoke('loadModelDocument', { name }),
-		saveModelDocument: (record) => invoke('saveModelDocument', record),
-		deleteModelDocument: (record) => invoke('deleteModelDocument', record)
+		listModelPackages: () => invoke('listModelPackages'),
+		loadModelPackage: (packageName) => invoke('loadModelPackage', { packageName }),
+		saveModelPackage: (record) => invoke('saveModelPackage', record),
+		deleteModelPackage: (record) => invoke('deleteModelPackage', record)
 	};
 
 	window.chrome.webview.addEventListener('message', event => {
@@ -308,10 +309,10 @@ namespace Yagasoft.DynamicsDbmXtbPlugin.Control
 
 				object? payload = request.Method switch
 				{
-					"listModelDocuments" => ListModelDocuments(),
-					"loadModelDocument" => LoadModelDocument(request.Payload),
-					"saveModelDocument" => SaveModelDocument(request.Payload),
-					"deleteModelDocument" => DeleteModelDocument(request.Payload),
+					"listModelPackages" => ListModelPackages(),
+					"loadModelPackage" => LoadModelPackage(request.Payload),
+					"saveModelPackage" => SaveModelPackage(request.Payload),
+					"deleteModelPackage" => DeleteModelPackage(request.Payload),
 					_ => throw new InvalidOperationException(string.Format("Unsupported host bridge method '{0}'.", request.Method))
 				};
 
@@ -324,7 +325,7 @@ namespace Yagasoft.DynamicsDbmXtbPlugin.Control
 			}
 		}
 
-		private IReadOnlyList<WebResourceBridgeRecord> ListModelDocuments()
+		private IReadOnlyList<WebResourceBridgePackageSummary> ListModelPackages()
 		{
 			EnsureServiceAvailable();
 
@@ -335,71 +336,121 @@ namespace Yagasoft.DynamicsDbmXtbPlugin.Control
 			query.Criteria.AddCondition("name", ConditionOperator.BeginsWith, ModelRoot);
 			query.Orders.Add(new OrderExpression("name", OrderType.Ascending));
 
-			return Service.RetrieveMultiple(query)
-				.Entities
-				.Select(MapWebResourceSummary)
+			var packageGroups = new Dictionary<string, PackageGroup>(StringComparer.OrdinalIgnoreCase);
+			foreach (var entity in Service.RetrieveMultiple(query).Entities)
+			{
+				var resource = MapWebResourceSummary(entity);
+				if (!TryParsePackageName(resource.Name, out var packageName, out var isWorkspace))
+				{
+					continue;
+				}
+
+				if (!packageGroups.TryGetValue(packageName, out var group))
+				{
+					group = new PackageGroup(packageName);
+					packageGroups.Add(packageName, group);
+				}
+
+				if (isWorkspace)
+				{
+					group.Workspace = resource;
+				}
+				else
+				{
+					group.Model = resource;
+				}
+			}
+
+			return packageGroups.Values
+				.Where(group => group.Model != null)
+				.Select(MapPackageSummary)
+				.OrderBy(summary => summary.DisplayName ?? summary.PackageName, StringComparer.OrdinalIgnoreCase)
 				.ToArray();
 		}
 
-		private WebResourceBridgeRecord? LoadModelDocument(JsonElement? payload)
+		private WebResourceBridgePackageRecord? LoadModelPackage(JsonElement? payload)
 		{
 			EnsureServiceAvailable();
 
-			var name = GetRequiredString(payload, "name");
+			var packageName = GetRequiredString(payload, "packageName");
+			var modelName = BuildModelResourceName(packageName);
+			var workspaceName = BuildWorkspaceResourceName(packageName);
 			var query = new QueryExpression("webresource")
 			{
-				TopCount = 1,
 				ColumnSet = new ColumnSet("webresourceid", "name", "displayname", "modifiedon", "content")
 			};
-			query.Criteria.AddCondition("name", ConditionOperator.Equal, name);
+			var filter = new FilterExpression(LogicalOperator.Or);
+			filter.AddCondition("name", ConditionOperator.Equal, modelName);
+			filter.AddCondition("name", ConditionOperator.Equal, workspaceName);
+			query.Criteria.AddFilter(filter);
 
-			var entity = Service.RetrieveMultiple(query).Entities.FirstOrDefault();
-			return entity == null ? null : MapWebResourceRecord(entity);
+			var entities = Service.RetrieveMultiple(query)
+				.Entities
+				.Select(MapWebResourceRecord)
+				.ToArray();
+			var model = entities.FirstOrDefault(resource => string.Equals(resource.Name, modelName, StringComparison.OrdinalIgnoreCase));
+			if (model == null)
+			{
+				return null;
+			}
+
+			var workspace = entities.FirstOrDefault(resource => string.Equals(resource.Name, workspaceName, StringComparison.OrdinalIgnoreCase));
+			return new WebResourceBridgePackageRecord
+			{
+				ModelId = model.Id,
+				WorkspaceId = workspace?.Id,
+				PackageName = packageName,
+				DisplayName = model.DisplayName ?? ToFallbackLabel(packageName),
+				ModelName = model.Name,
+				WorkspaceName = workspaceName,
+				ModifiedOn = LatestTimestamp(model.ModifiedOn, workspace?.ModifiedOn),
+				HasWorkspace = workspace != null,
+				ModelContent = DecodeUtf8Content(model.Content) ?? string.Empty,
+				WorkspaceContent = workspace == null ? null : DecodeUtf8Content(workspace.Content)
+			};
 		}
 
-		private WebResourceBridgeRecord SaveModelDocument(JsonElement? payload)
+		private WebResourceBridgePackageRecord SaveModelPackage(JsonElement? payload)
 		{
 			EnsureServiceAvailable();
 
-			var name = GetRequiredString(payload, "name");
-			var displayName = GetRequiredString(payload, "displayname");
-			var content = GetRequiredString(payload, "content");
-			var id = GetOptionalGuid(payload, "id");
+			var packageName = GetRequiredString(payload, "packageName");
+			var displayName = GetRequiredString(payload, "displayName");
+			var modelName = GetOptionalString(payload, "modelName") ?? BuildModelResourceName(packageName);
+			var workspaceName = GetOptionalString(payload, "workspaceName") ?? BuildWorkspaceResourceName(packageName);
+			var modelContent = GetRequiredString(payload, "modelContent");
+			var workspaceContent = GetOptionalString(payload, "workspaceContent");
+			var modelId = GetOptionalGuid(payload, "modelId");
+			var workspaceId = GetOptionalGuid(payload, "workspaceId");
 
-			var entity = new Entity("webresource");
-			if (id.HasValue)
+			var savedModelId = SaveWebResource(modelId, modelName, displayName, modelContent);
+			var savedWorkspaceId = SaveWebResource(workspaceId, workspaceName, $"{displayName} Workspace", workspaceContent ?? "{}");
+
+			PublishWebResource(savedModelId);
+			PublishWebResource(savedWorkspaceId);
+
+			return LoadModelPackage(JsonSerializer.SerializeToElement(new
 			{
-				entity.Id = id.Value;
-			}
-
-			entity["name"] = name;
-			entity["displayname"] = displayName;
-			entity["content"] = content;
-			entity["webresourcetype"] = new OptionSetValue(3);
-
-			var resourceId = id ?? FindWebResourceIdByName(name);
-			if (resourceId.HasValue)
-			{
-				entity.Id = resourceId.Value;
-				Service.Update(entity);
-			}
-			else
-			{
-				resourceId = Service.Create(entity);
-			}
-
-			PublishWebResource(resourceId.Value);
-			return RetrieveWebResource(resourceId.Value);
+				packageName
+			}, JsonOptions))!;
 		}
 
-		private object? DeleteModelDocument(JsonElement? payload)
+		private object? DeleteModelPackage(JsonElement? payload)
 		{
 			EnsureServiceAvailable();
 
-			var resourceId = GetOptionalGuid(payload, "id") ?? FindWebResourceIdByName(GetRequiredString(payload, "name"));
-			if (resourceId.HasValue)
+			var packageName = GetRequiredString(payload, "packageName");
+			var modelId = GetOptionalGuid(payload, "modelId") ?? FindWebResourceIdByName(BuildModelResourceName(packageName));
+			var workspaceId = GetOptionalGuid(payload, "workspaceId") ?? FindWebResourceIdByName(BuildWorkspaceResourceName(packageName));
+
+			if (modelId.HasValue)
 			{
-				Service.Delete("webresource", resourceId.Value);
+				Service.Delete("webresource", modelId.Value);
+			}
+
+			if (workspaceId.HasValue)
+			{
+				Service.Delete("webresource", workspaceId.Value);
 			}
 
 			return null;
@@ -420,6 +471,30 @@ namespace Yagasoft.DynamicsDbmXtbPlugin.Control
 			};
 			query.Criteria.AddCondition("name", ConditionOperator.Equal, name);
 			return Service.RetrieveMultiple(query).Entities.FirstOrDefault()?.Id;
+		}
+
+		private Guid SaveWebResource(Guid? id, string name, string displayName, string content)
+		{
+			var entity = new Entity("webresource");
+			if (id.HasValue)
+			{
+				entity.Id = id.Value;
+			}
+
+			entity["name"] = name;
+			entity["displayname"] = displayName;
+			entity["content"] = EncodeUtf8Content(content);
+			entity["webresourcetype"] = new OptionSetValue(3);
+
+			var resourceId = id ?? FindWebResourceIdByName(name);
+			if (resourceId.HasValue)
+			{
+				entity.Id = resourceId.Value;
+				Service.Update(entity);
+				return resourceId.Value;
+			}
+
+			return Service.Create(entity);
 		}
 
 		private void PublishWebResource(Guid id)
@@ -471,7 +546,7 @@ namespace Yagasoft.DynamicsDbmXtbPlugin.Control
 				throw new InvalidOperationException($"Bridge payload property '{propertyName}' must not be empty.");
 			}
 
-			return text;
+			return text!;
 		}
 
 		private static Guid? GetOptionalGuid(JsonElement? payload, string propertyName)
@@ -483,6 +558,99 @@ namespace Yagasoft.DynamicsDbmXtbPlugin.Control
 
 			var text = value.GetString();
 			return Guid.TryParse(text, out var guid) ? guid : null;
+		}
+
+		private static string? GetOptionalString(JsonElement? payload, string propertyName)
+		{
+			if (payload is not JsonElement element || !element.TryGetProperty(propertyName, out var value))
+			{
+				return null;
+			}
+
+			return value.ValueKind == JsonValueKind.Null ? null : value.GetString();
+		}
+
+		private static bool TryParsePackageName(string resourceName, out string packageName, out bool isWorkspace)
+		{
+			packageName = string.Empty;
+			isWorkspace = false;
+			if (string.IsNullOrWhiteSpace(resourceName) || !resourceName.StartsWith(ModelRoot, StringComparison.OrdinalIgnoreCase))
+			{
+				return false;
+			}
+
+			var relativeName = resourceName.Substring(ModelRoot.Length);
+			if (relativeName.EndsWith(".workspace.json", StringComparison.OrdinalIgnoreCase))
+			{
+				packageName = relativeName.Substring(0, relativeName.Length - ".workspace.json".Length);
+				isWorkspace = true;
+				return !string.IsNullOrWhiteSpace(packageName);
+			}
+
+			if (relativeName.EndsWith(".json", StringComparison.OrdinalIgnoreCase))
+			{
+				packageName = relativeName.Substring(0, relativeName.Length - ".json".Length);
+				return !string.IsNullOrWhiteSpace(packageName);
+			}
+
+			return false;
+		}
+
+		private static string BuildModelResourceName(string packageName)
+		{
+			return $"{ModelRoot}{packageName}.json";
+		}
+
+		private static string BuildWorkspaceResourceName(string packageName)
+		{
+			return $"{ModelRoot}{packageName}.workspace.json";
+		}
+
+		private static string ToFallbackLabel(string packageName)
+		{
+			return packageName;
+		}
+
+		private static string? LatestTimestamp(string? first, string? second)
+		{
+			if (string.IsNullOrWhiteSpace(first))
+			{
+				return second;
+			}
+
+			if (string.IsNullOrWhiteSpace(second))
+			{
+				return first;
+			}
+
+			if (DateTimeOffset.TryParse(first, out var firstValue) && DateTimeOffset.TryParse(second, out var secondValue))
+			{
+				return firstValue >= secondValue ? first : second;
+			}
+
+			return first;
+		}
+
+		private static string EncodeUtf8Content(string content)
+		{
+			return Convert.ToBase64String(Encoding.UTF8.GetBytes(content ?? string.Empty));
+		}
+
+		private static string? DecodeUtf8Content(string? content)
+		{
+			if (string.IsNullOrWhiteSpace(content))
+			{
+				return null;
+			}
+
+			try
+			{
+				return Encoding.UTF8.GetString(Convert.FromBase64String(content));
+			}
+			catch (FormatException)
+			{
+				return content;
+			}
 		}
 
 		private static WebResourceBridgeRecord MapWebResourceSummary(Entity entity)
@@ -527,6 +695,70 @@ namespace Yagasoft.DynamicsDbmXtbPlugin.Control
 
 			[JsonPropertyName("content")]
 			public string? Content { get; set; }
+		}
+
+		private sealed class PackageGroup
+		{
+			public PackageGroup(string packageName)
+			{
+				PackageName = packageName;
+			}
+
+			public string PackageName { get; }
+			public WebResourceBridgeRecord? Model { get; set; }
+			public WebResourceBridgeRecord? Workspace { get; set; }
+		}
+
+		private static WebResourceBridgePackageSummary MapPackageSummary(PackageGroup group)
+		{
+			var model = group.Model ?? throw new InvalidOperationException("Package summary requires a model resource.");
+			return new WebResourceBridgePackageSummary
+			{
+				ModelId = model.Id,
+				WorkspaceId = group.Workspace?.Id,
+				PackageName = group.PackageName,
+				DisplayName = model.DisplayName ?? ToFallbackLabel(group.PackageName),
+				ModelName = model.Name,
+				WorkspaceName = BuildWorkspaceResourceName(group.PackageName),
+				ModifiedOn = LatestTimestamp(model.ModifiedOn, group.Workspace?.ModifiedOn),
+				HasWorkspace = group.Workspace != null
+			};
+		}
+
+		private class WebResourceBridgePackageSummary
+		{
+			[JsonPropertyName("modelId")]
+			public string? ModelId { get; set; }
+
+			[JsonPropertyName("workspaceId")]
+			public string? WorkspaceId { get; set; }
+
+			[JsonPropertyName("packageName")]
+			public string PackageName { get; set; } = string.Empty;
+
+			[JsonPropertyName("displayName")]
+			public string? DisplayName { get; set; }
+
+			[JsonPropertyName("modelName")]
+			public string ModelName { get; set; } = string.Empty;
+
+			[JsonPropertyName("workspaceName")]
+			public string WorkspaceName { get; set; } = string.Empty;
+
+			[JsonPropertyName("modifiedOn")]
+			public string? ModifiedOn { get; set; }
+
+			[JsonPropertyName("hasWorkspace")]
+			public bool HasWorkspace { get; set; }
+		}
+
+		private sealed class WebResourceBridgePackageRecord : WebResourceBridgePackageSummary
+		{
+			[JsonPropertyName("modelContent")]
+			public string ModelContent { get; set; } = string.Empty;
+
+			[JsonPropertyName("workspaceContent")]
+			public string? WorkspaceContent { get; set; }
 		}
 	}
 }

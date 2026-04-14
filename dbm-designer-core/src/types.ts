@@ -1,4 +1,8 @@
-import type { DbmModelV1 } from 'dbm-contract';
+import type {
+  DbmDesignerWorkspaceV1,
+  DbmModelV1,
+  DbmProcessExperienceAudienceV1
+} from 'dbm-contract';
 
 export type DesignerNodeKind =
   | 'document'
@@ -57,11 +61,24 @@ export interface DesignerNodeRef {
 
 export interface DesignerDocument {
   model: DbmModelV1;
+  workspace: DbmDesignerWorkspaceV1;
   tree: DesignerNodeRef[];
   index: Record<string, DesignerNodeRef>;
   selectionId: string | null;
   dirty: boolean;
   issues: DesignerIssue[];
+}
+
+export interface DesignerModelPackage {
+  model: DbmModelV1;
+  workspace: DbmDesignerWorkspaceV1;
+}
+
+export interface ProcessExperienceSnapshotBuildOptions {
+  audience?: DbmProcessExperienceAudienceV1;
+  completedStageIds?: string[];
+  completedStepIds?: string[];
+  availableOutcomeIds?: string[];
 }
 
 export interface DesignerCommandResult {
