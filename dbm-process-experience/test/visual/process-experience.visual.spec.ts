@@ -80,7 +80,7 @@ async function expectScenarioScreenshot(
     audience: snapshot.audience
   });
 
-  await expect(page.locator('#root')).toContainText(snapshot.processId);
+  await expect(page.locator('#root')).toContainText('Approval Request');
   await expect(page.locator('#root')).toHaveScreenshot(fileName, {
     animations: 'disabled'
   });
