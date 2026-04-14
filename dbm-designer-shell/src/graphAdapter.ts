@@ -1,5 +1,6 @@
 import { MarkerType, type Edge, type Node, type XYPosition } from '@xyflow/react';
 import type { DesignerDocument, DesignerGraphIntent } from 'dbm-designer-core';
+import { buildIssueDecorationMap, type IssueDecorationSummary } from './issueTargets';
 
 export interface DesignerGraphAdapter<TGraph, TIntent> {
   name: string;
@@ -26,6 +27,7 @@ export interface FlowStageData {
   stepCount: number;
   defaultStepLabel: string | null;
   currentStepLabel: string | null;
+  issueSummary: IssueDecorationSummary | null;
 }
 
 export interface FlowStepData {
@@ -37,18 +39,21 @@ export interface FlowStepData {
   ownerLabel: string | null;
   inPortId: string;
   outPortId: string;
+  issueSummary: IssueDecorationSummary | null;
 }
 
 export interface FlowOutcomeData {
   kind: 'outcome';
   label: string;
   inPortId: string;
+  issueSummary: IssueDecorationSummary | null;
 }
 
 export interface DesignerFlowEdgeData {
   kind: 'stage-transition' | 'step-transition';
   mode: 'overview' | 'detail';
   emphasis: 'normal' | 'muted';
+  issueSummary: IssueDecorationSummary | null;
 }
 
 export type DesignerFlowNodeData = FlowLaneData | FlowStageData | FlowStepData | FlowOutcomeData;
@@ -182,6 +187,7 @@ function stageForNode(document: DesignerDocument, nodeId: string) {
 }
 
 function buildFlowGraph(document: DesignerDocument): DesignerFlowGraphDocument {
+  const issueDecorationMap = buildIssueDecorationMap(document);
   const laneIndexById = new Map(document.graph.groups.map((group, index) => [group.id, index]));
   const stageIndexById = new Map(document.model.process.stages.map((stage, index) => [stage.id, index]));
   const actorLabelById = new Map(document.model.process.actors.map((actor) => [actor.id, actor.displayName]));
@@ -253,7 +259,8 @@ function buildFlowGraph(document: DesignerDocument): DesignerFlowGraphDocument {
           collapsed,
           stepCount: stage?.stepIds.length ?? 0,
           defaultStepLabel: defaultStep?.displayName ?? null,
-          currentStepLabel: currentStep?.displayName ?? null
+          currentStepLabel: currentStep?.displayName ?? null,
+          issueSummary: issueDecorationMap[node.id] ?? null
         },
         selected: document.selectionId === node.id,
         draggable: true,
@@ -292,7 +299,8 @@ function buildFlowGraph(document: DesignerDocument): DesignerFlowGraphDocument {
           stageLabel: stage?.displayName ?? null,
           ownerLabel: step?.ownerActorId ? actorLabelById.get(step.ownerActorId) ?? null : null,
           inPortId: node.ports.find((port) => port.role === 'primary-in')?.id ?? `${node.id}:in`,
-          outPortId: node.ports.find((port) => port.role === 'primary-out')?.id ?? `${node.id}:out`
+          outPortId: node.ports.find((port) => port.role === 'primary-out')?.id ?? `${node.id}:out`,
+          issueSummary: issueDecorationMap[node.id] ?? null
         },
         selected: document.selectionId === node.id,
         draggable: false,
@@ -321,7 +329,8 @@ function buildFlowGraph(document: DesignerDocument): DesignerFlowGraphDocument {
         data: {
           kind: 'outcome',
           label: node.label,
-          inPortId: node.ports.find((port) => port.role === 'primary-in')?.id ?? `${node.id}:in`
+          inPortId: node.ports.find((port) => port.role === 'primary-in')?.id ?? `${node.id}:in`,
+          issueSummary: issueDecorationMap[node.id] ?? null
         },
         selected: document.selectionId === node.id,
         draggable: false,
@@ -352,7 +361,8 @@ function buildFlowGraph(document: DesignerDocument): DesignerFlowGraphDocument {
         data: {
           kind: edge.kind,
           mode: 'overview',
-          emphasis: sourceStage && expandedStageIds.has(sourceStage.id) ? 'muted' : 'normal'
+          emphasis: sourceStage && expandedStageIds.has(sourceStage.id) ? 'muted' : 'normal',
+          issueSummary: issueDecorationMap[edge.id] ?? null
         }
       };
     });
@@ -380,7 +390,8 @@ function buildFlowGraph(document: DesignerDocument): DesignerFlowGraphDocument {
       data: {
         kind: edge.kind,
         mode: 'detail',
-        emphasis: 'normal'
+        emphasis: 'normal',
+        issueSummary: issueDecorationMap[edge.id] ?? null
       }
     }));
 

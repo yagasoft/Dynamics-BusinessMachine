@@ -13,6 +13,7 @@ import type {
 } from 'dbm-contract';
 import {
   outcomeNodeId,
+  PROCESS_OUTCOMES_NODE_ID,
   PROCESS_STAGES_NODE_ID,
   PROCESS_STEP_TRANSITIONS_NODE_ID,
   PROCESS_TRANSITIONS_NODE_ID,
@@ -559,6 +560,16 @@ function cloneStageForPaste(document: DesignerDocument, stage: DbmStageV1, steps
   };
 }
 
+function buildNewOutcome(document: DesignerDocument) {
+  const existingOutcomeIds = document.model.process.outcomes.map((outcome) => outcome.id);
+  const id = uniqueId(existingOutcomeIds, 'outcome');
+
+  return {
+    id,
+    displayName: `New Outcome ${document.model.process.outcomes.length + 1}`
+  };
+}
+
 function cloneStepForPaste(document: DesignerDocument, step: DbmStepV1): DbmStepV1 {
   const existingStepIds = document.model.process.steps.map((entry) => entry.id);
   return {
@@ -696,6 +707,16 @@ export function translateGraphIntentToCommands(intent: DesignerGraphIntent, docu
         }
       ];
 
+    case 'add-outcome':
+      return [
+        {
+          kind: 'outcome',
+          parentId: PROCESS_OUTCOMES_NODE_ID,
+          index: intent.targetIndex,
+          value: buildNewOutcome(document)
+        }
+      ];
+
     case 'add-step':
       return [
         {
@@ -727,6 +748,16 @@ export function translateGraphIntentToCommands(intent: DesignerGraphIntent, docu
         {
           nodeId: stageNodeId(intent.stageId),
           value: intent.value
+        }
+      ];
+
+    case 'update-stage-outcomes':
+      return [
+        {
+          nodeId: stageNodeId(intent.stageId),
+          value: {
+            allowedOutcomeIds: [...new Set(intent.outcomeIds)]
+          }
         }
       ];
 

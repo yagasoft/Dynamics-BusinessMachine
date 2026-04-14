@@ -21,6 +21,7 @@ import { type InspectorSelection, resolveInspectorSelection } from './inspectorP
 import { buildPackageResourceNames, createDraftPackageRecord, type DbmPackageRepository } from './packageRepository';
 import { PreviewDock } from './previewDock';
 import { ProcessOverviewStrip } from './processOverviewStrip';
+import { resolveIssueNavigationTargetId } from './issueTargets';
 import { SelectionEditorCard } from './selectionEditorCard';
 
 interface DesignerShellProps {
@@ -38,7 +39,7 @@ interface HistoryState {
   future: DesignerModelPackage[];
 }
 
-type PaletteItemKind = 'stage' | 'step';
+type PaletteItemKind = 'stage' | 'step' | 'outcome';
 
 function buildPreviewRuntimeState(model: DbmModelV1, workspace: DbmDesignerWorkspaceV1): DbmRuntimeStateV1 {
   const currentStage =
@@ -181,6 +182,28 @@ function toStageNodeId(stageId: string): string {
   return `stage:${stageId}`;
 }
 
+function ensureIssueTargetVisible(document: DesignerDocument, targetId: string): DesignerDocument {
+  let stageId: string | null = null;
+
+  if (targetId.startsWith('step:')) {
+    stageId = document.model.process.steps.find((step) => `step:${step.id}` === targetId)?.stageId ?? null;
+  } else if (targetId.startsWith('step-transition:')) {
+    const transition = document.model.process.stepTransitions.find((entry) => `step-transition:${entry.id}` === targetId);
+    const sourceStep = transition
+      ? document.model.process.steps.find((step) => step.id === transition.fromStepId)
+      : null;
+    stageId = sourceStep?.stageId ?? null;
+  }
+
+  if (!stageId || !document.workspace.collapsedNodeIds.includes(toStageNodeId(stageId))) {
+    return document;
+  }
+
+  return mutateWorkspace(document, (workspace) => {
+    workspace.collapsedNodeIds = workspace.collapsedNodeIds.filter((entry) => entry !== toStageNodeId(stageId!));
+  }, document.dirty);
+}
+
 function PaletteButton({
   id,
   label,
@@ -224,6 +247,8 @@ export function DesignerShell({ repository }: DesignerShellProps) {
   const [activeDragLabel, setActiveDragLabel] = useState<string | null>(null);
   const [focusToken, setFocusToken] = useState(0);
   const [palettePosition, setPalettePosition] = useState({ x: 24, y: 24 });
+  const [focusTargetId, setFocusTargetId] = useState<string | null>(null);
+  const [focusRequestToken, setFocusRequestToken] = useState(0);
   const paletteDragRef = useRef<{
     pointerId: number;
     startX: number;
@@ -368,6 +393,24 @@ export function DesignerShell({ repository }: DesignerShellProps) {
     applyDocument(syncSelectionPreview(editorState.document, selectionId, true));
   }
 
+  function handleIssueNavigation(issueIndex: number) {
+    if (!editorState.document) {
+      return;
+    }
+
+    const issue = editorState.document.issues[issueIndex];
+    if (!issue) {
+      return;
+    }
+
+    const targetId = resolveIssueNavigationTargetId(editorState.document, issue) ?? 'document:root';
+    const preparedDocument = ensureIssueTargetVisible(editorState.document, targetId);
+    const nextDocument = syncSelectionPreview(preparedDocument, targetId, preparedDocument.dirty);
+    applyDocument(nextDocument);
+    setFocusTargetId(targetId);
+    setFocusRequestToken((value) => value + 1);
+  }
+
   function handleNodePositionCommit(nodeId: string, position: { x: number; y: number }) {
     if (!editorState.document) {
       return;
@@ -443,6 +486,10 @@ export function DesignerShell({ repository }: DesignerShellProps) {
     }
     if (kind === 'stage') {
       handleGraphIntent({ kind: 'add-stage', actorId: editorState.document.model.process.actors[0]?.id });
+      return;
+    }
+    if (kind === 'outcome') {
+      handleGraphIntent({ kind: 'add-outcome' });
       return;
     }
     const stageId = resolvePaletteStageId(editorState.document);
@@ -636,7 +683,16 @@ export function DesignerShell({ repository }: DesignerShellProps) {
 
   return (
     <DndContext
-      onDragStart={(event) => setActiveDragLabel(event.active.id === 'palette-stage' ? 'New Stage' : event.active.id === 'palette-step' ? 'New Step' : null)}
+      onDragStart={(event) =>
+        setActiveDragLabel(
+          event.active.id === 'palette-stage'
+            ? 'New Stage'
+            : event.active.id === 'palette-step'
+              ? 'New Step'
+              : event.active.id === 'palette-outcome'
+                ? 'New Outcome'
+                : null
+        )}
       onDragEnd={(event) => {
         setActiveDragLabel(null);
         if (!event.over || event.over.id !== 'graph-canvas') {
@@ -646,6 +702,8 @@ export function DesignerShell({ repository }: DesignerShellProps) {
           handleAddPaletteItem('stage');
         } else if (event.active.id === 'palette-step') {
           handleAddPaletteItem('step');
+        } else if (event.active.id === 'palette-outcome') {
+          handleAddPaletteItem('outcome');
         }
       }}
       onDragCancel={() => setActiveDragLabel(null)}
@@ -682,8 +740,8 @@ export function DesignerShell({ repository }: DesignerShellProps) {
             <div style={validationSummaryStyle}><span>{validationIssues.length} issue(s)</span><span>{errorIssues.length} blocking</span></div>
             {validationIssues.length > 0 ? (
               <div style={issueListStyle}>
-                {validationIssues.map((issue) => (
-                  <button key={`${issue.code}:${issue.path}`} type="button" style={issueButtonStyle} onClick={() => handleSelectionChange(issue.nodeId ?? 'document:root')}>
+                {validationIssues.map((issue, index) => (
+                  <button key={`${issue.code}:${issue.path}`} type="button" style={issueButtonStyle} onClick={() => handleIssueNavigation(index)}>
                     <strong>{issue.level}</strong> {issue.code}
                     <span style={issuePathStyle}>{issue.path}</span>
                   </button>
@@ -716,7 +774,7 @@ export function DesignerShell({ repository }: DesignerShellProps) {
           {isBusy ? <div style={statusBannerStyle}>Working...</div> : null}
           <ProcessOverviewStrip snapshot={editorState.snapshot} selectedStageId={selectedStageId} onSelectStage={(stageId) => handleSelectionChange(`stage:${stageId}`)} />
           <section style={graphWorkspaceStyle}>
-            <GraphCanvas document={editorState.document} onSelectionChange={handleSelectionChange} onGraphIntent={handleGraphIntent} onNodePositionCommit={handleNodePositionCommit} onToggleStageCollapse={handleToggleStageCollapse} />
+            <GraphCanvas document={editorState.document} onSelectionChange={handleSelectionChange} onGraphIntent={handleGraphIntent} onNodePositionCommit={handleNodePositionCommit} onToggleStageCollapse={handleToggleStageCollapse} focusTargetId={focusTargetId} focusRequestToken={focusRequestToken} />
             <div style={topLeftOverlayStyle}>
               <SelectionEditorCard document={editorState.document} selection={selection} focusToken={focusToken} onIntent={handleGraphIntent} onToggleStageCollapse={handleToggleStageCollapse} isStageCollapsed={(stageId) => !!editorState.document?.workspace.collapsedNodeIds.includes(toStageNodeId(stageId))} />
             </div>
@@ -740,6 +798,7 @@ export function DesignerShell({ repository }: DesignerShellProps) {
                 <div style={mutedCopyStyle}>Drag to the canvas or click to author through DBM graph intents.</div>
                 <PaletteButton id="palette-stage" label="Stage" description="Add a new durable process milestone." onClick={() => handleAddPaletteItem('stage')} />
                 <PaletteButton id="palette-step" label="Step" description={paletteStageId ? `Add to ${paletteStageId}` : 'Select a stage first.'} disabled={!paletteStageId} onClick={() => handleAddPaletteItem('step')} />
+                <PaletteButton id="palette-outcome" label="Outcome" description="Add a reusable process outcome." onClick={() => handleAddPaletteItem('outcome')} />
               </div>
             </div>
           </section>

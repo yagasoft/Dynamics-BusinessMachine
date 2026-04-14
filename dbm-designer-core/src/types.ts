@@ -158,6 +158,10 @@ export type DesignerGraphIntent =
       actorId?: string;
     }
   | {
+      kind: 'add-outcome';
+      targetIndex?: number;
+    }
+  | {
       kind: 'add-step';
       stageId: string;
       targetIndex?: number;
@@ -178,6 +182,11 @@ export type DesignerGraphIntent =
           | 'actorId'
         >
       >;
+    }
+  | {
+      kind: 'update-stage-outcomes';
+      stageId: string;
+      outcomeIds: string[];
     }
   | {
       kind: 'update-step';

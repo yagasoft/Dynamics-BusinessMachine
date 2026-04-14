@@ -1,4 +1,5 @@
 import { useEffect, useRef, useState } from 'react';
+import type { DbmFormStateV1, DbmFormV1 } from 'dbm-contract';
 import type { DesignerDocument, DesignerGraphIntent } from 'dbm-designer-core';
 import type { InspectorSelection } from './inspectorPanel';
 
@@ -13,6 +14,133 @@ interface SelectionEditorCardProps {
 
 const stageTypeOptions = ['start', 'task', 'approval', 'system', 'end'] as const;
 const stepTypeOptions = ['data-entry', 'review', 'approval', 'system'] as const;
+
+function summarizeRuleLabels(document: DesignerDocument, ruleIds: string[]): string {
+  if (ruleIds.length === 0) {
+    return 'None';
+  }
+
+  return ruleIds
+    .map((ruleId) => document.model.rules.find((rule) => rule.id === ruleId)?.displayName ?? ruleId)
+    .join(', ');
+}
+
+function summarizeBindingLabels(form: DbmFormV1, bindingIds: string[]): string {
+  if (bindingIds.length === 0) {
+    return 'None';
+  }
+
+  return bindingIds
+    .map((bindingId) => form.entityBindings.find((binding) => binding.id === bindingId)?.displayName ?? bindingId)
+    .join(', ');
+}
+
+function resolveFormStateIssues(document: DesignerDocument, stepId: string, formId: string | null, formStateId: string | null): string[] {
+  const issueMessages = new Set<string>();
+  const stepNodeId = `step:${stepId}`;
+  const formStateNodeId = formId && formStateId ? `form-state:${formId}:${formStateId}` : null;
+
+  document.issues
+    .filter((issue) =>
+      issue.code.includes('form-state')
+      && (issue.nodeId === stepNodeId || (formStateNodeId ? issue.nodeId === formStateNodeId : false))
+    )
+    .forEach((issue) => issueMessages.add(issue.message));
+
+  return [...issueMessages];
+}
+
+function FormStateInspectionSummary({
+  document,
+  stepId,
+  form,
+  formState
+}: {
+  document: DesignerDocument;
+  stepId: string;
+  form: DbmFormV1 | null;
+  formState: DbmFormStateV1 | null;
+}) {
+  const formStateIssues = resolveFormStateIssues(document, stepId, form?.id ?? null, formState?.id ?? null);
+
+  if (!formState || !form) {
+    return (
+      <div style={inspectionPanelStyle}>
+        <div style={inspectionHeadingStyle}>Form-State Effects</div>
+        <div style={metaStyle}>No form state is currently assigned to this step.</div>
+        {formStateIssues.length > 0
+          ? formStateIssues.map((message) => (
+            <div key={message} style={issueBannerStyle}>
+              {message}
+            </div>
+          ))
+          : null}
+      </div>
+    );
+  }
+
+  return (
+    <div style={inspectionPanelStyle}>
+      <div style={inspectionHeadingStyle}>Form-State Effects</div>
+      <div style={summaryGridStyle}>
+        <div>
+          <div style={summaryLabelStyle}>Form</div>
+          <div style={metaStyle}>{form.displayName}</div>
+        </div>
+        <div>
+          <div style={summaryLabelStyle}>State</div>
+          <div style={metaStyle}>{formState.displayName}</div>
+        </div>
+      </div>
+      <div style={summaryGridStyle}>
+        <div>
+          <div style={summaryLabelStyle}>Activation Rules</div>
+          <div style={metaStyle}>{summarizeRuleLabels(document, formState.activationRuleIds)}</div>
+        </div>
+        <div>
+          <div style={summaryLabelStyle}>Visible Bindings</div>
+          <div style={metaStyle}>{summarizeBindingLabels(form, formState.visibleEntityBindingIds)}</div>
+        </div>
+      </div>
+      {formStateIssues.length > 0
+        ? formStateIssues.map((message) => (
+          <div key={message} style={issueBannerStyle}>
+            {message}
+          </div>
+        ))
+        : null}
+      {formState.elementBehaviors.length > 0 ? (
+        <div style={behaviorListStyle}>
+          {formState.elementBehaviors.map((behavior) => {
+            const element = form.elements.find((entry) => entry.id === behavior.elementId);
+            return (
+              <div key={behavior.elementId} style={behaviorCardStyle}>
+                <div style={behaviorHeaderStyle}>
+                  <div>
+                    <div style={summaryLabelStyle}>Element</div>
+                    <div style={titleStyle}>{element?.displayName ?? behavior.elementId}</div>
+                  </div>
+                  <div style={behaviorBadgeRowStyle}>
+                    <span style={summaryChipStyle}>Visible {behavior.visibleRuleIds.length}</span>
+                    <span style={summaryChipStyle}>Required {behavior.requiredRuleIds.length}</span>
+                    <span style={summaryChipStyle}>Editable {behavior.editableRuleIds.length}</span>
+                  </div>
+                </div>
+                {behavior.label ? <div style={metaStyle}>Label: {behavior.label}</div> : null}
+                {behavior.hint ? <div style={metaStyle}>Hint: {behavior.hint}</div> : null}
+                <div style={metaStyle}>Visible Rules: {summarizeRuleLabels(document, behavior.visibleRuleIds)}</div>
+                <div style={metaStyle}>Required Rules: {summarizeRuleLabels(document, behavior.requiredRuleIds)}</div>
+                <div style={metaStyle}>Editable Rules: {summarizeRuleLabels(document, behavior.editableRuleIds)}</div>
+              </div>
+            );
+          })}
+        </div>
+      ) : (
+        <div style={metaStyle}>This form state does not override any element behaviors.</div>
+      )}
+    </div>
+  );
+}
 
 export function SelectionEditorCard({
   document,
@@ -59,6 +187,7 @@ export function SelectionEditorCard({
 
   if (selection.kind === 'stage') {
     const collapsed = isStageCollapsed(selection.stage.id);
+    const selectedOutcomeIds = new Set(selection.stage.allowedOutcomeIds);
 
     return (
       <div style={cardStyle}>
@@ -141,6 +270,40 @@ export function SelectionEditorCard({
             </select>
           </label>
 
+          <div style={fieldStyle}>
+            <span>Allowed Outcomes</span>
+            {document.model.process.outcomes.length > 0 ? (
+              <div style={toggleChipWrapStyle}>
+                {document.model.process.outcomes.map((outcome) => {
+                  const active = selectedOutcomeIds.has(outcome.id);
+                  return (
+                    <button
+                      key={outcome.id}
+                      type="button"
+                      style={{
+                        ...toggleChipStyle,
+                        ...(active ? activeToggleChipStyle : {})
+                      }}
+                      onClick={() =>
+                        onIntent({
+                          kind: 'update-stage-outcomes',
+                          stageId: selection.stage.id,
+                          outcomeIds: active
+                            ? document.model.process.outcomes.filter((entry) => selectedOutcomeIds.has(entry.id) && entry.id !== outcome.id).map((entry) => entry.id)
+                            : document.model.process.outcomes.filter((entry) => selectedOutcomeIds.has(entry.id) || entry.id === outcome.id).map((entry) => entry.id)
+                        })
+                      }
+                    >
+                      {outcome.displayName}
+                    </button>
+                  );
+                })}
+              </div>
+            ) : (
+              <div style={metaStyle}>Use the palette to create an outcome.</div>
+            )}
+          </div>
+
           <div style={buttonRowStyle}>
             <button type="submit" style={primaryButtonStyle}>
               Apply
@@ -215,6 +378,9 @@ export function SelectionEditorCard({
   if (selection.kind === 'step') {
     const stageForm = selection.stage.formId
       ? document.model.forms.find((form) => form.id === selection.stage.formId)
+      : null;
+    const selectedFormState = selection.step.formStateId
+      ? stageForm?.formStates.find((state) => state.id === selection.step.formStateId) ?? null
       : null;
     const internalStatuses = document.model.process.statuses.filter((status) => status.audience !== 'portal');
     const portalStatuses = document.model.process.statuses.filter((status) => status.audience !== 'internal');
@@ -397,6 +563,13 @@ export function SelectionEditorCard({
             </select>
           </label>
 
+          <FormStateInspectionSummary
+            document={document}
+            stepId={selection.step.id}
+            form={stageForm ?? null}
+            formState={selectedFormState}
+          />
+
           <div style={buttonRowStyle}>
             <button type="submit" style={primaryButtonStyle}>
               Apply
@@ -482,6 +655,18 @@ export function SelectionEditorCard({
           </label>
           <button type="submit" style={primaryButtonStyle}>
             Apply
+          </button>
+          <button
+            type="button"
+            style={dangerButtonStyle}
+            onClick={() =>
+              onIntent({
+                kind: 'remove-node',
+                nodeId: `outcome:${selection.outcome.id}`
+              })
+            }
+          >
+            Delete Outcome
           </button>
         </form>
       </div>
@@ -593,6 +778,24 @@ const buttonRowStyle = {
   gap: '0.6rem',
   flexWrap: 'wrap'
 } as const;
+const toggleChipWrapStyle = {
+  display: 'flex',
+  gap: '0.5rem',
+  flexWrap: 'wrap'
+} as const;
+const toggleChipStyle = {
+  padding: '0.45rem 0.68rem',
+  borderRadius: '999px',
+  border: '1px solid #cbd5e1',
+  background: '#fff',
+  color: '#334155',
+  cursor: 'pointer'
+} as const;
+const activeToggleChipStyle = {
+  borderColor: '#b45309',
+  background: '#fff7ed',
+  color: '#9a3412'
+} as const;
 
 const primaryButtonStyle = {
   padding: '0.7rem 0.95rem',
@@ -624,4 +827,69 @@ const dangerButtonStyle = {
 const metaStyle = {
   fontSize: '0.9rem',
   color: '#475569'
+} as const;
+const inspectionPanelStyle = {
+  display: 'grid',
+  gap: '0.7rem',
+  padding: '0.85rem',
+  borderRadius: '0.92rem',
+  border: '1px solid #dbe4f0',
+  background: '#f8fbff'
+} as const;
+const inspectionHeadingStyle = {
+  fontSize: '0.78rem',
+  textTransform: 'uppercase',
+  letterSpacing: '0.12em',
+  color: '#475569'
+} as const;
+const summaryGridStyle = {
+  display: 'grid',
+  gap: '0.7rem',
+  gridTemplateColumns: 'repeat(auto-fit, minmax(130px, 1fr))'
+} as const;
+const summaryLabelStyle = {
+  fontSize: '0.72rem',
+  textTransform: 'uppercase',
+  letterSpacing: '0.08em',
+  color: '#64748b'
+} as const;
+const summaryChipStyle = {
+  padding: '0.26rem 0.55rem',
+  borderRadius: '999px',
+  background: '#eff6ff',
+  border: '1px solid #bfdbfe',
+  fontSize: '0.76rem',
+  color: '#1d4ed8'
+} as const;
+const behaviorListStyle = {
+  display: 'grid',
+  gap: '0.7rem'
+} as const;
+const behaviorCardStyle = {
+  display: 'grid',
+  gap: '0.45rem',
+  padding: '0.75rem',
+  borderRadius: '0.85rem',
+  border: '1px solid #dbe4f0',
+  background: '#fff'
+} as const;
+const behaviorHeaderStyle = {
+  display: 'flex',
+  justifyContent: 'space-between',
+  gap: '0.8rem',
+  alignItems: 'flex-start',
+  flexWrap: 'wrap'
+} as const;
+const behaviorBadgeRowStyle = {
+  display: 'flex',
+  gap: '0.35rem',
+  flexWrap: 'wrap'
+} as const;
+const issueBannerStyle = {
+  padding: '0.6rem 0.75rem',
+  borderRadius: '0.8rem',
+  border: '1px solid #fecaca',
+  background: '#fff1f2',
+  color: '#9f1239',
+  fontSize: '0.88rem'
 } as const;

@@ -118,7 +118,9 @@ describe('GraphCanvas', () => {
           onSelectionChange,
           onGraphIntent,
           onNodePositionCommit,
-          onToggleStageCollapse
+          onToggleStageCollapse,
+          focusTargetId: null,
+          focusRequestToken: 0
         })
       )
     );
@@ -133,5 +135,32 @@ describe('GraphCanvas', () => {
     expect(draftRequestLabels.length).toBeGreaterThan(0);
     expect(captureRequestLabels.length).toBeGreaterThan(0);
     expect(container.querySelector('.react-flow__controls')).toBeTruthy();
+  });
+
+  it('renders inline validation markers on graph nodes when designer issues target them', async () => {
+    const template = createApprovalRequestTemplate();
+    template.process.stages[0].allowedOutcomeIds = ['missing-outcome'];
+    const workspace = createDefaultWorkspace(template);
+    const document = loadModelPackage(template, workspace);
+
+    const { container } = render(
+      React.createElement(
+        'div',
+        { style: { width: '1200px', height: '720px' } },
+        React.createElement(GraphCanvas, {
+          document,
+          onSelectionChange: vi.fn(),
+          onGraphIntent: vi.fn(),
+          onNodePositionCommit: vi.fn(),
+          onToggleStageCollapse: vi.fn(),
+          focusTargetId: null,
+          focusRequestToken: 0
+        })
+      )
+    );
+
+    await waitFor(() => {
+      expect(container.querySelector('[title*=\"references missing outcome\"]')).toBeTruthy();
+    });
   });
 });

@@ -189,6 +189,27 @@ test('applyGraphIntent can add stages and steps while keeping graph identifiers 
   assert.equal(stepResult.document.graph.nodes.some((node) => node.id === stepNodeId(newStep.id)), true);
 });
 
+test('applyGraphIntent can add outcomes and update stage outcome exposure through canonical semantics', () => {
+  const initialDocument = loadModel(createApprovalRequestTemplate());
+  const outcomeResult = applyGraphIntent(initialDocument, {
+    kind: 'add-outcome',
+    targetIndex: initialDocument.model.process.outcomes.length
+  });
+  const newOutcome = outcomeResult.document.model.process.outcomes.at(-1);
+
+  assert.ok(newOutcome);
+  assert.equal(outcomeResult.document.graph.nodes.some((node) => node.id === `outcome:${newOutcome.id}`), true);
+
+  const updateResult = applyGraphIntent(outcomeResult.document, {
+    kind: 'update-stage-outcomes',
+    stageId: 'draft-request',
+    outcomeIds: ['submit', newOutcome.id]
+  });
+
+  const updatedStage = updateResult.document.model.process.stages.find((stage) => stage.id === 'draft-request');
+  assert.deepEqual(updatedStage?.allowedOutcomeIds, ['submit', newOutcome.id]);
+});
+
 test('applyGraphIntent can create stage and step transitions through canonical commands', () => {
   const initialDocument = loadModel(createApprovalRequestTemplate());
 

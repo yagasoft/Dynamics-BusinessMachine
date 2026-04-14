@@ -14,20 +14,30 @@ vi.mock('./graphCanvas', () => ({
     document,
     onSelectionChange,
     onGraphIntent,
-    onNodePositionCommit
+    onNodePositionCommit,
+    focusTargetId,
+    focusRequestToken
   }: {
     document: { graph: { nodes: unknown[] } } | null;
     onSelectionChange(selectionId: string | null): void;
     onGraphIntent(intent: unknown): void;
     onNodePositionCommit(nodeId: string, position: { x: number; y: number }): void;
+    focusTargetId: string | null;
+    focusRequestToken: number;
   }) => React.createElement(
     'div',
     { 'data-testid': 'graph-canvas' },
     React.createElement('div', null, document ? `graph:${document.graph.nodes.length}` : 'empty'),
+    React.createElement('div', null, `focus:${focusTargetId ?? 'none'}:${focusRequestToken}`),
     React.createElement(
       'button',
       { type: 'button', onClick: () => onSelectionChange('stage:draft-request') },
       'Select Draft Stage'
+    ),
+    React.createElement(
+      'button',
+      { type: 'button', onClick: () => onSelectionChange('step:capture-request') },
+      'Select Capture Step'
     ),
     React.createElement(
       'button',
@@ -47,6 +57,14 @@ vi.mock('./graphCanvas', () => ({
           })
       },
       'Connect Draft To Approved'
+    ),
+    React.createElement(
+      'button',
+      {
+        type: 'button',
+        onClick: () => onGraphIntent({ kind: 'add-outcome' })
+      },
+      'Add Outcome Intent'
     )
   )
 }));
@@ -59,8 +77,8 @@ afterEach(() => {
   cleanup();
 });
 
-function createRepositoryHarness() {
-  let currentRecord = createNormalizedModelPackage(createApprovalRequestTemplate());
+function createRepositoryHarness(model = createApprovalRequestTemplate()) {
+  let currentRecord = createNormalizedModelPackage(model);
 
   const repository: DbmPackageRepository = {
     kind: 'browser',
@@ -163,5 +181,67 @@ describe('DesignerShell', () => {
     expect(addedTransition).toBeTruthy();
     expect(JSON.stringify(savedModel)).not.toContain('xyflow');
     expect(JSON.stringify(savedWorkspace)).not.toContain('xyflow');
+  });
+
+  it('supports adding outcomes from the palette and assigning them to a stage without JSON editing', async () => {
+    const { repository, getCurrentRecord } = createRepositoryHarness();
+    const user = userEvent.setup();
+
+    render(React.createElement(DesignerShell, { repository }));
+
+    await screen.findByRole('heading', { name: 'DBM Approval Request' });
+    await user.click(screen.getByRole('button', { name: 'Add Outcome Intent' }));
+    await user.click(screen.getByRole('button', { name: 'Select Draft Stage' }));
+    await user.click(screen.getByRole('button', { name: 'New Outcome 6' }));
+    await user.click(screen.getByRole('button', { name: 'Save Package' }));
+
+    await waitFor(() => {
+      expect(repository.savePackage).toHaveBeenCalledTimes(1);
+    });
+
+    const savedModel = JSON.parse(getCurrentRecord().modelContent);
+    const addedOutcome = savedModel.process.outcomes.find((outcome: { displayName: string }) => outcome.displayName === 'New Outcome 6');
+
+    expect(addedOutcome).toBeTruthy();
+    expect(savedModel.process.stages.find((stage: { id: string }) => stage.id === 'draft-request')?.allowedOutcomeIds).toContain(addedOutcome.id);
+  });
+
+  it('shows direct form-state effect inspection when a step is selected', async () => {
+    const { repository } = createRepositoryHarness();
+    const user = userEvent.setup();
+
+    render(React.createElement(DesignerShell, { repository }));
+
+    await screen.findByRole('heading', { name: 'DBM Approval Request' });
+    await user.click(screen.getByRole('button', { name: 'Select Capture Step' }));
+
+    expect(await screen.findByText('Form-State Effects')).toBeTruthy();
+    expect(screen.getByText('Request Form')).toBeTruthy();
+    expect(screen.getAllByText('Request Edit').length).toBeGreaterThan(0);
+    expect(screen.getByText(/Activation Rules/i)).toBeTruthy();
+    expect(screen.getByText(/Visible Bindings/i)).toBeTruthy();
+  });
+
+  it('routes validation issue clicks into focused graph navigation targets', async () => {
+    const model = createApprovalRequestTemplate();
+    const requestForm = model.forms.find((form) => form.id === 'request-form');
+    const requestEditState = requestForm?.formStates.find((state) => state.id === 'request-edit-state');
+    requestEditState?.elementBehaviors.push({
+      elementId: 'missing-element',
+      label: null,
+      hint: null,
+      requiredRuleIds: [],
+      visibleRuleIds: [],
+      editableRuleIds: []
+    });
+    const { repository } = createRepositoryHarness(model);
+    const user = userEvent.setup();
+
+    render(React.createElement(DesignerShell, { repository }));
+
+    await screen.findByRole('heading', { name: 'DBM Approval Request' });
+    await user.click(await screen.findByRole('button', { name: /missing-form-state-element/i }));
+
+    expect(await screen.findByText('focus:step:capture-request:1')).toBeTruthy();
   });
 });

@@ -1,4 +1,4 @@
-import { memo, useMemo } from 'react';
+import { memo, useEffect, useMemo } from 'react';
 import {
   Background,
   BaseEdge,
@@ -9,6 +9,7 @@ import {
   ReactFlow,
   ReactFlowProvider,
   getSmoothStepPath,
+  useReactFlow,
   type Connection,
   type EdgeProps,
   type NodeProps
@@ -18,6 +19,7 @@ import type { DesignerDocument, DesignerGraphIntent } from 'dbm-designer-core';
 import { isStableDesignerGraphNodeId } from 'dbm-designer-core';
 import flowStyles from '@xyflow/react/dist/style.css?inline';
 import { type DesignerFlowEdgeData, type FlowLaneData, type FlowOutcomeData, type FlowStageData, type FlowStepData, xyflowGraphAdapter } from './graphAdapter';
+import type { IssueDecorationSummary } from './issueTargets';
 
 interface GraphCanvasProps {
   document: DesignerDocument | null;
@@ -25,6 +27,8 @@ interface GraphCanvasProps {
   onGraphIntent(intent: DesignerGraphIntent): void;
   onNodePositionCommit(nodeId: string, position: { x: number; y: number }): void;
   onToggleStageCollapse(stageId: string): void;
+  focusTargetId: string | null;
+  focusRequestToken: number;
 }
 
 const FLOW_STYLE_ELEMENT_ID = 'dbm-xyflow-base-styles';
@@ -32,6 +36,54 @@ const FLOW_STYLE_ELEMENT_ID = 'dbm-xyflow-base-styles';
 type StageNodePayload = FlowStageData & {
   onToggleCollapse(stageId: string): void;
 };
+
+function issueTone(summary: IssueDecorationSummary | null | undefined) {
+  switch (summary?.level) {
+    case 'error':
+      return {
+        borderColor: '#dc2626',
+        background: '#fef2f2',
+        color: '#991b1b'
+      };
+    case 'warning':
+      return {
+        borderColor: '#f59e0b',
+        background: '#fffbeb',
+        color: '#b45309'
+      };
+    case 'info':
+      return {
+        borderColor: '#2563eb',
+        background: '#eff6ff',
+        color: '#1d4ed8'
+      };
+    default:
+      return null;
+  }
+}
+
+function IssueBadge({ summary }: { summary: IssueDecorationSummary | null | undefined }) {
+  if (!summary) {
+    return null;
+  }
+
+  const tone = issueTone(summary);
+  return (
+    <span
+      style={{
+        ...issueBadgeStyle,
+        borderColor: tone?.borderColor,
+        background: tone?.background,
+        color: tone?.color
+      }}
+      title={summary.issues.map((issue) => `${issue.level}: ${issue.message}`).join('\n')}
+    >
+      {summary.level}
+      {' · '}
+      {summary.count}
+    </span>
+  );
+}
 
 function ensureFlowStyles() {
   if (typeof document === 'undefined') {
@@ -57,10 +109,12 @@ function LaneNode({ data }: NodeProps<FlowLaneData>) {
 }
 
 function StageNode({ data, selected }: NodeProps<StageNodePayload>) {
+  const tone = issueTone(data.issueSummary);
   return (
     <div
       style={{
         ...stageCardStyle,
+        ...(tone ? { borderColor: tone.borderColor } : {}),
         ...(selected ? selectedStageCardStyle : {})
       }}
     >
@@ -71,16 +125,19 @@ function StageNode({ data, selected }: NodeProps<StageNodePayload>) {
           <div style={stageTitleStyle}>{data.label}</div>
           <div style={nodeMetaStyle}>{data.actorLabel ?? 'No actor'}</div>
         </div>
-        <button
-          type="button"
-          style={chipButtonStyle}
-          onClick={(event) => {
-            event.stopPropagation();
-            data.onToggleCollapse(data.stageId);
-          }}
-        >
-          {data.collapsed ? 'Expand' : 'Collapse'}
-        </button>
+        <div style={stageHeaderActionsStyle}>
+          <IssueBadge summary={data.issueSummary} />
+          <button
+            type="button"
+            style={chipButtonStyle}
+            onClick={(event) => {
+              event.stopPropagation();
+              data.onToggleCollapse(data.stageId);
+            }}
+          >
+            {data.collapsed ? 'Expand' : 'Collapse'}
+          </button>
+        </div>
       </div>
 
       <div style={stageSummaryRowStyle}>
@@ -102,13 +159,18 @@ function StageNode({ data, selected }: NodeProps<StageNodePayload>) {
 }
 
 function StepNode({ data, selected }: NodeProps<FlowStepData>) {
+  const tone = issueTone(data.issueSummary);
   return (
     <div
       style={{
         ...stepCardStyle,
+        ...(tone ? { borderColor: tone.borderColor } : {}),
         ...(selected ? selectedStepCardStyle : {})
       }}
     >
+      <div style={floatingIssueBadgeRowStyle}>
+        <IssueBadge summary={data.issueSummary} />
+      </div>
       <Handle type="target" position={Position.Left} id={data.inPortId} style={handleStyle} />
       <div style={nodeEyebrowStyle}>{data.stepType}</div>
       <div style={stepTitleStyle}>{data.label}</div>
@@ -119,13 +181,18 @@ function StepNode({ data, selected }: NodeProps<FlowStepData>) {
 }
 
 function OutcomeNode({ data, selected }: NodeProps<FlowOutcomeData>) {
+  const tone = issueTone(data.issueSummary);
   return (
     <div
       style={{
         ...outcomeNodeStyle,
+        ...(tone ? { borderColor: tone.borderColor } : {}),
         ...(selected ? selectedOutcomeStyle : {})
       }}
     >
+      <div style={floatingIssueBadgeRowStyle}>
+        <IssueBadge summary={data.issueSummary} />
+      </div>
       <Handle type="target" position={Position.Left} id={data.inPortId} style={handleStyle} />
       <span style={outcomeNodeLabelStyle}>{data.label}</span>
     </div>
@@ -161,6 +228,7 @@ function SelectableEdge({
       ? '#2563eb'
       : '#b45309';
   const opacity = data?.emphasis === 'muted' ? 0.22 : 1;
+  const issueToneValue = issueTone(data?.issueSummary);
 
   return (
     <>
@@ -177,7 +245,7 @@ function SelectableEdge({
         }}
         interactionWidth={26}
       />
-      {label ? (
+      {label || data?.issueSummary ? (
         <EdgeLabelRenderer>
           <div
             style={{
@@ -188,7 +256,22 @@ function SelectableEdge({
               opacity
             }}
           >
-            {label}
+            {label ? <span>{label}</span> : null}
+            {data?.issueSummary ? (
+              <span
+                style={{
+                  ...edgeIssueBadgeStyle,
+                  borderColor: issueToneValue?.borderColor,
+                  background: issueToneValue?.background,
+                  color: issueToneValue?.color
+                }}
+                title={data.issueSummary.issues.map((issue) => `${issue.level}: ${issue.message}`).join('\n')}
+              >
+                {data.issueSummary.level}
+                {' · '}
+                {data.issueSummary.count}
+              </span>
+            ) : null}
           </div>
         </EdgeLabelRenderer>
       ) : null}
@@ -207,10 +290,11 @@ const edgeTypes = {
   'dbm-edge': memo(SelectableEdge)
 };
 
-function GraphCanvasInner({ document, onSelectionChange, onGraphIntent, onNodePositionCommit, onToggleStageCollapse }: GraphCanvasProps) {
+function GraphCanvasInner({ document, onSelectionChange, onGraphIntent, onNodePositionCommit, onToggleStageCollapse, focusTargetId, focusRequestToken }: GraphCanvasProps) {
   const { setNodeRef, isOver } = useDroppable({
     id: 'graph-canvas'
   });
+  const reactFlow = useReactFlow();
 
   const flowDocument = useMemo(() => {
     if (!document) {
@@ -233,6 +317,50 @@ function GraphCanvasInner({ document, onSelectionChange, onGraphIntent, onNodePo
       edges: baseGraph.edges
     };
   }, [document, onToggleStageCollapse]);
+
+  useEffect(() => {
+    if (!focusTargetId || !document) {
+      return;
+    }
+
+    const frame = window.requestAnimationFrame(() => {
+      if (
+        focusTargetId.startsWith('stage:')
+        || focusTargetId.startsWith('step:')
+        || focusTargetId.startsWith('outcome:')
+      ) {
+        const node = reactFlow.getNode(focusTargetId);
+        if (node) {
+          void reactFlow.fitView({
+            nodes: [node],
+            duration: 220,
+            padding: 0.38
+          });
+        }
+        return;
+      }
+
+      if (focusTargetId.startsWith('transition:') || focusTargetId.startsWith('step-transition:')) {
+        const edge = reactFlow.getEdge(focusTargetId);
+        if (!edge) {
+          return;
+        }
+
+        const sourceNode = reactFlow.getNode(edge.source);
+        const targetNode = reactFlow.getNode(edge.target);
+        const nodes = [sourceNode, targetNode].filter((entry): entry is NonNullable<typeof entry> => !!entry);
+        if (nodes.length > 0) {
+          void reactFlow.fitView({
+            nodes,
+            duration: 220,
+            padding: 0.42
+          });
+        }
+      }
+    });
+
+    return () => window.cancelAnimationFrame(frame);
+  }, [document, focusRequestToken, focusTargetId, reactFlow]);
 
   if (!document || !flowDocument) {
     return <div style={emptyCanvasStyle}>Load or create a package to start graph authoring.</div>;
@@ -394,6 +522,11 @@ const stageHeaderStyle = {
   gap: '0.8rem',
   alignItems: 'flex-start'
 } as const;
+const stageHeaderActionsStyle = {
+  display: 'grid',
+  justifyItems: 'end',
+  gap: '0.45rem'
+} as const;
 
 const nodeEyebrowStyle = {
   fontSize: '0.7rem',
@@ -476,6 +609,11 @@ const stepCardStyle = {
   display: 'grid',
   gap: '0.45rem'
 } as const;
+const floatingIssueBadgeRowStyle = {
+  minHeight: '1.4rem',
+  display: 'flex',
+  justifyContent: 'flex-end'
+} as const;
 
 const selectedStepCardStyle = {
   boxShadow: '0 0 0 2px rgba(37, 99, 235, 0.22), 0 14px 30px rgba(37, 99, 235, 0.14)'
@@ -506,6 +644,9 @@ const outcomeNodeLabelStyle = {
 const edgeLabelStyle = {
   position: 'absolute',
   pointerEvents: 'none',
+  display: 'flex',
+  gap: '0.35rem',
+  alignItems: 'center',
   padding: '0.22rem 0.45rem',
   borderRadius: '999px',
   border: '1px solid #cbd5e1',
@@ -513,4 +654,28 @@ const edgeLabelStyle = {
   fontSize: '0.72rem',
   fontWeight: 600,
   whiteSpace: 'nowrap'
+} as const;
+const issueBadgeStyle = {
+  display: 'inline-flex',
+  alignItems: 'center',
+  gap: '0.2rem',
+  padding: '0.22rem 0.46rem',
+  borderRadius: '999px',
+  border: '1px solid #cbd5e1',
+  fontSize: '0.7rem',
+  fontWeight: 700,
+  textTransform: 'uppercase',
+  letterSpacing: '0.04em'
+} as const;
+const edgeIssueBadgeStyle = {
+  display: 'inline-flex',
+  alignItems: 'center',
+  gap: '0.2rem',
+  padding: '0.15rem 0.38rem',
+  borderRadius: '999px',
+  border: '1px solid #cbd5e1',
+  fontSize: '0.66rem',
+  fontWeight: 700,
+  textTransform: 'uppercase',
+  letterSpacing: '0.04em'
 } as const;
