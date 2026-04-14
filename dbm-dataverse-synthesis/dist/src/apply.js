@@ -94,8 +94,9 @@ function insertProcessHostSection(xml, formPlan) {
     if (!processHost) {
         return xml;
     }
-    if (new RegExp(`<section\\b[^>]*name="${escapeForRegex(processHost.sectionName)}"`, 'i').test(xml)) {
-        return xml;
+    const existingSectionPattern = new RegExp(`<section\\b[^>]*name="${escapeForRegex(processHost.sectionName)}"[^>]*>[\\s\\S]*?<\\/section>`, 'i');
+    if (existingSectionPattern.test(xml)) {
+        return xml.replace(existingSectionPattern, buildProcessHostSectionXml(formPlan));
     }
     const sectionXml = buildProcessHostSectionXml(formPlan);
     if (!sectionXml) {

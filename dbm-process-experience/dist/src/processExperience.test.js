@@ -186,6 +186,12 @@ test('ProcessExperienceSurface keeps cross-form handoff navigation visible', asy
 test('ProcessExperienceSurface auto-opens the flow for model-driven handoff states and exposes Edit process', async () => {
     const user = userEvent.setup();
     const openSpy = vi.spyOn(window, 'open').mockImplementation(() => null);
+    const fetchSpy = vi.spyOn(globalThis, 'fetch').mockResolvedValue(new Response(JSON.stringify({
+        value: [{ appmoduleid: 'test-app-id' }]
+    }), {
+        status: 200,
+        headers: { 'Content-Type': 'application/json' }
+    }));
     const snapshot = buildRuntimeProcessExperienceSnapshot(approvalRequestRuntimeModel, {
         stageId: 'manager-review',
         stepId: 'review-request',
@@ -200,7 +206,8 @@ test('ProcessExperienceSurface auto-opens the flow for model-driven handoff stat
     expect(screen.getByRole('button', { name: 'Hide flow' })).toBeTruthy();
     expect(screen.getByText('How this request can move')).toBeTruthy();
     await user.click(screen.getByRole('button', { name: 'Edit process' }));
-    expect(openSpy).toHaveBeenCalledWith('/main.aspx?forceUCI=1&pagetype=webresource&webresourceName=ys_%2Fdbm%2Fapps%2Feditor%2Findex.html&packageName=dbm-testtableone-to-testtabletwo', '_blank', 'noopener');
+    expect(openSpy).toHaveBeenCalledWith('http://localhost:3000/main.aspx?appid=test-app-id&pagetype=webresource&webresourceName=ys_%2Fdbm%2Fapps%2Feditor%2Findex.html&packageName=dbm-testtableone-to-testtabletwo', '_blank', 'noopener');
+    fetchSpy.mockRestore();
     openSpy.mockRestore();
 });
 test('buildRuntimeProcessExperienceSnapshot allows a terminal end stage without an active step', () => {

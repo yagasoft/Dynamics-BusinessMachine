@@ -59,6 +59,10 @@ function buildDesignerEntryUrl(packageId: string): string {
   return `${HOSTED_DESIGNER_ENTRY_PATH}&packageName=${encodeURIComponent(packageId)}`;
 }
 
+function buildBehaviorVersionKey(content: string): string {
+  return createDeterministicGuid(content).replace(/[{}-]/g, '');
+}
+
 function getDefaultFormStateId(model: DbmModelV1, formId: string): string | null {
   const stageMap = new Map(model.process.stages.map((stage) => [stage.id, stage]));
   for (const step of model.process.steps) {
@@ -290,7 +294,9 @@ function buildStateJumpTarget(
 function buildProcessHostConfig(
   formPlan: Pick<DataverseFormPlan, 'id' | 'sections' | 'states'>,
   displayName: string,
-  model: DbmModelV1
+  model: DbmModelV1,
+  rendererVersionKey: string,
+  hostPageVersionKey: string
 ): DbmProcessExperienceHostConfigV1 | null {
   const firstSection = formPlan.sections[0];
   if (!firstSection) {
@@ -326,7 +332,9 @@ function buildProcessHostConfig(
       data: JSON.stringify({
         formId: formPlan.id,
         displayName,
-        placement: 'section'
+        placement: 'section',
+        rendererVersion: rendererVersionKey,
+        hostVersion: hostPageVersionKey
       })
     },
     overlay: {
@@ -372,6 +380,14 @@ function buildProcessHostPageContent(): string {
     '  <div id="dbm-process-host-root"></div>',
     '  <script>',
     '    (function () {',
+    '      function getHostData() {',
+    '        try {',
+    '          const raw = new URLSearchParams(window.location.search).get(\'data\');',
+    '          return raw ? JSON.parse(raw) : null;',
+    '        } catch (error) {',
+    '          return null;',
+    '        }',
+    '      }',
     '      function getClientUrl() {',
     '        return window.parent?.Xrm?.Utility?.getGlobalContext?.()?.getClientUrl?.() || \'\';',
     '      }',
@@ -392,7 +408,11 @@ function buildProcessHostPageContent(): string {
     '        };',
     '      }',
     '      function loadRenderer() {',
-    `        const scriptUrl = getClientUrl().replace(/\\/$/, '') + '/WebResources/${SHARED_PROCESS_EXPERIENCE_RENDERER_WEB_RESOURCE_NAME}';`,
+    '        const hostData = getHostData();',
+    `        let scriptUrl = getClientUrl().replace(/\\/$/, '') + '/WebResources/${SHARED_PROCESS_EXPERIENCE_RENDERER_WEB_RESOURCE_NAME}';`,
+    '        if (hostData?.rendererVersion) {',
+    '          scriptUrl += \'?v=\' + encodeURIComponent(hostData.rendererVersion);',
+    '        }',
     '        const script = document.createElement(\'script\');',
     '        script.src = scriptUrl;',
     '        script.onload = bootFrameBridge;',
@@ -1452,24 +1472,7 @@ function buildSharedRuntimeBehaviorContent(): string {
   }
   function resolveDesignerEntryUrl(config) {
     const fallback = config?.processHost?.designerEntryUrl || null;
-    const packageId = config?.processHost?.packageId || null;
     const clientUrl = global.Xrm?.Utility?.getGlobalContext?.()?.getClientUrl?.() || '';
-    const currentAppUrl = global.Xrm?.Utility?.getGlobalContext?.()?.getCurrentAppUrl?.() || '';
-    if (packageId && currentAppUrl) {
-      try {
-        const resolved = new URL(currentAppUrl, clientUrl || undefined);
-        const appId = resolved.searchParams.get('appid');
-        if (appId) {
-          const next = new URL('/main.aspx', clientUrl || resolved.origin);
-          next.searchParams.set('appid', appId);
-          next.searchParams.set('pagetype', 'webresource');
-          next.searchParams.set('webresourceName', 'ys_/dbm/apps/editor/index.html');
-          next.searchParams.set('packageName', packageId);
-          return next.toString();
-        }
-      } catch (error) {
-      }
-    }
     if (fallback && clientUrl && fallback.charAt(0) === '/') {
       return clientUrl.replace(/\\/$/, '') + fallback;
     }
@@ -1859,7 +1862,9 @@ function createFormPlan(
   model: DbmModelV1,
   form: DbmModelV1['forms'][number],
   entityPlans: Map<string, DataverseEntityPlan>,
-  diagnostics: DataverseSynthesisDiagnostic[]
+  diagnostics: DataverseSynthesisDiagnostic[],
+  rendererVersionKey: string,
+  hostPageVersionKey: string
 ): DataverseFormPlan {
   const formId = form.providerBindings?.dataverse?.formId?.trim() ?? '';
   if (!formId) {
@@ -1988,7 +1993,9 @@ function createFormPlan(
       states
     },
     form.displayName,
-    model
+    model,
+    rendererVersionKey,
+    hostPageVersionKey
   );
 
   const plan: DataverseFormPlan = {
@@ -2040,7 +2047,11 @@ export function planExistingDataverseForms(
   forms: DataverseFormPlan[];
   behaviors: DataverseBehaviorPlan[];
 } {
-  const forms = model.forms.map((form) => createFormPlan(model, form, entityPlans, diagnostics));
+  const rendererContent = readSharedProcessExperienceRendererContent();
+  const rendererVersionKey = buildBehaviorVersionKey(`${SHARED_PROCESS_EXPERIENCE_RENDERER_WEB_RESOURCE_NAME}:${rendererContent}`);
+  const hostPageContent = buildProcessHostPageContent();
+  const hostPageVersionKey = buildBehaviorVersionKey(`${SHARED_PROCESS_EXPERIENCE_HOST_PAGE_WEB_RESOURCE_NAME}:${hostPageContent}`);
+  const forms = model.forms.map((form) => createFormPlan(model, form, entityPlans, diagnostics, rendererVersionKey, hostPageVersionKey));
 
   const behaviors: DataverseBehaviorPlan[] = [
     {
@@ -2053,7 +2064,7 @@ export function planExistingDataverseForms(
       reason: null,
       webResourceType: 3,
       relativePath: 'src/WebResources/ys_/dbm/process-experience/renderer.js',
-      content: readSharedProcessExperienceRendererContent(),
+      content: rendererContent,
       attachedFormIds: forms.filter((form) => form.supported).map((form) => form.id)
     },
     {
@@ -2066,7 +2077,7 @@ export function planExistingDataverseForms(
       reason: null,
       webResourceType: 1,
       relativePath: 'src/WebResources/ys_/dbm/process-experience/host.html',
-      content: buildProcessHostPageContent(),
+      content: hostPageContent,
       attachedFormIds: forms.filter((form) => form.supported).map((form) => form.id)
     },
     {

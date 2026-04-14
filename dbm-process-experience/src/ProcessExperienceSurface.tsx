@@ -3,6 +3,9 @@ import type { DbmProcessExperienceSnapshotV1 } from 'dbm-contract';
 import { buildGuidedWorkspaceViewModel, type GuidedWorkspaceTone } from './guidedWorkspace';
 import type { ProcessExperienceSurfaceProps } from './types';
 
+const DESIGNER_APP_UNIQUE_NAME = 'ys_YSCommon';
+const DESIGNER_WEB_RESOURCE_NAME = 'ys_/dbm/apps/editor/index.html';
+
 function tonePalette(tone: GuidedWorkspaceTone): { background: string; border: string; text: string; chip: string; shadow: string } {
   switch (tone) {
     case 'completed':
@@ -83,6 +86,7 @@ export function ProcessExperienceSurface(props: ProcessExperienceSurfaceProps) {
   const snapshot = props.snapshot;
   const [isFlowOpen, setFlowOpen] = useState(false);
   const lastAutoOpenKeyRef = useRef<string | null>(null);
+  const resolvedDesignerEntryUrlRef = useRef<{ source: string; value: string } | null>(null);
 
   const viewModel = useMemo(
     () => (snapshot ? buildGuidedWorkspaceViewModel(snapshot, props.audience ?? snapshot.audience) : null),
@@ -146,6 +150,80 @@ export function ProcessExperienceSurface(props: ProcessExperienceSurfaceProps) {
     setFlowOpen(shouldAutoOpenFlow);
   }, [autoOpenKey, shouldAutoOpenFlow]);
 
+  async function handleOpenDesigner() {
+    if (!props.designerEntryUrl) {
+      return;
+    }
+
+    const cached = resolvedDesignerEntryUrlRef.current;
+    if (cached && cached.source === props.designerEntryUrl) {
+      window.open(cached.value, '_blank', 'noopener');
+      return;
+    }
+
+    const globalScope = window as typeof window & { Xrm?: { Utility?: { getGlobalContext?: () => { getClientUrl?: () => string } } } };
+    const parentScope = window.parent as typeof window & { Xrm?: { Utility?: { getGlobalContext?: () => { getClientUrl?: () => string } } } };
+    const globalContext =
+      parentScope?.Xrm?.Utility?.getGlobalContext?.()
+      ?? globalScope?.Xrm?.Utility?.getGlobalContext?.()
+      ?? null;
+    const clientUrl = (
+      globalContext?.getClientUrl?.()
+      ?? window.location.origin
+      ?? ''
+    ).replace(/\/$/, '');
+    let resolvedUrl = props.designerEntryUrl;
+
+    const packageName = (() => {
+      try {
+        const parsed = new URL(resolvedUrl, clientUrl || undefined);
+        return parsed.searchParams.get('packageName');
+      } catch {
+        return null;
+      }
+    })();
+
+    if (clientUrl && packageName) {
+      try {
+        const filter = encodeURIComponent(`uniquename eq '${DESIGNER_APP_UNIQUE_NAME}'`);
+        const response = await fetch(
+          `${clientUrl}/api/data/v9.2/appmodules?$select=appmoduleid,uniquename&$filter=${filter}`,
+          {
+            headers: {
+              Accept: 'application/json',
+              'OData-MaxVersion': '4.0',
+              'OData-Version': '4.0'
+            }
+          }
+        );
+
+        if (response.ok) {
+          const payload = await response.json() as { value?: Array<{ appmoduleid?: string | null }> };
+          const appId = payload.value?.[0]?.appmoduleid?.trim();
+          if (appId) {
+            const next = new URL('/main.aspx', clientUrl);
+            next.searchParams.set('appid', appId);
+            next.searchParams.set('pagetype', 'webresource');
+            next.searchParams.set('webresourceName', DESIGNER_WEB_RESOURCE_NAME);
+            next.searchParams.set('packageName', packageName);
+            resolvedUrl = next.toString();
+          }
+        }
+      } catch {
+      }
+    }
+
+    if (clientUrl && resolvedUrl.startsWith('/')) {
+      resolvedUrl = `${clientUrl}${resolvedUrl}`;
+    }
+
+    resolvedDesignerEntryUrlRef.current = {
+      source: props.designerEntryUrl,
+      value: resolvedUrl
+    };
+    window.open(resolvedUrl, '_blank', 'noopener');
+  }
+
   return (
     <div style={resolvedSurfaceShellStyle}>
       <div style={headerShellStyle}>
@@ -162,7 +240,9 @@ export function ProcessExperienceSurface(props: ProcessExperienceSurfaceProps) {
             <button
               type="button"
               style={resolvedSecondaryActionButtonStyle}
-              onClick={() => window.open(props.designerEntryUrl ?? '', '_blank', 'noopener')}
+              onClick={() => {
+                void handleOpenDesigner();
+              }}
             >
               Edit process
             </button>

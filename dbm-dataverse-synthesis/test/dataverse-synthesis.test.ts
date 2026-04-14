@@ -404,6 +404,10 @@ test('planDataverseSynthesis maps the approval example into entities, existing f
   assert.equal(reviewForm?.runtime?.currentForm.relatedProcessOwnerLookupFieldLogicalName, 'dbm_requestid');
   assert.equal(reviewForm?.runtime?.stageHandoffsByStageId['manager-review']?.strategy, 'create-related');
   assert.equal(reviewForm?.processHost?.overlay.enabled, true);
+  assert.equal(reviewForm?.processHost?.supported?.webResourceName, 'ys_/dbm/process-experience/host.html');
+  const reviewHostData = JSON.parse(reviewForm?.processHost?.supported?.data ?? '{}');
+  assert.match(reviewHostData.rendererVersion ?? '', /^[a-f0-9]+$/i);
+  assert.match(reviewHostData.hostVersion ?? '', /^[a-f0-9]+$/i);
   assert.equal(
     reviewForm?.processHost?.designerEntryUrl,
     '/main.aspx?forceUCI=1&pagetype=webresource&webresourceName=ys_%2Fdbm%2Fapps%2Feditor%2Findex.html&packageName=dbm-approval-request'
@@ -450,6 +454,10 @@ test('planDataverseSynthesis supports a non-reference existing-form model with e
     true
   );
   assert.equal(assignmentForm?.processHost?.supported?.sectionName, 'dbm_process_host_assignment_form');
+  assert.equal(assignmentForm?.processHost?.supported?.webResourceName, 'ys_/dbm/process-experience/host.html');
+  const assignmentHostData = JSON.parse(assignmentForm?.processHost?.supported?.data ?? '{}');
+  assert.match(assignmentHostData.rendererVersion ?? '', /^[a-f0-9]+$/i);
+  assert.match(assignmentHostData.hostVersion ?? '', /^[a-f0-9]+$/i);
   assert.equal(
     assignmentForm?.processHost?.designerEntryUrl,
     '/main.aspx?forceUCI=1&pagetype=webresource&webresourceName=ys_%2Fdbm%2Fapps%2Feditor%2Findex.html&packageName=dbm-case-assignment'
@@ -1159,7 +1167,7 @@ test('generated request runtime still renders the supported process host when ov
     assert.equal(form.sectionRenders[0]?.mode, 'model-driven-section');
     assert.equal(
       form.sectionRenders[0]?.designerEntryUrl,
-      'https://example.crm4.dynamics.com/main.aspx?appid=test-app-id&pagetype=webresource&webresourceName=ys_%2Fdbm%2Fapps%2Feditor%2Findex.html&packageName=dbm-approval-request'
+      'https://example.crm4.dynamics.com/main.aspx?forceUCI=1&pagetype=webresource&webresourceName=ys_%2Fdbm%2Fapps%2Feditor%2Findex.html&packageName=dbm-approval-request'
     );
     assert.equal(form.overlayRenders.length, 0);
   } finally {

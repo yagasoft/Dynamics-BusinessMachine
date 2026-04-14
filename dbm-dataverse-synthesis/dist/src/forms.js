@@ -31,6 +31,9 @@ function sanitizeFunctionIdentifier(value) {
 function buildDesignerEntryUrl(packageId) {
     return `${HOSTED_DESIGNER_ENTRY_PATH}&packageName=${encodeURIComponent(packageId)}`;
 }
+function buildBehaviorVersionKey(content) {
+    return (0, common_1.createDeterministicGuid)(content).replace(/[{}-]/g, '');
+}
 function getDefaultFormStateId(model, formId) {
     const stageMap = new Map(model.process.stages.map((stage) => [stage.id, stage]));
     for (const step of model.process.steps) {
@@ -214,7 +217,7 @@ function buildStateJumpTarget(formPlan, state) {
         controlName: targetControlName
     };
 }
-function buildProcessHostConfig(formPlan, displayName, model) {
+function buildProcessHostConfig(formPlan, displayName, model, rendererVersionKey, hostPageVersionKey) {
     const firstSection = formPlan.sections[0];
     if (!firstSection) {
         return null;
@@ -245,7 +248,9 @@ function buildProcessHostConfig(formPlan, displayName, model) {
             data: JSON.stringify({
                 formId: formPlan.id,
                 displayName,
-                placement: 'section'
+                placement: 'section',
+                rendererVersion: rendererVersionKey,
+                hostVersion: hostPageVersionKey
             })
         },
         overlay: {
@@ -287,6 +292,14 @@ function buildProcessHostPageContent() {
         '  <div id="dbm-process-host-root"></div>',
         '  <script>',
         '    (function () {',
+        '      function getHostData() {',
+        '        try {',
+        '          const raw = new URLSearchParams(window.location.search).get(\'data\');',
+        '          return raw ? JSON.parse(raw) : null;',
+        '        } catch (error) {',
+        '          return null;',
+        '        }',
+        '      }',
         '      function getClientUrl() {',
         '        return window.parent?.Xrm?.Utility?.getGlobalContext?.()?.getClientUrl?.() || \'\';',
         '      }',
@@ -307,7 +320,11 @@ function buildProcessHostPageContent() {
         '        };',
         '      }',
         '      function loadRenderer() {',
-        `        const scriptUrl = getClientUrl().replace(/\\/$/, '') + '/WebResources/${exports.SHARED_PROCESS_EXPERIENCE_RENDERER_WEB_RESOURCE_NAME}';`,
+        '        const hostData = getHostData();',
+        `        let scriptUrl = getClientUrl().replace(/\\/$/, '') + '/WebResources/${exports.SHARED_PROCESS_EXPERIENCE_RENDERER_WEB_RESOURCE_NAME}';`,
+        '        if (hostData?.rendererVersion) {',
+        '          scriptUrl += \'?v=\' + encodeURIComponent(hostData.rendererVersion);',
+        '        }',
         '        const script = document.createElement(\'script\');',
         '        script.src = scriptUrl;',
         '        script.onload = bootFrameBridge;',
@@ -1294,24 +1311,7 @@ function buildSharedRuntimeBehaviorContent() {
   }
   function resolveDesignerEntryUrl(config) {
     const fallback = config?.processHost?.designerEntryUrl || null;
-    const packageId = config?.processHost?.packageId || null;
     const clientUrl = global.Xrm?.Utility?.getGlobalContext?.()?.getClientUrl?.() || '';
-    const currentAppUrl = global.Xrm?.Utility?.getGlobalContext?.()?.getCurrentAppUrl?.() || '';
-    if (packageId && currentAppUrl) {
-      try {
-        const resolved = new URL(currentAppUrl, clientUrl || undefined);
-        const appId = resolved.searchParams.get('appid');
-        if (appId) {
-          const next = new URL('/main.aspx', clientUrl || resolved.origin);
-          next.searchParams.set('appid', appId);
-          next.searchParams.set('pagetype', 'webresource');
-          next.searchParams.set('webresourceName', 'ys_/dbm/apps/editor/index.html');
-          next.searchParams.set('packageName', packageId);
-          return next.toString();
-        }
-      } catch (error) {
-      }
-    }
     if (fallback && clientUrl && fallback.charAt(0) === '/') {
       return clientUrl.replace(/\\/$/, '') + fallback;
     }
@@ -1641,7 +1641,7 @@ function resolveControlPlan(model, form, element, diagnostics) {
         sourceElementIds: [element.id]
     };
 }
-function createFormPlan(model, form, entityPlans, diagnostics) {
+function createFormPlan(model, form, entityPlans, diagnostics, rendererVersionKey, hostPageVersionKey) {
     const formId = form.providerBindings?.dataverse?.formId?.trim() ?? '';
     if (!formId) {
         diagnostics.push((0, common_1.createDiagnostic)('missing-form-id-binding', 'error', `Form '${form.id}' is missing providerBindings.dataverse.formId.`, `forms.${form.id}`));
@@ -1724,7 +1724,7 @@ function createFormPlan(model, form, entityPlans, diagnostics) {
         id: form.id,
         sections,
         states
-    }, form.displayName, model);
+    }, form.displayName, model, rendererVersionKey, hostPageVersionKey);
     const plan = {
         id: form.id,
         sourceFormId: form.id,
@@ -1763,7 +1763,11 @@ function createFormPlan(model, form, entityPlans, diagnostics) {
     return plan;
 }
 function planExistingDataverseForms(model, entityPlans, diagnostics) {
-    const forms = model.forms.map((form) => createFormPlan(model, form, entityPlans, diagnostics));
+    const rendererContent = readSharedProcessExperienceRendererContent();
+    const rendererVersionKey = buildBehaviorVersionKey(`${exports.SHARED_PROCESS_EXPERIENCE_RENDERER_WEB_RESOURCE_NAME}:${rendererContent}`);
+    const hostPageContent = buildProcessHostPageContent();
+    const hostPageVersionKey = buildBehaviorVersionKey(`${exports.SHARED_PROCESS_EXPERIENCE_HOST_PAGE_WEB_RESOURCE_NAME}:${hostPageContent}`);
+    const forms = model.forms.map((form) => createFormPlan(model, form, entityPlans, diagnostics, rendererVersionKey, hostPageVersionKey));
     const behaviors = [
         {
             id: exports.SHARED_PROCESS_EXPERIENCE_RENDERER_BEHAVIOR_ID,
@@ -1775,7 +1779,7 @@ function planExistingDataverseForms(model, entityPlans, diagnostics) {
             reason: null,
             webResourceType: 3,
             relativePath: 'src/WebResources/ys_/dbm/process-experience/renderer.js',
-            content: readSharedProcessExperienceRendererContent(),
+            content: rendererContent,
             attachedFormIds: forms.filter((form) => form.supported).map((form) => form.id)
         },
         {
@@ -1788,7 +1792,7 @@ function planExistingDataverseForms(model, entityPlans, diagnostics) {
             reason: null,
             webResourceType: 1,
             relativePath: 'src/WebResources/ys_/dbm/process-experience/host.html',
-            content: buildProcessHostPageContent(),
+            content: hostPageContent,
             attachedFormIds: forms.filter((form) => form.supported).map((form) => form.id)
         },
         {

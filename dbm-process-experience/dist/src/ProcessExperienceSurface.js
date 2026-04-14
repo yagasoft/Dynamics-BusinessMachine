@@ -1,6 +1,8 @@
 import { jsx as _jsx, jsxs as _jsxs, Fragment as _Fragment } from "react/jsx-runtime";
 import { useEffect, useMemo, useRef, useState } from 'react';
 import { buildGuidedWorkspaceViewModel } from './guidedWorkspace';
+const DESIGNER_APP_UNIQUE_NAME = 'ys_YSCommon';
+const DESIGNER_WEB_RESOURCE_NAME = 'ys_/dbm/apps/editor/index.html';
 function tonePalette(tone) {
     switch (tone) {
         case 'completed':
@@ -58,6 +60,7 @@ export function ProcessExperienceSurface(props) {
     const snapshot = props.snapshot;
     const [isFlowOpen, setFlowOpen] = useState(false);
     const lastAutoOpenKeyRef = useRef(null);
+    const resolvedDesignerEntryUrlRef = useRef(null);
     const viewModel = useMemo(() => (snapshot ? buildGuidedWorkspaceViewModel(snapshot, props.audience ?? snapshot.audience) : null), [props.audience, snapshot]);
     if (!snapshot || !viewModel) {
         return _jsx("div", { style: emptyStateStyle, children: "Process experience becomes available once the model and workspace parse cleanly." });
@@ -110,7 +113,71 @@ export function ProcessExperienceSurface(props) {
         lastAutoOpenKeyRef.current = autoOpenKey;
         setFlowOpen(shouldAutoOpenFlow);
     }, [autoOpenKey, shouldAutoOpenFlow]);
-    return (_jsxs("div", { style: resolvedSurfaceShellStyle, children: [_jsxs("div", { style: headerShellStyle, children: [_jsxs("div", { children: [_jsx("div", { style: eyebrowStyle, children: "DBM Process" }), _jsx("h2", { style: resolvedHeadingStyle, children: viewModel.processTitle }), _jsx("p", { style: resolvedIntroCopyStyle, children: viewModel.introCopy })] }), _jsxs("div", { style: statusClusterStyle, children: [_jsx("span", { style: { ...resolvedStatusPillStyle, color: currentTone.text, borderColor: currentTone.border, background: currentTone.chip }, children: viewModel.currentTask.statusLabel }), isModelDriven && props.designerEntryUrl ? (_jsx("button", { type: "button", style: resolvedSecondaryActionButtonStyle, onClick: () => window.open(props.designerEntryUrl ?? '', '_blank', 'noopener'), children: "Edit process" })) : null, _jsx("button", { type: "button", style: resolvedFlowToggleButtonStyle, "aria-expanded": isFlowOpen, onClick: () => setFlowOpen((current) => !current), children: isFlowOpen ? 'Hide flow' : 'View flow' })] })] }), snapshot.projection.message ? _jsx("div", { style: resolvedProjectionNoticeStyle, children: renderProjectionCallToAction(snapshot, props) }) : null, _jsx("div", { style: resolvedJourneyTrackerShellStyle, children: viewModel.trackerItems.map((item) => {
+    async function handleOpenDesigner() {
+        if (!props.designerEntryUrl) {
+            return;
+        }
+        const cached = resolvedDesignerEntryUrlRef.current;
+        if (cached && cached.source === props.designerEntryUrl) {
+            window.open(cached.value, '_blank', 'noopener');
+            return;
+        }
+        const globalScope = window;
+        const parentScope = window.parent;
+        const globalContext = parentScope?.Xrm?.Utility?.getGlobalContext?.()
+            ?? globalScope?.Xrm?.Utility?.getGlobalContext?.()
+            ?? null;
+        const clientUrl = (globalContext?.getClientUrl?.()
+            ?? window.location.origin
+            ?? '').replace(/\/$/, '');
+        let resolvedUrl = props.designerEntryUrl;
+        const packageName = (() => {
+            try {
+                const parsed = new URL(resolvedUrl, clientUrl || undefined);
+                return parsed.searchParams.get('packageName');
+            }
+            catch {
+                return null;
+            }
+        })();
+        if (clientUrl && packageName) {
+            try {
+                const filter = encodeURIComponent(`uniquename eq '${DESIGNER_APP_UNIQUE_NAME}'`);
+                const response = await fetch(`${clientUrl}/api/data/v9.2/appmodules?$select=appmoduleid,uniquename&$filter=${filter}`, {
+                    headers: {
+                        Accept: 'application/json',
+                        'OData-MaxVersion': '4.0',
+                        'OData-Version': '4.0'
+                    }
+                });
+                if (response.ok) {
+                    const payload = await response.json();
+                    const appId = payload.value?.[0]?.appmoduleid?.trim();
+                    if (appId) {
+                        const next = new URL('/main.aspx', clientUrl);
+                        next.searchParams.set('appid', appId);
+                        next.searchParams.set('pagetype', 'webresource');
+                        next.searchParams.set('webresourceName', DESIGNER_WEB_RESOURCE_NAME);
+                        next.searchParams.set('packageName', packageName);
+                        resolvedUrl = next.toString();
+                    }
+                }
+            }
+            catch {
+            }
+        }
+        if (clientUrl && resolvedUrl.startsWith('/')) {
+            resolvedUrl = `${clientUrl}${resolvedUrl}`;
+        }
+        resolvedDesignerEntryUrlRef.current = {
+            source: props.designerEntryUrl,
+            value: resolvedUrl
+        };
+        window.open(resolvedUrl, '_blank', 'noopener');
+    }
+    return (_jsxs("div", { style: resolvedSurfaceShellStyle, children: [_jsxs("div", { style: headerShellStyle, children: [_jsxs("div", { children: [_jsx("div", { style: eyebrowStyle, children: "DBM Process" }), _jsx("h2", { style: resolvedHeadingStyle, children: viewModel.processTitle }), _jsx("p", { style: resolvedIntroCopyStyle, children: viewModel.introCopy })] }), _jsxs("div", { style: statusClusterStyle, children: [_jsx("span", { style: { ...resolvedStatusPillStyle, color: currentTone.text, borderColor: currentTone.border, background: currentTone.chip }, children: viewModel.currentTask.statusLabel }), isModelDriven && props.designerEntryUrl ? (_jsx("button", { type: "button", style: resolvedSecondaryActionButtonStyle, onClick: () => {
+                                    void handleOpenDesigner();
+                                }, children: "Edit process" })) : null, _jsx("button", { type: "button", style: resolvedFlowToggleButtonStyle, "aria-expanded": isFlowOpen, onClick: () => setFlowOpen((current) => !current), children: isFlowOpen ? 'Hide flow' : 'View flow' })] })] }), snapshot.projection.message ? _jsx("div", { style: resolvedProjectionNoticeStyle, children: renderProjectionCallToAction(snapshot, props) }) : null, _jsx("div", { style: resolvedJourneyTrackerShellStyle, children: viewModel.trackerItems.map((item) => {
                     const palette = tonePalette(item.tone);
                     return (_jsxs("button", { type: "button", style: {
                             ...resolvedTrackerItemStyle,
