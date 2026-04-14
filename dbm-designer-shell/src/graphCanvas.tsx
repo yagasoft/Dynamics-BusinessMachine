@@ -150,6 +150,23 @@ function GraphCanvasInner({ document, onSelectionChange, onGraphIntent, onNodePo
     return <div style={emptyCanvasStyle}>Load or create a package to start graph authoring.</div>;
   }
 
+  if (flowDocument.nodes.length === 0) {
+    return (
+      <div
+        ref={setNodeRef}
+        style={{
+          ...emptyCanvasStyle,
+          borderStyle: 'solid',
+          borderColor: isOver ? '#b45309' : '#d6d3d1',
+          boxShadow: isOver ? '0 0 0 2px rgba(180,83,9,0.18)' : 'none'
+        }}
+        data-testid="graph-canvas"
+      >
+        The current process package produced no graph nodes. Open Diagnostics to inspect the derived graph document.
+      </div>
+    );
+  }
+
   function handleConnect(connection: Connection) {
     if (!connection.source || !connection.sourceHandle || !connection.target || !connection.targetHandle) {
       return;
@@ -176,28 +193,30 @@ function GraphCanvasInner({ document, onSelectionChange, onGraphIntent, onNodePo
       }}
       data-testid="graph-canvas"
     >
-      <ReactFlow
-        fitView
-        fitViewOptions={{ padding: 0.15 }}
-        nodes={flowDocument.nodes}
-        edges={flowDocument.edges}
-        nodeTypes={nodeTypes}
-        onNodeClick={(_, node) => onSelectionChange(node.id)}
-        onEdgeClick={(_, edge) => onSelectionChange(edge.id)}
-        onPaneClick={() => onSelectionChange('document:root')}
-        onNodeDragStop={(_, node) => {
-          if (isStableDesignerGraphNodeId(node.id)) {
-            onNodePositionCommit(node.id, node.position);
-          }
-        }}
-        onConnect={handleConnect}
-        deleteKeyCode={null}
-        selectionOnDrag={false}
-        nodesDraggable
-      >
-        <Background color="#e2e8f0" gap={28} />
-        <Controls position="bottom-right" showInteractive={false} />
-      </ReactFlow>
+      <div style={flowViewportStyle}>
+        <ReactFlow
+          fitView
+          fitViewOptions={{ padding: 0.15 }}
+          nodes={flowDocument.nodes}
+          edges={flowDocument.edges}
+          nodeTypes={nodeTypes}
+          onNodeClick={(_, node) => onSelectionChange(node.id)}
+          onEdgeClick={(_, edge) => onSelectionChange(edge.id)}
+          onPaneClick={() => onSelectionChange('document:root')}
+          onNodeDragStop={(_, node) => {
+            if (isStableDesignerGraphNodeId(node.id)) {
+              onNodePositionCommit(node.id, node.position);
+            }
+          }}
+          onConnect={handleConnect}
+          deleteKeyCode={null}
+          selectionOnDrag={false}
+          nodesDraggable
+        >
+          <Background color="#e2e8f0" gap={28} />
+          <Controls position="bottom-right" showInteractive={false} />
+        </ReactFlow>
+      </div>
     </div>
   );
 }
@@ -213,22 +232,31 @@ export function GraphCanvas(props: GraphCanvasProps) {
 }
 
 const canvasShellStyle = {
-  minHeight: '72vh',
-  height: '100%',
+  width: '100%',
+  height: '72vh',
+  minHeight: '560px',
   borderRadius: '1.25rem',
   border: '1px solid #d6d3d1',
   overflow: 'hidden',
-  background: 'linear-gradient(180deg, #fafaf9 0%, #ffffff 100%)'
+  background: 'linear-gradient(180deg, #fafaf9 0%, #ffffff 100%)',
+  position: 'relative'
 } as const;
 
 const emptyCanvasStyle = {
-  minHeight: '72vh',
+  width: '100%',
+  height: '72vh',
+  minHeight: '560px',
   borderRadius: '1.25rem',
   border: '1px dashed #d6d3d1',
   background: 'rgba(255,255,255,0.7)',
   display: 'grid',
   placeItems: 'center',
   color: '#64748b'
+} as const;
+
+const flowViewportStyle = {
+  width: '100%',
+  height: '100%'
 } as const;
 
 const handleStyle = {

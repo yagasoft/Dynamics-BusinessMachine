@@ -2,12 +2,16 @@ import path from 'node:path';
 import react from '@vitejs/plugin-react-swc';
 import { defineConfig } from 'vite';
 
-export default defineConfig({
+export default defineConfig(({ command }) => ({
   plugins: [react()],
-  define: {
-    'process.env.NODE_ENV': JSON.stringify('production'),
-    global: 'globalThis'
-  },
+  define: command === 'build'
+    ? {
+        'process.env.NODE_ENV': JSON.stringify('production'),
+        global: 'globalThis'
+      }
+    : {
+        global: 'globalThis'
+      },
   resolve: {
     alias: {
       'dbm-contract': path.resolve(__dirname, '../dbm-contract/dist/index.js'),
@@ -32,4 +36,4 @@ export default defineConfig({
   test: {
     environment: 'jsdom'
   }
-});
+}));

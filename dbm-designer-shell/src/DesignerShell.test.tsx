@@ -1,3 +1,4 @@
+import React from 'react';
 import { cleanup, render, screen, waitFor } from '@testing-library/react';
 import userEvent from '@testing-library/user-event';
 import { afterEach, describe, expect, it, vi } from 'vitest';
@@ -19,29 +20,34 @@ vi.mock('./graphCanvas', () => ({
     onSelectionChange(selectionId: string | null): void;
     onGraphIntent(intent: unknown): void;
     onNodePositionCommit(nodeId: string, position: { x: number; y: number }): void;
-  }) => (
-    <div data-testid="graph-canvas">
-      <div>{document ? `graph:${document.graph.nodes.length}` : 'empty'}</div>
-      <button type="button" onClick={() => onSelectionChange('stage:draft-request')}>
-        Select Draft Stage
-      </button>
-      <button type="button" onClick={() => onNodePositionCommit('stage:draft-request', { x: 880, y: 220 })}>
-        Move Draft Stage
-      </button>
-      <button
-        type="button"
-        onClick={() =>
+  }) => React.createElement(
+    'div',
+    { 'data-testid': 'graph-canvas' },
+    React.createElement('div', null, document ? `graph:${document.graph.nodes.length}` : 'empty'),
+    React.createElement(
+      'button',
+      { type: 'button', onClick: () => onSelectionChange('stage:draft-request') },
+      'Select Draft Stage'
+    ),
+    React.createElement(
+      'button',
+      { type: 'button', onClick: () => onNodePositionCommit('stage:draft-request', { x: 880, y: 220 }) },
+      'Move Draft Stage'
+    ),
+    React.createElement(
+      'button',
+      {
+        type: 'button',
+        onClick: () =>
           onGraphIntent({
             kind: 'create-stage-transition',
             fromStageId: 'draft-request',
             toStageId: 'approved',
             outcomeId: 'submit'
           })
-        }
-      >
-        Connect Draft To Approved
-      </button>
-    </div>
+      },
+      'Connect Draft To Approved'
+    )
   )
 }));
 
@@ -94,7 +100,7 @@ describe('DesignerShell', () => {
     const { repository } = createRepositoryHarness();
     const user = userEvent.setup();
 
-    render(<DesignerShell repository={repository} />);
+    render(React.createElement(DesignerShell, { repository }));
 
     await screen.findByRole('heading', { name: 'DBM Approval Request' });
     await screen.findByText(/^graph:/);
@@ -110,7 +116,7 @@ describe('DesignerShell', () => {
     const { repository, getCurrentRecord } = createRepositoryHarness();
     const user = userEvent.setup();
 
-    render(<DesignerShell repository={repository} />);
+    render(React.createElement(DesignerShell, { repository }));
 
     await screen.findByRole('heading', { name: 'DBM Approval Request' });
     await user.click(screen.getByRole('button', { name: 'Move Draft Stage' }));
@@ -134,7 +140,7 @@ describe('DesignerShell', () => {
     const { repository, getCurrentRecord } = createRepositoryHarness();
     const user = userEvent.setup();
 
-    render(<DesignerShell repository={repository} />);
+    render(React.createElement(DesignerShell, { repository }));
 
     await screen.findByRole('heading', { name: 'DBM Approval Request' });
     await user.click(screen.getByRole('button', { name: 'Connect Draft To Approved' }));
