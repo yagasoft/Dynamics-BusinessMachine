@@ -57,6 +57,8 @@ async function createRuntimeHarnessForModel(model: DbmModelV1, formId: string): 
     console,
     Response,
     Headers,
+    URL,
+    URLSearchParams,
     fetch: async () => jsonResponse(404, { error: 'fetch-not-configured' }),
     setTimeout: (callback: (...args: any[]) => void) => {
       callback();
@@ -66,7 +68,8 @@ async function createRuntimeHarnessForModel(model: DbmModelV1, formId: string): 
     Xrm: {
       Utility: {
         getGlobalContext: () => ({
-          getClientUrl: () => 'https://example.crm4.dynamics.com'
+          getClientUrl: () => 'https://example.crm4.dynamics.com',
+          getCurrentAppUrl: () => 'https://example.crm4.dynamics.com/main.aspx?appid=test-app-id&pagetype=entityrecord'
         }),
         lookupObjects: async () => []
       },
@@ -1154,6 +1157,10 @@ test('generated request runtime still renders the supported process host when ov
     assert.ok(result?.state.stepId);
     assert.equal(form.sectionRenders.length, 1);
     assert.equal(form.sectionRenders[0]?.mode, 'model-driven-section');
+    assert.equal(
+      form.sectionRenders[0]?.designerEntryUrl,
+      'https://example.crm4.dynamics.com/main.aspx?appid=test-app-id&pagetype=webresource&webresourceName=ys_%2Fdbm%2Fapps%2Feditor%2Findex.html&packageName=dbm-approval-request'
+    );
     assert.equal(form.overlayRenders.length, 0);
   } finally {
     await harness.cleanup();

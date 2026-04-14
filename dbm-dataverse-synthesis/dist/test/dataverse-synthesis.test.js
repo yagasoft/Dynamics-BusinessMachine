@@ -34,6 +34,8 @@ async function createRuntimeHarnessForModel(model, formId) {
         console,
         Response,
         Headers,
+        URL,
+        URLSearchParams,
         fetch: async () => jsonResponse(404, { error: 'fetch-not-configured' }),
         setTimeout: (callback) => {
             callback();
@@ -43,7 +45,8 @@ async function createRuntimeHarnessForModel(model, formId) {
         Xrm: {
             Utility: {
                 getGlobalContext: () => ({
-                    getClientUrl: () => 'https://example.crm4.dynamics.com'
+                    getClientUrl: () => 'https://example.crm4.dynamics.com',
+                    getCurrentAppUrl: () => 'https://example.crm4.dynamics.com/main.aspx?appid=test-app-id&pagetype=entityrecord'
                 }),
                 lookupObjects: async () => []
             },
@@ -933,6 +936,7 @@ async function createRuntimeHarness(formId) {
         strict_1.default.ok(result?.state.stepId);
         strict_1.default.equal(form.sectionRenders.length, 1);
         strict_1.default.equal(form.sectionRenders[0]?.mode, 'model-driven-section');
+        strict_1.default.equal(form.sectionRenders[0]?.designerEntryUrl, 'https://example.crm4.dynamics.com/main.aspx?appid=test-app-id&pagetype=webresource&webresourceName=ys_%2Fdbm%2Fapps%2Feditor%2Findex.html&packageName=dbm-approval-request');
         strict_1.default.equal(form.overlayRenders.length, 0);
     }
     finally {

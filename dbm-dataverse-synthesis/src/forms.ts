@@ -1450,6 +1450,31 @@ function buildSharedRuntimeBehaviorContent(): string {
     }
     return true;
   }
+  function resolveDesignerEntryUrl(config) {
+    const fallback = config?.processHost?.designerEntryUrl || null;
+    const packageId = config?.processHost?.packageId || null;
+    const clientUrl = global.Xrm?.Utility?.getGlobalContext?.()?.getClientUrl?.() || '';
+    const currentAppUrl = global.Xrm?.Utility?.getGlobalContext?.()?.getCurrentAppUrl?.() || '';
+    if (packageId && currentAppUrl) {
+      try {
+        const resolved = new URL(currentAppUrl, clientUrl || undefined);
+        const appId = resolved.searchParams.get('appid');
+        if (appId) {
+          const next = new URL('/main.aspx', clientUrl || resolved.origin);
+          next.searchParams.set('appid', appId);
+          next.searchParams.set('pagetype', 'webresource');
+          next.searchParams.set('webresourceName', 'ys_/dbm/apps/editor/index.html');
+          next.searchParams.set('packageName', packageId);
+          return next.toString();
+        }
+      } catch (error) {
+      }
+    }
+    if (fallback && clientUrl && fallback.charAt(0) === '/') {
+      return clientUrl.replace(/\\/$/, '') + fallback;
+    }
+    return fallback;
+  }
   function buildProcessExperienceProps(formContext, config, result, mode) {
     const bridge = getProcessExperienceBridge();
     if (!bridge || typeof bridge.buildRuntimeProcessExperienceSnapshot !== 'function') {
@@ -1468,7 +1493,7 @@ function buildSharedRuntimeBehaviorContent(): string {
       snapshot,
       audience: 'internal',
       mode,
-      designerEntryUrl: config?.processHost?.designerEntryUrl || null,
+      designerEntryUrl: resolveDesignerEntryUrl(config),
       navigationTarget,
       onNavigateToFormRegion: function (target) {
         focusNavigationTarget(formContext, target);
