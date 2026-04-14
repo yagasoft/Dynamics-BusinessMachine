@@ -202,13 +202,29 @@ test('ProcessExperienceSurface auto-opens the flow for model-driven handoff stat
         audience: 'internal',
         currentFormId: 'request-form'
     });
-    render(_jsx(ProcessExperienceSurface, { snapshot: snapshot, mode: "model-driven-section", designerEntryUrl: "/main.aspx?forceUCI=1&pagetype=webresource&webresourceName=ys_%2Fdbm%2Fapps%2Feditor%2Findex.html&packageName=dbm-testtableone-to-testtabletwo" }));
+    render(_jsx(ProcessExperienceSurface, { snapshot: snapshot, mode: "model-driven-section", designerEntryUrl: "/main.aspx?pagetype=webresource&webresourceName=ys_%2Fdbm%2Fapps%2Feditor%2Findex.html&data=%7B%22packageName%22%3A%22dbm-testtableone-to-testtabletwo%22%7D" }));
     expect(screen.getByRole('button', { name: 'Hide flow' })).toBeTruthy();
     expect(screen.getByText('How this request can move')).toBeTruthy();
     await user.click(screen.getByRole('button', { name: 'Edit process' }));
-    expect(openSpy).toHaveBeenCalledWith('http://localhost:3000/main.aspx?appid=test-app-id&pagetype=webresource&webresourceName=ys_%2Fdbm%2Fapps%2Feditor%2Findex.html&packageName=dbm-testtableone-to-testtabletwo', '_blank', 'noopener');
+    expect(openSpy).toHaveBeenCalledWith('http://localhost:3000/main.aspx?appid=test-app-id&pagetype=webresource&webresourceName=ys_%2Fdbm%2Fapps%2Feditor%2Findex.html&data=%7B%22packageName%22%3A%22dbm-testtableone-to-testtabletwo%22%7D', '_blank', 'noopener');
     fetchSpy.mockRestore();
     openSpy.mockRestore();
+});
+test('ProcessExperienceSurface can transition from an empty snapshot to a loaded snapshot without hook-order errors', () => {
+    const snapshot = buildRuntimeProcessExperienceSnapshot(approvalRequestRuntimeModel, {
+        stageId: 'draft-request',
+        stepId: 'capture-request',
+        formStateId: 'request-basic-state',
+        internalStatusId: 'draft',
+        portalStatusId: 'draft'
+    }, {
+        currentFormId: 'request-form'
+    });
+    const rendered = render(_jsx(ProcessExperienceSurface, { snapshot: null, mode: "designer-preview" }));
+    expect(screen.getByText(/process experience becomes available/i)).toBeTruthy();
+    rendered.rerender(_jsx(ProcessExperienceSurface, { snapshot: snapshot, mode: "designer-preview" }));
+    expect(screen.getByText('What to do now')).toBeTruthy();
+    expect(screen.getAllByText('Draft Request').length).toBeGreaterThan(0);
 });
 test('buildRuntimeProcessExperienceSnapshot allows a terminal end stage without an active step', () => {
     const snapshot = buildRuntimeProcessExperienceSnapshot(genericTerminalRuntimeModel, {

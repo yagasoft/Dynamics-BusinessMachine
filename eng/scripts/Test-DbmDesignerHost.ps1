@@ -51,6 +51,24 @@ function Invoke-DbmDataverseGet {
     return Invoke-RestMethod -Method Get -Uri $Uri -Headers $headers
 }
 
+function Decode-DbmWebResourceContent {
+    param(
+        [AllowNull()]
+        [string]$Content
+    )
+
+    if ([string]::IsNullOrWhiteSpace($Content)) {
+        return ''
+    }
+
+    try {
+        return [System.Text.Encoding]::UTF8.GetString([System.Convert]::FromBase64String($Content))
+    }
+    catch {
+        return ''
+    }
+}
+
 if ([string]::IsNullOrWhiteSpace($EvidenceRoot)) {
     $EvidenceRoot = Join-Path $RepoRoot ("artifacts\designer-validation\{0}" -f $TargetEnvironment.ToLowerInvariant())
 }
@@ -81,6 +99,26 @@ foreach ($resource in @($resourceResponse.value)) {
     $resourceMap[[string]$resource.name] = $resource
 }
 
+$configResourceUri =
+    "$normalizedDataverseUrl/api/data/v9.2/webresourceset?" +
+    "`$select=webresourceid,name,content&" +
+    "`$filter=$([System.Uri]::EscapeDataString(""startswith(name,'ys_/dbm/forms/config/')"" ))"
+$configResourceResponse = Invoke-DbmDataverseGet -Uri $configResourceUri -AccessToken $accessToken
+$processHostConfigs = @(
+    foreach ($resource in @($configResourceResponse.value | Where-Object { [string]$_.name -like 'ys_/dbm/forms/config/*.js' })) {
+        $decodedContent = Decode-DbmWebResourceContent -Content ([string]$resource.content)
+        if ([string]::IsNullOrWhiteSpace($decodedContent) -or $decodedContent -notmatch '"processHost"\s*:') {
+            continue
+        }
+
+        [ordered]@{
+            name = [string]$resource.name
+            designerEntryUsesData = [bool]($decodedContent -match '"designerEntryUrl"\s*:\s*"[^"]*data=')
+            designerEntryUsesLegacyPackageName = [bool]($decodedContent -match '"designerEntryUrl"\s*:\s*"[^"]*packageName=')
+        }
+    }
+)
+
 $modelDocumentsUri =
     "$normalizedDataverseUrl/api/data/v9.2/webresourceset?" +
     "`$select=webresourceid,name&" +
@@ -104,6 +142,19 @@ if ($missingResources.Count -gt 0) {
     throw "Designer host validation found missing required web resources in '$TargetEnvironment': $($missingResources.name -join ', ')"
 }
 
+if ($processHostConfigs.Count -lt 1) {
+    throw "Designer host validation could not find any generated process-host config web resources to validate the designer-entry contract in '$TargetEnvironment'."
+}
+
+$invalidProcessHostConfigs = @(
+    $processHostConfigs |
+        Where-Object { -not $_.designerEntryUsesData -or $_.designerEntryUsesLegacyPackageName }
+)
+
+if ($invalidProcessHostConfigs.Count -gt 0) {
+    throw "Designer host validation found invalid designerEntryUrl contracts in '$TargetEnvironment': $($invalidProcessHostConfigs.name -join ', ')"
+}
+
 $result = [ordered]@{
     generatedUtc = (Get-Date).ToUniversalTime().ToString('o')
     targetEnvironment = $TargetEnvironment
@@ -113,6 +164,7 @@ $result = [ordered]@{
     designerWebResource = $hostContext.designerWebResource
     designerUrl = [string]$hostContext.designerUrl
     requiredResources = $requiredResources
+    processHostConfigs = $processHostConfigs
     modelDocumentCount = @($modelDocumentsResponse.value).Count
     status = 'pass'
     automatedChecks = @(
@@ -130,6 +182,11 @@ $result = [ordered]@{
             name = 'designer-runtime-assets-exist'
             passed = $true
             details = 'Found the tracked DBM editor HTML, bundle, common, and core web resources.'
+        },
+        [ordered]@{
+            name = 'designer-entry-uses-supported-data-contract'
+            passed = $true
+            details = "Validated $($processHostConfigs.Count) generated process-host config web resources and confirmed they use 'designerEntryUrl' with the supported 'data=' payload contract."
         }
     )
     manualFollowUp = @(

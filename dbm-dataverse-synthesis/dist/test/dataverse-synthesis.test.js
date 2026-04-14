@@ -307,10 +307,14 @@ async function createRuntimeHarness(formId) {
     strict_1.default.equal(reviewForm?.runtime?.stageHandoffsByStageId['manager-review']?.strategy, 'create-related');
     strict_1.default.equal(reviewForm?.processHost?.overlay.enabled, true);
     strict_1.default.equal(reviewForm?.processHost?.supported?.webResourceName, 'ys_/dbm/process-experience/host.html');
+    const hostPageBehavior = plan.behaviors.find((behavior) => behavior.webResourceName === 'ys_/dbm/process-experience/host.html');
     const reviewHostData = JSON.parse(reviewForm?.processHost?.supported?.data ?? '{}');
     strict_1.default.match(reviewHostData.rendererVersion ?? '', /^[a-f0-9]+$/i);
     strict_1.default.match(reviewHostData.hostVersion ?? '', /^[a-f0-9]+$/i);
-    strict_1.default.equal(reviewForm?.processHost?.designerEntryUrl, '/main.aspx?forceUCI=1&pagetype=webresource&webresourceName=ys_%2Fdbm%2Fapps%2Feditor%2Findex.html&packageName=dbm-approval-request');
+    strict_1.default.equal(reviewHostData.minHeightPx, 320);
+    strict_1.default.equal(reviewForm?.processHost?.supported?.minHeightPx, 320);
+    strict_1.default.match(hostPageBehavior?.content ?? '', /ResizeObserver/);
+    strict_1.default.equal(reviewForm?.processHost?.designerEntryUrl, '/main.aspx?pagetype=webresource&webresourceName=ys_%2Fdbm%2Fapps%2Feditor%2Findex.html&data=%7B%22packageName%22%3A%22dbm-approval-request%22%7D');
 });
 (0, node_test_1.default)('planDataverseSynthesis supports a non-reference existing-form model with explicit cross-entity handoff', () => {
     const plan = (0, index_1.planDataverseSynthesis)(generic_existing_form_v1_model_json_1.default);
@@ -349,7 +353,9 @@ async function createRuntimeHarness(formId) {
     const assignmentHostData = JSON.parse(assignmentForm?.processHost?.supported?.data ?? '{}');
     strict_1.default.match(assignmentHostData.rendererVersion ?? '', /^[a-f0-9]+$/i);
     strict_1.default.match(assignmentHostData.hostVersion ?? '', /^[a-f0-9]+$/i);
-    strict_1.default.equal(assignmentForm?.processHost?.designerEntryUrl, '/main.aspx?forceUCI=1&pagetype=webresource&webresourceName=ys_%2Fdbm%2Fapps%2Feditor%2Findex.html&packageName=dbm-case-assignment');
+    strict_1.default.equal(assignmentHostData.minHeightPx, 320);
+    strict_1.default.equal(assignmentForm?.processHost?.supported?.minHeightPx, 320);
+    strict_1.default.equal(assignmentForm?.processHost?.designerEntryUrl, '/main.aspx?pagetype=webresource&webresourceName=ys_%2Fdbm%2Fapps%2Feditor%2Findex.html&data=%7B%22packageName%22%3A%22dbm-case-assignment%22%7D');
 });
 (0, node_test_1.default)('normalizeReadbackEntity captures lookup targets and picklist values', () => {
     const entity = (0, index_1.normalizeReadbackEntity)({
@@ -944,7 +950,7 @@ async function createRuntimeHarness(formId) {
         strict_1.default.ok(result?.state.stepId);
         strict_1.default.equal(form.sectionRenders.length, 1);
         strict_1.default.equal(form.sectionRenders[0]?.mode, 'model-driven-section');
-        strict_1.default.equal(form.sectionRenders[0]?.designerEntryUrl, 'https://example.crm4.dynamics.com/main.aspx?forceUCI=1&pagetype=webresource&webresourceName=ys_%2Fdbm%2Fapps%2Feditor%2Findex.html&packageName=dbm-approval-request');
+        strict_1.default.equal(form.sectionRenders[0]?.designerEntryUrl, 'https://example.crm4.dynamics.com/main.aspx?pagetype=webresource&webresourceName=ys_%2Fdbm%2Fapps%2Feditor%2Findex.html&data=%7B%22packageName%22%3A%22dbm-approval-request%22%7D');
         strict_1.default.equal(form.overlayRenders.length, 0);
     }
     finally {

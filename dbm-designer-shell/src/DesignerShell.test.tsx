@@ -261,6 +261,18 @@ describe('DesignerShell', () => {
     expect(repository.loadPackage).toHaveBeenCalledWith(getCurrentRecord().packageName);
   });
 
+  it('auto-loads the requested package from the supported data query parameter', async () => {
+    const { repository, getCurrentRecord } = createRepositoryHarness();
+    const payload = encodeURIComponent(JSON.stringify({ packageName: getCurrentRecord().packageName }));
+    window.history.replaceState({}, '', `/?data=${payload}`);
+
+    render(React.createElement(DesignerShell, { repository }));
+
+    await screen.findByRole('heading', { name: 'DBM Approval Request' });
+
+    expect(repository.loadPackage).toHaveBeenCalledWith(getCurrentRecord().packageName);
+  });
+
   it('falls back safely when the requested packageName query parameter is invalid', async () => {
     const { repository } = createRepositoryHarness();
     window.history.replaceState({}, '', '/?packageName=missing-package');
@@ -269,5 +281,15 @@ describe('DesignerShell', () => {
 
     await screen.findByRole('heading', { name: 'DBM Approval Request' });
     expect(await screen.findByText("Requested package 'missing-package' was not found. Showing the available package list instead.")).toBeTruthy();
+  });
+
+  it('falls back safely when the requested data query parameter is invalid', async () => {
+    const { repository } = createRepositoryHarness();
+    window.history.replaceState({}, '', '/?data=%7Bbad-json');
+
+    render(React.createElement(DesignerShell, { repository }));
+
+    await screen.findByRole('heading', { name: 'DBM Approval Request' });
+    expect(await screen.findByText('The requested designer deep link could not be parsed. Showing the available package list instead.')).toBeTruthy();
   });
 });

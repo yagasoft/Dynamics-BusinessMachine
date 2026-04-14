@@ -226,17 +226,49 @@ function toggleCollapsedNodeId(workspace: DbmDesignerWorkspaceV1, nodeId: string
     : [...workspace.collapsedNodeIds, nodeId];
 }
 
-function resolveRequestedPackageNameFromLocation(): string | null {
+function normalizeRequestedPackageName(value: string): string {
+  return parsePackageNameFromResourceName(value)?.packageName ?? value;
+}
+
+function resolveRequestedPackageNameFromLocation(): { packageName: string | null; statusMessage: string | null } {
   if (typeof window === 'undefined') {
-    return null;
+    return { packageName: null, statusMessage: null };
   }
 
-  const queryValue = new URLSearchParams(window.location.search).get('packageName')?.trim();
+  const query = new URLSearchParams(window.location.search);
+  const dataValue = query.get('data')?.trim();
+  if (dataValue) {
+    try {
+      const parsed = JSON.parse(dataValue) as { packageName?: unknown };
+      const packageName = typeof parsed.packageName === 'string' ? parsed.packageName.trim() : '';
+      if (!packageName) {
+        return {
+          packageName: null,
+          statusMessage: 'The requested designer deep link did not include a usable package name. Showing the available package list instead.'
+        };
+      }
+
+      return {
+        packageName: normalizeRequestedPackageName(packageName),
+        statusMessage: null
+      };
+    } catch {
+      return {
+        packageName: null,
+        statusMessage: 'The requested designer deep link could not be parsed. Showing the available package list instead.'
+      };
+    }
+  }
+
+  const queryValue = query.get('packageName')?.trim();
   if (!queryValue) {
-    return null;
+    return { packageName: null, statusMessage: null };
   }
 
-  return parsePackageNameFromResourceName(queryValue)?.packageName ?? queryValue;
+  return {
+    packageName: normalizeRequestedPackageName(queryValue),
+    statusMessage: null
+  };
 }
 
 function packagesEqual(left: DesignerDocument, right: DesignerDocument): boolean {
@@ -300,8 +332,9 @@ function PaletteButton({
 }
 
 export function DesignerShell({ repository }: DesignerShellProps) {
-  const requestedPackageNameRef = useRef<string | null>(resolveRequestedPackageNameFromLocation());
-  const pendingRequestedPackageStatusRef = useRef<string | null>(null);
+  const requestedPackageRequest = resolveRequestedPackageNameFromLocation();
+  const requestedPackageNameRef = useRef<string | null>(requestedPackageRequest.packageName);
+  const pendingRequestedPackageStatusRef = useRef<string | null>(requestedPackageRequest.statusMessage);
   const [packages, setPackages] = useState<DbmHostModelPackageSummary[]>([]);
   const [selectedPackageName, setSelectedPackageName] = useState<string | null>(null);
   const [currentRecord, setCurrentRecord] = useState<DbmHostModelPackageRecord | null>(null);

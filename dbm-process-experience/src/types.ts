@@ -118,6 +118,7 @@ export interface DbmProcessExperienceSectionHostConfigV1 {
   webResourceName: string;
   webResourceId: string;
   frameBridgeName: string;
+  minHeightPx: number;
   data: string;
 }
 

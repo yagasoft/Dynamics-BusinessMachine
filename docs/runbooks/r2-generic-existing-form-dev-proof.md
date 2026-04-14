@@ -41,6 +41,12 @@ Out of scope:
 .\eng\scripts\Get-DbmDesignerHost.ps1 -TargetEnvironment Dev -Open
 ```
 
+To reopen the pinned `R2.5` proof package directly in the hosted designer, use:
+
+```text
+https://ldv-rd-min.crm4.dynamics.com/main.aspx?appid=39e4cc96-59f1-ee11-904c-000d3add5311&pagetype=webresource&webresourceName=ys_%2Fdbm%2Fapps%2Feditor%2Findex.html&data=%7B%22packageName%22%3A%22dbm-testtableone-to-testtabletwo%22%7D
+```
+
 2. Click `New Package`.
 3. Choose `Blank Existing-Form Starter`.
 4. Enter:

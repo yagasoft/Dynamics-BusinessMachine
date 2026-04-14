@@ -92,22 +92,21 @@ export function ProcessExperienceSurface(props: ProcessExperienceSurfaceProps) {
     () => (snapshot ? buildGuidedWorkspaceViewModel(snapshot, props.audience ?? snapshot.audience) : null),
     [props.audience, snapshot]
   );
-
-  if (!snapshot || !viewModel) {
-    return <div style={emptyStateStyle}>Process experience becomes available once the model and workspace parse cleanly.</div>;
-  }
-
-  const resolvedAudience = props.audience ?? snapshot.audience;
+  const resolvedAudience = props.audience ?? snapshot?.audience;
   const isModelDriven = props.mode === 'model-driven-section' || props.mode === 'model-driven-overlay';
-  const currentStageOutgoingTransitions = snapshot.transitions.filter((transition) => transition.fromStageId === snapshot.currentStageId);
-  const shouldAutoOpenFlow = isModelDriven
+  const currentStageOutgoingTransitions = snapshot
+    ? snapshot.transitions.filter((transition) => transition.fromStageId === snapshot.currentStageId)
+    : [];
+  const shouldAutoOpenFlow = Boolean(snapshot && isModelDriven
     && (
       Boolean(snapshot.projection.message)
       || snapshot.availableOutcomes.length > 1
       || currentStageOutgoingTransitions.length > 1
-    );
-  const autoOpenKey = `${props.mode}:${snapshot.currentStageId}:${snapshot.currentStepId ?? 'none'}:${snapshot.projection.message ?? 'none'}:${snapshot.availableOutcomes.map((outcome) => outcome.id).join(',')}:${currentStageOutgoingTransitions.map((transition) => transition.id).join(',')}`;
-  const currentTone = tonePalette(viewModel.currentTask.tone);
+    ));
+  const autoOpenKey = snapshot
+    ? `${props.mode}:${snapshot.currentStageId}:${snapshot.currentStepId ?? 'none'}:${snapshot.projection.message ?? 'none'}:${snapshot.availableOutcomes.map((outcome) => outcome.id).join(',')}:${currentStageOutgoingTransitions.map((transition) => transition.id).join(',')}`
+    : `${props.mode}:empty`;
+  const currentTone = tonePalette(viewModel?.currentTask.tone ?? 'upcoming');
   const resolvedSurfaceShellStyle = isModelDriven ? compactSurfaceShellStyle : surfaceShellStyle;
   const resolvedHeadingStyle = isModelDriven ? compactHeadingStyle : headingStyle;
   const resolvedIntroCopyStyle = isModelDriven ? compactIntroCopyStyle : introCopyStyle;
@@ -150,6 +149,10 @@ export function ProcessExperienceSurface(props: ProcessExperienceSurfaceProps) {
     setFlowOpen(shouldAutoOpenFlow);
   }, [autoOpenKey, shouldAutoOpenFlow]);
 
+  if (!snapshot || !viewModel || !resolvedAudience) {
+    return <div style={emptyStateStyle}>Process experience becomes available once the model and workspace parse cleanly.</div>;
+  }
+
   async function handleOpenDesigner() {
     if (!props.designerEntryUrl) {
       return;
@@ -174,16 +177,25 @@ export function ProcessExperienceSurface(props: ProcessExperienceSurfaceProps) {
     ).replace(/\/$/, '');
     let resolvedUrl = props.designerEntryUrl;
 
-    const packageName = (() => {
+    const designerPayload = (() => {
       try {
         const parsed = new URL(resolvedUrl, clientUrl || undefined);
-        return parsed.searchParams.get('packageName');
+        const dataValue = parsed.searchParams.get('data')?.trim();
+        if (dataValue) {
+          const payload = JSON.parse(dataValue) as { packageName?: unknown };
+          if (payload && typeof payload.packageName === 'string' && payload.packageName.trim()) {
+            return { packageName: payload.packageName.trim() };
+          }
+        }
+
+        const packageName = parsed.searchParams.get('packageName')?.trim();
+        return packageName ? { packageName } : null;
       } catch {
         return null;
       }
     })();
 
-    if (clientUrl && packageName) {
+    if (clientUrl && designerPayload) {
       try {
         const filter = encodeURIComponent(`uniquename eq '${DESIGNER_APP_UNIQUE_NAME}'`);
         const response = await fetch(
@@ -205,7 +217,7 @@ export function ProcessExperienceSurface(props: ProcessExperienceSurfaceProps) {
             next.searchParams.set('appid', appId);
             next.searchParams.set('pagetype', 'webresource');
             next.searchParams.set('webresourceName', DESIGNER_WEB_RESOURCE_NAME);
-            next.searchParams.set('packageName', packageName);
+            next.searchParams.set('data', JSON.stringify(designerPayload));
             resolvedUrl = next.toString();
           }
         }
@@ -271,7 +283,9 @@ export function ProcessExperienceSurface(props: ProcessExperienceSurfaceProps) {
                 ...resolvedTrackerItemStyle,
                 background: palette.background,
                 borderColor: item.isCurrent ? palette.border : '#d7dee8',
-                boxShadow: item.isCurrent ? `0 18px 40px ${palette.shadow}` : 'none'
+                boxShadow: item.isCurrent
+                  ? (isModelDriven ? `0 8px 18px ${palette.shadow}` : `0 18px 40px ${palette.shadow}`)
+                  : 'none'
               }}
               onClick={() => props.onRequestFocus?.(`stage:${item.id}`)}
             >
@@ -292,7 +306,7 @@ export function ProcessExperienceSurface(props: ProcessExperienceSurfaceProps) {
             ...resolvedCurrentTaskCardStyle,
             background: currentTone.background,
             borderColor: currentTone.border,
-            boxShadow: `0 22px 44px ${currentTone.shadow}`
+            boxShadow: isModelDriven ? `0 10px 24px ${currentTone.shadow}` : `0 22px 44px ${currentTone.shadow}`
           }}
         >
           <div style={currentTaskHeaderStyle}>
@@ -465,10 +479,11 @@ const surfaceShellStyle = {
 
 const compactSurfaceShellStyle = {
   ...surfaceShellStyle,
-  gap: '0.8rem',
-  padding: '0.85rem 0.95rem',
-  borderRadius: '1rem',
-  background: '#fffdf8'
+  gap: '0.65rem',
+  padding: '0.72rem 0.78rem',
+  borderRadius: '0.92rem',
+  background: '#fffdf8',
+  overflowX: 'hidden'
 } as const;
 
 const headerShellStyle = {
@@ -494,8 +509,8 @@ const headingStyle = {
 
 const compactHeadingStyle = {
   ...headingStyle,
-  fontSize: '1.22rem',
-  margin: '0.25rem 0 0.1rem'
+  fontSize: '1.08rem',
+  margin: '0.2rem 0 0.05rem'
 } as const;
 
 const introCopyStyle = {
@@ -506,7 +521,8 @@ const introCopyStyle = {
 
 const compactIntroCopyStyle = {
   ...introCopyStyle,
-  fontSize: '0.9rem'
+  fontSize: '0.82rem',
+  lineHeight: 1.35
 } as const;
 
 const statusClusterStyle = {
@@ -526,8 +542,8 @@ const statusPillStyle = {
 
 const compactStatusPillStyle = {
   ...statusPillStyle,
-  padding: '0.35rem 0.68rem',
-  fontSize: '0.78rem'
+  padding: '0.28rem 0.58rem',
+  fontSize: '0.74rem'
 } as const;
 
 const flowToggleButtonStyle = {
@@ -542,8 +558,8 @@ const flowToggleButtonStyle = {
 
 const compactFlowToggleButtonStyle = {
   ...flowToggleButtonStyle,
-  padding: '0.58rem 0.88rem',
-  fontSize: '0.86rem'
+  padding: '0.48rem 0.78rem',
+  fontSize: '0.8rem'
 } as const;
 
 const projectionNoticeStyle = {
@@ -560,8 +576,8 @@ const projectionNoticeStyle = {
 
 const compactProjectionNoticeStyle = {
   ...projectionNoticeStyle,
-  padding: '0.8rem 0.9rem',
-  borderRadius: '0.9rem'
+  padding: '0.68rem 0.78rem',
+  borderRadius: '0.8rem'
 } as const;
 
 const projectionCopyStyle = {
@@ -585,9 +601,10 @@ const journeyTrackerShellStyle = {
 
 const compactJourneyTrackerShellStyle = {
   display: 'flex',
-  gap: '0.65rem',
+  gap: '0.5rem',
   overflowX: 'auto',
-  paddingBottom: '0.2rem'
+  overflowY: 'hidden',
+  paddingBottom: '0.1rem'
 } as const;
 
 const trackerItemStyle = {
@@ -602,12 +619,12 @@ const trackerItemStyle = {
 
 const compactTrackerItemStyle = {
   ...trackerItemStyle,
-  gap: '0.3rem',
-  padding: '0.72rem 0.78rem',
-  borderRadius: '0.9rem',
-  minWidth: '168px',
-  maxWidth: '220px',
-  flex: '0 0 168px'
+  gap: '0.22rem',
+  padding: '0.58rem 0.62rem',
+  borderRadius: '0.78rem',
+  minWidth: '140px',
+  maxWidth: '176px',
+  flex: '0 0 140px'
 } as const;
 
 const trackerHeaderStyle = {
@@ -638,7 +655,8 @@ const trackerLabelStyle = {
 
 const compactTrackerLabelStyle = {
   ...trackerLabelStyle,
-  fontSize: '0.9rem'
+  fontSize: '0.82rem',
+  lineHeight: 1.15
 } as const;
 
 const trackerHelperStyle = {
@@ -648,8 +666,11 @@ const trackerHelperStyle = {
 
 const compactTrackerHelperStyle = {
   ...trackerHelperStyle,
-  fontSize: '0.78rem',
-  lineHeight: 1.35
+  fontSize: '0.72rem',
+  lineHeight: 1.2,
+  whiteSpace: 'nowrap',
+  overflow: 'hidden',
+  textOverflow: 'ellipsis'
 } as const;
 
 const workspaceGridStyle = {
@@ -667,9 +688,9 @@ const currentTaskCardStyle = {
 
 const compactCurrentTaskCardStyle = {
   ...currentTaskCardStyle,
-  gap: '0.8rem',
-  padding: '0.9rem',
-  borderRadius: '1rem'
+  gap: '0.65rem',
+  padding: '0.72rem',
+  borderRadius: '0.9rem'
 } as const;
 
 const currentTaskHeaderStyle = {
@@ -696,7 +717,8 @@ const currentStageTitleStyle = {
 
 const compactCurrentStageTitleStyle = {
   ...currentStageTitleStyle,
-  fontSize: '1.12rem'
+  fontSize: '1rem',
+  lineHeight: 1.12
 } as const;
 
 const actorBadgeStyle = {
@@ -710,8 +732,8 @@ const actorBadgeStyle = {
 
 const compactActorBadgeStyle = {
   ...actorBadgeStyle,
-  padding: '0.35rem 0.62rem',
-  fontSize: '0.78rem'
+  padding: '0.28rem 0.52rem',
+  fontSize: '0.72rem'
 } as const;
 
 const currentTaskBodyStyle = {
@@ -723,7 +745,7 @@ const currentTaskBodyStyle = {
 
 const compactCurrentTaskBodyStyle = {
   display: 'grid',
-  gap: '0.8rem',
+  gap: '0.65rem',
   gridTemplateColumns: 'minmax(0, 1fr)',
   alignItems: 'start'
 } as const;
@@ -743,9 +765,9 @@ const currentStepCardStyle = {
 
 const compactCurrentStepCardStyle = {
   ...currentStepCardStyle,
-  gap: '0.65rem',
-  padding: '0.9rem',
-  borderRadius: '1rem'
+  gap: '0.55rem',
+  padding: '0.72rem',
+  borderRadius: '0.85rem'
 } as const;
 
 const currentStepEyebrowStyle = {
@@ -764,8 +786,8 @@ const currentStepTitleStyle = {
 
 const compactCurrentStepTitleStyle = {
   ...currentStepTitleStyle,
-  fontSize: '1.26rem',
-  lineHeight: 1.12
+  fontSize: '1.08rem',
+  lineHeight: 1.14
 } as const;
 
 const currentStepSummaryStyle = {
@@ -777,8 +799,8 @@ const currentStepSummaryStyle = {
 
 const compactCurrentStepSummaryStyle = {
   ...currentStepSummaryStyle,
-  fontSize: '0.92rem',
-  lineHeight: 1.42
+  fontSize: '0.84rem',
+  lineHeight: 1.34
 } as const;
 
 const currentStepHelperStyle = {
@@ -790,8 +812,8 @@ const currentStepHelperStyle = {
 
 const compactCurrentStepHelperStyle = {
   ...currentStepHelperStyle,
-  fontSize: '0.84rem',
-  lineHeight: 1.38
+  fontSize: '0.78rem',
+  lineHeight: 1.3
 } as const;
 
 const actionGroupStyle = {
@@ -803,7 +825,7 @@ const actionGroupStyle = {
 
 const compactActionGroupStyle = {
   ...actionGroupStyle,
-  gap: '0.55rem'
+  gap: '0.45rem'
 } as const;
 
 const primaryActionButtonStyle = {
@@ -819,9 +841,9 @@ const primaryActionButtonStyle = {
 
 const compactPrimaryActionButtonStyle = {
   ...primaryActionButtonStyle,
-  padding: '0.7rem 1rem',
-  borderRadius: '0.82rem',
-  fontSize: '0.88rem'
+  padding: '0.58rem 0.86rem',
+  borderRadius: '0.72rem',
+  fontSize: '0.8rem'
 } as const;
 
 const secondaryActionButtonStyle = {
@@ -837,9 +859,9 @@ const secondaryActionButtonStyle = {
 
 const compactSecondaryActionButtonStyle = {
   ...secondaryActionButtonStyle,
-  padding: '0.66rem 0.92rem',
-  borderRadius: '0.82rem',
-  fontSize: '0.86rem'
+  padding: '0.54rem 0.78rem',
+  borderRadius: '0.72rem',
+  fontSize: '0.8rem'
 } as const;
 
 const readOnlyNoticeStyle = {
@@ -868,7 +890,7 @@ const supportingColumnStyle = {
 
 const compactSupportingColumnStyle = {
   display: 'grid',
-  gap: '0.75rem'
+  gap: '0.6rem'
 } as const;
 
 const supportCardStyle = {
@@ -882,9 +904,9 @@ const supportCardStyle = {
 
 const compactSupportCardStyle = {
   ...supportCardStyle,
-  gap: '0.55rem',
-  padding: '0.8rem',
-  borderRadius: '0.92rem'
+  gap: '0.45rem',
+  padding: '0.68rem',
+  borderRadius: '0.82rem'
 } as const;
 
 const supportCardLabelStyle = {
@@ -914,8 +936,8 @@ const stepChecklistItemStyle = {
 const compactStepChecklistItemStyle = {
   ...stepChecklistItemStyle,
   gap: '0.16rem',
-  padding: '0.68rem',
-  borderRadius: '0.82rem'
+  padding: '0.58rem',
+  borderRadius: '0.72rem'
 } as const;
 
 const stepChecklistStateStyle = {
@@ -931,7 +953,7 @@ const stepChecklistTitleStyle = {
 
 const compactStepChecklistTitleStyle = {
   ...stepChecklistTitleStyle,
-  fontSize: '0.88rem'
+  fontSize: '0.8rem'
 } as const;
 
 const stepChecklistHelperStyle = {
@@ -941,7 +963,7 @@ const stepChecklistHelperStyle = {
 
 const compactStepChecklistHelperStyle = {
   ...stepChecklistHelperStyle,
-  fontSize: '0.76rem'
+  fontSize: '0.72rem'
 } as const;
 
 const supportParagraphStyle = {
@@ -953,8 +975,8 @@ const supportParagraphStyle = {
 
 const compactSupportParagraphStyle = {
   ...supportParagraphStyle,
-  fontSize: '0.84rem',
-  lineHeight: 1.42
+  fontSize: '0.78rem',
+  lineHeight: 1.3
 } as const;
 
 const flowDrawerStyle = {
@@ -968,9 +990,9 @@ const flowDrawerStyle = {
 
 const compactFlowDrawerStyle = {
   ...flowDrawerStyle,
-  gap: '0.75rem',
-  padding: '0.85rem',
-  borderRadius: '1rem'
+  gap: '0.6rem',
+  padding: '0.72rem',
+  borderRadius: '0.85rem'
 } as const;
 
 const flowDrawerHeaderStyle = {
@@ -987,7 +1009,7 @@ const flowHeadingStyle = {
 
 const compactFlowHeadingStyle = {
   ...flowHeadingStyle,
-  fontSize: '1rem'
+  fontSize: '0.92rem'
 } as const;
 
 const flowStageListStyle = {
@@ -1005,9 +1027,9 @@ const flowStageCardStyle = {
 
 const compactFlowStageCardStyle = {
   ...flowStageCardStyle,
-  gap: '0.5rem',
-  padding: '0.78rem',
-  borderRadius: '0.9rem'
+  gap: '0.42rem',
+  padding: '0.64rem',
+  borderRadius: '0.78rem'
 } as const;
 
 const flowStageHeaderStyle = {
@@ -1036,7 +1058,8 @@ const flowStageHelperStyle = {
 
 const compactFlowStageHelperStyle = {
   ...flowStageHelperStyle,
-  fontSize: '0.8rem'
+  fontSize: '0.74rem',
+  lineHeight: 1.26
 } as const;
 
 const flowTransitionListStyle = {
@@ -1075,7 +1098,7 @@ const flowDestinationStyle = {
 
 const compactFlowDestinationStyle = {
   ...flowDestinationStyle,
-  fontSize: '0.84rem'
+  fontSize: '0.78rem'
 } as const;
 
 const flowTerminalCopyStyle = {

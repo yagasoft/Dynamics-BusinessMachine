@@ -33,6 +33,12 @@ To open it directly:
 .\eng\scripts\Get-DbmDesignerHost.ps1 -TargetEnvironment Dev -Open
 ```
 
+To reopen a specific package directly from Dataverse, use the same app-aware designer URL with a JSON `data` payload, for example:
+
+```text
+https://ldv-rd-min.crm4.dynamics.com/main.aspx?appid=39e4cc96-59f1-ee11-904c-000d3add5311&pagetype=webresource&webresourceName=ys_%2Fdbm%2Fapps%2Feditor%2Findex.html&data=%7B%22packageName%22%3A%22dbm-testtableone-to-testtabletwo%22%7D
+```
+
 To validate the hosted prerequisites and capture evidence:
 
 ```powershell

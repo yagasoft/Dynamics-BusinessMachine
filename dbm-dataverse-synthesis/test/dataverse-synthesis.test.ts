@@ -405,12 +405,16 @@ test('planDataverseSynthesis maps the approval example into entities, existing f
   assert.equal(reviewForm?.runtime?.stageHandoffsByStageId['manager-review']?.strategy, 'create-related');
   assert.equal(reviewForm?.processHost?.overlay.enabled, true);
   assert.equal(reviewForm?.processHost?.supported?.webResourceName, 'ys_/dbm/process-experience/host.html');
+  const hostPageBehavior = plan.behaviors.find((behavior) => behavior.webResourceName === 'ys_/dbm/process-experience/host.html');
   const reviewHostData = JSON.parse(reviewForm?.processHost?.supported?.data ?? '{}');
   assert.match(reviewHostData.rendererVersion ?? '', /^[a-f0-9]+$/i);
   assert.match(reviewHostData.hostVersion ?? '', /^[a-f0-9]+$/i);
+  assert.equal(reviewHostData.minHeightPx, 320);
+  assert.equal(reviewForm?.processHost?.supported?.minHeightPx, 320);
+  assert.match(hostPageBehavior?.content ?? '', /ResizeObserver/);
   assert.equal(
     reviewForm?.processHost?.designerEntryUrl,
-    '/main.aspx?forceUCI=1&pagetype=webresource&webresourceName=ys_%2Fdbm%2Fapps%2Feditor%2Findex.html&packageName=dbm-approval-request'
+    '/main.aspx?pagetype=webresource&webresourceName=ys_%2Fdbm%2Fapps%2Feditor%2Findex.html&data=%7B%22packageName%22%3A%22dbm-approval-request%22%7D'
   );
 });
 
@@ -458,9 +462,11 @@ test('planDataverseSynthesis supports a non-reference existing-form model with e
   const assignmentHostData = JSON.parse(assignmentForm?.processHost?.supported?.data ?? '{}');
   assert.match(assignmentHostData.rendererVersion ?? '', /^[a-f0-9]+$/i);
   assert.match(assignmentHostData.hostVersion ?? '', /^[a-f0-9]+$/i);
+  assert.equal(assignmentHostData.minHeightPx, 320);
+  assert.equal(assignmentForm?.processHost?.supported?.minHeightPx, 320);
   assert.equal(
     assignmentForm?.processHost?.designerEntryUrl,
-    '/main.aspx?forceUCI=1&pagetype=webresource&webresourceName=ys_%2Fdbm%2Fapps%2Feditor%2Findex.html&packageName=dbm-case-assignment'
+    '/main.aspx?pagetype=webresource&webresourceName=ys_%2Fdbm%2Fapps%2Feditor%2Findex.html&data=%7B%22packageName%22%3A%22dbm-case-assignment%22%7D'
   );
 });
 
@@ -1167,7 +1173,7 @@ test('generated request runtime still renders the supported process host when ov
     assert.equal(form.sectionRenders[0]?.mode, 'model-driven-section');
     assert.equal(
       form.sectionRenders[0]?.designerEntryUrl,
-      'https://example.crm4.dynamics.com/main.aspx?forceUCI=1&pagetype=webresource&webresourceName=ys_%2Fdbm%2Fapps%2Feditor%2Findex.html&packageName=dbm-approval-request'
+      'https://example.crm4.dynamics.com/main.aspx?pagetype=webresource&webresourceName=ys_%2Fdbm%2Fapps%2Feditor%2Findex.html&data=%7B%22packageName%22%3A%22dbm-approval-request%22%7D'
     );
     assert.equal(form.overlayRenders.length, 0);
   } finally {
