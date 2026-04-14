@@ -1,10 +1,96 @@
-import { render, screen, within } from '@testing-library/react';
+import { cleanup, render, screen, within } from '@testing-library/react';
 import userEvent from '@testing-library/user-event';
-import { expect, test } from 'vitest';
+import { afterEach, expect, test } from 'vitest';
 import type { DbmProcessExperienceSnapshotV1 } from 'dbm-contract';
 import { ProcessExperienceSurface } from './ProcessExperienceSurface';
 import { buildRuntimeProcessExperienceSnapshot } from './runtime-snapshot';
 import { approvalRequestRuntimeModel } from './test-fixtures/approvalRequestFixture';
+import type { DbmProcessExperienceRuntimeModelV1 } from './types';
+
+const genericTerminalRuntimeModel: DbmProcessExperienceRuntimeModelV1 = {
+  packageId: 'dbm-case-assignment',
+  packageVersion: '1.0.0',
+  processId: 'case-assignment-process',
+  actors: [
+    { id: 'requester', displayName: 'Requester', actorType: 'requester' },
+    { id: 'case-worker', displayName: 'Case Worker', actorType: 'approver' },
+    { id: 'platform', displayName: 'Platform', actorType: 'system' }
+  ],
+  statuses: [
+    { id: 'draft', displayName: 'Draft', audience: 'shared', kind: 'progress' },
+    { id: 'assigned', displayName: 'Assigned', audience: 'shared', kind: 'progress' },
+    { id: 'complete', displayName: 'Complete', audience: 'shared', kind: 'terminal' }
+  ],
+  outcomes: [
+    { id: 'submit', displayName: 'Submit' },
+    { id: 'complete', displayName: 'Complete' }
+  ],
+  stages: [
+    {
+      id: 'draft-case',
+      displayName: 'Draft Case',
+      stageType: 'start',
+      actorId: 'requester',
+      formId: 'case-form',
+      portalVisibility: 'visible',
+      stepIds: ['capture-case'],
+      defaultStepId: 'capture-case',
+      allowedOutcomeIds: ['submit']
+    },
+    {
+      id: 'assignment-work',
+      displayName: 'Assignment Work',
+      stageType: 'task',
+      actorId: 'case-worker',
+      formId: 'assignment-form',
+      portalVisibility: 'visible',
+      stepIds: ['prepare-assignment'],
+      defaultStepId: 'prepare-assignment',
+      allowedOutcomeIds: ['complete']
+    },
+    {
+      id: 'completed',
+      displayName: 'Completed',
+      stageType: 'end',
+      actorId: 'platform',
+      formId: null,
+      portalVisibility: 'visible',
+      stepIds: [],
+      defaultStepId: null,
+      allowedOutcomeIds: []
+    }
+  ],
+  steps: [
+    {
+      id: 'capture-case',
+      stageId: 'draft-case',
+      displayName: 'Capture Case',
+      stepType: 'data-entry',
+      ownerActorId: 'requester',
+      internalStatusId: 'draft',
+      portalStatusId: 'draft',
+      formStateId: 'case-edit-state'
+    },
+    {
+      id: 'prepare-assignment',
+      stageId: 'assignment-work',
+      displayName: 'Prepare Assignment',
+      stepType: 'data-entry',
+      ownerActorId: 'case-worker',
+      internalStatusId: 'assigned',
+      portalStatusId: 'assigned',
+      formStateId: 'assignment-work-state'
+    }
+  ],
+  transitions: [
+    { id: 'submit-case', fromStageId: 'draft-case', toStageId: 'assignment-work', outcomeId: 'submit' },
+    { id: 'complete-assignment', fromStageId: 'assignment-work', toStageId: 'completed', outcomeId: 'complete' }
+  ]
+};
+
+afterEach(() => {
+  cleanup();
+});
 
 test('buildRuntimeProcessExperienceSnapshot collapses hidden stages for portal projection and surfaces cross-form handoff', () => {
   const snapshot = buildRuntimeProcessExperienceSnapshot(
@@ -154,4 +240,57 @@ test('ProcessExperienceSurface keeps cross-form handoff navigation visible', asy
 
   await user.click(screen.getByRole('button', { name: 'Open Review Details' }));
   expect(events).toEqual(['navigate:dbm_review_status']);
+});
+
+test('buildRuntimeProcessExperienceSnapshot allows a terminal end stage without an active step', () => {
+  const snapshot = buildRuntimeProcessExperienceSnapshot(
+    genericTerminalRuntimeModel,
+    {
+      stageId: 'completed',
+      stepId: 'prepare-assignment',
+      formStateId: 'assignment-work-state',
+      internalStatusId: 'complete',
+      portalStatusId: 'complete'
+    },
+    {
+      currentFormId: 'assignment-form'
+    }
+  );
+
+  expect(snapshot.currentStageId).toBe('completed');
+  expect(snapshot.currentStepId).toBeNull();
+  expect(snapshot.activeFormStateId).toBeNull();
+  expect(snapshot.internalStatus?.id).toBe('complete');
+  expect(snapshot.projection.projectedStepId).toBeNull();
+});
+
+test('ProcessExperienceSurface renders a friendly terminal guided workspace without actions', () => {
+  const snapshot = buildRuntimeProcessExperienceSnapshot(
+    genericTerminalRuntimeModel,
+    {
+      stageId: 'completed',
+      stepId: 'prepare-assignment',
+      formStateId: 'assignment-work-state',
+      internalStatusId: 'complete',
+      portalStatusId: 'complete'
+    },
+    {
+      currentFormId: 'assignment-form'
+    }
+  );
+
+  render(
+    <ProcessExperienceSurface
+      snapshot={snapshot}
+      mode="model-driven-section"
+      onInvokeOutcome={() => {
+        throw new Error('Terminal state should not offer outcomes.');
+      }}
+    />
+  );
+
+  expect(screen.getByText('Process complete')).toBeTruthy();
+  expect(screen.getByText('This request has reached its end state. You can review the completed journey below if needed.')).toBeTruthy();
+  expect(screen.getByText('No action is needed from this surface right now.')).toBeTruthy();
+  expect(screen.getByText('This workflow has finished. No further action is required from this surface.')).toBeTruthy();
 });

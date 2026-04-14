@@ -109,7 +109,22 @@ export const liveE2ECaseSchema = {
             properties: {
               kind: { const: 'capture-current-record-id' },
               role: { enum: ['requester', 'finance-reviewer', 'manager-approver', 'support-admin'] },
+              entityAlias: { type: 'string', minLength: 1 },
               recordAlias: { type: 'string', minLength: 1 }
+            }
+          },
+          {
+            type: 'object',
+            additionalProperties: false,
+            required: ['kind', 'entityAlias', 'recordAlias', 'fieldLogicalName', 'equals'],
+            properties: {
+              kind: { const: 'capture-related-record' },
+              role: { enum: ['requester', 'finance-reviewer', 'manager-approver', 'support-admin'] },
+              entityAlias: { type: 'string', minLength: 1 },
+              recordAlias: { type: 'string', minLength: 1 },
+              fieldLogicalName: { type: 'string', minLength: 1 },
+              equals: { type: 'string', minLength: 1 },
+              timeoutMs: { type: 'integer', minimum: 1 }
             }
           },
           {

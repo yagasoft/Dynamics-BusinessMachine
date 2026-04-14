@@ -43,6 +43,11 @@ function stepSummary(stepType) {
             return 'This step runs automatically once the required conditions are met.';
     }
 }
+function terminalStepSummary(stage) {
+    return stage.stageType === 'end'
+        ? 'This request has reached its end state. You can review the completed journey below if needed.'
+        : 'There is no active task for this stage right now.';
+}
 function stageHelper(stage, step) {
     if (stage.visibility === 'collapsed-hidden') {
         return 'Internal work is in progress.';
@@ -91,15 +96,16 @@ export function buildGuidedWorkspaceViewModel(snapshot, audience = snapshot.audi
         stepsByStageId.set(step.stageId, stageSteps);
     });
     const currentStage = stagesById.get(snapshot.currentStageId) ?? snapshot.stages[0];
-    const currentStep = stepsById.get(snapshot.currentStepId)
+    const currentStep = (snapshot.currentStepId ? stepsById.get(snapshot.currentStepId) : undefined)
         ?? stepsByStageId.get(currentStage.id)?.find((step) => step.state === 'current')
         ?? stepsByStageId.get(currentStage.id)?.[0];
-    if (!currentStage || !currentStep) {
-        throw new Error('Guided workspace requires a current stage and step.');
+    if (!currentStage) {
+        throw new Error('Guided workspace requires a current stage.');
     }
     const currentStageTransitions = snapshot.transitions.filter((transition) => transition.fromStageId === currentStage.id);
     const currentStageTone = toneForStage(currentStage, audience);
     const isHiddenCurrentStage = currentStageTone === 'hidden';
+    const isTerminalCurrentStage = !currentStep && currentStage.stageType === 'end';
     const actions = isHiddenCurrentStage
         ? []
         : snapshot.availableOutcomes.map((outcome, index) => ({
@@ -108,7 +114,7 @@ export function buildGuidedWorkspaceViewModel(snapshot, audience = snapshot.audi
             emphasis: index === 0 ? 'primary' : 'secondary',
             nextCopy: actionNextCopy(currentStageTransitions.find((transition) => transition.outcome?.id === outcome.id), stagesById)
         }));
-    const siblingSteps = isHiddenCurrentStage
+    const siblingSteps = (isHiddenCurrentStage || isTerminalCurrentStage)
         ? []
         : (stepsByStageId.get(currentStage.id) ?? []).map((step) => ({
             id: step.id,
@@ -116,7 +122,7 @@ export function buildGuidedWorkspaceViewModel(snapshot, audience = snapshot.audi
             helperCopy: step.owner?.displayName ?? stepSummary(step.stepType),
             stateLabel: stateLabel(step.state),
             tone: step.state,
-            isCurrent: step.id === currentStep.id
+            isCurrent: step.id === currentStep?.id
         }));
     return {
         processTitle: titleCaseIdentifier(snapshot.processId),
@@ -124,18 +130,36 @@ export function buildGuidedWorkspaceViewModel(snapshot, audience = snapshot.audi
         currentTask: {
             stageTitle: currentStage.displayName,
             stageLabel: currentStage.state === 'current' ? 'Current milestone' : 'Current focus',
-            stepTitle: isHiddenCurrentStage ? 'Under internal review' : currentStep.displayName,
+            stepTitle: isHiddenCurrentStage
+                ? 'Under internal review'
+                : isTerminalCurrentStage
+                    ? 'Process complete'
+                    : currentStep?.displayName ?? 'Current task',
             stepSummary: isHiddenCurrentStage
                 ? 'The request is moving through an internal stage. You can monitor progress here while the team completes the next review.'
-                : stepSummary(currentStep.stepType),
+                : isTerminalCurrentStage
+                    ? terminalStepSummary(currentStage)
+                    : stepSummary(currentStep?.stepType ?? 'system'),
             helperCopy: buildNextCopy(currentStageTransitions, stagesById, actions, isHiddenCurrentStage),
             nextCopy: isHiddenCurrentStage
                 ? 'We will surface the next requester-facing step here as soon as it becomes available.'
-                : buildNextCopy(currentStageTransitions, stagesById, actions, false),
+                : isTerminalCurrentStage
+                    ? 'This workflow has finished. No further action is required from this surface.'
+                    : buildNextCopy(currentStageTransitions, stagesById, actions, false),
             statusLabel: primaryStatusLabel(snapshot, audience),
-            actorLabel: currentStage.actor?.displayName ?? currentStep.owner?.displayName ?? null,
+            actorLabel: currentStage.actor?.displayName ?? currentStep?.owner?.displayName ?? null,
             tone: currentStageTone,
             isHidden: isHiddenCurrentStage,
+            supportingLabel: isHiddenCurrentStage
+                ? 'Current visibility'
+                : isTerminalCurrentStage
+                    ? 'Current state'
+                    : 'Current visibility',
+            supportingCopy: isHiddenCurrentStage
+                ? 'This step is currently progressing in an internal-only part of the workflow. We will bring the next requester-facing task back here automatically.'
+                : isTerminalCurrentStage
+                    ? 'This workflow has reached its terminal state. No additional steps are active.'
+                    : 'No additional steps are active for this stage right now.',
             siblingSteps,
             actions
         },

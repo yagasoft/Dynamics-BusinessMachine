@@ -8,6 +8,7 @@ import {
   assertRecordField,
   createRecord,
   deleteRecord,
+  findRecordIdByField,
   resolveEntityConfig,
   retrieveRecord
 } from './dataverse.js';
@@ -73,7 +74,7 @@ export async function executeCase(
     }
 
     for (const action of liveCase.actions) {
-      await executeAction(browser, runContext, liveCase, action, caseResult, state);
+      await executeAction(browser, runContext, liveCase, action, caseResult, state, request, accessToken);
     }
 
     for (const assertion of liveCase.assertions) {
@@ -100,10 +101,10 @@ export async function executeCase(
     if (state.pageState) {
       const refreshStatePath = process.env.DBM_LIVE_E2E_SESSION_REFRESH_PATH;
       if (refreshStatePath) {
-        await state.pageState.context.storageState({ path: refreshStatePath });
+        await state.pageState.context.storageState({ path: refreshStatePath }).catch(() => undefined);
       }
 
-      await state.pageState.context.close();
+      await state.pageState.context.close().catch(() => undefined);
     }
   }
 
@@ -116,7 +117,9 @@ async function executeAction(
   liveCase: LiveE2ECaseDefinition,
   action: LiveE2EAction,
   caseResult: LiveE2ECaseResult,
-  state: ExecutionState
+  state: ExecutionState,
+  request: APIRequestContext,
+  accessToken: string
 ): Promise<void> {
   const pageState = await getPage(browser, runContext, state);
   const page = pageState.page;
@@ -171,10 +174,26 @@ async function executeAction(
 
     case 'capture-current-record-id': {
       const existing = state.records[action.recordAlias];
-      const entityAlias = existing?.entityAlias ?? inferDefaultEntityAlias(runContext);
+      const entityAlias = action.entityAlias ?? existing?.entityAlias ?? inferDefaultEntityAlias(runContext);
       const recordId = captureRecordIdFromPage(page);
       state.records[action.recordAlias] = { entityAlias, id: recordId };
       caseResult.createdRecords.push({ entityAlias, id: recordId });
+      break;
+    }
+
+    case 'capture-related-record': {
+      const entityConfig = resolveEntityConfig(runContext.environmentConfig, action.entityAlias);
+      const recordId = await findRecordIdByField(
+        request,
+        accessToken,
+        runContext.dataverseUrl,
+        entityConfig,
+        action.fieldLogicalName,
+        resolveTemplate(action.equals, runContext, caseResult, state.records),
+        action.timeoutMs
+      );
+      state.records[action.recordAlias] = { entityAlias: action.entityAlias, id: recordId };
+      caseResult.createdRecords.push({ entityAlias: action.entityAlias, id: recordId });
       break;
     }
 

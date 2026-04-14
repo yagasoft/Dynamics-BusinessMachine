@@ -31,7 +31,8 @@
         "submit-request-advance",
         "hidden-internal-stage-projection",
         "approval-path",
-        "rejection-path"
+        "rejection-path",
+        "generic-existing-form-create-related"
       ],
       "promotion": [
         "submit-request-advance",
@@ -58,6 +59,24 @@
         "entitySetName": "dbm_requestdecisions",
         "primaryIdField": "dbm_requestdecisionid",
         "primaryNameField": "dbm_name"
+      },
+      "testTableOne": {
+        "logicalName": "ys_testtableone",
+        "entitySetName": "ys_testtableones",
+        "primaryIdField": "ys_testtableoneid",
+        "primaryNameField": "ys_testonename",
+        "stateFields": {
+          "stageIdField": "ys_currentstageid",
+          "stepIdField": "ys_currentstepid",
+          "internalStatusField": "ys_internalstatusid",
+          "portalStatusField": "ys_portalstatusid"
+        }
+      },
+      "testTableTwo": {
+        "logicalName": "ys_testtabletwo",
+        "entitySetName": "ys_testtabletwos",
+        "primaryIdField": "ys_testtabletwoid",
+        "primaryNameField": "ys_testtwoname"
       }
     }
   }

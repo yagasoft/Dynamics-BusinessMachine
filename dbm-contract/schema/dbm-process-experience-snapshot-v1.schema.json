@@ -31,7 +31,10 @@
           "title": "currentStageId"
         },
         "currentStepId": {
-          "type": "string",
+          "type": [
+            "null",
+            "string"
+          ],
           "title": "currentStepId"
         },
         "activeFormId": {

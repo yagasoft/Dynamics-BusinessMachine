@@ -694,7 +694,7 @@ export interface DbmProcessExperienceSnapshotV1 {
   processId: string;
   audience: DbmProcessExperienceAudienceV1;
   currentStageId: string;
-  currentStepId: string;
+  currentStepId: string | null;
   activeFormId: string | null;
   activeFormStateId: string | null;
   internalStatus: DbmProcessExperienceStatusRefV1 | null;

@@ -1,4 +1,4 @@
-import type { Page } from '@playwright/test';
+import type { Frame, Locator, Page } from '@playwright/test';
 import { expect } from '@playwright/test';
 
 import type { LiveE2EEnvironmentConfig } from './types.js';
@@ -63,6 +63,8 @@ export async function fillField(page: Page, label: string, value: string): Promi
   const locator = page.getByLabel(label, { exact: false }).first();
   await locator.fill('');
   await locator.fill(value);
+  await locator.press('Tab').catch(() => undefined);
+  await page.waitForTimeout(250);
 }
 
 export async function setLookupField(page: Page, label: string, value: string): Promise<void> {
@@ -76,19 +78,55 @@ export async function setLookupField(page: Page, label: string, value: string): 
 
 export async function clickButton(page: Page, label: string): Promise<void> {
   await assertHealthyModelDrivenPage(page, `Clicking button '${label}'`);
-  await page.getByRole('button', { name: new RegExp(`^${escapeRegExp(label)}$`, 'i') }).first().click();
+  const button = await waitForVisibleLocator(
+    page,
+    (scope) => scope.getByRole('button', { name: new RegExp(`^${escapeRegExp(label)}$`, 'i') }).first(),
+    30_000
+  );
+  try {
+    await button.click();
+  }
+  catch (error) {
+    if (error instanceof Error && /intercepts pointer events/i.test(error.message)) {
+      await button.evaluate((element) => {
+        if (element && typeof (element as HTMLButtonElement).click === 'function') {
+          (element as HTMLButtonElement).click();
+        }
+      });
+    }
+    else {
+      throw error;
+    }
+  }
   await waitForReasonableSettling(page);
   await assertHealthyModelDrivenPage(page, `Waiting for post-click state after '${label}'`);
 }
 
 export async function waitForText(page: Page, text: string, timeoutMs = 30_000): Promise<void> {
   await assertHealthyModelDrivenPage(page, `Waiting for text '${text}'`);
-  await expect(page.getByText(text, { exact: false }).first()).toBeVisible({ timeout: timeoutMs });
+  await waitForVisibleLocator(
+    page,
+    (scope) => scope.getByText(text, { exact: false }).first(),
+    timeoutMs
+  );
 }
 
 export async function assertTextNotVisible(page: Page, text: string, timeoutMs = 2_000): Promise<void> {
   await assertHealthyModelDrivenPage(page, `Checking hidden text '${text}'`);
-  await expect(page.getByText(text, { exact: false }).first()).toHaveCount(0, { timeout: timeoutMs });
+  const deadline = Date.now() + timeoutMs;
+  while (Date.now() < deadline) {
+    const visible = await hasVisibleLocator(
+      page,
+      (scope) => scope.getByText(text, { exact: false }).first()
+    );
+    if (!visible) {
+      return;
+    }
+
+    await page.waitForTimeout(250);
+  }
+
+  await expect(page.getByText(text, { exact: false }).first()).toHaveCount(0, { timeout: 1 });
 }
 
 export function captureRecordIdFromPage(page: Page): string {
@@ -158,6 +196,53 @@ function isModelDrivenAppPage(currentUrl: string, modelDrivenAppUrl: string): bo
 
 async function waitForReasonableSettling(page: Page): Promise<void> {
   await page.waitForLoadState('networkidle', { timeout: NETWORK_IDLE_TIMEOUT_MS }).catch(() => undefined);
+}
+
+async function waitForVisibleLocator(
+  page: Page,
+  getLocator: (scope: Page | Frame) => Locator,
+  timeoutMs: number
+): Promise<Locator> {
+  const deadline = Date.now() + timeoutMs;
+  while (Date.now() < deadline) {
+    const locator = await getFirstVisibleLocator(page, getLocator);
+    if (locator) {
+      return locator;
+    }
+
+    await page.waitForTimeout(250);
+  }
+
+  await expect(getLocator(page)).toBeVisible({ timeout: 1 });
+  return getLocator(page);
+}
+
+async function hasVisibleLocator(
+  page: Page,
+  getLocator: (scope: Page | Frame) => Locator
+): Promise<boolean> {
+  const locator = await getFirstVisibleLocator(page, getLocator);
+  return Boolean(locator);
+}
+
+async function getFirstVisibleLocator(
+  page: Page,
+  getLocator: (scope: Page | Frame) => Locator
+): Promise<Locator | null> {
+  for (const scope of [page, ...page.frames()]) {
+    const locator = getLocator(scope).first();
+    const count = await locator.count().catch(() => 0);
+    if (count < 1) {
+      continue;
+    }
+
+    const visible = await locator.isVisible().catch(() => false);
+    if (visible) {
+      return locator;
+    }
+  }
+
+  return null;
 }
 
 async function assertHealthyModelDrivenPage(page: Page, context: string): Promise<void> {

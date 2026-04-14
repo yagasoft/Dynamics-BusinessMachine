@@ -556,7 +556,15 @@ function Get-DbmCaseDefinitions {
         $caseLookup[[string]$caseDefinition.scenarioId] = $caseDefinition
     }
 
-    $selectedCaseIds = if ($CaseIds -and $CaseIds.Count -gt 0) { $CaseIds } else { @($Config.liveE2E.caseSets.$CaseSet) }
+    $explicitCaseIds = @($CaseIds | Where-Object { -not [string]::IsNullOrWhiteSpace($_) })
+    $selectedCaseIds = @(
+        if ($explicitCaseIds.Count -gt 0) {
+            $explicitCaseIds
+        }
+        else {
+            @($Config.liveE2E.caseSets.$CaseSet)
+        }
+    )
     if ($selectedCaseIds.Count -eq 0) {
         throw "No live E2E cases were selected for case set '$CaseSet'."
     }
@@ -583,7 +591,7 @@ if (-not $PSBoundParameters.ContainsKey('CaseSet')) {
 
 $configEnvelope = Get-DbmLiveConfig -RepoRoot $RepoRoot -TargetEnvironment $TargetEnvironment
 $config = $configEnvelope.Value
-$selectedCases = Get-DbmCaseDefinitions -RepoRoot $RepoRoot -Config $config -CaseSet $CaseSet -CaseIds $CaseIds
+$selectedCases = @(Get-DbmCaseDefinitions -RepoRoot $RepoRoot -Config $config -CaseSet $CaseSet -CaseIds $CaseIds)
 
 if ($SessionHealthOnly -and $CleanupOrphansOnly) {
     throw 'Session health and orphan cleanup are mutually exclusive modes.'
@@ -709,7 +717,7 @@ try {
             userDisplayName = [string]$sessionState.Metadata.physicalUserDisplayName
             metadataPath = [string]$sessionState.Paths.MetadataPath
         }
-        cases = $selectedCases
+        cases = @($selectedCases)
     }
 
     $runContext | ConvertTo-Json -Depth 12 | Set-Content -Path $runContextPath -Encoding UTF8

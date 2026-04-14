@@ -114,6 +114,10 @@ function resolveCurrentStep(model: DbmModelV1, runtimeState: DbmRuntimeStateV1, 
     ?? model.process.steps.find((step) => step.stageId === currentStage.id);
 }
 
+function allowsMissingCurrentStep(currentStage: DbmStageV1, currentStep: DbmStepV1 | undefined): boolean {
+  return !currentStep && currentStage.stageType === 'end' && currentStage.stepIds.length === 0 && currentStage.defaultStepId == null;
+}
+
 function createStageVisibility(stage: DbmStageV1, audience: 'internal' | 'portal'): 'visible' | 'collapsed-hidden' {
   return audience === 'portal' && stage.portalVisibility === 'hidden' ? 'collapsed-hidden' : 'visible';
 }
@@ -134,7 +138,8 @@ export function buildProcessExperienceSnapshot(
   }
 
   const currentStep = resolveCurrentStep(model, runtimeState, currentStage);
-  if (!currentStep) {
+  const stepLessTerminalStage = allowsMissingCurrentStep(currentStage, currentStep);
+  if (!currentStep && !stepLessTerminalStage) {
     throw new Error(`Cannot build process snapshot for stage '${currentStage.id}' without a current step.`);
   }
 
@@ -143,7 +148,7 @@ export function buildProcessExperienceSnapshot(
   const completedStageIds = new Set(options.completedStageIds ?? stagePath.slice(0, -1));
   const availableOutcomeIds = new Set(options.availableOutcomeIds ?? currentStage.allowedOutcomeIds);
   const currentStageStepIds = currentStage.stepIds;
-  const currentStepIndex = currentStageStepIds.indexOf(currentStep.id);
+  const currentStepIndex = currentStep ? currentStageStepIds.indexOf(currentStep.id) : -1;
   const derivedCompletedStepIds = model.process.steps
     .filter((step) => completedStageIds.has(step.stageId))
     .map((step) => step.id);
@@ -177,7 +182,7 @@ export function buildProcessExperienceSnapshot(
       visibility: createStageVisibility(stage, audience),
       actor: toActorRef(actorMap.get(stage.actorId)),
       formId: stage.formId,
-      currentStepId: stage.id === currentStage.id ? currentStep.id : null,
+      currentStepId: stage.id === currentStage.id ? currentStep?.id ?? null : null,
       stepIds: [...stage.stepIds],
       availableOutcomeIds: stage.id === currentStage.id ? [...availableOutcomeIds] : []
     };
@@ -185,7 +190,7 @@ export function buildProcessExperienceSnapshot(
 
   const steps = model.process.steps.map((step) => {
     let state: 'completed' | 'current' | 'available' | 'upcoming' = 'upcoming';
-    if (step.id === currentStep.id) {
+    if (currentStep && step.id === currentStep.id) {
       state = 'current';
     } else if (completedStepIds.has(step.id)) {
       state = 'completed';
@@ -234,7 +239,14 @@ export function buildProcessExperienceSnapshot(
   });
 
   const currentStageVisibility = createStageVisibility(currentStage, audience);
-  const currentPortalStatus = currentStep.portalStatusId ? statusMap.get(currentStep.portalStatusId) : undefined;
+  const currentInternalStatus = currentStep
+    ? statusMap.get(currentStep.internalStatusId)
+    : statusMap.get(runtimeState.internalStatusId);
+  const currentPortalStatus = currentStep?.portalStatusId
+    ? statusMap.get(currentStep.portalStatusId)
+    : runtimeState.portalStatusId
+      ? statusMap.get(runtimeState.portalStatusId)
+      : undefined;
 
   return {
     schemaVersion: 'dbm.process-experience.snapshot/v1',
@@ -243,10 +255,10 @@ export function buildProcessExperienceSnapshot(
     processId: model.process.id,
     audience,
     currentStageId: currentStage.id,
-    currentStepId: currentStep.id,
+    currentStepId: currentStep?.id ?? null,
     activeFormId: currentStage.formId,
-    activeFormStateId: currentStep.formStateId,
-    internalStatus: toStatusRef(statusMap.get(currentStep.internalStatusId)),
+    activeFormStateId: currentStep?.formStateId ?? null,
+    internalStatus: toStatusRef(currentInternalStatus),
     portalStatus: toStatusRef(currentPortalStatus),
     availableOutcomes: [...availableOutcomeIds].map((outcomeId) => createOutcomeRef(outcomeMap.get(outcomeId), true)).filter((entry): entry is DbmProcessExperienceOutcomeRefV1 => !!entry),
     stages,
@@ -254,7 +266,7 @@ export function buildProcessExperienceSnapshot(
     transitions,
     projection: {
       projectedStageId: currentStageVisibility === 'visible' ? currentStage.id : null,
-      projectedStepId: currentStageVisibility === 'visible' ? currentStep.id : null,
+      projectedStepId: currentStageVisibility === 'visible' ? currentStep?.id ?? null : null,
       message: currentStageVisibility === 'collapsed-hidden' ? 'Current work is progressing in an internal stage.' : null
     }
   };

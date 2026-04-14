@@ -12,14 +12,14 @@ export default defineConfig({
   fullyParallel: false,
   workers: 1,
   retries: 0,
-  timeout: 30 * 1000,
+  timeout: 2 * 60 * 1000,
   expect: {
-    timeout: 5 * 1000
+    timeout: 10 * 1000
   },
   use: {
     headless: true,
-    actionTimeout: 10 * 1000,
-    navigationTimeout: 20 * 1000,
+    actionTimeout: 20 * 1000,
+    navigationTimeout: 30 * 1000,
     trace: 'retain-on-failure',
     screenshot: 'only-on-failure',
     video: 'retain-on-failure'

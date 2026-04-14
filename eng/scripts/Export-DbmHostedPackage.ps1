@@ -80,6 +80,27 @@ function ConvertFrom-DbmWebResourceContent {
     return [Text.Encoding]::UTF8.GetString([Convert]::FromBase64String($Content))
 }
 
+function Write-DbmUtf8FileNoBom {
+    param(
+        [Parameter(Mandatory = $true)]
+        [string]$Path,
+
+        [Parameter(Mandatory = $true)]
+        [AllowEmptyString()]
+        [string]$Content
+    )
+
+    $normalizedContent = if ($Content.Length -gt 0 -and $Content[0] -eq [char]0xFEFF) {
+        $Content.Substring(1)
+    }
+    else {
+        $Content
+    }
+
+    $utf8NoBom = [System.Text.UTF8Encoding]::new($false)
+    [System.IO.File]::WriteAllText($Path, $normalizedContent, $utf8NoBom)
+}
+
 $normalizedDataverseUrl = $DataverseUrl.TrimEnd('/')
 $accessToken = Get-DbmDataverseAccessToken -TargetDataverseUrl $normalizedDataverseUrl
 
@@ -105,9 +126,9 @@ $modelOutputPath = Join-Path $OutputRoot "$PackageName.json"
 $workspaceOutputPath = Join-Path $OutputRoot "$PackageName.workspace.json"
 $manifestOutputPath = Join-Path $OutputRoot 'export-manifest.json'
 
-Set-Content -Path $modelOutputPath -Value (ConvertFrom-DbmWebResourceContent -Content ([string]$modelResource.content)) -Encoding UTF8
+Write-DbmUtf8FileNoBom -Path $modelOutputPath -Content (ConvertFrom-DbmWebResourceContent -Content ([string]$modelResource.content))
 if ($workspaceResource) {
-    Set-Content -Path $workspaceOutputPath -Value (ConvertFrom-DbmWebResourceContent -Content ([string]$workspaceResource.content)) -Encoding UTF8
+    Write-DbmUtf8FileNoBom -Path $workspaceOutputPath -Content (ConvertFrom-DbmWebResourceContent -Content ([string]$workspaceResource.content))
 }
 
 $manifest = [ordered]@{
@@ -123,7 +144,7 @@ $manifest = [ordered]@{
     }
 }
 
-$manifest | ConvertTo-Json -Depth 5 | Set-Content -Path $manifestOutputPath -Encoding UTF8
+Write-DbmUtf8FileNoBom -Path $manifestOutputPath -Content ($manifest | ConvertTo-Json -Depth 5)
 
 Write-Host "Exported hosted DBM package '$PackageName' from '$TargetEnvironment'."
 Write-Host "Model path: $modelOutputPath"

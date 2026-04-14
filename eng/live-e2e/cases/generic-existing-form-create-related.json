@@ -1,0 +1,63 @@
+{
+  "scenarioId": "generic-existing-form-create-related",
+  "title": "Generic existing-form create-related handoff",
+  "description": "Pinned R2.5 proof that a custom existing-form process creates a related ys_TestTableTwo record from ys_TestTableOne, rehosts the DBM process UI on the target form, and reaches the terminal stage.",
+  "runModes": ["full"],
+  "requiredRole": "requester",
+  "setup": {
+    "operations": [
+      {
+        "kind": "seed-record",
+        "entityAlias": "testTableOne",
+        "recordAlias": "testTableOneRecord",
+        "fields": {
+          "ys_testonename": "{{cleanupName}} Source",
+          "ys_description": "{{cleanupName}} Source description"
+        }
+      }
+    ]
+  },
+  "actions": [
+    { "kind": "open-record-form", "entityAlias": "testTableOne", "recordAlias": "testTableOneRecord", "role": "requester" },
+    { "kind": "wait-for-text", "text": "Submit", "timeoutMs": 60000, "role": "requester" },
+    { "kind": "click-button", "label": "Submit", "role": "requester" },
+    { "kind": "wait-for-idle", "delayMs": 5000, "role": "requester" },
+    { "kind": "wait-for-text", "text": "Create TestTableTwo", "timeoutMs": 60000, "role": "requester" },
+    { "kind": "capture-current-record-id", "entityAlias": "testTableTwo", "recordAlias": "testTableTwoRecord", "role": "requester" },
+    { "kind": "wait-for-text", "text": "Notes", "timeoutMs": 60000, "role": "requester" },
+    { "kind": "fill-field", "label": "Notes", "value": "{{cleanupName}} Related notes", "role": "requester" },
+    { "kind": "wait-for-idle", "delayMs": 1000, "role": "requester" },
+    { "kind": "click-button", "label": "Complete", "role": "requester" },
+    { "kind": "wait-for-idle", "delayMs": 5000, "role": "requester" }
+  ],
+  "assertions": [
+    { "kind": "record-exists", "entityAlias": "testTableTwo", "recordAlias": "testTableTwoRecord" },
+    {
+      "kind": "record-field",
+      "entityAlias": "testTableTwo",
+      "recordAlias": "testTableTwoRecord",
+      "fieldLogicalName": "_ys_testoneid_value",
+      "equals": "{{records.testTableOneRecord.id}}"
+    },
+    {
+      "kind": "process-state",
+      "entityAlias": "testTableOne",
+      "recordAlias": "testTableOneRecord",
+      "expected": {
+        "stageId": "complete-stage",
+        "internalStatus": "complete",
+        "portalStatus": "complete"
+      }
+    }
+  ],
+  "cleanup": {
+    "targets": [
+      { "kind": "delete-record", "entityAlias": "testTableTwo", "recordAlias": "testTableTwoRecord", "ignoreMissing": true },
+      { "kind": "delete-record", "entityAlias": "testTableOne", "recordAlias": "testTableOneRecord", "ignoreMissing": true }
+    ]
+  },
+  "evidence": {
+    "captureScreenshotOnSuccess": true,
+    "captureTimeline": true
+  }
+}

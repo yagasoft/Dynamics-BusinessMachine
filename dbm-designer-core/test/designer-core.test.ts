@@ -436,6 +436,29 @@ test('process experience snapshot collapses hidden internal stages for portal pr
   assert.equal(nextStage.state, 'available');
 });
 
+test('process experience snapshot supports terminal end stages without an active step', () => {
+  const model = structuredClone(genericExistingFormModel);
+  const runtimeState: DbmRuntimeStateV1 = {
+    stageId: 'completed',
+    stepId: 'prepare-assignment',
+    formStateId: 'assignment-work-state',
+    internalStatusId: 'complete',
+    portalStatusId: 'complete',
+    records: [],
+    variables: {}
+  };
+
+  const snapshot = buildProcessExperienceSnapshot(model, runtimeState, {
+    audience: 'internal'
+  });
+
+  assert.equal(snapshot.currentStageId, 'completed');
+  assert.equal(snapshot.currentStepId, null);
+  assert.equal(snapshot.activeFormStateId, null);
+  assert.equal(snapshot.internalStatus?.id, 'complete');
+  assert.equal(snapshot.projection.projectedStepId, null);
+});
+
 test('validateDocument rejects library-specific graph metadata and graph drift from the canonical model', () => {
   const document = loadModel(createApprovalRequestTemplate());
   const mutatedGraph = {

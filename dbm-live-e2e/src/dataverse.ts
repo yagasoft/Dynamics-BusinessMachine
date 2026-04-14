@@ -73,6 +73,55 @@ export async function retrieveRecord(
   return await response.json() as Record<string, unknown>;
 }
 
+export async function findRecordIdByField(
+  request: APIRequestContext,
+  accessToken: string,
+  dataverseUrl: string,
+  entityConfig: LiveE2EEntityConfig,
+  fieldLogicalName: string,
+  expectedValue: string,
+  timeoutMs = 60_000
+): Promise<string> {
+  const deadline = Date.now() + timeoutMs;
+  const normalizedValue = expectedValue.replace(/[{}]/g, '');
+
+  while (Date.now() < deadline) {
+    const filterValue = isGuidLike(normalizedValue)
+      ? normalizedValue
+      : `'${normalizedValue.replace(/'/g, "''")}'`;
+    const filter = `${fieldLogicalName} eq ${filterValue}`;
+    const response = await request.fetch(
+      `${getDataverseApiBaseUrl(dataverseUrl)}/${entityConfig.entitySetName}?$select=${entityConfig.primaryIdField}&$filter=${encodeURIComponent(filter)}&$top=1`,
+      {
+        method: 'GET',
+        headers: {
+          Authorization: `Bearer ${accessToken}`,
+          Accept: 'application/json',
+          'OData-Version': '4.0',
+          'OData-MaxVersion': '4.0'
+        }
+      }
+    );
+
+    if (!response.ok()) {
+      throw new Error(`Failed to query '${entityConfig.entitySetName}' by '${fieldLogicalName}': ${await response.text()}`);
+    }
+
+    const payload = await response.json() as { value?: Array<Record<string, unknown>> };
+    const first = Array.isArray(payload.value) ? payload.value[0] : undefined;
+    const id = first?.[entityConfig.primaryIdField];
+    if (typeof id === 'string' && id.length > 0) {
+      return id;
+    }
+
+    await new Promise((resolve) => setTimeout(resolve, 500));
+  }
+
+  throw new Error(
+    `Timed out waiting for a '${entityConfig.logicalName}' record where '${fieldLogicalName}' equals '${expectedValue}'.`
+  );
+}
+
 export async function deleteRecord(
   request: APIRequestContext,
   accessToken: string,
@@ -168,4 +217,8 @@ export function resolveEntityConfig(environmentConfig: LiveE2EEnvironmentConfig,
   }
 
   return entityConfig;
+}
+
+function isGuidLike(value: string): boolean {
+  return /^[0-9a-f]{8}-[0-9a-f]{4}-[0-9a-f]{4}-[0-9a-f]{4}-[0-9a-f]{12}$/i.test(value);
 }

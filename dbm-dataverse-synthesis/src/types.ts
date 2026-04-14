@@ -225,11 +225,13 @@ export interface DataverseRuntimeStageHandoffPlan {
   targetFormId: string | null;
   targetSystemFormId: string | null;
   targetPrimaryIdLogicalName: string;
+  targetPrimaryNameLogicalName: string | null;
   strategy: DbmSubjectResolutionStrategyV1;
   relationshipId: string | null;
   relationshipLogicalName: string | null;
   referencingEntityLogicalName: string | null;
   referencingAttributeLogicalName: string | null;
+  referencingNavigationPropertyName: string | null;
 }
 
 export interface DataverseFormRuntimePlan {
@@ -323,7 +325,7 @@ export interface DataverseAuthContext {
 }
 
 export interface DataverseApplyAction {
-  componentType: 'solution' | 'entity' | 'column' | 'relationship' | 'publish';
+  componentType: 'solution' | 'entity' | 'column' | 'relationship' | 'form' | 'webresource' | 'publish';
   logicalName: string;
   state: DataverseApplyActionState;
   message: string;

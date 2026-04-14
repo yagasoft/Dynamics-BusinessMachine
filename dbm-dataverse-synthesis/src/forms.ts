@@ -469,10 +469,23 @@ function buildStageHandoffsByStageId(
         ? entityMap.get(relationship.toEntityId)
         : entityMap.get(relationship.fromEntityId)
       : null;
-    const referencingAttributeLogicalName =
+    const referencingField =
       relationship?.referencingFieldId && referencingEntity
-        ? getFieldById(referencingEntity, relationship.referencingFieldId)?.providerBindings.dataverse?.logicalName?.trim() ?? null
-        : null;
+        ? getFieldById(referencingEntity, relationship.referencingFieldId)
+        : undefined;
+    const referencingFieldDataverseBinding = referencingField?.providerBindings.dataverse as { logicalName?: string; schemaName?: string } | undefined;
+    const referencingAttributeLogicalName = referencingFieldDataverseBinding?.logicalName?.trim() ?? null;
+    const referencingFieldSchemaName = referencingFieldDataverseBinding?.schemaName?.trim() ?? null;
+    const referencingFieldDisplayName = referencingField?.displayName?.trim() ?? null;
+    const referencingNavigationPropertyName = referencingFieldSchemaName
+      || (
+        referencingFieldDisplayName &&
+        referencingAttributeLogicalName &&
+        referencingFieldDisplayName.toLowerCase() === referencingAttributeLogicalName.toLowerCase()
+          ? referencingFieldDisplayName
+          : null
+      )
+      || referencingAttributeLogicalName;
 
     const nextPlan = {
       sourceStageId,
@@ -482,11 +495,13 @@ function buildStageHandoffsByStageId(
       targetFormId: targetStage.formId,
       targetSystemFormId: targetForm?.providerBindings?.dataverse?.formId?.trim() ?? null,
       targetPrimaryIdLogicalName: getPrimaryIdLogicalName(targetEntity, targetEntityPlan),
+      targetPrimaryNameLogicalName: targetEntityPlan.primaryNameAttributeLogicalName ?? null,
       strategy: subjectHandoff.strategy,
       relationshipId: subjectHandoff.relationshipId ?? null,
       relationshipLogicalName: relationship?.providerBindings.dataverse?.logicalName?.trim() ?? null,
       referencingEntityLogicalName: referencingEntity ? entityPlans.get(referencingEntity.id)?.logicalName ?? null : null,
-      referencingAttributeLogicalName
+      referencingAttributeLogicalName,
+      referencingNavigationPropertyName
     };
 
     const current = handoffs[targetStageId];
@@ -884,6 +899,27 @@ function buildSharedRuntimeBehaviorContent(): string {
   function getStep(runtime, stepId) {
     return (runtime.steps || []).find((step) => step.id === stepId) || null;
   }
+  function normalizeStatusKey(value) {
+    return String(value || '').toLowerCase().replace(/[^a-z0-9]+/g, '');
+  }
+  function resolveTerminalStatusId(runtime, stage, target) {
+    const keys = [
+      target?.outcomeId,
+      stage?.id,
+      stage?.displayName
+    ]
+      .map((value) => normalizeStatusKey(value))
+      .filter(Boolean);
+    if (keys.length === 0) {
+      return null;
+    }
+    const match = (runtime.statuses || []).find((status) => {
+      const statusId = normalizeStatusKey(status.id);
+      const displayName = normalizeStatusKey(status.displayName);
+      return keys.includes(statusId) || keys.includes(displayName);
+    });
+    return match?.id || null;
+  }
   function getValueFromRecord(record, binding) {
     if (!record || !binding) {
       return null;
@@ -988,12 +1024,15 @@ function buildSharedRuntimeBehaviorContent(): string {
     if (target.stageId) {
       const nextStage = getStage(runtime, target.stageId);
       const nextStep = nextStage?.defaultStepId ? getStep(runtime, nextStage.defaultStepId) : null;
+      const terminalStatusId = !nextStep && nextStage?.stageType === 'end'
+        ? resolveTerminalStatusId(runtime, nextStage, target)
+        : null;
       return {
         stageId: target.stageId,
         stepId: nextStep?.id || currentState.stepId,
         formStateId: nextStep?.formStateId || currentState.formStateId,
-        internalStatusId: nextStep?.internalStatusId || currentState.internalStatusId,
-        portalStatusId: nextStep?.portalStatusId || currentState.portalStatusId
+        internalStatusId: nextStep?.internalStatusId || terminalStatusId || currentState.internalStatusId,
+        portalStatusId: nextStep?.portalStatusId || terminalStatusId || currentState.portalStatusId
       };
     }
     return currentState;
@@ -1020,7 +1059,11 @@ function buildSharedRuntimeBehaviorContent(): string {
               )
               .find((candidate) => evaluateExpression(runtime.rules[candidate.guardRuleId], values))
           : null;
-      const target = stepTransition ? (stepTransition.target || {}) : stageTransition ? { stageId: stageTransition.toStageId } : null;
+      const target = stepTransition
+        ? (stepTransition.target || {})
+        : stageTransition
+          ? { stageId: stageTransition.toStageId, outcomeId: stageTransition.outcomeId }
+          : null;
       if (!target) {
         break;
       }
@@ -1118,14 +1161,24 @@ function buildSharedRuntimeBehaviorContent(): string {
     }
     const response = await global.fetch(clientUrl + '/api/data/v9.2/' + entityLogicalName + 's', {
       method: 'POST',
-      headers: createHeaders(),
+      headers: {
+        ...createHeaders(),
+        Prefer: 'return=representation'
+      },
       credentials: 'same-origin',
       body: JSON.stringify(payload)
     });
     if (!response.ok) {
-      return null;
+      const body = await response.text().catch(() => '');
+      throw new Error('Failed to create related ' + entityLogicalName + ' record: ' + (body || response.status));
     }
-    return await response.json().catch(() => null);
+    const created = await response.json().catch(() => null);
+    if (created) {
+      return created;
+    }
+    const entityIdHeader = response.headers?.get?.('OData-EntityId') || response.headers?.get?.('odata-entityid') || '';
+    const match = /\\(([0-9a-fA-F-]{36})\\)/.exec(entityIdHeader);
+    return match ? { id: match[1] } : null;
   }
   function getProcessExperienceBridge() {
     return global.DBM?.ProcessExperienceHost ?? null;
@@ -1197,11 +1250,17 @@ function buildSharedRuntimeBehaviorContent(): string {
     }
     return normalizeId(record[primaryIdLogicalName] || record[entityLogicalName + 'id'] || record.id);
   }
-  function getProcessOwnerRecordId(formContext, runtime, currentRecordId) {
+  function buildGeneratedRelatedRecordName(handoff, sourceRecordId) {
+    const suffix = normalizeId(sourceRecordId).replace(/[^a-z0-9]/gi, '').slice(0, 8) || 'record';
+    const entityLabel = (handoff?.targetEntityLogicalName || 'related-record').replace(/_/g, ' ');
+    return entityLabel + ' ' + suffix;
+  }
+  function getProcessOwnerRecordId(formContext, runtime, currentRecordId, currentFormRecord) {
     if (runtime.currentForm.entityLogicalName === runtime.processOwner.entityLogicalName) {
       return currentRecordId;
     }
-    return getRecordIdFromAttribute(formContext, runtime.currentForm.relatedProcessOwnerLookupFieldLogicalName);
+    return getRecordIdFromAttribute(formContext, runtime.currentForm.relatedProcessOwnerLookupFieldLogicalName)
+      || getLookupValueFromRecord(currentFormRecord, runtime.currentForm.relatedProcessOwnerLookupFieldLogicalName);
   }
   function getSourceRecordId(handoff, runtime, currentRecordId, processOwnerRecordId) {
     if (!handoff) {
@@ -1266,22 +1325,26 @@ function buildSharedRuntimeBehaviorContent(): string {
     if (!handoff || !sourceRecordId) {
       return '';
     }
+    const payload = {};
+    const bindPropertyName = handoff.referencingNavigationPropertyName || handoff.referencingAttributeLogicalName;
+    if (handoff.targetPrimaryNameLogicalName) {
+      payload[handoff.targetPrimaryNameLogicalName] = buildGeneratedRelatedRecordName(handoff, sourceRecordId);
+    }
     if (handoff.referencingEntityLogicalName === handoff.targetEntityLogicalName) {
-      const payload = {};
-      if (handoff.referencingAttributeLogicalName) {
-        payload[handoff.referencingAttributeLogicalName + '@odata.bind'] = buildEntityBind(handoff.sourceEntityLogicalName, sourceRecordId);
+      if (bindPropertyName) {
+        payload[bindPropertyName + '@odata.bind'] = buildEntityBind(handoff.sourceEntityLogicalName, sourceRecordId);
       }
       const created = await createRecord(handoff.targetEntityLogicalName, payload);
       return getCreatedRecordId(created, handoff.targetPrimaryIdLogicalName, handoff.targetEntityLogicalName);
     }
-    const created = await createRecord(handoff.targetEntityLogicalName, {});
+    const created = await createRecord(handoff.targetEntityLogicalName, payload);
     const targetRecordId = getCreatedRecordId(created, handoff.targetPrimaryIdLogicalName, handoff.targetEntityLogicalName);
-    if (!targetRecordId || !handoff.referencingAttributeLogicalName) {
+    if (!targetRecordId || !bindPropertyName) {
       return targetRecordId;
     }
-    const payload = {};
-    payload[handoff.referencingAttributeLogicalName + '@odata.bind'] = buildEntityBind(handoff.targetEntityLogicalName, targetRecordId);
-    await updateRecord(handoff.sourceEntityLogicalName, sourceRecordId, payload);
+    const sourcePayload = {};
+    sourcePayload[bindPropertyName + '@odata.bind'] = buildEntityBind(handoff.targetEntityLogicalName, targetRecordId);
+    await updateRecord(handoff.sourceEntityLogicalName, sourceRecordId, sourcePayload);
     return targetRecordId;
   }
   async function resolveTargetRecordId(runtime, handoff, currentRecordId, processOwnerRecordId, currentFormRecord, processOwnerRecord) {
@@ -1332,6 +1395,28 @@ function buildSharedRuntimeBehaviorContent(): string {
       targetRecordId = await resolveTargetRecordId(runtime, handoff, currentRecordId, processOwnerRecordId, currentFormRecord, processOwnerRecord);
     }
     return await openTargetForm(activeStage.entityLogicalName, targetRecordId, activeStage.systemFormId);
+  }
+  async function resolveActiveStageNavigation(runtime, activeStage, currentFormId, currentRecordId, processOwnerRecordId, currentFormRecord, processOwnerRecord) {
+    if (!activeStage?.formId || activeStage.formId === currentFormId) {
+      return null;
+    }
+    let targetRecordId = '';
+    if (activeStage.entityLogicalName === runtime.currentForm.entityLogicalName) {
+      targetRecordId = currentRecordId;
+    } else if (activeStage.entityLogicalName === runtime.processOwner.entityLogicalName) {
+      targetRecordId = processOwnerRecordId;
+    } else {
+      const handoff = runtime.stageHandoffsByStageId?.[activeStage.id] || null;
+      targetRecordId = await resolveTargetRecordId(runtime, handoff, currentRecordId, processOwnerRecordId, currentFormRecord, processOwnerRecord);
+    }
+    if (!targetRecordId) {
+      return null;
+    }
+    return {
+      entityLogicalName: activeStage.entityLogicalName,
+      recordId: targetRecordId,
+      systemFormId: activeStage.systemFormId
+    };
   }
   function applyOutcomeSelection(formContext, runtime, outcomeId) {
     const candidate = (runtime.valueBindings || []).find((binding) => {
@@ -1499,7 +1584,7 @@ function buildSharedRuntimeBehaviorContent(): string {
       currentRecordId,
       selectFields(runtime, runtime.currentForm.entityLogicalName)
     );
-    const processOwnerRecordId = getProcessOwnerRecordId(formContext, runtime, currentRecordId);
+    const processOwnerRecordId = getProcessOwnerRecordId(formContext, runtime, currentRecordId, currentFormRecord);
     const processOwnerRecord = processOwnerRecordId
       ? runtime.currentForm.entityLogicalName === runtime.processOwner.entityLogicalName && processOwnerRecordId === currentRecordId
         ? currentFormRecord
@@ -1513,34 +1598,61 @@ function buildSharedRuntimeBehaviorContent(): string {
     const values = buildValueMap(runtime, processOwnerRecord, projectedCurrentFormRecord, requestedOutcomeId || null);
     const currentState = getRuntimeStateFromRecord(runtime, processOwnerRecord, config);
     const result = evaluate(runtime, values, currentState, 'dbm-runtime-' + processOwnerRecordId + '-' + currentRecordId);
+    const activeStage = getStage(runtime, result.state.stageId);
+    let navigationError = null;
+    let navigationTarget = null;
+    if (activeStage?.formId && activeStage.formId !== config.formId) {
+      try {
+        navigationTarget = await resolveActiveStageNavigation(
+          runtime,
+          activeStage,
+          config.formId,
+          currentRecordId,
+          processOwnerRecordId,
+          projectedCurrentFormRecord,
+          processOwnerRecord
+        );
+      } catch (error) {
+        navigationError = error;
+      }
+    }
+    const effectiveResult =
+      activeStage?.formId && activeStage.formId !== config.formId && !navigationTarget
+        ? {
+            ...result,
+            status: 'error',
+            state: currentState,
+            messages: [
+              ...(result.messages || []),
+              {
+                level: 'error',
+                code: 'handoff-target-resolution-failed',
+                text: navigationError?.message || 'DBM could not create or locate the next related record.'
+              }
+            ]
+          }
+        : result;
+    const effectiveActiveStage = getStage(runtime, effectiveResult.state.stageId);
     if (processOwnerRecordId) {
       const stateFields = runtime.processOwner.runtimeStateFieldLogicalNames;
       const payload = {};
-      payload[stateFields.stageId] = result.state.stageId;
-      payload[stateFields.stepId] = result.state.stepId;
-      payload[stateFields.formStateId] = result.state.formStateId;
-      payload[stateFields.internalStatusId] = result.state.internalStatusId;
-      payload[stateFields.portalStatusId] = result.state.portalStatusId;
+      payload[stateFields.stageId] = effectiveResult.state.stageId;
+      payload[stateFields.stepId] = effectiveResult.state.stepId;
+      payload[stateFields.formStateId] = effectiveResult.state.formStateId;
+      payload[stateFields.internalStatusId] = effectiveResult.state.internalStatusId;
+      payload[stateFields.portalStatusId] = effectiveResult.state.portalStatusId;
       await updateRecord(runtime.processOwner.entityLogicalName, processOwnerRecordId, payload);
     }
-    const activeStage = getStage(runtime, result.state.stageId);
-    if (activeStage?.formId && activeStage.formId !== config.formId) {
+    if (effectiveActiveStage?.formId && effectiveActiveStage.formId !== config.formId) {
       applyInactiveState(executionContext, config);
     } else {
-      applyState(executionContext, config, result.state.formStateId || config.defaultStateId);
+      applyState(executionContext, config, effectiveResult.state.formStateId || config.defaultStateId);
     }
-    await renderProcessExperience(formContext, config, result);
-    if (activeStage?.formId && activeStage.formId !== config.formId) {
-      await navigateToActiveStage(
-        runtime,
-        activeStage,
-        currentRecordId,
-        processOwnerRecordId,
-        projectedCurrentFormRecord,
-        processOwnerRecord
-      );
+    await renderProcessExperience(formContext, config, effectiveResult);
+    if (navigationTarget) {
+      await openTargetForm(navigationTarget.entityLogicalName, navigationTarget.recordId, navigationTarget.systemFormId);
     }
-    return result;
+    return effectiveResult;
   }
   function initialize(executionContext, config) {
     const formContext = getFormContext(executionContext);

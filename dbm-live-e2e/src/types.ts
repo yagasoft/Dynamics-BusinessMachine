@@ -126,7 +126,17 @@ export interface LiveE2EAssertTextNotVisibleAction extends LiveE2EActionBase {
 
 export interface LiveE2ECaptureCurrentRecordIdAction extends LiveE2EActionBase {
   kind: 'capture-current-record-id';
+  entityAlias?: string;
   recordAlias: string;
+}
+
+export interface LiveE2ECaptureRelatedRecordAction extends LiveE2EActionBase {
+  kind: 'capture-related-record';
+  entityAlias: string;
+  recordAlias: string;
+  fieldLogicalName: string;
+  equals: string;
+  timeoutMs?: number;
 }
 
 export interface LiveE2EWaitForIdleAction extends LiveE2EActionBase {
@@ -144,6 +154,7 @@ export type LiveE2EAction =
   | LiveE2EWaitForTextAction
   | LiveE2EAssertTextNotVisibleAction
   | LiveE2ECaptureCurrentRecordIdAction
+  | LiveE2ECaptureRelatedRecordAction
   | LiveE2EWaitForIdleAction;
 
 export interface LiveE2ERecordExistsAssertion {

@@ -325,12 +325,14 @@ async function createRuntimeHarness(formId) {
     strict_1.default.equal(assignmentHandoff?.sourceEntityLogicalName, 'dbm_case');
     strict_1.default.equal(assignmentHandoff?.targetEntityLogicalName, 'dbm_caseassignment');
     strict_1.default.equal(assignmentHandoff?.targetPrimaryIdLogicalName, 'dbm_caseassignmentid');
+    strict_1.default.equal(assignmentHandoff?.targetPrimaryNameLogicalName, 'dbm_name');
     strict_1.default.equal(assignmentHandoff?.targetFormId, 'assignment-form');
     strict_1.default.equal(assignmentHandoff?.targetSystemFormId, '{22222222-2222-2222-2222-222222222222}');
     strict_1.default.equal(assignmentHandoff?.relationshipId, 'case-to-assignment');
     strict_1.default.equal(assignmentHandoff?.relationshipLogicalName, 'dbm_case_dbm_caseassignment');
     strict_1.default.equal(assignmentHandoff?.referencingEntityLogicalName, 'dbm_caseassignment');
     strict_1.default.equal(assignmentHandoff?.referencingAttributeLogicalName, 'dbm_caseid');
+    strict_1.default.equal(assignmentHandoff?.referencingNavigationPropertyName, 'dbm_caseid');
     strict_1.default.equal(assignmentHandoff?.strategy, 'create-related');
     strict_1.default.equal(plan.behaviors.some((behavior) => behavior.webResourceName === 'ys_/dbm/forms/config/assignment-form.js' &&
         behavior.kind === 'form-config'), true);
@@ -618,6 +620,7 @@ async function createRuntimeHarness(formId) {
         ]);
         strict_1.default.deepEqual(createdReviewPayloads, [
             {
+                dbm_name: 'dbm requestdecision request2',
                 'dbm_requestid@odata.bind': '/dbm_requests(request-2)'
             }
         ]);
@@ -682,6 +685,7 @@ async function createRuntimeHarness(formId) {
         ]);
         strict_1.default.deepEqual(createdAssignmentPayloads, [
             {
+                dbm_name: 'dbm caseassignment case1',
                 'dbm_caseid@odata.bind': '/dbm_cases(case-1)'
             }
         ]);
@@ -700,6 +704,61 @@ async function createRuntimeHarness(formId) {
         ]);
         strict_1.default.equal(form.sectionRenders.length, 1);
         strict_1.default.match(form.sectionRenders[0]?.snapshot.projection.message ?? '', /different DBM form/i);
+    }
+    finally {
+        await harness.cleanup();
+    }
+});
+(0, node_test_1.default)('generic existing-form runtime does not persist a cross-form handoff when the related record cannot be created', async () => {
+    const harness = await createRuntimeHarnessForModel(generic_existing_form_v1_model_json_1.default, 'case-form');
+    try {
+        const patchedPayloads = [];
+        const openedForms = [];
+        const caseRecord = {
+            dbm_caseid: 'case-create-failure',
+            dbm_title: 'Broken handoff proof',
+            dbm_description: 'Validate create-related failure handling.'
+        };
+        harness.sandbox.Xrm.Navigation.openForm = async (options) => {
+            openedForms.push(options);
+            return {};
+        };
+        harness.sandbox.fetch = async (input, init) => {
+            const url = new URL(String(input));
+            const relative = url.pathname.split('/api/data/v9.2/')[1] + url.search;
+            const method = init?.method ?? 'GET';
+            if (method === 'GET' && relative.startsWith('dbm_cases(case-create-failure)')) {
+                return jsonResponse(200, caseRecord);
+            }
+            if (method === 'PATCH' && relative === 'dbm_cases(case-create-failure)') {
+                patchedPayloads.push(JSON.parse(String(init?.body ?? '{}')));
+                return jsonResponse(204);
+            }
+            if (method === 'POST' && relative === 'dbm_caseassignments') {
+                return jsonResponse(400, { error: { message: 'invalid-bind-property' } });
+            }
+            throw new Error(`Unexpected fetch during generic create-related failure runtime test: ${method} ${relative}`);
+        };
+        const form = createMockFormContext(harness.config, 'case-create-failure', {
+            dbm_title: 'Broken handoff proof',
+            dbm_description: 'Validate create-related failure handling.'
+        });
+        form.installOverlayBridge(harness.sandbox);
+        const result = await harness.sync(form.executionContext, harness.config, 'submit');
+        strict_1.default.equal(result?.status, 'error');
+        strict_1.default.equal(result?.state.stageId, 'draft-case');
+        strict_1.default.equal(result?.state.stepId, 'capture-case');
+        strict_1.default.deepEqual(patchedPayloads, [
+            {
+                dbm_currentstageid: 'draft-case',
+                dbm_currentstepid: 'capture-case',
+                dbm_currentformstateid: 'case-edit-state',
+                dbm_internalstatusid: 'draft',
+                dbm_portalstatusid: 'draft'
+            }
+        ]);
+        strict_1.default.deepEqual(openedForms, []);
+        strict_1.default.equal(form.sectionRenders.length, 1);
     }
     finally {
         await harness.cleanup();
@@ -771,6 +830,64 @@ async function createRuntimeHarness(formId) {
                 entityId: 'assignment-existing',
                 formId: '{22222222-2222-2222-2222-222222222222}',
                 openInNewWindow: false
+            }
+        ]);
+    }
+    finally {
+        await harness.cleanup();
+    }
+});
+(0, node_test_1.default)('generic existing-form runtime applies terminal statuses when a target-form outcome reaches an end stage', async () => {
+    const harness = await createRuntimeHarnessForModel(generic_existing_form_v1_model_json_1.default, 'assignment-form');
+    try {
+        const patchedPayloads = [];
+        const assignmentRecord = {
+            dbm_caseassignmentid: 'assignment-complete-1',
+            dbm_summary: 'Ready to complete.',
+            _dbm_caseid_value: 'case-complete-1'
+        };
+        const caseRecord = {
+            dbm_caseid: 'case-complete-1',
+            dbm_currentstageid: 'assignment-work',
+            dbm_currentstepid: 'prepare-assignment',
+            dbm_currentformstateid: 'assignment-work-state',
+            dbm_internalstatusid: 'assigned',
+            dbm_portalstatusid: 'assigned'
+        };
+        harness.sandbox.fetch = async (input, init) => {
+            const url = new URL(String(input));
+            const relative = url.pathname.split('/api/data/v9.2/')[1] + url.search;
+            const method = init?.method ?? 'GET';
+            if (method === 'GET' && relative.startsWith('dbm_caseassignments(assignment-complete-1)')) {
+                return jsonResponse(200, assignmentRecord);
+            }
+            if (method === 'GET' && relative.startsWith('dbm_cases(case-complete-1)')) {
+                return jsonResponse(200, caseRecord);
+            }
+            if (method === 'PATCH' && relative === 'dbm_cases(case-complete-1)') {
+                patchedPayloads.push(JSON.parse(String(init?.body ?? '{}')));
+                return jsonResponse(204);
+            }
+            throw new Error(`Unexpected fetch during generic terminal completion runtime test: ${method} ${relative}`);
+        };
+        const form = createMockFormContext(harness.config, 'assignment-complete-1', {
+            dbm_summary: 'Ready to complete.',
+            dbm_caseid: [{ id: 'case-complete-1', name: 'Case Complete 1', entityType: 'dbm_case' }]
+        });
+        form.installOverlayBridge(harness.sandbox);
+        const result = await harness.sync(form.executionContext, harness.config, 'complete');
+        strict_1.default.equal(result?.state.stageId, 'completed');
+        strict_1.default.equal(result?.state.internalStatusId, 'complete');
+        strict_1.default.equal(result?.state.portalStatusId, 'complete');
+        strict_1.default.equal(form.sectionRenders.at(-1)?.snapshot.currentStageId, 'completed');
+        strict_1.default.equal(form.sectionRenders.at(-1)?.snapshot.currentStepId, null);
+        strict_1.default.deepEqual(patchedPayloads, [
+            {
+                dbm_currentstageid: 'completed',
+                dbm_currentstepid: 'prepare-assignment',
+                dbm_currentformstateid: 'assignment-work-state',
+                dbm_internalstatusid: 'complete',
+                dbm_portalstatusid: 'complete'
             }
         ]);
     }
@@ -907,6 +1024,11 @@ async function createRuntimeHarness(formId) {
     const createdEntities = new Set();
     const createdColumns = new Map();
     const createdRelationships = new Set();
+    const webResources = new Map();
+    const formXmlById = new Map(plan.forms.map((form) => [
+        form.systemFormId.replace(/[{}]/g, '').toLowerCase(),
+        `<form><tabs><tab id="{${form.systemFormId.replace(/[{}]/g, '').toUpperCase()}}"><columns><column><sections><section name="${form.sections[0]?.sectionName ?? 'section'}"><labels><label description="General" languagecode="1033" /></labels><rows /></section></sections></column></columns></tab></tabs><formLibraries /><events /></form>`
+    ]));
     function ensureColumnSet(entityLogicalName) {
         const existing = createdColumns.get(entityLogicalName);
         if (existing) {
@@ -1054,14 +1176,59 @@ async function createRuntimeHarness(formId) {
                 }
             });
         }
-        if (method === 'POST' && relative === 'PublishAllXml') {
+        const systemFormMatch = /systemforms\(([^)]+)\)(?:\?\$select=formid,name,formxml)?/.exec(relative);
+        if (systemFormMatch && method === 'GET') {
+            const formId = (systemFormMatch[1] ?? '').replace(/[{}]/g, '').toLowerCase();
+            const formPlan = plan.forms.find((entry) => entry.systemFormId.replace(/[{}]/g, '').toLowerCase() === formId);
+            const formXml = formXmlById.get(formId);
+            return formPlan && formXml
+                ? json(200, { formid: formPlan.systemFormId, name: formPlan.displayName, formxml: formXml })
+                : json(404, { error: { message: 'Not found' } });
+        }
+        if (systemFormMatch && method === 'PATCH') {
+            const formId = (systemFormMatch[1] ?? '').replace(/[{}]/g, '').toLowerCase();
+            formXmlById.set(formId, String(requests[requests.length - 1]?.body?.formxml ?? ''));
             return json(204);
         }
-        if (method === 'GET' && relative.startsWith('systemforms(')) {
-            return json(404, { error: { message: 'Not found' } });
-        }
         if (method === 'GET' && relative.startsWith('webresourceset?')) {
-            return json(200, { value: [] });
+            const filterMatch = /\$filter=([^&]+)/.exec(relative);
+            const decodedFilter = decodeURIComponent(filterMatch?.[1] ?? '');
+            const matched = [...webResources.entries()]
+                .filter(([name]) => decodedFilter.includes(name))
+                .map(([name, resource]) => ({
+                webresourceid: resource.id,
+                name,
+                displayname: resource.displayName,
+                webresourcetype: resource.webResourceType,
+                content: resource.content
+            }));
+            return json(200, { value: matched });
+        }
+        if (method === 'POST' && relative === 'webresourceset') {
+            const body = requests[requests.length - 1]?.body ?? {};
+            const name = String(body.name ?? '');
+            webResources.set(name, {
+                id: `wr-${webResources.size + 1}`,
+                displayName: body.displayname ?? null,
+                webResourceType: body.webresourcetype ?? null,
+                content: body.content ?? ''
+            });
+            return json(204);
+        }
+        const webResourcePatchMatch = /webresourceset\(([^)]+)\)$/.exec(relative);
+        if (webResourcePatchMatch && method === 'PATCH') {
+            const body = requests[requests.length - 1]?.body ?? {};
+            const name = String(body.name ?? '');
+            webResources.set(name, {
+                id: webResourcePatchMatch[1] ?? `wr-${webResources.size + 1}`,
+                displayName: body.displayname ?? null,
+                webResourceType: body.webresourcetype ?? null,
+                content: body.content ?? ''
+            });
+            return json(204);
+        }
+        if (method === 'POST' && relative === 'PublishAllXml') {
+            return json(204);
         }
         strict_1.default.fail(`Unexpected fetch call: ${method} ${relative}`);
     });
@@ -1082,6 +1249,16 @@ async function createRuntimeHarness(formId) {
         const entityCreate = requests.find((request) => request.url.endsWith('/EntityDefinitions') && request.method === 'POST');
         strict_1.default.ok(entityCreate);
         strict_1.default.equal(entityCreate?.body?.PrimaryNameAttribute, 'dbm_title');
+        strict_1.default.equal(report.actions.some((action) => action.componentType === 'webresource' &&
+            action.logicalName === 'ys_/dbm/process-experience/renderer.js' &&
+            action.state === 'created'), true);
+        strict_1.default.equal(report.actions.some((action) => action.componentType === 'form' &&
+            action.logicalName === '{8d65fa31-b54d-5d9b-84e0-07d87e113130}' &&
+            action.state === 'updated'), true);
+        const requestFormXml = formXmlById.get('8d65fa31-b54d-5d9b-84e0-07d87e113130');
+        strict_1.default.ok(requestFormXml?.includes('dbm_process_host_request_form'));
+        strict_1.default.ok(requestFormXml?.includes('ys_/dbm/process-experience/host.html'));
+        strict_1.default.ok(requestFormXml?.includes('ys_/dbm/forms/config/request-form.js'));
     }
     finally {
         globalThis.fetch = originalFetch;

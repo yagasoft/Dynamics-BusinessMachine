@@ -51,6 +51,8 @@ export interface GuidedWorkspaceCurrentTask {
     actorLabel: string | null;
     tone: GuidedWorkspaceTone;
     isHidden: boolean;
+    supportingLabel: string;
+    supportingCopy: string;
     siblingSteps: GuidedWorkspaceStepItem[];
     actions: GuidedWorkspaceOutcomeAction[];
 }

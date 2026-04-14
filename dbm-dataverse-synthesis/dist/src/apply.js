@@ -38,6 +38,97 @@ async function dataverseRequest(dataverseUrl, accessToken, method, relativePath,
         payload
     };
 }
+function escapeForRegex(value) {
+    return value.replace(/[.*+?^${}()|[\]\\]/g, '\\$&');
+}
+function replaceXmlNode(xml, nodeName, replacement) {
+    const fullNodePattern = new RegExp(`<${nodeName}(?:\\s[^>]*)?>[\\s\\S]*?<\\/${nodeName}>`, 'i');
+    if (fullNodePattern.test(xml)) {
+        return xml.replace(fullNodePattern, replacement);
+    }
+    const selfClosingPattern = new RegExp(`<${nodeName}(?:\\s[^>]*)?\\s*/>`, 'i');
+    if (selfClosingPattern.test(xml)) {
+        return xml.replace(selfClosingPattern, replacement);
+    }
+    return xml.replace(/<\/form>/i, `${replacement}\n    </form>`);
+}
+function buildProcessHostSectionXml(formPlan) {
+    const processHost = formPlan.processHost?.supported;
+    if (!processHost) {
+        return '';
+    }
+    return [
+        `                <section name="${processHost.sectionName}" id="${processHost.sectionId}" IsUserDefined="1" showlabel="false" showbar="false" columns="1">`,
+        '                  <labels>',
+        `                    <label description="${processHost.label}" languagecode="1033" />`,
+        '                  </labels>',
+        '                  <rows>',
+        '                    <row>',
+        `                      <cell id="${processHost.cellId}" showlabel="false" rowspan="4">`,
+        '                        <labels>',
+        `                          <label description="${processHost.label}" languagecode="1033" />`,
+        '                        </labels>',
+        `                        <control id="${processHost.controlName}" classid="{9FDF5F91-88B1-47f4-AD53-C11EFC01A01D}">`,
+        '                          <parameters>',
+        `                            <Url>${processHost.webResourceName}</Url>`,
+        `                            <Data>${encodeURIComponent(processHost.data)}</Data>`,
+        '                            <PassParameters>false</PassParameters>',
+        '                            <ShowOnMobileClient>false</ShowOnMobileClient>',
+        '                            <Security>false</Security>',
+        '                            <Scrolling>auto</Scrolling>',
+        '                            <Border>false</Border>',
+        `                            <WebResourceId>${processHost.webResourceId}</WebResourceId>`,
+        '                          </parameters>',
+        '                        </control>',
+        '                      </cell>',
+        '                    </row>',
+        '                    <row />',
+        '                    <row />',
+        '                    <row />',
+        '                  </rows>',
+        '                </section>'
+    ].join('\n');
+}
+function insertProcessHostSection(xml, formPlan) {
+    const processHost = formPlan.processHost?.supported;
+    if (!processHost) {
+        return xml;
+    }
+    if (new RegExp(`<section\\b[^>]*name="${escapeForRegex(processHost.sectionName)}"`, 'i').test(xml)) {
+        return xml;
+    }
+    const sectionXml = buildProcessHostSectionXml(formPlan);
+    if (!sectionXml) {
+        return xml;
+    }
+    const sectionsPattern = new RegExp(`(<tab\\b[^>]*name="${escapeForRegex(processHost.tabName)}"[^>]*>[\\s\\S]*?<columns>\\s*<column[^>]*>\\s*<sections>)`, 'i');
+    if (sectionsPattern.test(xml)) {
+        return xml.replace(sectionsPattern, `$1\n${sectionXml}`);
+    }
+    // Existing Dataverse main forms do not always persist `name` attributes on tabs.
+    // In that case we still want the supported host at the top of the first business tab.
+    const firstSectionsPattern = /(<tabs>\s*<tab\b[\s\S]*?<columns>\s*<column[^>]*>\s*<sections>)/i;
+    if (firstSectionsPattern.test(xml)) {
+        return xml.replace(firstSectionsPattern, `$1\n${sectionXml}`);
+    }
+    return xml;
+}
+function patchFormXml(formXml, formPlan) {
+    let patchedXml = formXml.replace(/\r\n/g, '\n');
+    patchedXml = insertProcessHostSection(patchedXml, formPlan);
+    patchedXml = replaceXmlNode(patchedXml, 'formLibraries', formPlan.managedFormLibrariesXml);
+    patchedXml = replaceXmlNode(patchedXml, 'events', formPlan.managedEventsXml);
+    return patchedXml.endsWith('\n') ? patchedXml : `${patchedXml}\n`;
+}
+function encodeUtf8Base64(value) {
+    return Buffer.from(value, 'utf8').toString('base64');
+}
+function decodeUtf8Base64(value) {
+    if (!value) {
+        return '';
+    }
+    return Buffer.from(value, 'base64').toString('utf8');
+}
 function getDataverseErrorMessage(result, fallback) {
     const nestedMessage = result.payload?.error?.message ??
         result.payload?.Message ??
@@ -386,6 +477,96 @@ async function ensureRelationship(relationship, plan, environmentConfig, accessT
         message: `Created relationship '${relationship.logicalName}' in Dataverse.`
     });
 }
+async function ensureBehaviorWebResource(behavior, environmentConfig, accessToken, solutionName, actions) {
+    if (!behavior.supported) {
+        actions.push({
+            componentType: 'webresource',
+            logicalName: behavior.webResourceName,
+            state: 'skipped',
+            message: `Web resource '${behavior.webResourceName}' is skipped: ${behavior.reason ?? 'unsupported'}.`
+        });
+        return;
+    }
+    const filter = encodeURIComponent(`name eq '${behavior.webResourceName.replace(/'/g, "''")}'`);
+    const existing = await dataverseRequest(environmentConfig.dataverseUrl, accessToken, 'GET', `webresourceset?$select=webresourceid,name,content,displayname,webresourcetype&$filter=${filter}`);
+    if (!existing.ok) {
+        throw new Error(getDataverseErrorMessage(existing, `Failed to query web resource '${behavior.webResourceName}'.`));
+    }
+    const existingResource = Array.isArray(existing.payload?.value) ? existing.payload.value[0] : null;
+    const desiredContent = (0, common_1.normalizeTextContent)(behavior.content);
+    const existingContent = (0, common_1.normalizeTextContent)(decodeUtf8Base64(existingResource?.content));
+    const existingType = typeof existingResource?.webresourcetype === 'number' ? existingResource.webresourcetype : null;
+    const existingDisplayName = typeof existingResource?.displayname === 'string' ? existingResource.displayname : null;
+    if (existingResource?.webresourceid &&
+        existingContent === desiredContent &&
+        existingType === behavior.webResourceType &&
+        existingDisplayName === behavior.displayName) {
+        actions.push({
+            componentType: 'webresource',
+            logicalName: behavior.webResourceName,
+            state: 'skipped',
+            message: `Web resource '${behavior.webResourceName}' already matches the DBM-generated plan.`
+        });
+        return;
+    }
+    const body = {
+        name: behavior.webResourceName,
+        displayname: behavior.displayName,
+        webresourcetype: behavior.webResourceType,
+        content: encodeUtf8Base64(behavior.content)
+    };
+    const result = existingResource?.webresourceid
+        ? await dataverseRequest(environmentConfig.dataverseUrl, accessToken, 'PATCH', `webresourceset(${existingResource.webresourceid})`, body, solutionName)
+        : await dataverseRequest(environmentConfig.dataverseUrl, accessToken, 'POST', 'webresourceset', body, solutionName);
+    if (!result.ok) {
+        throw new Error(getDataverseErrorMessage(result, `Failed to upsert web resource '${behavior.webResourceName}'.`));
+    }
+    actions.push({
+        componentType: 'webresource',
+        logicalName: behavior.webResourceName,
+        state: existingResource?.webresourceid ? 'updated' : 'created',
+        message: `${existingResource?.webresourceid ? 'Updated' : 'Created'} web resource '${behavior.webResourceName}'.`
+    });
+}
+async function ensureForm(form, environmentConfig, accessToken, solutionName, actions) {
+    if (!form.supported) {
+        actions.push({
+            componentType: 'form',
+            logicalName: form.systemFormId,
+            state: 'skipped',
+            message: `Form '${form.displayName}' is skipped: ${form.reason ?? 'unsupported'}.`
+        });
+        return;
+    }
+    const normalizedFormId = form.systemFormId.replace(/[{}]/g, '');
+    const existing = await dataverseRequest(environmentConfig.dataverseUrl, accessToken, 'GET', `systemforms(${normalizedFormId})?$select=formid,name,formxml`);
+    if (!existing.ok) {
+        throw new Error(getDataverseErrorMessage(existing, `Failed to query form '${form.displayName}' (${form.systemFormId}).`));
+    }
+    const currentFormXml = String(existing.payload?.formxml ?? '');
+    const patchedFormXml = patchFormXml(currentFormXml, form);
+    if ((0, common_1.normalizeTextContent)(currentFormXml) === (0, common_1.normalizeTextContent)(patchedFormXml)) {
+        actions.push({
+            componentType: 'form',
+            logicalName: form.systemFormId,
+            state: 'skipped',
+            message: `Form '${form.displayName}' already matches the DBM-managed process-host plan.`
+        });
+        return;
+    }
+    const result = await dataverseRequest(environmentConfig.dataverseUrl, accessToken, 'PATCH', `systemforms(${normalizedFormId})`, {
+        formxml: patchedFormXml
+    }, solutionName);
+    if (!result.ok) {
+        throw new Error(getDataverseErrorMessage(result, `Failed to patch form '${form.displayName}' (${form.systemFormId}).`));
+    }
+    actions.push({
+        componentType: 'form',
+        logicalName: form.systemFormId,
+        state: 'updated',
+        message: `Patched form '${form.displayName}' with DBM-managed process-host artifacts.`
+    });
+}
 async function publishChanges(environmentConfig, accessToken, actions) {
     const result = await dataverseRequest(environmentConfig.dataverseUrl, accessToken, 'POST', 'PublishAllXml', {});
     if (!result.ok) {
@@ -422,6 +603,12 @@ async function applySynthesisPlanToDev(plan, environmentConfig, auth) {
     }
     for (const relationship of plan.relationships) {
         await ensureRelationship(relationship, plan, environmentConfig, auth.accessToken, plan.generatedMetadataSolutionName, actions, languageCode);
+    }
+    for (const behavior of plan.behaviors) {
+        await ensureBehaviorWebResource(behavior, environmentConfig, auth.accessToken, plan.generatedMetadataSolutionName, actions);
+    }
+    for (const form of plan.forms) {
+        await ensureForm(form, environmentConfig, auth.accessToken, plan.generatedMetadataSolutionName, actions);
     }
     await publishChanges(environmentConfig, auth.accessToken, actions);
     const snapshot = await (0, readback_1.readbackDataverseMetadata)(plan, environmentConfig, auth);

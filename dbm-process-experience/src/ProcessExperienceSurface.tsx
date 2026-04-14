@@ -233,10 +233,8 @@ export function ProcessExperienceSurface(props: ProcessExperienceSurfaceProps) {
                 </div>
               ) : (
                 <div style={supportCardStyle}>
-                  <div style={supportCardLabelStyle}>Current visibility</div>
-                  <p style={supportParagraphStyle}>
-                    This step is currently progressing in an internal-only part of the workflow. We will bring the next requester-facing task back here automatically.
-                  </p>
+                  <div style={supportCardLabelStyle}>{viewModel.currentTask.supportingLabel}</div>
+                  <p style={supportParagraphStyle}>{viewModel.currentTask.supportingCopy}</p>
                 </div>
               )}
 
