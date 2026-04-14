@@ -25,6 +25,19 @@ This contract must:
 - keep Dataverse provider bindings, supported form behavior, and synthesis-owned artifacts attached to the model without turning those artifacts into the model
 - give the next executable contract slice a decision-complete target
 
+## Adjacent Non-Authoritative Contracts
+
+The post-`R1` roadmap reset introduces two adjacent contracts that must stay outside the canonical envelope:
+
+- `DbmDesignerWorkspaceV1`
+  - non-authoritative sidecar that stores graph layout, viewport, preview, and other UI-only authoring state
+  - must never redefine process, form, metadata, rule, or runtime semantics
+- `DbmProcessExperienceSnapshotV1`
+  - derived UI read model built from canonical model plus runtime state
+  - consumed by model-driven and portal renderers so the same business-process experience can be projected across hosts without splitting the source of truth
+
+These contracts are important platform interfaces, but they do not replace the canonical DBM model as the authoritative definition of process behavior.
+
 ## Normative Platform Rules
 
 - A DBM model is serialized as one UTF-8 JSON document.
@@ -254,6 +267,7 @@ The runtime implementation must evaluate conditions efficiently through compilat
 The runtime contract now assumes:
 
 - DBM owns the process UI and status experience
+- process renderers consume one derived process-experience snapshot rather than reading host-specific state directly
 - model-driven runtime and portal runtime are different projections of the same canonical process state
 - Dataverse owns authoritative persistence and stage or step transition decisions
 - Azure remains optional support infrastructure where it adds clear value
@@ -262,7 +276,7 @@ The runtime contract now assumes:
 
 The preferred model-driven target is a DBM-owned process experience rendered at the top of the form, above tabs.
 
-If no supported placement can achieve the required proof in early `R1`, a simplified unsupported placement method may be used temporarily, but that does not change the product boundary or long-term target.
+If no supported placement can achieve the required UX in the near term, a simplified unsupported placement method may be used temporarily, but that does not change the product boundary or long-term target.
 
 ### Runtime request and result implications
 
@@ -306,6 +320,7 @@ The architectural direction approved here means:
 
 - `dbm-contract` must be revised in `R1.2.1`, not just documented
 - `dbm-designer-core` must evolve from stage-only editing into stage + step + form-state authoring
+- the long-term designer shell may be replaced without changing `dbm-designer-core` as the durable editing seam
 - Dataverse schema synthesis and provider-bound form behavior become part of the synthesis boundary
 - native BPF, if generated later, is downstream from the canonical model rather than upstream into it
 

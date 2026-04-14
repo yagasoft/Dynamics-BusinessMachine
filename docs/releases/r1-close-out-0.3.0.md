@@ -82,11 +82,11 @@ The `R1` exit criteria in [Release 1: Builder Platform MVP](../roadmap/release-1
 - full-form XML ownership by DBM
 - whole-form drift enforcement against live Dataverse
 - editable multi-table composition on model-driven forms
-- live portal runtime and end-to-end portal loop in `R2`
-- AI-assisted authoring and optimization in `R3`
+- live portal runtime and end-to-end portal loop in the then-planned `R2`, now `R3` after the post-`R1` roadmap reset
+- AI-assisted authoring and optimization in the then-planned `R3`, now `R4`
 
 ## Remaining Risks And Follow-Ups
 
 - Azure Key Vault seeding for the new official `app-signing-key` remains an external operational follow-up; local packaging and the GitHub fallback secret path are already working.
-- `dbm-app` still carries the tracked npm audit exception scope and Angular/CommonJS warning set documented in release governance; this remains a hardening item entering `R2`.
+- `dbm-app` still carries the tracked npm audit exception scope and Angular/CommonJS warning set documented in release governance; this remains a hardening item entering the new `R2` designer/process-experience release.
 - `R1` closes on the Dataverse-backed model-driven runtime v1 boundary; broader browser-driven runtime automation can be added later without reopening the release definition.

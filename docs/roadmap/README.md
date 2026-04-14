@@ -10,9 +10,10 @@ This section holds the official high-level release ladder and the stage plans fo
   - the cross-release matrix for sophistication capabilities
 - [release-0-engineering-foundation.md](release-0-engineering-foundation.md)
 - [release-1-builder-platform-mvp.md](release-1-builder-platform-mvp.md)
-- [release-2-pilot-ready-v1.md](release-2-pilot-ready-v1.md)
-- [release-3-ai-assisted-platform.md](release-3-ai-assisted-platform.md)
-- [release-4-enterprise-sophistication.md](release-4-enterprise-sophistication.md)
+- [release-2-designer-and-process-experience-platform.md](release-2-designer-and-process-experience-platform.md)
+- [release-3-pilot-ready-v1.md](release-3-pilot-ready-v1.md)
+- [release-4-ai-assisted-platform.md](release-4-ai-assisted-platform.md)
+- [release-5-enterprise-sophistication.md](release-5-enterprise-sophistication.md)
 
 ## Planning rules
 

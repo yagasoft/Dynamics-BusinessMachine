@@ -35,12 +35,13 @@ Do not use this area for temporary execution notes, scratch work, or private pla
 6. [Canonical Contract Authority ADR](adr/0008-canonical-contract-authority-and-format.md)
 7. [Process UI And Generated Dataverse Artifacts ADR](adr/0009-dbm-process-ui-portal-state-projection-and-generated-dataverse-artifacts.md)
 8. [Dataverse Metadata Synthesis ADR](adr/0010-dataverse-metadata-synthesis-and-layered-generated-solution-strategy.md)
-9. [Release Plan](roadmap/release-plan.md)
-10. [Capability Map](roadmap/capability-map.md)
-11. [Release 4 Enterprise Sophistication](roadmap/release-4-enterprise-sophistication.md)
-12. [Release Governance](releases/release-governance.md)
-13. [R1 Close-Out: 0.3.0](releases/r1-close-out-0.3.0.md)
-14. [Runbook Index](runbooks/README.md)
+9. [Post-R1 Roadmap Reset ADR](adr/0011-post-r1-roadmap-reset-and-designer-process-experience-platform.md)
+10. [Release Plan](roadmap/release-plan.md)
+11. [Capability Map](roadmap/capability-map.md)
+12. [Release 2 Designer And Process Experience Platform](roadmap/release-2-designer-and-process-experience-platform.md)
+13. [Release Governance](releases/release-governance.md)
+14. [R1 Close-Out: 0.3.0](releases/r1-close-out-0.3.0.md)
+15. [Runbook Index](runbooks/README.md)
 
 ## Working rules
 

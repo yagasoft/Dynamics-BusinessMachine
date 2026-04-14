@@ -1,8 +1,8 @@
-# Release 3: AI-Assisted Platform
+# Release 4: AI-Assisted Platform
 
 ## Goal
 
-Add trustworthy AI assistance only after the platform contracts, portability, and operations are stable enough that generated output is useful, reviewable, and auditable.
+Add trustworthy AI assistance only after the designer shell, process-experience system, platform contracts, portability, and operations are stable enough that generated output is useful, reviewable, and auditable.
 
 ## Feature set and deliverables
 
@@ -15,7 +15,7 @@ Add trustworthy AI assistance only after the platform contracts, portability, an
 
 ## Stages
 
-### R3.1 AI guardrails and contract
+### R4.1 AI guardrails and contract
 
 Output:
 - AI architecture that cannot silently mutate production behavior
@@ -28,17 +28,17 @@ Must define:
 - failure handling
 - separation between suggestion, simulation, and authoritative mutation
 
-### R3.2 Requirement analysis and draft generation
+### R4.2 Requirement analysis and draft generation
 
 Output:
-- designer assistant that can generate editable draft processes, metadata, and forms from structured requirements
+- designer assistant that can generate editable draft processes, metadata, forms, and process-experience proposals from structured requirements
 
 Must include:
 - requirement-to-process drafting
 - draft metadata and form proposals
 - explicit trace from requirement input to generated artifacts
 
-### R3.3 Validation and optimization assistance
+### R4.3 Validation and optimization assistance
 
 Output:
 - review assistant that helps authors and reviewers improve quality before deployment
@@ -49,7 +49,7 @@ Must include:
 - test-scenario generation from the model
 - optimization recommendations for forms, statuses, branching, performance, and cost
 
-### R3.4 Adoption and feedback loop
+### R4.4 Adoption and feedback loop
 
 Output:
 - measurable AI feature set with usage telemetry and refinement feedback loops

@@ -6,6 +6,11 @@
 
 ## Context
 
+Post-`R1` roadmap note:
+
+- this ADR remains in force for process-UI ownership, portal projection, and Dataverse authoring boundaries
+- the later roadmap sequencing changed after `R1`; the live Power Pages runtime now lands in `R3` under [ADR-0011](0011-post-r1-roadmap-reset-and-designer-process-experience-platform.md)
+
 The revived DBM direction needs a business process that stays coherent from portal to backend to portal. The existing roadmap and contract baseline were still framed around a simpler stage-only process and a model-driven-first runtime without explicit portal state projection, step-level semantics, or generated Dataverse authoring as a first-class product boundary.
 
 The product now needs to lock:
@@ -57,4 +62,4 @@ The product now needs to lock:
 - [Canonical Model And Runtime Contract v1](../architecture/canonical-model-runtime-contract-v1.md)
 - [Release Plan](../roadmap/release-plan.md)
 - [Release 1 Builder Platform MVP](../roadmap/release-1-builder-platform-mvp.md)
-- [Release 2: Pilot-Ready End-To-End Platform](../roadmap/release-2-pilot-ready-v1.md)
+- [Release 3: Pilot-Ready End-To-End Platform](../roadmap/release-3-pilot-ready-v1.md)

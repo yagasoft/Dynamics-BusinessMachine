@@ -126,10 +126,13 @@ Must include:
 - the validated approval/request model can be edited from both supported hosts
 - existing Dataverse forms for the scenario can be bound to DBM-managed behavior and the scenario can run through the backend runtime and render through the DBM-owned model-driven process experience
 - columns remain solution-owned and do not require designer-driven authoring in this release
-- portal-visible state projection is defined in the model even though the live portal runtime lands in `R2`
+- portal-visible state projection is defined in the model even though the live portal runtime lands in the post-`R1` pilot release, now `R3` after the roadmap reset
 - the release is deployable through the formal pipeline
 
 ## Closeout
 
 - R1 completed on the `0.3.0` line.
 - Formal close-out record: [R1 Close-Out: 0.3.0](../releases/r1-close-out-0.3.0.md)
+- Post-`R1` roadmap note:
+  - the designer and process-experience productization release is now `R2`
+  - the live portal runtime and pilot-ready platform now land in `R3`

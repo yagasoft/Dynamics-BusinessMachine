@@ -1,4 +1,4 @@
-# Release 4: Enterprise Sophistication And Optimization
+# Release 5: Enterprise Sophistication And Optimization
 
 ## Goal
 
@@ -15,7 +15,7 @@ Extend the pilot-ready platform into an enterprise-grade design, governance, sim
 
 ## Stages
 
-### R4.1 Simulation and replay debugger
+### R5.1 Simulation and replay debugger
 
 Output:
 - deterministic process simulator and replay tools for authors, reviewers, and support staff
@@ -25,7 +25,7 @@ Must include:
 - branch and condition replay
 - support-facing runtime replay and diagnostics
 
-### R4.2 Reuse, templates, and policy packs
+### R5.2 Reuse, templates, and policy packs
 
 Output:
 - reusable enterprise building blocks that reduce copy-paste modeling
@@ -36,7 +36,7 @@ Must include:
 - organization-level policy packs
 - reuse governance and versioning expectations
 
-### R4.3 Synthesis governance and drift control
+### R5.3 Synthesis governance and drift control
 
 Output:
 - enterprise-safe synthesis lifecycle for designer-owned platform assets
@@ -47,7 +47,7 @@ Must include:
 - drift detection between model intent, tracked artifacts, and environments
 - operational response paths for managed drift
 
-### R4.4 Advanced observability and optimization
+### R5.4 Advanced observability and optimization
 
 Output:
 - enterprise-scale diagnostics and optimization surface

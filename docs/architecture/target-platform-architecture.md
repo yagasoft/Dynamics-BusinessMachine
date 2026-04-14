@@ -9,6 +9,7 @@ DBM should let a solution architect or developer define, deploy, run, and suppor
 The platform must support:
 
 - stage, step, and form-state definition
+- graph-first designer authoring and preview
 - coherent process UI across model-driven and portal surfaces
 - metadata, columns, and generated Dataverse form authoring
 - reusable conditions, branching, and status projection
@@ -31,23 +32,37 @@ The product needs one authoritative model that describes:
 
 This model is the heart of portability and runtime consistency.
 
-### 2. Designer core
+### 2. Designer workspace sidecar
+
+The long-term designer also needs a non-authoritative UI-state sidecar so the product can be graph-first without polluting the canonical model.
+
+That sidecar owns:
+
+- canvas node positioning
+- viewport and zoom state
+- collapsed groups and panel state
+- preview-mode preferences
+- other UI-only authoring state that must not become canonical business semantics
+
+### 3. Designer core
 
 The designer core owns editing behavior, validation, model composition, semantic checks, serialization, and synthesis planning. It should remain host-agnostic.
 
-### 3. Process experience layer
+### 4. Process experience layer
 
 DBM owns the business-process experience itself. That experience must remain coherent across model-driven and portal surfaces even when some internal stages or steps are intentionally hidden from portal users.
+
+The process experience should be driven through one derived UI read model built from canonical model plus runtime state. That keeps renderers consistent without making the renderer contract the system of record.
 
 For model-driven forms:
 
 - the preferred target is a process experience rendered at the top of the form, above tabs
 - supported platform placement should be preferred whenever it can satisfy the UX goal
-- if no supported placement can achieve the required proof in early R1, a simplified unsupported placement method may be used with explicit documentation and later replacement
+- if no supported placement can achieve the required UX in the near term, a simplified unsupported placement method may be used with explicit documentation and explicit fallback to the supported host
 
 Native Dataverse business process flow is not the source of truth. It may be generated later as an optional integration artifact where it adds value.
 
-### 4. Host adapters
+### 5. Host adapters
 
 The designer is hosted through adapters, not duplicated implementations.
 
@@ -57,7 +72,7 @@ The designer is hosted through adapters, not duplicated implementations.
 
 The host shell is replaceable. The canonical model and designer core are the enduring seams.
 
-### 5. Execution runtimes
+### 6. Execution runtimes
 
 The same platform contract should support several execution contexts:
 
@@ -66,7 +81,7 @@ The same platform contract should support several execution contexts:
 - Dataverse backend execution
 - Azure orchestration and service-plane execution
 
-### 6. Delivery and operations layer
+### 7. Delivery and operations layer
 
 The platform must include:
 
@@ -77,7 +92,7 @@ The platform must include:
 - Azure artifact promotion
 - release evidence, smoke tests, and rollback procedures
 
-### 7. Dataverse synthesis layer
+### 8. Dataverse synthesis layer
 
 DBM needs a dedicated Dataverse synthesis layer between the canonical model and Dataverse delivery artifacts.
 
@@ -215,9 +230,10 @@ flowchart TB
 - Release 0 establishes delivery, governance, environments, and baseline recovery.
 - Release 1 locks the canonical process semantics, designer core, Dataverse synthesis layer, host adapters, and the first DBM-owned model-driven runtime for one approval/request scenario.
 - Release 1 also defines the portal-facing process projection contract, but it does not deliver the live Power Pages runtime.
-- Release 2 delivers the real Power Pages runtime, end-to-end portal continuity, Azure-backed supporting services, work-management, timeline, and observability baselines, and pilot-ready hardening.
-- Release 3 adds AI drafting, review, gap detection, and optimization only after platform contracts and operations are reliable.
-- Release 4 deepens enterprise sophistication through simulation, replay, reusable building blocks, synthesis governance, and advanced analytics and optimization.
+- Release 2 productizes the designer shell, the shared process-experience system, the model-driven placement strategy, and the portal-continuity UX foundation without yet delivering the live portal runtime.
+- Release 3 delivers the real Power Pages runtime, end-to-end portal continuity, Azure-backed supporting services, work-management, timeline, observability baselines, and pilot-ready hardening.
+- Release 4 adds AI drafting, review, gap detection, and optimization only after platform contracts and operations are reliable.
+- Release 5 deepens enterprise sophistication through simulation, replay, reusable building blocks, synthesis governance, and advanced analytics and optimization.
 
 ## Architecture constraints
 
