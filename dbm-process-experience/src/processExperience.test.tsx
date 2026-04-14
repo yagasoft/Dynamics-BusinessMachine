@@ -4,78 +4,11 @@ import { expect, test } from 'vitest';
 import type { DbmProcessExperienceSnapshotV1 } from 'dbm-contract';
 import { ProcessExperienceSurface } from './ProcessExperienceSurface';
 import { buildRuntimeProcessExperienceSnapshot } from './runtime-snapshot';
-import type { DbmProcessExperienceRuntimeModelV1 } from './types';
-
-const runtimeModel: DbmProcessExperienceRuntimeModelV1 = {
-  packageId: 'dbm-package',
-  packageVersion: '1.0.0',
-  processId: 'approval-request',
-  actors: [
-    { id: 'requester', displayName: 'Requester', actorType: 'requester' },
-    { id: 'approver', displayName: 'Manager Approver', actorType: 'approver' }
-  ],
-  statuses: [
-    { id: 'draft', displayName: 'Draft', audience: 'shared', kind: 'progress' },
-    { id: 'under-review', displayName: 'Under Review', audience: 'shared', kind: 'progress' }
-  ],
-  outcomes: [
-    { id: 'submit', displayName: 'Submit' },
-    { id: 'approve', displayName: 'Approve' }
-  ],
-  stages: [
-    {
-      id: 'draft-request',
-      displayName: 'Draft Request',
-      stageType: 'start',
-      actorId: 'requester',
-      formId: 'request-form',
-      portalVisibility: 'visible',
-      stepIds: ['capture-request'],
-      defaultStepId: 'capture-request',
-      allowedOutcomeIds: ['submit']
-    },
-    {
-      id: 'manager-review',
-      displayName: 'Manager Review',
-      stageType: 'approval',
-      actorId: 'approver',
-      formId: 'review-form',
-      portalVisibility: 'hidden',
-      stepIds: ['review-request'],
-      defaultStepId: 'review-request',
-      allowedOutcomeIds: ['approve']
-    }
-  ],
-  steps: [
-    {
-      id: 'capture-request',
-      stageId: 'draft-request',
-      displayName: 'Capture Request',
-      stepType: 'data-entry',
-      ownerActorId: 'requester',
-      internalStatusId: 'draft',
-      portalStatusId: 'draft',
-      formStateId: 'request-basic-state'
-    },
-    {
-      id: 'review-request',
-      stageId: 'manager-review',
-      displayName: 'Review Request',
-      stepType: 'approval',
-      ownerActorId: 'approver',
-      internalStatusId: 'under-review',
-      portalStatusId: 'under-review',
-      formStateId: 'review-state'
-    }
-  ],
-  transitions: [
-    { id: 'submit-request', fromStageId: 'draft-request', toStageId: 'manager-review', outcomeId: 'submit' }
-  ]
-};
+import { approvalRequestRuntimeModel } from './test-fixtures/approvalRequestFixture';
 
 test('buildRuntimeProcessExperienceSnapshot collapses hidden stages for portal projection and surfaces cross-form handoff', () => {
   const snapshot = buildRuntimeProcessExperienceSnapshot(
-    runtimeModel,
+    approvalRequestRuntimeModel,
     {
       stageId: 'manager-review',
       stepId: 'review-request',
@@ -98,7 +31,7 @@ test('ProcessExperienceSurface renders available outcomes and callback actions',
   const user = userEvent.setup();
   const events: string[] = [];
   const snapshot: DbmProcessExperienceSnapshotV1 = buildRuntimeProcessExperienceSnapshot(
-    runtimeModel,
+    approvalRequestRuntimeModel,
     {
       stageId: 'draft-request',
       stepId: 'capture-request',

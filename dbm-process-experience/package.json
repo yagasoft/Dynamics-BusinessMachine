@@ -6,14 +6,18 @@
   "scripts": {
     "vite": "npx -p node@20.19.0 node ./node_modules/vite/bin/vite.js",
     "vitest": "npx -p node@20.19.0 node ./node_modules/vitest/vitest.mjs",
+    "playwright": "npx -p node@20.19.0 node ./node_modules/@playwright/test/cli.js",
     "build": "npm --prefix ../dbm-contract run build && tsc -p tsconfig.json && npm run vite -- build",
-    "test": "npm run vitest -- run"
+    "test": "npm run vitest -- run",
+    "test:visual": "npm run build && npm run playwright -- test",
+    "test:visual:update": "npm run build && npm run playwright -- test --update-snapshots"
   },
   "dependencies": {
     "react": "19.2.5",
     "react-dom": "19.2.5"
   },
   "devDependencies": {
+    "@playwright/test": "1.59.1",
     "@rolldown/binding-win32-x64-msvc": "^1.0.0-rc.15",
     "@testing-library/react": "^16.3.2",
     "@testing-library/user-event": "^14.6.1",

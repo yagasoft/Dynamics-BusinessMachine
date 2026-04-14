@@ -221,6 +221,42 @@ if (-not $SkipGeneratedMetadataValidation) {
         }
     }
 
+    $expectedProcessHostForms = @(
+        [pscustomobject]@{
+            formId = '{8d65fa31-b54d-5d9b-84e0-07d87e113130}'
+            label = 'request-form'
+            expectedSectionName = 'dbm_process_host_request_form'
+            expectedControlName = 'WebResource_dbmProcessHost_request_form'
+            expectedHostWebResourceName = 'ys_/dbm/process-experience/host.html'
+        },
+        [pscustomobject]@{
+            formId = '{4e37e2e6-61cb-544d-848a-9f870ec4cf4d}'
+            label = 'review-form'
+            expectedSectionName = 'dbm_process_host_review_form'
+            expectedControlName = 'WebResource_dbmProcessHost_review_form'
+            expectedHostWebResourceName = 'ys_/dbm/process-experience/host.html'
+        }
+    )
+
+    foreach ($expectedProcessHostForm in $expectedProcessHostForms) {
+        $normalizedExpectedFormId = ([string]$expectedProcessHostForm.formId).Trim('{}').ToLowerInvariant()
+        $form = $readbackSnapshot.forms | Where-Object { ([string]$_.formId).Trim('{}').ToLowerInvariant() -eq $normalizedExpectedFormId } | Select-Object -First 1
+        if (-not $form) {
+            throw "Generated metadata validation could not find process-host form '$($expectedProcessHostForm.formId)' in '$TargetEnvironment'. Review '$readbackPath'."
+        }
+
+        $formXml = [string]$form.formXml
+        foreach ($expectedFragment in @(
+            [pscustomobject]@{ value = [string]$expectedProcessHostForm.expectedSectionName; label = 'section name' },
+            [pscustomobject]@{ value = [string]$expectedProcessHostForm.expectedControlName; label = 'control name' },
+            [pscustomobject]@{ value = [string]$expectedProcessHostForm.expectedHostWebResourceName; label = 'host web resource name' }
+        )) {
+            if ($formXml -notmatch [regex]::Escape($expectedFragment.value)) {
+                throw "Generated metadata validation found form '$($expectedProcessHostForm.label)' without the expected process-host $($expectedFragment.label) '$($expectedFragment.value)'. Review '$readbackPath'."
+            }
+        }
+    }
+
     $expectedWebResources = @(
         'ys_/dbm/process-experience/renderer.js',
         'ys_/dbm/process-experience/host.html',
@@ -245,6 +281,27 @@ if (-not $SkipGeneratedMetadataValidation) {
         name = 'generated-metadata-behavior-assets-present'
         passed = $true
         details = 'Expected DBM form behavior web resources were found in the generated metadata readback.'
+    }
+
+    $expectedConfigResources = @(
+        'ys_/dbm/forms/config/request-form.js',
+        'ys_/dbm/forms/config/review-form.js'
+    )
+    foreach ($expectedConfigResource in $expectedConfigResources) {
+        $webResource = $readbackSnapshot.webResources | Where-Object { [string]$_.name -eq $expectedConfigResource } | Select-Object -First 1
+        if (-not $webResource) {
+            throw "Generated metadata validation could not find expected config web resource '$expectedConfigResource' in '$TargetEnvironment'. Review '$readbackPath'."
+        }
+
+        if ([string]$webResource.content -notmatch '"processHost"\s*:') {
+            throw "Generated metadata validation found config web resource '$expectedConfigResource' without a processHost runtime configuration block. Review '$readbackPath'."
+        }
+    }
+
+    $automatedChecks += [ordered]@{
+        name = 'generated-metadata-process-host-artifacts-present'
+        passed = $true
+        details = 'Expected DBM process-host sections, controls, and runtime processHost configuration were found in the generated metadata readback.'
     }
 }
 

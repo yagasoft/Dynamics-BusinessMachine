@@ -208,6 +208,35 @@ function compareForm(
     });
   }
 
+  const processHost = planForm.processHost?.supported;
+  if (processHost) {
+    const expectedFragments = [
+      {
+        value: processHost.sectionName,
+        label: `process-host section '${processHost.sectionName}'`
+      },
+      {
+        value: processHost.controlName,
+        label: `process-host control '${processHost.controlName}'`
+      },
+      {
+        value: processHost.webResourceName,
+        label: `process-host web resource '${processHost.webResourceName}'`
+      }
+    ];
+
+    for (const fragment of expectedFragments) {
+      if (!snapshotForm.formXml.includes(fragment.value)) {
+        differences.push({
+          kind: 'form',
+          severity: 'error',
+          logicalName: planForm.systemFormId,
+          message: `Form '${planForm.displayName}' is missing DBM-managed ${fragment.label} in the Dataverse snapshot.`
+        });
+      }
+    }
+  }
+
   return differences;
 }
 

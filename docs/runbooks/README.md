@@ -8,6 +8,7 @@ This section holds operational runbooks that support delivery, promotion, rollba
 - [dev-rapid-deploy.md](dev-rapid-deploy.md)
 - [dev-deployment-runbook.md](dev-deployment-runbook.md)
 - [designer-hosted-validation.md](designer-hosted-validation.md)
+- [r2-process-experience-hosting.md](r2-process-experience-hosting.md)
 - [live-connected-e2e.md](live-connected-e2e.md)
 - [uat-promotion-runbook.md](uat-promotion-runbook.md)
 - [prod-promotion-runbook.md](prod-promotion-runbook.md)
@@ -23,6 +24,7 @@ This section holds operational runbooks that support delivery, promotion, rollba
 
 - Use the real runbooks for Release 0 operations.
 - Use [dev-rapid-deploy.md](dev-rapid-deploy.md) only for local `Dev` inner-loop validation.
+- Use [r2-process-experience-hosting.md](r2-process-experience-hosting.md) for `R2` shared renderer, supported host, overlay fallback, and release-hardening checks.
 - Use [live-connected-e2e.md](live-connected-e2e.md) for connected browser-driven validation in `Dev` and promotion-gate validation in `UAT`.
 - Treat `azure/config/*.json` as the non-secret source of truth for environment target metadata.
 - Keep templates only for future runbook patterns that do not yet have an operational version.

@@ -354,6 +354,63 @@ function createMockFormContext(config, entityId, initialValues) {
     strict_1.default.equal(report.differences.some((difference) => difference.kind === 'form'), true);
     strict_1.default.equal(report.differences.some((difference) => difference.kind === 'webresource'), true);
 });
+(0, node_test_1.default)('diffSynthesisPlan treats process-host form artifacts as blocking drift', () => {
+    const plan = (0, index_1.planDataverseSynthesis)(approval_request_v1_model_json_1.default);
+    const snapshot = {
+        generatedUtc: new Date().toISOString(),
+        dataverseUrl: 'https://example.invalid',
+        solutionName: plan.generatedMetadataSolutionName,
+        entities: plan.entities.map((entity) => ({
+            logicalName: entity.logicalName,
+            schemaName: entity.schemaName,
+            primaryIdLogicalName: entity.primaryIdLogicalName,
+            primaryNameAttributeLogicalName: entity.primaryNameAttributeLogicalName,
+            columns: entity.columns.map((column) => ({
+                logicalName: column.logicalName,
+                schemaName: column.schemaName,
+                attributeType: column.attributeType,
+                isPrimaryNameAttribute: column.isPrimaryNameAttribute,
+                requiredLevel: column.required ? 'ApplicationRequired' : 'None',
+                targets: column.lookupTargetLogicalName ? [column.lookupTargetLogicalName] : [],
+                optionValues: (column.choiceOptions ?? []).map((option) => option.value)
+            }))
+        })),
+        relationships: plan.relationships.map((relationship) => ({
+            logicalName: relationship.logicalName,
+            schemaName: relationship.schemaName,
+            relationshipType: 'OneToManyRelationship',
+            referencedEntityLogicalName: relationship.referencedEntityLogicalName,
+            referencingEntityLogicalName: relationship.referencingEntityLogicalName,
+            referencingAttributeLogicalName: relationship.referencingAttributeLogicalName
+        })),
+        forms: plan.forms.map((form) => ({
+            formId: form.systemFormId,
+            name: form.displayName,
+            entityLogicalName: form.entityLogicalName,
+            type: 2,
+            formXml: form.id === 'request-form'
+                ? `<form><tabs><tab name="${form.processHost?.supported.sectionName ?? 'missing'}"><section name="not-the-process-host"><control id="other-control" datafieldname="other" classid="WebResourceControl"><parameters><Url>missing-host.html</Url></parameters></control></section></tab></tabs></form>`
+                : `<form><tabs><tab name="${form.processHost?.supported.sectionName ?? 'missing'}"><section name="${form.processHost?.supported.sectionName ?? 'missing'}"><control id="${form.processHost?.supported.controlName ?? 'missing'}" classid="WebResourceControl"><parameters><Url>${form.processHost?.supported.webResourceName ?? 'missing'}</Url></parameters></control></section></tab></tabs></form>`,
+            managedFormLibrariesXml: form.managedFormLibrariesXml,
+            managedEventsXml: form.managedEventsXml,
+            libraries: form.libraries,
+            eventHandlers: form.eventHandlers
+        })),
+        webResources: plan.behaviors.map((behavior) => ({
+            id: behavior.webResourceId,
+            name: behavior.webResourceName,
+            displayName: behavior.displayName,
+            webResourceType: behavior.webResourceType,
+            content: behavior.content
+        })),
+        diagnostics: []
+    };
+    const report = (0, index_1.diffSynthesisPlan)(plan, snapshot);
+    strict_1.default.equal(report.hasBlockingDrift, true);
+    strict_1.default.equal(report.differences.some((difference) => difference.kind === 'form' &&
+        difference.logicalName === '{8d65fa31-b54d-5d9b-84e0-07d87e113130}' &&
+        /process-host/.test(difference.message)), true);
+});
 (0, node_test_1.default)('emitGeneratedMetadataSolution writes patched forms and behavior web resources', async () => {
     const plan = (0, index_1.planDataverseSynthesis)(approval_request_v1_model_json_1.default);
     const outputRoot = node_path_1.default.join(process.cwd(), 'dist', 'test-output');
@@ -525,6 +582,48 @@ function createMockFormContext(config, entityId, initialValues) {
         strict_1.default.equal(form.sectionRenders.length, 1);
         strict_1.default.match(form.sectionRenders[0]?.snapshot.projection.message ?? '', /different DBM form/i);
         strict_1.default.equal(form.overlayRenders.length, 1);
+    }
+    finally {
+        await harness.cleanup();
+    }
+});
+(0, node_test_1.default)('generated request runtime still renders the supported process host when overlay is disabled', async () => {
+    const harness = await createRuntimeHarness('request-form');
+    try {
+        harness.config.processHost.overlay.enabled = false;
+        const requestRecord = {
+            dbm_requestid: 'request-3',
+            dbm_title: 'Equipment Request',
+            dbm_amount: 1500,
+            dbm_assignedapprover: 'manager@example.com',
+            dbm_supportingnotes: '',
+            dbm_screeningresult: 100000000
+        };
+        harness.sandbox.fetch = async (input, init) => {
+            const url = new URL(String(input));
+            const relative = url.pathname.split('/api/data/v9.2/')[1] + url.search;
+            const method = init?.method ?? 'GET';
+            if (method === 'GET' && relative.startsWith('dbm_requests(request-3)')) {
+                return jsonResponse(200, requestRecord);
+            }
+            if (method === 'PATCH' && relative === 'dbm_requests(request-3)') {
+                return jsonResponse(204);
+            }
+            throw new Error(`Unexpected fetch during overlay-disabled runtime test: ${method} ${relative}`);
+        };
+        const form = createMockFormContext(harness.config, 'request-3', {
+            dbm_title: 'Equipment Request',
+            dbm_amount: 1500,
+            dbm_assignedapprover: 'manager@example.com',
+            dbm_supportingnotes: '',
+            dbm_screeningresult: 100000000
+        });
+        const result = await harness.sync(form.executionContext, harness.config);
+        strict_1.default.ok(result?.state.stageId);
+        strict_1.default.ok(result?.state.stepId);
+        strict_1.default.equal(form.sectionRenders.length, 1);
+        strict_1.default.equal(form.sectionRenders[0]?.mode, 'model-driven-section');
+        strict_1.default.equal(form.overlayRenders.length, 0);
     }
     finally {
         await harness.cleanup();

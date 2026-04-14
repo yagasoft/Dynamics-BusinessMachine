@@ -35,6 +35,6 @@ export default defineConfig(({ command }) => ({
     },
     test: {
         environment: 'jsdom',
-        exclude: ['dist/**', 'node_modules/**']
+        exclude: ['dist/**', 'node_modules/**', 'test/visual/**']
     }
 }));
