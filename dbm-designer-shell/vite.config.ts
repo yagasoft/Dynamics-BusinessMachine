@@ -4,6 +4,10 @@ import { defineConfig } from 'vite';
 
 export default defineConfig({
   plugins: [react()],
+  define: {
+    'process.env.NODE_ENV': JSON.stringify('production'),
+    global: 'globalThis'
+  },
   resolve: {
     alias: {
       'dbm-contract': path.resolve(__dirname, '../dbm-contract/dist/index.js'),
