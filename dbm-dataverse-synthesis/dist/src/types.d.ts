@@ -1,4 +1,4 @@
-import type { DbmElementTypeV1, DbmFieldDataTypeV1, DbmModelV1, DbmRelationshipTypeV1 } from 'dbm-contract';
+import type { DbmElementTypeV1, DbmFieldDataTypeV1, DbmModelV1, DbmRelationshipTypeV1, DbmSubjectResolutionStrategyV1 } from 'dbm-contract';
 import type { DbmProcessExperienceHostConfigV1, DbmProcessExperienceRuntimeModelV1 } from 'dbm-process-experience' with { "resolution-mode": "import" };
 export type DataverseSynthesisSeverity = 'info' | 'warning' | 'error';
 export type DataverseApplyStatus = 'success' | 'warning' | 'error';
@@ -133,6 +133,8 @@ export interface DataverseRuntimeStagePlan {
     displayName: string;
     stageType: string;
     formId: string | null;
+    entityLogicalName: string | null;
+    systemFormId: string | null;
     defaultStepId: string | null;
 }
 export interface DataverseRuntimeStepPlan {
@@ -156,27 +158,53 @@ export interface DataverseRuntimeStepTransitionPlan {
     guardRuleId: string;
     target: DataverseRuntimeStepTransitionTargetPlan;
 }
-export interface DataverseFormRuntimePlan {
-    requestEntityLogicalName: string;
-    requestEntityPrimaryIdLogicalName: string;
-    currentFormEntityLogicalName: string;
-    relatedRequestLookupFieldLogicalName: string | null;
-    reviewEntityLogicalName: string | null;
-    reviewEntityRequestLookupFieldLogicalName: string | null;
+export interface DataverseRuntimeTransitionPlan {
+    id: string;
+    fromStageId: string;
+    toStageId: string;
+    outcomeId: string;
+    guardRuleId: string;
+}
+export interface DataverseRuntimeProcessOwnerPlan {
+    entityId: string;
+    entityLogicalName: string;
+    primaryIdLogicalName: string;
     runtimeStateFieldLogicalNames: DataverseRuntimeStateFieldPlan;
-    decisionOutcomeFieldLogicalName: string | null;
-    decisionSummaryFieldLogicalName: string | null;
-    decisionCommentFieldLogicalName: string | null;
+}
+export interface DataverseRuntimeCurrentFormPlan {
+    entityId: string;
+    entityLogicalName: string;
+    primaryIdLogicalName: string;
+    relatedProcessOwnerLookupFieldLogicalName: string | null;
+}
+export interface DataverseRuntimeStageHandoffPlan {
+    sourceStageId: string;
+    targetStageId: string;
+    sourceEntityLogicalName: string;
+    targetEntityLogicalName: string;
+    targetFormId: string | null;
+    targetSystemFormId: string | null;
+    targetPrimaryIdLogicalName: string;
+    strategy: DbmSubjectResolutionStrategyV1;
+    relationshipId: string | null;
+    relationshipLogicalName: string | null;
+    referencingEntityLogicalName: string | null;
+    referencingAttributeLogicalName: string | null;
+}
+export interface DataverseFormRuntimePlan {
+    processOwner: DataverseRuntimeProcessOwnerPlan;
+    currentForm: DataverseRuntimeCurrentFormPlan;
+    stageHandoffsByStageId: Record<string, DataverseRuntimeStageHandoffPlan>;
     defaultStageId: string;
     defaultStepId: string;
     defaultFormStateId: string | null;
     statuses: DataverseRuntimeStatusPlan[];
     stages: DataverseRuntimeStagePlan[];
     steps: DataverseRuntimeStepPlan[];
+    transitions: DataverseRuntimeTransitionPlan[];
     stepTransitions: DataverseRuntimeStepTransitionPlan[];
     rules: Record<string, string>;
     valueBindings: DataverseRuntimeValueBindingPlan[];
-    decisionOutcomeOptionValuesByOutcomeId: Record<string, number>;
     processExperienceRuntime: DbmProcessExperienceRuntimeModelV1;
 }
 export interface DataverseFormPlan {

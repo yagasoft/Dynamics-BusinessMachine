@@ -95,6 +95,7 @@ export type DbmProcessExperienceVisibilityV1 = 'visible' | 'collapsed-hidden';
 
 export type DbmFormEntityBindingRoleV1 = 'primary' | 'related';
 export type DbmSubjectRecordRoleV1 = 'primary' | 'related';
+export type DbmSubjectResolutionStrategyV1 = 'reuse-current-primary' | 'select-existing-related' | 'create-related';
 
 export type DbmScalarValueV1 = string | number | boolean | null;
 
@@ -196,12 +197,18 @@ export interface DbmStepV1 {
   exitRuleIds: string[];
 }
 
+export interface DbmSubjectHandoffV1 {
+  strategy: DbmSubjectResolutionStrategyV1;
+  relationshipId: string | null;
+}
+
 export interface DbmTransitionV1 {
   id: string;
   fromStageId: string;
   toStageId: string;
   outcomeId: string;
   guardRuleId: string;
+  subjectHandoff?: DbmSubjectHandoffV1 | null;
 }
 
 export type DbmStepTransitionTargetV1 = { stepId: string } | { stageId: string } | { outcomeId: string };
@@ -211,6 +218,7 @@ export interface DbmStepTransitionV1 {
   fromStepId: string;
   guardRuleId: string;
   target: DbmStepTransitionTargetV1;
+  subjectHandoff?: DbmSubjectHandoffV1 | null;
 }
 
 export interface DbmOutcomeV1 {
@@ -221,7 +229,7 @@ export interface DbmOutcomeV1 {
 export interface DbmProcessV1 {
   id: string;
   displayName: string;
-  scenarioType: 'approval-request';
+  scenarioType: string;
   actors: DbmActorV1[];
   variables: DbmVariableV1[];
   statuses: DbmStatusV1[];

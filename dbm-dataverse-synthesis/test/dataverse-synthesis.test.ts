@@ -5,6 +5,7 @@ import test from 'node:test';
 import { createContext, runInContext } from 'node:vm';
 import type { DbmModelV1 } from 'dbm-contract';
 import approvalRequestModel from '../../docs/architecture/examples/approval-request-v1.model.json';
+import genericExistingFormModel from '../../docs/architecture/examples/generic-existing-form-v1.model.json';
 import {
   applySynthesisPlanToDev,
   diffSynthesisPlan,
@@ -25,7 +26,7 @@ type MockControlState = {
 type RuntimeHarness = {
   config: any;
   sandbox: any;
-  sync: (executionContext: any, config: any) => Promise<any>;
+  sync: (executionContext: any, config: any, requestedOutcomeId?: string) => Promise<any>;
   cleanup: () => Promise<void>;
 };
 
@@ -36,30 +37,21 @@ function jsonResponse(status: number, payload?: unknown): Response {
   });
 }
 
-async function createRuntimeHarness(formId: 'request-form' | 'review-form'): Promise<RuntimeHarness> {
-  const { buildRuntimeProcessExperienceSnapshot } = await import('dbm-process-experience');
-  const plan = planDataverseSynthesis(approvalRequestModel as DbmModelV1);
-  const outputRoot = path.join(process.cwd(), 'dist', 'runtime-test-output', `${formId}-${Date.now()}-${Math.random().toString(16).slice(2)}`);
-  const templateRoot = path.join(
-    process.cwd(),
-    '..',
-    'power-platform',
-    'solutions',
-    'DynamicsBusinessMachineGeneratedMetadata',
-    'template'
-  );
-  await emitGeneratedMetadataSolution(plan, outputRoot, templateRoot);
+function sanitizeFunctionIdentifier(value: string): string {
+  const normalized = value.replace(/[^A-Za-z0-9_]/g, '_');
+  return /^[A-Za-z_]/.test(normalized) ? normalized : `_${normalized}`;
+}
 
-  const runtimeJs = await fs.readFile(
-    path.join(outputRoot, 'src', 'WebResources', 'ys_', 'dbm', 'forms', 'runtime.js'),
-    'utf8'
-  );
-  const configFileName = formId === 'request-form' ? 'request-form.js' : 'review-form.js';
-  const onLoadName = formId === 'request-form' ? 'dbmOnLoad_request_form' : 'dbmOnLoad_review_form';
-  const configJs = await fs.readFile(
-    path.join(outputRoot, 'src', 'WebResources', 'ys_', 'dbm', 'forms', 'config', configFileName),
-    'utf8'
-  );
+async function createRuntimeHarnessForModel(model: DbmModelV1, formId: string): Promise<RuntimeHarness> {
+  const { buildRuntimeProcessExperienceSnapshot } = await import('dbm-process-experience');
+  const plan = planDataverseSynthesis(model);
+  const runtimeJs = plan.behaviors.find((behavior) => behavior.webResourceName === 'ys_/dbm/forms/runtime.js')?.content;
+  const configFileName = `${formId}.js`;
+  const onLoadName = sanitizeFunctionIdentifier(`dbmOnLoad_${formId}`);
+  const configJs = plan.behaviors.find((behavior) => behavior.webResourceName === `ys_/dbm/forms/config/${configFileName}`)?.content;
+
+  assert.ok(runtimeJs, `Failed to locate generated runtime.js content for '${formId}'.`);
+  assert.ok(configJs, `Failed to locate generated config content for '${formId}'.`);
 
   const sandbox: any = {
     console,
@@ -75,7 +67,11 @@ async function createRuntimeHarness(formId: 'request-form' | 'review-form'): Pro
       Utility: {
         getGlobalContext: () => ({
           getClientUrl: () => 'https://example.crm4.dynamics.com'
-        })
+        }),
+        lookupObjects: async () => []
+      },
+      Navigation: {
+        openForm: async () => undefined
       }
     }
   };
@@ -105,9 +101,7 @@ async function createRuntimeHarness(formId: 'request-form' | 'review-form'): Pro
     config: capturedConfig,
     sandbox,
     sync: sandbox.DBM.ProcessRuntime.sync,
-    cleanup: async () => {
-      await fs.rm(outputRoot, { recursive: true, force: true });
-    }
+    cleanup: async () => undefined
   };
 }
 
@@ -356,6 +350,10 @@ function createMockFormContext(config: any, entityId: string, initialValues: Rec
   };
 }
 
+async function createRuntimeHarness(formId: 'request-form' | 'review-form'): Promise<RuntimeHarness> {
+  return createRuntimeHarnessForModel(approvalRequestModel as DbmModelV1, formId);
+}
+
 test('planDataverseSynthesis maps the approval example into entities, existing forms, and JS behaviors', () => {
   const plan = planDataverseSynthesis(approvalRequestModel as DbmModelV1);
   const requestEntity = plan.entities.find((entity) => entity.logicalName === 'dbm_request');
@@ -398,8 +396,51 @@ test('planDataverseSynthesis maps the approval example into entities, existing f
   assert.ok(requestEntity);
   assert.equal(requestEntity?.columns.some((column) => column.logicalName === 'dbm_currentstageid' && column.source === 'synthetic'), true);
   assert.ok(reviewForm?.runtime);
-  assert.equal(reviewForm?.runtime?.decisionOutcomeFieldLogicalName, 'dbm_decisionoutcome');
+  assert.equal(reviewForm?.runtime?.processOwner.entityLogicalName, 'dbm_request');
+  assert.equal(reviewForm?.runtime?.currentForm.entityLogicalName, 'dbm_requestdecision');
+  assert.equal(reviewForm?.runtime?.currentForm.relatedProcessOwnerLookupFieldLogicalName, 'dbm_requestid');
+  assert.equal(reviewForm?.runtime?.stageHandoffsByStageId['manager-review']?.strategy, 'create-related');
   assert.equal(reviewForm?.processHost?.overlay.enabled, true);
+});
+
+test('planDataverseSynthesis supports a non-reference existing-form model with explicit cross-entity handoff', () => {
+  const plan = planDataverseSynthesis(genericExistingFormModel as DbmModelV1);
+  const assignmentForm = plan.forms.find((form) => form.id === 'assignment-form');
+  const caseEntity = plan.entities.find((entity) => entity.logicalName === 'dbm_case');
+
+  assert.equal(plan.diagnostics.filter((diagnostic) => diagnostic.severity === 'error').length, 0);
+  assert.equal(plan.forms.length, 2);
+  assert.equal(plan.forms.every((form) => form.supported), true);
+  assert.equal(plan.relationships.some((relationship) => relationship.logicalName === 'dbm_case_dbm_caseassignment'), true);
+  assert.ok(caseEntity);
+  assert.equal(caseEntity?.columns.some((column) => column.logicalName === 'dbm_currentstageid' && column.source === 'synthetic'), true);
+  assert.ok(assignmentForm?.runtime);
+  assert.equal(assignmentForm?.runtime?.processOwner.entityLogicalName, 'dbm_case');
+  assert.equal(assignmentForm?.runtime?.currentForm.entityLogicalName, 'dbm_caseassignment');
+  assert.equal(assignmentForm?.runtime?.currentForm.relatedProcessOwnerLookupFieldLogicalName, 'dbm_caseid');
+  const assignmentHandoff = assignmentForm?.runtime?.stageHandoffsByStageId['assignment-work'];
+  assert.ok(assignmentHandoff);
+  assert.equal(assignmentHandoff?.sourceStageId, 'draft-case');
+  assert.equal(assignmentHandoff?.targetStageId, 'assignment-work');
+  assert.equal(assignmentHandoff?.sourceEntityLogicalName, 'dbm_case');
+  assert.equal(assignmentHandoff?.targetEntityLogicalName, 'dbm_caseassignment');
+  assert.equal(assignmentHandoff?.targetPrimaryIdLogicalName, 'dbm_caseassignmentid');
+  assert.equal(assignmentHandoff?.targetFormId, 'assignment-form');
+  assert.equal(assignmentHandoff?.targetSystemFormId, '{22222222-2222-2222-2222-222222222222}');
+  assert.equal(assignmentHandoff?.relationshipId, 'case-to-assignment');
+  assert.equal(assignmentHandoff?.relationshipLogicalName, 'dbm_case_dbm_caseassignment');
+  assert.equal(assignmentHandoff?.referencingEntityLogicalName, 'dbm_caseassignment');
+  assert.equal(assignmentHandoff?.referencingAttributeLogicalName, 'dbm_caseid');
+  assert.equal(assignmentHandoff?.strategy, 'create-related');
+  assert.equal(
+    plan.behaviors.some(
+      (behavior) =>
+        behavior.webResourceName === 'ys_/dbm/forms/config/assignment-form.js' &&
+        behavior.kind === 'form-config'
+    ),
+    true
+  );
+  assert.equal(assignmentForm?.processHost?.supported?.sectionName, 'dbm_process_host_assignment_form');
 });
 
 test('normalizeReadbackEntity captures lookup targets and picklist values', () => {
@@ -680,7 +721,7 @@ test('generated request runtime sync advances large requests into supporting det
   }
 });
 
-test('generated request runtime creates a review record when screening completes', async () => {
+test('generated request runtime creates a related record and prepares cross-form handoff when screening completes', async () => {
   const harness = await createRuntimeHarness('request-form');
   try {
     const patchedPayloads: any[] = [];
@@ -734,7 +775,7 @@ test('generated request runtime creates a review record when screening completes
     });
     form.installOverlayBridge(harness.sandbox);
 
-    const result = await harness.sync(form.executionContext, harness.config);
+    const result = await harness.sync(form.executionContext, harness.config, 'submit');
 
     assert.equal(result?.state.stageId, 'manager-review');
     assert.equal(result?.state.stepId, 'choose-decision');
@@ -750,14 +791,179 @@ test('generated request runtime creates a review record when screening completes
     ]);
     assert.deepEqual(createdReviewPayloads, [
       {
-        'dbm_requestid@odata.bind': '/dbm_requests(request-2)',
-        dbm_decisionsummary: 'Review request Travel Request.'
+        'dbm_requestid@odata.bind': '/dbm_requests(request-2)'
       }
     ]);
     assert.equal(form.controls.get('dbm_screeningresult')?.state.disabled, true);
     assert.equal(form.sectionRenders.length, 1);
     assert.match(form.sectionRenders[0]?.snapshot.projection.message ?? '', /different DBM form/i);
     assert.equal(form.overlayRenders.length, 1);
+  } finally {
+    await harness.cleanup();
+  }
+});
+
+test('generic existing-form runtime creates a related record and opens the generated target form during handoff', async () => {
+  const harness = await createRuntimeHarnessForModel(genericExistingFormModel as DbmModelV1, 'case-form');
+  try {
+    const patchedPayloads: any[] = [];
+    const createdAssignmentPayloads: any[] = [];
+    const openedForms: any[] = [];
+    const caseRecord = {
+      dbm_caseid: 'case-1',
+      dbm_title: 'Cross-table proof',
+      dbm_description: 'Validate generic handoff behavior.'
+    };
+
+    harness.sandbox.Xrm.Navigation.openForm = async (options: any) => {
+      openedForms.push(options);
+      return {};
+    };
+
+    harness.sandbox.fetch = async (input: URL | RequestInfo, init?: RequestInit) => {
+      const url = new URL(String(input));
+      const relative = url.pathname.split('/api/data/v9.2/')[1] + url.search;
+      const method = init?.method ?? 'GET';
+
+      if (method === 'GET' && relative.startsWith('dbm_cases(case-1)')) {
+        return jsonResponse(200, caseRecord);
+      }
+
+      if (method === 'PATCH' && relative === 'dbm_cases(case-1)') {
+        patchedPayloads.push(JSON.parse(String(init?.body ?? '{}')));
+        return jsonResponse(204);
+      }
+
+      if (method === 'POST' && relative === 'dbm_caseassignments') {
+        createdAssignmentPayloads.push(JSON.parse(String(init?.body ?? '{}')));
+        return jsonResponse(200, { dbm_caseassignmentid: 'assignment-1' });
+      }
+
+      throw new Error(`Unexpected fetch during generic create-related runtime test: ${method} ${relative}`);
+    };
+
+    const form = createMockFormContext(harness.config, 'case-1', {
+      dbm_title: 'Cross-table proof',
+      dbm_description: 'Validate generic handoff behavior.'
+    });
+    form.installOverlayBridge(harness.sandbox);
+
+    const result = await harness.sync(form.executionContext, harness.config, 'submit');
+
+    assert.equal(result?.state.stageId, 'assignment-work');
+    assert.equal(result?.state.stepId, 'prepare-assignment');
+    assert.equal(result?.state.formStateId, 'assignment-work-state');
+    assert.deepEqual(patchedPayloads, [
+      {
+        dbm_currentstageid: 'assignment-work',
+        dbm_currentstepid: 'prepare-assignment',
+        dbm_currentformstateid: 'assignment-work-state',
+        dbm_internalstatusid: 'assigned',
+        dbm_portalstatusid: 'assigned'
+      }
+    ]);
+    assert.deepEqual(createdAssignmentPayloads, [
+      {
+        'dbm_caseid@odata.bind': '/dbm_cases(case-1)'
+      }
+    ]);
+    assert.deepEqual(openedForms.map((entry) => ({
+      entityName: entry.entityName,
+      entityId: entry.entityId,
+      formId: entry.formId,
+      openInNewWindow: entry.openInNewWindow
+    })), [
+      {
+        entityName: 'dbm_caseassignment',
+        entityId: 'assignment-1',
+        formId: '{22222222-2222-2222-2222-222222222222}',
+        openInNewWindow: false
+      }
+    ]);
+    assert.equal(form.sectionRenders.length, 1);
+    assert.match(form.sectionRenders[0]?.snapshot.projection.message ?? '', /different DBM form/i);
+  } finally {
+    await harness.cleanup();
+  }
+});
+
+test('generic existing-form runtime can select an existing related target record during handoff', async () => {
+  const harness = await createRuntimeHarnessForModel(genericExistingFormModel as DbmModelV1, 'case-form');
+  try {
+    const patchedPayloads: any[] = [];
+    const openedForms: any[] = [];
+    const caseRecord = {
+      dbm_caseid: 'case-2',
+      dbm_title: 'Existing assignment proof',
+      dbm_description: 'Validate existing related selection.'
+    };
+
+    harness.config.runtime.stageHandoffsByStageId['assignment-work'].strategy = 'select-existing-related';
+    harness.sandbox.Xrm.Navigation.openForm = async (options: any) => {
+      openedForms.push(options);
+      return {};
+    };
+
+    harness.sandbox.fetch = async (input: URL | RequestInfo, init?: RequestInit) => {
+      const url = new URL(String(input));
+      const relative = url.pathname.split('/api/data/v9.2/')[1] + url.search;
+      const method = init?.method ?? 'GET';
+
+      if (method === 'GET' && relative.startsWith('dbm_cases(case-2)')) {
+        return jsonResponse(200, caseRecord);
+      }
+
+      if (method === 'GET' && relative.startsWith('dbm_caseassignments?')) {
+        return jsonResponse(200, {
+          value: [
+            {
+              dbm_caseassignmentid: 'assignment-existing',
+              _dbm_caseid_value: 'case-2',
+              dbm_summary: 'Existing related assignment'
+            }
+          ]
+        });
+      }
+
+      if (method === 'PATCH' && relative === 'dbm_cases(case-2)') {
+        patchedPayloads.push(JSON.parse(String(init?.body ?? '{}')));
+        return jsonResponse(204);
+      }
+
+      throw new Error(`Unexpected fetch during generic select-existing runtime test: ${method} ${relative}`);
+    };
+
+    const form = createMockFormContext(harness.config, 'case-2', {
+      dbm_title: 'Existing assignment proof',
+      dbm_description: 'Validate existing related selection.'
+    });
+
+    const result = await harness.sync(form.executionContext, harness.config, 'submit');
+
+    assert.equal(result?.state.stageId, 'assignment-work');
+    assert.equal(result?.state.stepId, 'prepare-assignment');
+    assert.deepEqual(patchedPayloads, [
+      {
+        dbm_currentstageid: 'assignment-work',
+        dbm_currentstepid: 'prepare-assignment',
+        dbm_currentformstateid: 'assignment-work-state',
+        dbm_internalstatusid: 'assigned',
+        dbm_portalstatusid: 'assigned'
+      }
+    ]);
+    assert.deepEqual(openedForms.map((entry) => ({
+      entityName: entry.entityName,
+      entityId: entry.entityId,
+      formId: entry.formId,
+      openInNewWindow: entry.openInNewWindow
+    })), [
+      {
+        entityName: 'dbm_caseassignment',
+        entityId: 'assignment-existing',
+        formId: '{22222222-2222-2222-2222-222222222222}',
+        openInNewWindow: false
+      }
+    ]);
   } finally {
     await harness.cleanup();
   }

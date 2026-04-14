@@ -244,7 +244,6 @@
         },
         "scenarioType": {
           "type": "string",
-          "const": "approval-request",
           "title": "scenarioType"
         },
         "actors": {
@@ -799,6 +798,17 @@
         "guardRuleId": {
           "type": "string",
           "title": "guardRuleId"
+        },
+        "subjectHandoff": {
+          "anyOf": [
+            {
+              "$ref": "#/definitions/DbmSubjectHandoffV1"
+            },
+            {
+              "type": "null"
+            }
+          ],
+          "title": "subjectHandoff"
         }
       },
       "additionalProperties": false,
@@ -809,6 +819,37 @@
         "outcomeId",
         "toStageId"
       ]
+    },
+    "DbmSubjectHandoffV1": {
+      "title": "DbmSubjectHandoffV1",
+      "type": "object",
+      "properties": {
+        "strategy": {
+          "$ref": "#/definitions/DbmSubjectResolutionStrategyV1",
+          "title": "strategy"
+        },
+        "relationshipId": {
+          "type": [
+            "null",
+            "string"
+          ],
+          "title": "relationshipId"
+        }
+      },
+      "additionalProperties": false,
+      "required": [
+        "relationshipId",
+        "strategy"
+      ]
+    },
+    "DbmSubjectResolutionStrategyV1": {
+      "title": "DbmSubjectResolutionStrategyV1",
+      "enum": [
+        "create-related",
+        "reuse-current-primary",
+        "select-existing-related"
+      ],
+      "type": "string"
     },
     "DbmStepTransitionV1": {
       "title": "DbmStepTransitionV1",
@@ -829,6 +870,17 @@
         "target": {
           "$ref": "#/definitions/DbmStepTransitionTargetV1",
           "title": "target"
+        },
+        "subjectHandoff": {
+          "anyOf": [
+            {
+              "$ref": "#/definitions/DbmSubjectHandoffV1"
+            },
+            {
+              "type": "null"
+            }
+          ],
+          "title": "subjectHandoff"
         }
       },
       "additionalProperties": false,

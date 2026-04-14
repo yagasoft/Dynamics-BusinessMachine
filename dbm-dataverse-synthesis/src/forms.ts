@@ -207,22 +207,6 @@ function buildRuntimeValueBindings(model: DbmModelV1): DataverseRuntimeValueBind
   return bindings;
 }
 
-function invertChoiceMap(choiceMap: Record<string, string> | undefined): Record<string, number> {
-  const inverted: Record<string, number> = {};
-  if (!choiceMap) {
-    return inverted;
-  }
-
-  for (const [rawValue, outcomeId] of Object.entries(choiceMap)) {
-    const numericValue = Number(rawValue);
-    if (!Number.isNaN(numericValue)) {
-      inverted[outcomeId] = numericValue;
-    }
-  }
-
-  return inverted;
-}
-
 function buildProcessExperienceRuntimeModel(model: DbmModelV1): DbmProcessExperienceRuntimeModelV1 {
   return {
     packageId: model.package.id,
@@ -417,6 +401,128 @@ function buildProcessHostPageContent(): string {
   ].join('\n');
 }
 
+function getFormPrimaryBinding(form: DbmModelV1['forms'][number]): DbmModelV1['forms'][number]['entityBindings'][number] | undefined {
+  return form.entityBindings.find((binding) => binding.id === form.primaryEntityBindingId);
+}
+
+function getPrimaryIdLogicalName(entity: DbmModelV1['metadata']['entities'][number] | undefined, entityPlan: DataverseEntityPlan | undefined): string {
+  const primaryIdFieldId = entity?.primaryKeyFieldId ?? null;
+  const fieldLogicalName = primaryIdFieldId
+    ? entity?.fields.find((field) => field.id === primaryIdFieldId)?.providerBindings.dataverse?.logicalName?.trim()
+    : null;
+  return fieldLogicalName || entityPlan?.primaryIdLogicalName || `${entityPlan?.logicalName ?? 'record'}id`;
+}
+
+function buildStageHandoffsByStageId(
+  model: DbmModelV1,
+  entityPlans: Map<string, DataverseEntityPlan>,
+  diagnostics: DataverseSynthesisDiagnostic[]
+) {
+  const stageMap = new Map(model.process.stages.map((stage) => [stage.id, stage]));
+  const stepMap = new Map(model.process.steps.map((step) => [step.id, step]));
+  const formMap = new Map(model.forms.map((form) => [form.id, form]));
+  const entityMap = new Map(model.metadata.entities.map((entity) => [entity.id, entity]));
+  const handoffs: NonNullable<DataverseFormRuntimePlan['stageHandoffsByStageId']> = {};
+
+  const registerHandoff = (
+    sourceStageId: string,
+    targetStageId: string,
+    subjectHandoff: DbmModelV1['process']['transitions'][number]['subjectHandoff'] | DbmModelV1['process']['stepTransitions'][number]['subjectHandoff']
+  ) => {
+    if (!subjectHandoff) {
+      return;
+    }
+
+    const sourceStage = stageMap.get(sourceStageId);
+    const targetStage = stageMap.get(targetStageId);
+    const sourceForm = sourceStage?.formId ? formMap.get(sourceStage.formId) : null;
+    const targetForm = targetStage?.formId ? formMap.get(targetStage.formId) : null;
+    const sourcePrimaryBinding = sourceForm ? getFormPrimaryBinding(sourceForm) : null;
+    const targetPrimaryBinding = targetForm ? getFormPrimaryBinding(targetForm) : null;
+    const sourceEntity = sourcePrimaryBinding ? entityMap.get(sourcePrimaryBinding.entityId) : null;
+    const targetEntity = targetPrimaryBinding ? entityMap.get(targetPrimaryBinding.entityId) : null;
+    const sourceEntityPlan = sourcePrimaryBinding ? entityPlans.get(sourcePrimaryBinding.entityId) : undefined;
+    const targetEntityPlan = targetPrimaryBinding ? entityPlans.get(targetPrimaryBinding.entityId) : undefined;
+    const relationship = subjectHandoff.relationshipId
+      ? model.metadata.relationships.find((entry) => entry.id === subjectHandoff.relationshipId)
+      : null;
+
+    if (!sourceStage || !targetStage || !sourceEntityPlan || !targetEntityPlan || !sourceEntity || !targetEntity) {
+      diagnostics.push(
+        createDiagnostic(
+          'missing-stage-handoff-binding',
+          'error',
+          `Target stage '${targetStageId}' could not resolve source/target entity bindings for runtime handoff.`,
+          `process.stages.${targetStageId}`
+        )
+      );
+      return;
+    }
+
+    const referencedEntity = relationship
+      ? relationship.relationshipType === 'one-to-many'
+        ? entityMap.get(relationship.fromEntityId)
+        : entityMap.get(relationship.toEntityId)
+      : null;
+    const referencingEntity = relationship
+      ? relationship.relationshipType === 'one-to-many'
+        ? entityMap.get(relationship.toEntityId)
+        : entityMap.get(relationship.fromEntityId)
+      : null;
+    const referencingAttributeLogicalName =
+      relationship?.referencingFieldId && referencingEntity
+        ? getFieldById(referencingEntity, relationship.referencingFieldId)?.providerBindings.dataverse?.logicalName?.trim() ?? null
+        : null;
+
+    const nextPlan = {
+      sourceStageId,
+      targetStageId,
+      sourceEntityLogicalName: sourceEntityPlan.logicalName,
+      targetEntityLogicalName: targetEntityPlan.logicalName,
+      targetFormId: targetStage.formId,
+      targetSystemFormId: targetForm?.providerBindings?.dataverse?.formId?.trim() ?? null,
+      targetPrimaryIdLogicalName: getPrimaryIdLogicalName(targetEntity, targetEntityPlan),
+      strategy: subjectHandoff.strategy,
+      relationshipId: subjectHandoff.relationshipId ?? null,
+      relationshipLogicalName: relationship?.providerBindings.dataverse?.logicalName?.trim() ?? null,
+      referencingEntityLogicalName: referencingEntity ? entityPlans.get(referencingEntity.id)?.logicalName ?? null : null,
+      referencingAttributeLogicalName
+    };
+
+    const current = handoffs[targetStageId];
+    if (current && JSON.stringify(current) !== JSON.stringify(nextPlan)) {
+      diagnostics.push(
+        createDiagnostic(
+          'conflicting-target-stage-handoff',
+          'warning',
+          `Target stage '${targetStageId}' is reached through conflicting cross-entity handoff definitions. The first definition will be used in the generated runtime.`,
+          `process.stages.${targetStageId}`
+        )
+      );
+      return;
+    }
+
+    handoffs[targetStageId] = nextPlan;
+  };
+
+  model.process.transitions.forEach((transition) => registerHandoff(transition.fromStageId, transition.toStageId, transition.subjectHandoff));
+  model.process.stepTransitions.forEach((transition) => {
+    if ('outcomeId' in transition.target) {
+      return;
+    }
+    const sourceStageId = stepMap.get(transition.fromStepId)?.stageId ?? null;
+    const targetStageId =
+      'stageId' in transition.target
+        ? transition.target.stageId
+        : stepMap.get(transition.target.stepId)?.stageId ?? null;
+    if (sourceStageId && targetStageId) {
+      registerHandoff(sourceStageId, targetStageId, transition.subjectHandoff);
+    }
+  });
+
+  return handoffs;
+}
+
 function buildFormRuntimePlan(
   model: DbmModelV1,
   form: DbmModelV1['forms'][number],
@@ -453,12 +559,14 @@ function buildFormRuntimePlan(
   }
 
   const runtimeStateFieldLogicalNames = getRuntimeStateFieldLogicalNames(runtimeOwnerEntityPlan);
+  const formPrimaryBinding = getFormPrimaryBinding(form);
+  const currentFormEntity = formPrimaryBinding ? model.metadata.entities.find((entry) => entry.id === formPrimaryBinding.entityId) : null;
 
   const startStage = model.process.stages.find((stage) => stage.stageType === 'start') ?? model.process.stages[0];
   const defaultStepId = startStage?.defaultStepId ?? model.process.steps[0]?.id ?? '';
   const defaultStep = model.process.steps.find((step) => step.id === defaultStepId) ?? model.process.steps[0];
 
-  const relatedRequestLookupFieldLogicalName =
+  const relatedProcessOwnerLookupFieldLogicalName =
     primaryEntityPlan.id === runtimeOwnerEntityId
       ? null
       : (() => {
@@ -477,63 +585,24 @@ function buildFormRuntimePlan(
           return field?.providerBindings.dataverse?.logicalName?.trim() ?? null;
         })();
 
-  const reviewEntityLogicalName =
-    model.metadata.entities.find((entry) => entry.id === 'request-decision')?.providerBindings.dataverse?.logicalName?.trim() ?? null;
-
-  const reviewEntityRequestLookupFieldLogicalName =
-    model.metadata.entities
-      .find((entry) => entry.id === 'request-decision')
-      ?.fields.find((entry) => entry.id === 'decision-request')
-      ?.providerBindings.dataverse?.logicalName?.trim() ?? null;
-
-  const reviewMetadataEntity = model.metadata.entities.find((entry) => entry.id === 'request-decision');
-
-  const decisionOutcomeFieldLogicalName = (() => {
-    const field = reviewMetadataEntity ? getFieldById(reviewMetadataEntity, 'decision-outcome') : undefined;
-    return field?.providerBindings.dataverse?.logicalName?.trim() ?? null;
-  })();
-
-  const decisionSummaryFieldLogicalName = (() => {
-    const field = reviewMetadataEntity ? getFieldById(reviewMetadataEntity, 'decision-summary') : undefined;
-    return field?.providerBindings.dataverse?.logicalName?.trim() ?? null;
-  })();
-
-  const decisionCommentFieldLogicalName = (() => {
-    const field = reviewMetadataEntity ? getFieldById(reviewMetadataEntity, 'decision-comment') : undefined;
-    return field?.providerBindings.dataverse?.logicalName?.trim() ?? null;
-  })();
-
   const valueBindings = buildRuntimeValueBindings(model);
   const processExperienceRuntime = buildProcessExperienceRuntimeModel(model);
-  const decisionOutcomeOptionValuesByOutcomeId = (() => {
-    const outcomeField = reviewMetadataEntity?.fields.find((entry) => entry.id === 'decision-outcome');
-    return invertChoiceMap(outcomeField ? buildChoiceMap(outcomeField) : undefined);
-  })();
-  if (decisionOutcomeFieldLogicalName) {
-    const outcomeField = reviewMetadataEntity?.fields.find((entry) => entry.id === 'decision-outcome');
-    valueBindings.push({
-      token: 'requestedOutcomeId',
-      entityLogicalName: reviewEntityLogicalName ?? primaryEntityPlan.logicalName,
-      fieldLogicalName: decisionOutcomeFieldLogicalName,
-      fieldType: outcomeField?.dataType ?? 'string',
-      choiceMap: outcomeField ? buildChoiceMap(outcomeField) : undefined
-    });
-  }
+  const stageHandoffsByStageId = buildStageHandoffsByStageId(model, entityPlans, diagnostics);
 
   return {
-    requestEntityLogicalName: runtimeOwnerLogicalName,
-    requestEntityPrimaryIdLogicalName:
-      runtimeOwnerMetadataEntity?.fields
-        .find((entry) => entry.id === runtimeOwnerMetadataEntity.primaryKeyFieldId)
-        ?.providerBindings.dataverse?.logicalName?.trim() ?? `${runtimeOwnerLogicalName}id`,
-    currentFormEntityLogicalName: primaryEntityPlan.logicalName,
-    relatedRequestLookupFieldLogicalName,
-    reviewEntityLogicalName,
-    reviewEntityRequestLookupFieldLogicalName,
-    runtimeStateFieldLogicalNames,
-    decisionOutcomeFieldLogicalName,
-    decisionSummaryFieldLogicalName,
-    decisionCommentFieldLogicalName,
+    processOwner: {
+      entityId: runtimeOwnerEntityId,
+      entityLogicalName: runtimeOwnerLogicalName,
+      primaryIdLogicalName: getPrimaryIdLogicalName(runtimeOwnerMetadataEntity, runtimeOwnerEntityPlan),
+      runtimeStateFieldLogicalNames
+    },
+    currentForm: {
+      entityId: primaryEntityPlan.id,
+      entityLogicalName: primaryEntityPlan.logicalName,
+      primaryIdLogicalName: getPrimaryIdLogicalName(currentFormEntity ?? undefined, primaryEntityPlan),
+      relatedProcessOwnerLookupFieldLogicalName
+    },
+    stageHandoffsByStageId,
     defaultStageId: startStage?.id ?? '',
     defaultStepId,
     defaultFormStateId: defaultStep?.formStateId ?? null,
@@ -546,6 +615,18 @@ function buildFormRuntimePlan(
       displayName: stage.displayName,
       stageType: stage.stageType,
       formId: stage.formId,
+      entityLogicalName:
+        stage.formId
+          ? (() => {
+              const stageForm = model.forms.find((candidate) => candidate.id === stage.formId);
+              const stagePrimaryBinding = stageForm ? getFormPrimaryBinding(stageForm) : null;
+              return stagePrimaryBinding ? entityPlans.get(stagePrimaryBinding.entityId)?.logicalName ?? null : null;
+            })()
+          : null,
+      systemFormId:
+        stage.formId
+          ? model.forms.find((form) => form.id === stage.formId)?.providerBindings?.dataverse?.formId?.trim() ?? null
+          : null,
       defaultStepId: stage.defaultStepId
     })),
     steps: model.process.steps.map((step) => ({
@@ -557,6 +638,13 @@ function buildFormRuntimePlan(
       formStateId: step.formStateId,
       entryRuleIds: step.entryRuleIds,
       exitRuleIds: step.exitRuleIds
+    })),
+    transitions: model.process.transitions.map((transition) => ({
+      id: transition.id,
+      fromStageId: transition.fromStageId,
+      toStageId: transition.toStageId,
+      outcomeId: transition.outcomeId,
+      guardRuleId: transition.guardRuleId
     })),
     stepTransitions: model.process.stepTransitions.map((transition) => ({
       id: transition.id,
@@ -574,7 +662,6 @@ function buildFormRuntimePlan(
         .map((rule) => [rule.id, rule.body])
     ),
     valueBindings,
-    decisionOutcomeOptionValuesByOutcomeId,
     processExperienceRuntime
   };
 }
@@ -811,12 +898,13 @@ function buildSharedRuntimeBehaviorContent(): string {
     }
     return rawValue;
   }
-  function buildValueMap(runtime, requestRecord, currentFormRecord) {
+  function buildValueMap(runtime, processOwnerRecord, currentFormRecord, requestedOutcomeId) {
     const values = {};
     (runtime.valueBindings || []).forEach((binding) => {
-      const source = binding.entityLogicalName === runtime.requestEntityLogicalName ? requestRecord : currentFormRecord;
+      const source = binding.entityLogicalName === runtime.processOwner.entityLogicalName ? processOwnerRecord : currentFormRecord;
       values[binding.token] = getValueFromRecord(source, binding);
     });
+    values.requestedOutcomeId = requestedOutcomeId || null;
     return values;
   }
   function overlayCurrentFormValues(formContext, runtime, currentFormRecord) {
@@ -825,7 +913,7 @@ function buildSharedRuntimeBehaviorContent(): string {
       return projected;
     }
     (runtime.valueBindings || [])
-      .filter((binding) => binding.entityLogicalName === runtime.currentFormEntityLogicalName)
+      .filter((binding) => binding.entityLogicalName === runtime.currentForm.entityLogicalName)
       .forEach((binding) => {
         const attribute = formContext.getAttribute(binding.fieldLogicalName);
         if (!attribute || typeof attribute.getValue !== 'function') {
@@ -869,18 +957,18 @@ function buildSharedRuntimeBehaviorContent(): string {
       portalStatusId: matchingStep?.portalStatusId || defaultState.portalStatusId
     };
   }
-  function getRuntimeStateFromRecord(runtime, requestRecord, config) {
-    const fields = runtime.runtimeStateFieldLogicalNames;
+  function getRuntimeStateFromRecord(runtime, processOwnerRecord, config) {
+    const fields = runtime.processOwner.runtimeStateFieldLogicalNames;
     const defaultState = getDefaultRuntimeState(runtime, config?.formId, config?.defaultStateId);
-    if (!requestRecord) {
+    if (!processOwnerRecord) {
       return defaultState;
     }
     return {
-      stageId: requestRecord[fields.stageId] || defaultState.stageId,
-      stepId: requestRecord[fields.stepId] || defaultState.stepId,
-      formStateId: requestRecord[fields.formStateId] || defaultState.formStateId,
-      internalStatusId: requestRecord[fields.internalStatusId] || defaultState.internalStatusId,
-      portalStatusId: requestRecord[fields.portalStatusId] || defaultState.portalStatusId
+      stageId: processOwnerRecord[fields.stageId] || defaultState.stageId,
+      stepId: processOwnerRecord[fields.stepId] || defaultState.stepId,
+      formStateId: processOwnerRecord[fields.formStateId] || defaultState.formStateId,
+      internalStatusId: processOwnerRecord[fields.internalStatusId] || defaultState.internalStatusId,
+      portalStatusId: processOwnerRecord[fields.portalStatusId] || defaultState.portalStatusId
     };
   }
   function deriveStateFromTarget(runtime, currentState, target) {
@@ -916,16 +1004,27 @@ function buildSharedRuntimeBehaviorContent(): string {
     let iterations = 0;
     while (iterations < 5) {
       const currentStep = getStep(runtime, nextState.stepId);
-      if (!currentStep) {
+      const currentStage = getStage(runtime, nextState.stageId);
+      const stepTransition = currentStep
+        ? (runtime.stepTransitions || [])
+            .filter((candidate) => candidate.fromStepId === currentStep.id)
+            .find((candidate) => evaluateExpression(runtime.rules[candidate.guardRuleId], values))
+        : null;
+      const stageTransition =
+        !stepTransition && currentStage && values.requestedOutcomeId
+          ? (runtime.transitions || [])
+              .filter(
+                (candidate) =>
+                  candidate.fromStageId === currentStage.id &&
+                  candidate.outcomeId === values.requestedOutcomeId
+              )
+              .find((candidate) => evaluateExpression(runtime.rules[candidate.guardRuleId], values))
+          : null;
+      const target = stepTransition ? (stepTransition.target || {}) : stageTransition ? { stageId: stageTransition.toStageId } : null;
+      if (!target) {
         break;
       }
-      const transition = (runtime.stepTransitions || [])
-        .filter((candidate) => candidate.fromStepId === currentStep.id)
-        .find((candidate) => evaluateExpression(runtime.rules[candidate.guardRuleId], values));
-      if (!transition) {
-        break;
-      }
-      const derived = deriveStateFromTarget(runtime, nextState, transition.target || {});
+      const derived = deriveStateFromTarget(runtime, nextState, target);
       if (
         derived.stageId === nextState.stageId &&
         derived.stepId === nextState.stepId &&
@@ -939,7 +1038,7 @@ function buildSharedRuntimeBehaviorContent(): string {
       messages.push({
         level: 'info',
         code: 'transition-completed',
-        text: 'Request moved to ' + (getStage(runtime, nextState.stageId)?.displayName || nextState.stageId) + '.'
+        text: 'Process moved to ' + (getStage(runtime, nextState.stageId)?.displayName || nextState.stageId) + '.'
       });
       iterations += 1;
     }
@@ -1060,20 +1159,201 @@ function buildSharedRuntimeBehaviorContent(): string {
       control.setFocus();
     }
   }
-  function applyOutcomeSelection(formContext, config, outcomeId) {
-    const runtime = config?.runtime;
-    if (!runtime?.decisionOutcomeFieldLogicalName) {
+  function getRecordIdFromLookupValue(value) {
+    if (Array.isArray(value) && value[0]?.id) {
+      return normalizeId(value[0].id);
+    }
+    if (value && typeof value === 'object' && value.id) {
+      return normalizeId(value.id);
+    }
+    return normalizeId(value);
+  }
+  function getRecordIdFromAttribute(formContext, logicalName) {
+    if (!formContext?.getAttribute || !logicalName) {
+      return '';
+    }
+    const attribute = formContext.getAttribute(logicalName);
+    if (!attribute || typeof attribute.getValue !== 'function') {
+      return '';
+    }
+    return getRecordIdFromLookupValue(attribute.getValue());
+  }
+  function getLookupValueFromRecord(record, logicalName) {
+    if (!record || !logicalName) {
+      return '';
+    }
+    return normalizeId(record['_' + logicalName + '_value'] || record[logicalName]);
+  }
+  function getEntityCollectionName(entityLogicalName) {
+    return entityLogicalName ? entityLogicalName + 's' : '';
+  }
+  function buildEntityBind(entityLogicalName, recordId) {
+    const collectionName = getEntityCollectionName(entityLogicalName);
+    return collectionName && recordId ? '/' + collectionName + '(' + recordId + ')' : '';
+  }
+  function getCreatedRecordId(record, primaryIdLogicalName, entityLogicalName) {
+    if (!record) {
+      return '';
+    }
+    return normalizeId(record[primaryIdLogicalName] || record[entityLogicalName + 'id'] || record.id);
+  }
+  function getProcessOwnerRecordId(formContext, runtime, currentRecordId) {
+    if (runtime.currentForm.entityLogicalName === runtime.processOwner.entityLogicalName) {
+      return currentRecordId;
+    }
+    return getRecordIdFromAttribute(formContext, runtime.currentForm.relatedProcessOwnerLookupFieldLogicalName);
+  }
+  function getSourceRecordId(handoff, runtime, currentRecordId, processOwnerRecordId) {
+    if (!handoff) {
+      return '';
+    }
+    if (handoff.sourceEntityLogicalName === runtime.currentForm.entityLogicalName) {
+      return currentRecordId;
+    }
+    if (handoff.sourceEntityLogicalName === runtime.processOwner.entityLogicalName) {
+      return processOwnerRecordId;
+    }
+    return '';
+  }
+  async function selectExistingRelatedRecord(handoff, runtime, sourceRecordId, currentFormRecord, processOwnerRecord) {
+    if (!handoff || !sourceRecordId) {
+      return '';
+    }
+    if (handoff.referencingEntityLogicalName === handoff.targetEntityLogicalName) {
+      if (!handoff.referencingAttributeLogicalName) {
+        return '';
+      }
+      const existing = await retrieveMultiple(
+        handoff.targetEntityLogicalName,
+        '?$select=' + [handoff.targetPrimaryIdLogicalName, handoff.referencingAttributeLogicalName].filter(Boolean).join(',') +
+          '&$filter=_' + handoff.referencingAttributeLogicalName + '_value eq ' + sourceRecordId
+      );
+      if (existing.length === 0) {
+        return '';
+      }
+      if (existing.length === 1 || typeof global.Xrm?.Utility?.lookupObjects !== 'function') {
+        return getCreatedRecordId(existing[0], handoff.targetPrimaryIdLogicalName, handoff.targetEntityLogicalName);
+      }
+      try {
+        const choices = await global.Xrm.Utility.lookupObjects({
+          allowMultiSelect: false,
+          defaultEntityType: handoff.targetEntityLogicalName,
+          entityTypes: [handoff.targetEntityLogicalName],
+          filters: [
+            {
+              entityLogicalName: handoff.targetEntityLogicalName,
+              filterXml:
+                '<filter><condition attribute="' +
+                handoff.referencingAttributeLogicalName +
+                '" operator="eq" value="' +
+                sourceRecordId +
+                '" /></filter>'
+            }
+          ]
+        });
+        return getRecordIdFromLookupValue(choices);
+      } catch {
+        return getCreatedRecordId(existing[0], handoff.targetPrimaryIdLogicalName, handoff.targetEntityLogicalName);
+      }
+    }
+    const sourceRecord =
+      handoff.sourceEntityLogicalName === runtime.currentForm.entityLogicalName
+        ? currentFormRecord
+        : processOwnerRecord;
+    return getLookupValueFromRecord(sourceRecord, handoff.referencingAttributeLogicalName);
+  }
+  async function createRelatedTargetRecord(handoff, sourceRecordId) {
+    if (!handoff || !sourceRecordId) {
+      return '';
+    }
+    if (handoff.referencingEntityLogicalName === handoff.targetEntityLogicalName) {
+      const payload = {};
+      if (handoff.referencingAttributeLogicalName) {
+        payload[handoff.referencingAttributeLogicalName + '@odata.bind'] = buildEntityBind(handoff.sourceEntityLogicalName, sourceRecordId);
+      }
+      const created = await createRecord(handoff.targetEntityLogicalName, payload);
+      return getCreatedRecordId(created, handoff.targetPrimaryIdLogicalName, handoff.targetEntityLogicalName);
+    }
+    const created = await createRecord(handoff.targetEntityLogicalName, {});
+    const targetRecordId = getCreatedRecordId(created, handoff.targetPrimaryIdLogicalName, handoff.targetEntityLogicalName);
+    if (!targetRecordId || !handoff.referencingAttributeLogicalName) {
+      return targetRecordId;
+    }
+    const payload = {};
+    payload[handoff.referencingAttributeLogicalName + '@odata.bind'] = buildEntityBind(handoff.targetEntityLogicalName, targetRecordId);
+    await updateRecord(handoff.sourceEntityLogicalName, sourceRecordId, payload);
+    return targetRecordId;
+  }
+  async function resolveTargetRecordId(runtime, handoff, currentRecordId, processOwnerRecordId, currentFormRecord, processOwnerRecord) {
+    if (!handoff) {
+      return '';
+    }
+    if (handoff.targetEntityLogicalName === runtime.currentForm.entityLogicalName) {
+      return currentRecordId;
+    }
+    if (handoff.targetEntityLogicalName === runtime.processOwner.entityLogicalName) {
+      return processOwnerRecordId;
+    }
+    const sourceRecordId = getSourceRecordId(handoff, runtime, currentRecordId, processOwnerRecordId);
+    if (!sourceRecordId) {
+      return '';
+    }
+    if (handoff.strategy === 'select-existing-related') {
+      return await selectExistingRelatedRecord(handoff, runtime, sourceRecordId, currentFormRecord, processOwnerRecord);
+    }
+    if (handoff.strategy === 'create-related') {
+      return await createRelatedTargetRecord(handoff, sourceRecordId);
+    }
+    return '';
+  }
+  async function openTargetForm(entityLogicalName, recordId, systemFormId) {
+    if (!entityLogicalName || !recordId || !systemFormId || typeof global.Xrm?.Navigation?.openForm !== 'function') {
       return false;
     }
-    const optionValue = runtime.decisionOutcomeOptionValuesByOutcomeId?.[outcomeId];
-    if (optionValue === null || optionValue === undefined) {
+    await global.Xrm.Navigation.openForm({
+      entityName: entityLogicalName,
+      entityId: recordId,
+      formId: systemFormId,
+      openInNewWindow: false
+    });
+    return true;
+  }
+  async function navigateToActiveStage(runtime, activeStage, currentRecordId, processOwnerRecordId, currentFormRecord, processOwnerRecord) {
+    if (!activeStage?.formId || !activeStage.entityLogicalName || !activeStage.systemFormId) {
       return false;
     }
-    const attribute = formContext?.getAttribute?.(runtime.decisionOutcomeFieldLogicalName);
+    let targetRecordId = '';
+    if (activeStage.entityLogicalName === runtime.currentForm.entityLogicalName) {
+      targetRecordId = currentRecordId;
+    } else if (activeStage.entityLogicalName === runtime.processOwner.entityLogicalName) {
+      targetRecordId = processOwnerRecordId;
+    } else {
+      const handoff = runtime.stageHandoffsByStageId?.[activeStage.id] || null;
+      targetRecordId = await resolveTargetRecordId(runtime, handoff, currentRecordId, processOwnerRecordId, currentFormRecord, processOwnerRecord);
+    }
+    return await openTargetForm(activeStage.entityLogicalName, targetRecordId, activeStage.systemFormId);
+  }
+  function applyOutcomeSelection(formContext, runtime, outcomeId) {
+    const candidate = (runtime.valueBindings || []).find((binding) => {
+      if (binding.entityLogicalName !== runtime.currentForm.entityLogicalName || !binding.choiceMap) {
+        return false;
+      }
+      return Object.values(binding.choiceMap).includes(outcomeId) && !!formContext?.getAttribute?.(binding.fieldLogicalName);
+    });
+    if (!candidate?.choiceMap) {
+      return false;
+    }
+    const optionValueEntry = Object.entries(candidate.choiceMap).find((entry) => entry[1] === outcomeId);
+    if (!optionValueEntry) {
+      return false;
+    }
+    const attribute = formContext?.getAttribute?.(candidate.fieldLogicalName);
     if (!attribute || typeof attribute.setValue !== 'function') {
       return false;
     }
-    attribute.setValue(optionValue);
+    const rawValue = optionValueEntry[0];
+    const numericValue = Number(rawValue);
+    attribute.setValue(Number.isNaN(numericValue) ? rawValue : numericValue);
     if (typeof attribute.fireOnChange === 'function') {
       attribute.fireOnChange();
     }
@@ -1102,9 +1382,8 @@ function buildSharedRuntimeBehaviorContent(): string {
         focusNavigationTarget(formContext, target);
       },
       onInvokeOutcome: function (outcomeId) {
-        if (applyOutcomeSelection(formContext, config, outcomeId)) {
-          void sync(formContext, config);
-        }
+        applyOutcomeSelection(formContext, config.runtime, outcomeId);
+        void sync(formContext, config, outcomeId);
       },
       onRequestFocus: function () {
         if (navigationTarget) {
@@ -1181,42 +1460,26 @@ function buildSharedRuntimeBehaviorContent(): string {
     await renderSectionHost(formContext, config, result, 0);
     renderOverlayHost(formContext, config, result);
   }
-  async function ensureReviewRecord(runtime, requestId, values) {
-    if (!requestId || !runtime.reviewEntityLogicalName || !runtime.reviewEntityRequestLookupFieldLogicalName || !runtime.decisionSummaryFieldLogicalName) {
-      return null;
-    }
-    const existing = await retrieveMultiple(
-      runtime.reviewEntityLogicalName,
-      '?$select=' + [runtime.reviewEntityLogicalName + 'id', runtime.reviewEntityRequestLookupFieldLogicalName, runtime.decisionSummaryFieldLogicalName].join(',') +
-        '&$filter=_' + runtime.reviewEntityRequestLookupFieldLogicalName + '_value eq ' + requestId
-    );
-    const summaryText = 'Review request ' + (values['request-title'] || requestId) + '.';
-    if (existing.length > 0) {
-      const existingSummary = existing[0][runtime.decisionSummaryFieldLogicalName];
-      if (existingSummary !== summaryText && existing[0][runtime.reviewEntityLogicalName + 'id']) {
-        await updateRecord(runtime.reviewEntityLogicalName, normalizeId(existing[0][runtime.reviewEntityLogicalName + 'id']), {
-          [runtime.decisionSummaryFieldLogicalName]: summaryText
-        });
-      }
-      return existing[0];
-    }
-    const payload = {};
-    payload[runtime.reviewEntityRequestLookupFieldLogicalName + '@odata.bind'] = '/' + runtime.requestEntityLogicalName + 's(' + requestId + ')';
-    payload[runtime.decisionSummaryFieldLogicalName] = summaryText;
-    return await createRecord(runtime.reviewEntityLogicalName, payload);
-  }
   function selectFields(runtime, entityLogicalName) {
     const fields = [];
     (runtime.valueBindings || [])
       .filter((binding) => binding.entityLogicalName === entityLogicalName)
       .forEach((binding) => fields.push(binding.fieldLogicalName));
-    if (entityLogicalName === runtime.requestEntityLogicalName) {
-      const stateFields = runtime.runtimeStateFieldLogicalNames;
+    if (entityLogicalName === runtime.processOwner.entityLogicalName) {
+      const stateFields = runtime.processOwner.runtimeStateFieldLogicalNames;
       fields.push(stateFields.stageId, stateFields.stepId, stateFields.formStateId, stateFields.internalStatusId, stateFields.portalStatusId);
     }
+    if (entityLogicalName === runtime.currentForm.entityLogicalName && runtime.currentForm.relatedProcessOwnerLookupFieldLogicalName) {
+      fields.push(runtime.currentForm.relatedProcessOwnerLookupFieldLogicalName);
+    }
+    Object.values(runtime.stageHandoffsByStageId || {}).forEach((handoff) => {
+      if (handoff.referencingEntityLogicalName === entityLogicalName && handoff.referencingAttributeLogicalName) {
+        fields.push(handoff.referencingAttributeLogicalName);
+      }
+    });
     return Array.from(new Set(fields.filter(Boolean)));
   }
-  async function sync(executionContext, config) {
+  async function sync(executionContext, config, requestedOutcomeId) {
     const formContext = getFormContext(executionContext);
     if (!formContext || !config?.runtime) {
       applyState(executionContext, config, config?.defaultStateId || null);
@@ -1228,35 +1491,37 @@ function buildSharedRuntimeBehaviorContent(): string {
       applyState(executionContext, config, config.defaultStateId);
       return null;
     }
-    const requestId =
-      runtime.currentFormEntityLogicalName === runtime.requestEntityLogicalName
-        ? currentRecordId
-        : normalizeId(formContext.getAttribute(runtime.relatedRequestLookupFieldLogicalName)?.getValue?.()?.[0]?.id);
-    const requestRecord = requestId
-      ? await retrieveRecord(runtime.requestEntityLogicalName, requestId, selectFields(runtime, runtime.requestEntityLogicalName))
-      : null;
+    if (requestedOutcomeId) {
+      applyOutcomeSelection(formContext, runtime, requestedOutcomeId);
+    }
     const currentFormRecord = await retrieveRecord(
-      runtime.currentFormEntityLogicalName,
+      runtime.currentForm.entityLogicalName,
       currentRecordId,
-      selectFields(runtime, runtime.currentFormEntityLogicalName)
+      selectFields(runtime, runtime.currentForm.entityLogicalName)
     );
+    const processOwnerRecordId = getProcessOwnerRecordId(formContext, runtime, currentRecordId);
+    const processOwnerRecord = processOwnerRecordId
+      ? runtime.currentForm.entityLogicalName === runtime.processOwner.entityLogicalName && processOwnerRecordId === currentRecordId
+        ? currentFormRecord
+        : await retrieveRecord(
+            runtime.processOwner.entityLogicalName,
+            processOwnerRecordId,
+            selectFields(runtime, runtime.processOwner.entityLogicalName)
+          )
+      : null;
     const projectedCurrentFormRecord = overlayCurrentFormValues(formContext, runtime, currentFormRecord);
-    const values = buildValueMap(runtime, requestRecord, projectedCurrentFormRecord);
-    const currentState = getRuntimeStateFromRecord(runtime, requestRecord, config);
-    const result = evaluate(runtime, values, currentState, 'dbm-runtime-' + currentRecordId);
-    if (requestId) {
-      const stateFields = runtime.runtimeStateFieldLogicalNames;
+    const values = buildValueMap(runtime, processOwnerRecord, projectedCurrentFormRecord, requestedOutcomeId || null);
+    const currentState = getRuntimeStateFromRecord(runtime, processOwnerRecord, config);
+    const result = evaluate(runtime, values, currentState, 'dbm-runtime-' + processOwnerRecordId + '-' + currentRecordId);
+    if (processOwnerRecordId) {
+      const stateFields = runtime.processOwner.runtimeStateFieldLogicalNames;
       const payload = {};
       payload[stateFields.stageId] = result.state.stageId;
       payload[stateFields.stepId] = result.state.stepId;
       payload[stateFields.formStateId] = result.state.formStateId;
       payload[stateFields.internalStatusId] = result.state.internalStatusId;
       payload[stateFields.portalStatusId] = result.state.portalStatusId;
-      await updateRecord(runtime.requestEntityLogicalName, requestId, payload);
-      const activeStage = getStage(runtime, result.state.stageId);
-      if (activeStage?.id === 'manager-review') {
-        await ensureReviewRecord(runtime, requestId, values);
-      }
+      await updateRecord(runtime.processOwner.entityLogicalName, processOwnerRecordId, payload);
     }
     const activeStage = getStage(runtime, result.state.stageId);
     if (activeStage?.formId && activeStage.formId !== config.formId) {
@@ -1265,6 +1530,16 @@ function buildSharedRuntimeBehaviorContent(): string {
       applyState(executionContext, config, result.state.formStateId || config.defaultStateId);
     }
     await renderProcessExperience(formContext, config, result);
+    if (activeStage?.formId && activeStage.formId !== config.formId) {
+      await navigateToActiveStage(
+        runtime,
+        activeStage,
+        currentRecordId,
+        processOwnerRecordId,
+        projectedCurrentFormRecord,
+        processOwnerRecord
+      );
+    }
     return result;
   }
   function initialize(executionContext, config) {

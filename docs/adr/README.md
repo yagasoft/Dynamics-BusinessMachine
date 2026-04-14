@@ -24,3 +24,4 @@ ADRs capture durable product and delivery decisions that are important enough to
 - [0009-dbm-process-ui-portal-state-projection-and-generated-dataverse-artifacts.md](0009-dbm-process-ui-portal-state-projection-and-generated-dataverse-artifacts.md)
 - [0010-dataverse-metadata-synthesis-and-layered-generated-solution-strategy.md](0010-dataverse-metadata-synthesis-and-layered-generated-solution-strategy.md)
 - [0011-post-r1-roadmap-reset-and-designer-process-experience-platform.md](0011-post-r1-roadmap-reset-and-designer-process-experience-platform.md)
+- [0012-generic-existing-form-authoring-required-for-r2-closeout.md](0012-generic-existing-form-authoring-required-for-r2-closeout.md)

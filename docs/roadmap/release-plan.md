@@ -111,6 +111,7 @@ Feature set and deliverables:
 - synthesis support for process-host artifacts and placement patches on existing forms
 - form-state authoring and preview that remain mapping-first on existing Dataverse forms
 - portal-facing continuity fixtures and responsive design system for the shared process experience
+- generic existing-form authoring proof on `Dev` for non-reference custom processes
 - release documentation and validation for the new designer and process UX foundation
 
 Stages:
@@ -118,6 +119,7 @@ Stages:
 - `R2.2` Graph-first authoring and preview-first designer
 - `R2.3` Shared process experience system and model-driven host strategy
 - `R2.4` Synthesis expansion, portal continuity fixtures, and release hardening
+- `R2.5` Generic existing-form authoring and Dev proof
 
 Details: [release-2-designer-and-process-experience-platform.md](release-2-designer-and-process-experience-platform.md)
 
@@ -191,7 +193,7 @@ Details: [release-5-enterprise-sophistication.md](release-5-enterprise-sophistic
 
 - `R0`: the current PoC can be rebuilt, packaged, deployed to `Dev`, promoted to `UAT`, and rolled back without manual secret handling
 - `R1`: one approval/request flow can be authored in the designer, synthesized into the required Dataverse schema, bound to existing Dataverse forms with DBM-managed supported behavior, edited from both model-driven and XrmToolBox hosts, rendered through the DBM-owned model-driven process experience, projected to portal-visible status, and executed through the backend runtime
-- `R2`: the same approval/request flow can be authored through a graph-first designer, rendered through a shared DBM-owned process-experience system, hosted in model-driven through both supported and preferred bridge placements, and previewed for future portal continuity without changing the canonical model boundary
+- `R2`: the approval/request reference and at least one non-reference custom existing-form process can be authored through a graph-first designer, rendered through a shared DBM-owned process-experience system, hosted in model-driven through both supported and preferred bridge placements, and proven on `Dev` without changing the canonical model boundary
 - `R3`: the same approval/request flow can start in Power Pages, traverse Dataverse and Azure, return state to the portal, pass `UAT`, and be supported with documented rollback and operational diagnostics
 - `R4`: AI can generate drafts and recommendations with full traceability, mandatory human review, and no direct unreviewed production mutation
 - `R5`: the platform can simulate, explain, govern, and optimize complex process portfolios at enterprise scale without losing portability or operational control

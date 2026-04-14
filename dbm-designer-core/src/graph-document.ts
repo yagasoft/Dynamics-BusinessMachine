@@ -751,6 +751,29 @@ export function translateGraphIntentToCommands(intent: DesignerGraphIntent, docu
         }
       ];
 
+    case 'rebind-stage-form': {
+      const nextForm = intent.formId
+        ? document.model.forms.find((form) => form.id === intent.formId)
+        : null;
+      const nextFormStateId = nextForm?.formStates[0]?.id ?? null;
+      const stage = document.model.process.stages.find((entry) => entry.id === intent.stageId);
+
+      return [
+        {
+          nodeId: stageNodeId(intent.stageId),
+          value: {
+            formId: intent.formId
+          }
+        },
+        ...(stage?.stepIds ?? []).map((stepId) => ({
+          nodeId: stepNodeId(stepId),
+          value: {
+            formStateId: nextFormStateId
+          }
+        }))
+      ];
+    }
+
     case 'update-stage-outcomes':
       return [
         {
@@ -766,6 +789,26 @@ export function translateGraphIntentToCommands(intent: DesignerGraphIntent, docu
         {
           nodeId: stepNodeId(intent.stepId),
           value: intent.value
+        }
+      ];
+
+    case 'update-transition-handoff':
+      return [
+        {
+          nodeId: transitionNodeId(intent.transitionId),
+          value: {
+            subjectHandoff: intent.subjectHandoff
+          }
+        }
+      ];
+
+    case 'update-step-transition-handoff':
+      return [
+        {
+          nodeId: stepTransitionNodeId(intent.stepTransitionId),
+          value: {
+            subjectHandoff: intent.subjectHandoff
+          }
         }
       ];
 

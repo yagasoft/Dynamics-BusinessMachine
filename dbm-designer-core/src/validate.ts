@@ -140,6 +140,120 @@ function isInternalStatus(status: DbmStatusV1): boolean {
   return status.audience === 'internal' || status.audience === 'shared';
 }
 
+function getStagePrimaryEntityId(
+  stageId: string,
+  stageMap: Map<string, DbmModelV1['process']['stages'][number]>,
+  formMap: Map<string, DbmModelV1['forms'][number]>
+): string | null {
+  const stage = stageMap.get(stageId);
+  if (!stage?.formId) {
+    return null;
+  }
+
+  const form = formMap.get(stage.formId);
+  const primaryBinding = form?.entityBindings.find((binding) => binding.id === form.primaryEntityBindingId);
+  return primaryBinding?.entityId ?? null;
+}
+
+function validateSubjectHandoff(
+  issues: DesignerIssue[],
+  options: {
+    sourceEntityId: string | null;
+    targetEntityId: string | null;
+    handoff: DbmModelV1['process']['transitions'][number]['subjectHandoff'] | DbmModelV1['process']['stepTransitions'][number]['subjectHandoff'];
+    relationshipMap: Map<string, DbmModelV1['metadata']['relationships'][number]>;
+    path: string;
+    nodeId: string;
+    label: string;
+  }
+): void {
+  const { sourceEntityId, targetEntityId, handoff, relationshipMap, path, nodeId, label } = options;
+  if (!sourceEntityId || !targetEntityId) {
+    return;
+  }
+
+  const requiresHandoff = sourceEntityId !== targetEntityId;
+  if (!requiresHandoff) {
+    if (handoff) {
+      issues.push(
+        issue(
+          'error',
+          'subject-handoff-forbidden',
+          `${label} must not declare subjectHandoff when source and target stages use the same primary entity.`,
+          path,
+          nodeId
+        )
+      );
+    }
+    return;
+  }
+
+  if (!handoff) {
+    issues.push(
+      issue(
+        'error',
+        'missing-subject-handoff',
+        `${label} must declare subjectHandoff when moving between different primary entities.`,
+        path,
+        nodeId
+      )
+    );
+    return;
+  }
+
+  if (handoff.strategy === 'reuse-current-primary') {
+    issues.push(
+      issue(
+        'error',
+        'invalid-subject-handoff-strategy',
+        `${label} cannot use 'reuse-current-primary' when source and target stages use different primary entities.`,
+        `${path}/strategy`,
+        nodeId
+      )
+    );
+  }
+
+  if (!handoff.relationshipId) {
+    issues.push(
+      issue(
+        'error',
+        'missing-subject-handoff-relationship',
+        `${label} must reference a relationshipId for cross-entity handoff.`,
+        `${path}/relationshipId`,
+        nodeId
+      )
+    );
+    return;
+  }
+
+  const relationship = relationshipMap.get(handoff.relationshipId);
+  if (!relationship) {
+    issues.push(
+      issue(
+        'error',
+        'missing-subject-handoff-relationship-reference',
+        `${label} references missing relationship '${handoff.relationshipId}'.`,
+        `${path}/relationshipId`,
+        nodeId
+      )
+    );
+    return;
+  }
+
+  const relationshipEntityIds = new Set([relationship.fromEntityId, relationship.toEntityId]);
+  if (!relationshipEntityIds.has(sourceEntityId) || !relationshipEntityIds.has(targetEntityId)) {
+    issues.push(
+      issue(
+        'error',
+        'subject-handoff-relationship-entity-mismatch',
+        `${label} uses relationship '${handoff.relationshipId}' that does not connect entities '${sourceEntityId}' and '${targetEntityId}'.`,
+        `${path}/relationshipId`,
+        nodeId
+      )
+    );
+  }
+}
+
 function validateStepTransitionTarget(
   transition: DbmStepTransitionV1,
   stepIds: Set<string>,
@@ -172,8 +286,8 @@ export function validateModel(model: DbmModelV1): DesignerIssue[] {
     issues.push(issue('error', 'package-entry-process-mismatch', 'package.entryProcessId must match process.id.', '/package/entryProcessId', PACKAGE_NODE_ID));
   }
 
-  if (model.process.scenarioType !== 'approval-request') {
-    issues.push(issue('error', 'unsupported-scenario-type', 'R1.2.1 only supports approval-request scenarios.', '/process/scenarioType', PROCESS_NODE_ID));
+  if (!model.process.scenarioType.trim()) {
+    issues.push(issue('error', 'missing-scenario-type', 'process.scenarioType must be a non-empty descriptive string.', '/process/scenarioType', PROCESS_NODE_ID));
   }
 
   model.package.processUiSurfaces.forEach((surface) => {
@@ -377,6 +491,16 @@ export function validateModel(model: DbmModelV1): DesignerIssue[] {
     } else if (guardRule.ruleType !== 'condition' && guardRule.ruleType !== 'validation') {
       issues.push(issue('warning', 'non-condition-transition-guard', `Transition '${transition.id}' uses '${guardRule.ruleType}' as its guard rule. Condition or validation rules are preferred.`, `/process/transitions/${transition.id}/guardRuleId`, transitionNodeId(transition.id)));
     }
+
+    validateSubjectHandoff(issues, {
+      sourceEntityId: getStagePrimaryEntityId(transition.fromStageId, stageMap, formMap),
+      targetEntityId: getStagePrimaryEntityId(transition.toStageId, stageMap, formMap),
+      handoff: transition.subjectHandoff,
+      relationshipMap,
+      path: `/process/transitions/${transition.id}/subjectHandoff`,
+      nodeId: transitionNodeId(transition.id),
+      label: `Transition '${transition.id}'`
+    });
   });
 
   model.process.stepTransitions.forEach((transition) => {
@@ -394,6 +518,36 @@ export function validateModel(model: DbmModelV1): DesignerIssue[] {
       issues.push(issue('error', 'missing-step-transition-guard', `Step transition '${transition.id}' references missing guard rule '${transition.guardRuleId}'.`, `/process/stepTransitions/${transition.id}/guardRuleId`, stepTransitionNodeId(transition.id)));
     } else if (guardRule.ruleType !== 'condition' && guardRule.ruleType !== 'validation') {
       issues.push(issue('warning', 'non-condition-step-transition-guard', `Step transition '${transition.id}' uses '${guardRule.ruleType}' as its guard rule. Condition or validation rules are preferred.`, `/process/stepTransitions/${transition.id}/guardRuleId`, stepTransitionNodeId(transition.id)));
+    }
+
+    const sourceStageId = stepMap.get(transition.fromStepId)?.stageId ?? null;
+    const targetStageId =
+      'stageId' in transition.target
+        ? transition.target.stageId
+        : 'stepId' in transition.target
+          ? stepMap.get(transition.target.stepId)?.stageId ?? null
+          : null;
+
+    if (sourceStageId && targetStageId) {
+      validateSubjectHandoff(issues, {
+        sourceEntityId: getStagePrimaryEntityId(sourceStageId, stageMap, formMap),
+        targetEntityId: getStagePrimaryEntityId(targetStageId, stageMap, formMap),
+        handoff: transition.subjectHandoff,
+        relationshipMap,
+        path: `/process/stepTransitions/${transition.id}/subjectHandoff`,
+        nodeId: stepTransitionNodeId(transition.id),
+        label: `Step transition '${transition.id}'`
+      });
+    } else if ('outcomeId' in transition.target && transition.subjectHandoff) {
+      issues.push(
+        issue(
+          'error',
+          'subject-handoff-forbidden',
+          `Step transition '${transition.id}' must not declare subjectHandoff when targeting an outcome.`,
+          `/process/stepTransitions/${transition.id}/subjectHandoff`,
+          stepTransitionNodeId(transition.id)
+        )
+      );
     }
   });
 

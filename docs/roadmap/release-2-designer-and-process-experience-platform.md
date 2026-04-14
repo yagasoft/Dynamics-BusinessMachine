@@ -15,6 +15,7 @@ Turn the shipped `R1` builder-platform MVP into a product-grade authoring and ru
 - synthesis support for process-host artifacts and placement patches on existing forms
 - form-state authoring and preview that remain mapping-first on existing Dataverse forms
 - portal-facing continuity fixtures and responsive design system for the shared process experience
+- generic existing-form authoring proof on `Dev` for non-reference custom processes
 - release documentation and validation for the new designer and process UX foundation
 
 Out of scope for this release:
@@ -85,6 +86,21 @@ Must include:
 - component, visual-regression, and smoke-validation coverage for designer and process UX surfaces
 - release documentation and implementation guidance for supported versus unsupported placement strategy
 
+### R2.5 Generic existing-form authoring and Dev proof
+
+Output:
+- final `R2` close-out slice proving DBM can author, synthesize, and execute a non-reference custom process on selected existing Dataverse forms in `Dev`
+
+Must include:
+- `DbmProcessV1.scenarioType` generalized to descriptive custom classification rather than an approval/request capability gate
+- canonical cross-entity subject handoff semantics on stage and step transitions
+- guided blank-starter flow in the hosted designer for custom existing-form packages
+- live Dataverse metadata browsing and import in the model-driven-hosted designer
+- normal-UI form binding and cross-entity handoff authoring for custom stages
+- generic runtime and synthesis configuration that no longer depends on request/review-specific runtime assumptions
+- one tracked non-reference existing-form fixture model with explicit handoff
+- a `Dev` validation runbook and smoke path that prove a custom hosted package can be exported, synthesized, deployed, and exercised end to end on selected existing forms
+
 ## Exit criteria
 
 - the approval/request scenario can be authored visually from the new designer without relying on the old tree-first shell for normal work
@@ -95,3 +111,4 @@ Must include:
 - form-state-driven tabs, sections, controls, and field behavior remain coherent on the existing request and review forms
 - generated metadata artifacts include the new process-host assets and placement patches without widening `R1` into full-form ownership
 - a portal-targeted fixture harness can render the same visible process projection that the model-driven host uses, ready for live Power Pages integration in `R3`
+- a non-reference custom process can be authored from the hosted designer on `Dev`, exported from Dataverse, synthesized to selected existing forms, and exercised through at least one explicit cross-entity handoff without approval/request-only assumptions

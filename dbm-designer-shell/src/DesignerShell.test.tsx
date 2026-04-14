@@ -73,6 +73,10 @@ vi.mock('./diagnosticsDrawer', () => ({
   DiagnosticsDrawer: () => null
 }));
 
+vi.mock('./previewDock', () => ({
+  PreviewDock: () => React.createElement('div', { 'data-testid': 'preview-dock' }, 'preview')
+}));
+
 afterEach(() => {
   cleanup();
 });

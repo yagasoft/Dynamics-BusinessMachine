@@ -1,6 +1,7 @@
 import assert from 'node:assert/strict';
 import test from 'node:test';
 import type { DbmDesignerWorkspaceV1, DbmFormStateV1, DbmRuntimeStateV1, DbmStatusV1, DbmStepV1 } from 'dbm-contract';
+import genericExistingFormModel from '../../docs/architecture/examples/generic-existing-form-v1.model.json';
 import {
   addNode,
   applyGraphIntent,
@@ -40,6 +41,25 @@ test('approval request template round-trips through load and serialize', () => {
   assert.equal(document.tree.length, 1);
   assert.equal(document.tree[0].id, 'document:root');
   assert.deepEqual(serializeModel(document), template);
+});
+
+test('generic existing-form proof model validates cleanly as a custom scenario', () => {
+  const document = loadModel(genericExistingFormModel);
+
+  assert.equal(document.model.process.scenarioType, 'custom');
+  assert.equal(document.issues.filter((entry) => entry.severity === 'error').length, 0);
+  assert.equal(document.model.process.transitions.find((transition) => transition.id === 'submit-case')?.subjectHandoff?.strategy, 'create-related');
+});
+
+test('cross-entity transitions fail validation when subject handoff is missing', () => {
+  const mutated = structuredClone(genericExistingFormModel);
+  const submitTransition = mutated.process.transitions.find((transition) => transition.id === 'submit-case');
+  assert.ok(submitTransition);
+  delete submitTransition.subjectHandoff;
+
+  const document = loadModel(mutated);
+
+  assert.equal(document.issues.some((entry) => entry.code === 'missing-subject-handoff'), true);
 });
 
 test('legacy model packages auto-generate a default workspace and first save preserves canonical semantics', () => {

@@ -5,6 +5,7 @@ import {
   applyGraphIntent,
   buildDesignerClipboardPayload,
   buildProcessExperienceSnapshot,
+  createBlankExistingFormTemplate,
   loadModelPackage,
   pasteDesignerClipboardPayload,
   serializeModel,
@@ -15,14 +16,30 @@ import {
   type DesignerModelPackage
 } from 'dbm-designer-core';
 import type { DbmHostModelPackageRecord, DbmHostModelPackageSummary } from './hostBridge';
+import {
+  importDataverseFormBundle,
+  isDataverseMetadataAvailable,
+  listDataverseEntities,
+  listDataverseMainForms,
+  type DataverseEntitySummary,
+  type DataverseFormSummary,
+  type DataverseImportedFormBundle
+} from './dataverseMetadata';
 import { DiagnosticsDrawer } from './diagnosticsDrawer';
 import { GraphCanvas } from './graphCanvas';
 import { type InspectorSelection, resolveInspectorSelection } from './inspectorPanel';
-import { buildPackageResourceNames, createDraftPackageRecord, type DbmPackageRepository } from './packageRepository';
+import { MetadataBrowserPanel } from './metadataBrowserPanel';
+import {
+  buildPackageResourceNames,
+  createDraftPackageRecord,
+  createNormalizedModelPackage,
+  type DbmPackageRepository
+} from './packageRepository';
 import { PreviewDock } from './previewDock';
 import { ProcessOverviewStrip } from './processOverviewStrip';
 import { resolveIssueNavigationTargetId } from './issueTargets';
 import { SelectionEditorCard } from './selectionEditorCard';
+import { type BlankStarterDraft, StarterGalleryDialog } from './starterGalleryDialog';
 
 interface DesignerShellProps {
   repository: DbmPackageRepository;
@@ -94,6 +111,40 @@ function normalizeRecord(record: DbmHostModelPackageRecord): DbmHostModelPackage
     modelContent: JSON.stringify(serialized.model, null, 2),
     workspaceContent: JSON.stringify(serialized.workspace, null, 2)
   };
+}
+
+function mergeImportedMetadata(document: DesignerDocument, bundle: DataverseImportedFormBundle): DesignerDocument {
+  const serialized = serializeModelPackage(document);
+  const nextModel = structuredClone(serialized.model);
+
+  const entityIndex = nextModel.metadata.entities.findIndex((entity) => entity.id === bundle.entity.id);
+  if (entityIndex >= 0) {
+    nextModel.metadata.entities[entityIndex] = bundle.entity;
+  } else {
+    nextModel.metadata.entities.push(bundle.entity);
+  }
+
+  const formIndex = nextModel.forms.findIndex((form) => form.id === bundle.form.id);
+  if (formIndex >= 0) {
+    nextModel.forms[formIndex] = bundle.form;
+  } else {
+    nextModel.forms.push(bundle.form);
+  }
+
+  const entityIds = new Set(nextModel.metadata.entities.map((entity) => entity.id));
+  bundle.importedRelationships
+    .filter((relationship) => entityIds.has(relationship.fromEntityId) && entityIds.has(relationship.toEntityId))
+    .forEach((relationship) => {
+      const relationshipIndex = nextModel.metadata.relationships.findIndex((entry) => entry.id === relationship.id);
+      if (relationshipIndex >= 0) {
+        nextModel.metadata.relationships[relationshipIndex] = relationship;
+      } else {
+        nextModel.metadata.relationships.push(relationship);
+      }
+    });
+
+  const nextDocument = loadModelPackage(nextModel, serialized.workspace);
+  return { ...nextDocument, dirty: true };
 }
 
 function syncSelectionPreview(document: DesignerDocument, selectionId: string | null, dirty = true): DesignerDocument {
@@ -249,6 +300,14 @@ export function DesignerShell({ repository }: DesignerShellProps) {
   const [palettePosition, setPalettePosition] = useState({ x: 24, y: 24 });
   const [focusTargetId, setFocusTargetId] = useState<string | null>(null);
   const [focusRequestToken, setFocusRequestToken] = useState(0);
+  const [starterOpen, setStarterOpen] = useState(false);
+  const [dataverseEntities, setDataverseEntities] = useState<DataverseEntitySummary[]>([]);
+  const [dataverseForms, setDataverseForms] = useState<DataverseFormSummary[]>([]);
+  const [selectedMetadataEntityLogicalName, setSelectedMetadataEntityLogicalName] = useState('');
+  const [selectedMetadataFormId, setSelectedMetadataFormId] = useState('');
+  const [selectedMetadataBundle, setSelectedMetadataBundle] = useState<DataverseImportedFormBundle | null>(null);
+  const [metadataBusy, setMetadataBusy] = useState(false);
+  const [metadataError, setMetadataError] = useState<string | null>(null);
   const paletteDragRef = useRef<{
     pointerId: number;
     startX: number;
@@ -256,6 +315,7 @@ export function DesignerShell({ repository }: DesignerShellProps) {
     originX: number;
     originY: number;
   } | null>(null);
+  const metadataAvailable = repository.kind === 'model-driven' && isDataverseMetadataAvailable();
 
   async function refreshPackages(preferredPackageName?: string | null) {
     setIsBusy(true);
@@ -321,10 +381,115 @@ export function DesignerShell({ repository }: DesignerShellProps) {
     }
   }
 
+  async function refreshDataverseEntities() {
+    if (!metadataAvailable) {
+      setDataverseEntities([]);
+      setDataverseForms([]);
+      setSelectedMetadataBundle(null);
+      return;
+    }
+    setMetadataBusy(true);
+    setMetadataError(null);
+    try {
+      const entities = await listDataverseEntities();
+      setDataverseEntities(entities);
+      if (!selectedMetadataEntityLogicalName && entities[0]?.logicalName) {
+        setSelectedMetadataEntityLogicalName(entities[0].logicalName);
+      }
+    } catch (error) {
+      setMetadataError(error instanceof Error ? error.message : 'Unable to load Dataverse entities.');
+    } finally {
+      setMetadataBusy(false);
+    }
+  }
+
+  async function refreshDataverseForms(entityLogicalName: string) {
+    if (!metadataAvailable || !entityLogicalName) {
+      setDataverseForms([]);
+      setSelectedMetadataFormId('');
+      setSelectedMetadataBundle(null);
+      return;
+    }
+    setMetadataBusy(true);
+    setMetadataError(null);
+    try {
+      const forms = await listDataverseMainForms(entityLogicalName);
+      setDataverseForms(forms);
+      setSelectedMetadataFormId((current) => (forms.some((form) => form.formId === current) ? current : forms[0]?.formId ?? ''));
+    } catch (error) {
+      setMetadataError(error instanceof Error ? error.message : 'Unable to load Dataverse forms.');
+    } finally {
+      setMetadataBusy(false);
+    }
+  }
+
+  async function loadSelectedMetadataBundle(entityLogicalName: string, formId: string) {
+    if (!metadataAvailable || !entityLogicalName || !formId) {
+      setSelectedMetadataBundle(null);
+      return;
+    }
+    setMetadataBusy(true);
+    setMetadataError(null);
+    try {
+      const knownEntityLogicalNames = [
+        ...new Set([
+          ...(editorState.document?.model.metadata.entities.map((entity) => entity.providerBindings.dataverse?.logicalName?.trim() || entity.id) ?? []),
+          entityLogicalName
+        ])
+      ];
+      const bundle = await importDataverseFormBundle(entityLogicalName, formId, knownEntityLogicalNames);
+      setSelectedMetadataBundle(bundle);
+    } catch (error) {
+      setSelectedMetadataBundle(null);
+      setMetadataError(error instanceof Error ? error.message : 'Unable to load Dataverse form metadata.');
+    } finally {
+      setMetadataBusy(false);
+    }
+  }
+
   async function handleCreatePackage() {
+    if (metadataAvailable && dataverseEntities.length === 0) {
+      await refreshDataverseEntities();
+    }
+    setStarterOpen(true);
+  }
+
+  function handleCreateReferenceStarter() {
     const draft = createDraftPackageRecord();
     applyLoadedRecord(draft);
     setStatusMessage(`Created a draft package named ${draft.packageName}.`);
+  }
+
+  async function handleCreateBlankStarter(draft: BlankStarterDraft) {
+    let bundle = selectedMetadataBundle;
+    if (!bundle || bundle.entitySummary.logicalName !== draft.entityLogicalName || bundle.form.providerBindings.dataverse?.formId?.replace(/[{}]/g, '').toLowerCase() !== draft.formId.replace(/[{}]/g, '').toLowerCase()) {
+      bundle = await importDataverseFormBundle(draft.entityLogicalName, draft.formId, [draft.entityLogicalName]);
+      setSelectedMetadataBundle(bundle);
+    }
+
+    const model = createBlankExistingFormTemplate({
+      packageId: draft.packageId,
+      displayName: draft.displayName,
+      primaryEntity: bundle.entity,
+      primaryForm: bundle.form,
+      relationships: bundle.importedRelationships,
+      currentUserActorDisplayName: draft.currentUserActorDisplayName,
+      systemActorDisplayName: draft.systemActorDisplayName,
+      draftStatusDisplayName: draft.draftStatusDisplayName,
+      inProgressStatusDisplayName: draft.inProgressStatusDisplayName,
+      completeStatusDisplayName: draft.completeStatusDisplayName
+    });
+    applyLoadedRecord(createNormalizedModelPackage(model));
+    setStatusMessage(`Created a blank existing-form starter named ${draft.packageId}.`);
+  }
+
+  function handleImportSelectedMetadata() {
+    if (!editorState.document || !selectedMetadataBundle) {
+      return;
+    }
+    const nextDocument = mergeImportedMetadata(editorState.document, selectedMetadataBundle);
+    applyDocumentWithHistory(nextDocument, editorState.document, true);
+    setStatusMessage(`Imported ${selectedMetadataBundle.form.displayName} from Dataverse metadata.`);
   }
 
   async function handleSave() {
@@ -340,7 +505,7 @@ export function DesignerShell({ repository }: DesignerShellProps) {
     try {
       const serialized = serializeModelPackage(editorState.document);
       if (serialized.model.package.id !== currentRecord.packageName) {
-        setStatusMessage(`Save blocked: model.package.id ('${serialized.model.package.id}') must stay aligned with the package resource name ('${currentRecord.packageName}') in R2.2.`);
+        setStatusMessage(`Save blocked: model.package.id ('${serialized.model.package.id}') must stay aligned with the package resource name ('${currentRecord.packageName}') in the current R2 package-storage path.`);
         return;
       }
       const savedRecord = await repository.savePackage({
@@ -569,6 +734,13 @@ export function DesignerShell({ repository }: DesignerShellProps) {
   }, []);
 
   useEffect(() => {
+    if (!metadataAvailable) {
+      return;
+    }
+    void refreshDataverseEntities();
+  }, [metadataAvailable]);
+
+  useEffect(() => {
     if (!selectedPackageName) {
       return;
     }
@@ -578,6 +750,21 @@ export function DesignerShell({ repository }: DesignerShellProps) {
     }
     void loadSelectedPackage(selectedPackageName);
   }, [packages, selectedPackageName]);
+
+  useEffect(() => {
+    if (!metadataAvailable || !selectedMetadataEntityLogicalName) {
+      return;
+    }
+    void refreshDataverseForms(selectedMetadataEntityLogicalName);
+  }, [metadataAvailable, selectedMetadataEntityLogicalName]);
+
+  useEffect(() => {
+    if (!metadataAvailable || !selectedMetadataEntityLogicalName || !selectedMetadataFormId) {
+      setSelectedMetadataBundle(null);
+      return;
+    }
+    void loadSelectedMetadataBundle(selectedMetadataEntityLogicalName, selectedMetadataFormId);
+  }, [editorState.document, metadataAvailable, selectedMetadataEntityLogicalName, selectedMetadataFormId]);
 
   useEffect(() => {
     if (!editorState.document) {
@@ -712,7 +899,7 @@ export function DesignerShell({ repository }: DesignerShellProps) {
         <aside style={sidebarStyle}>
           <div style={sectionHeaderStyle}>
             <div>
-              <div style={eyebrowStyle}>R2.2 Designer</div>
+              <div style={eyebrowStyle}>R2 Designer</div>
               <h1 style={titleStyle}>DBM Packages</h1>
             </div>
             <span style={hostBadgeStyle}>{repository.kind}</span>
@@ -750,6 +937,19 @@ export function DesignerShell({ repository }: DesignerShellProps) {
             ) : <div style={mutedCopyStyle}>The current model passes designer-core validation.</div>}
           </div>
           <PreviewDock document={editorState.document} snapshot={editorState.snapshot} onPreviewStageChange={handlePreviewStageChange} onPreviewStepChange={handlePreviewStepChange} onPreviewModeChange={handlePreviewModeChange} />
+          <MetadataBrowserPanel
+            available={metadataAvailable}
+            entities={dataverseEntities}
+            forms={dataverseForms}
+            selectedEntityLogicalName={selectedMetadataEntityLogicalName}
+            selectedFormId={selectedMetadataFormId}
+            bundle={selectedMetadataBundle}
+            loading={metadataBusy}
+            error={metadataError}
+            onSelectEntity={setSelectedMetadataEntityLogicalName}
+            onSelectForm={setSelectedMetadataFormId}
+            onImportSelected={handleImportSelectedMetadata}
+          />
         </aside>
         <main style={mainStyle}>
           <header style={workspaceHeaderStyle}>
@@ -806,6 +1006,18 @@ export function DesignerShell({ repository }: DesignerShellProps) {
       </div>
       <DragOverlay>{activeDragLabel ? <div style={dragOverlayStyle}>{activeDragLabel}</div> : null}</DragOverlay>
       <DiagnosticsDrawer open={diagnosticsOpen} onOpenChange={setDiagnosticsOpen} modelText={diagnosticsPayload ? JSON.stringify(diagnosticsPayload.model, null, 2) : ''} workspaceText={diagnosticsPayload ? JSON.stringify(diagnosticsPayload.workspace, null, 2) : ''} graphText={editorState.document ? JSON.stringify(editorState.document.graph, null, 2) : ''} />
+      <StarterGalleryDialog
+        open={starterOpen}
+        onOpenChange={setStarterOpen}
+        modelDrivenAvailable={metadataAvailable}
+        entities={dataverseEntities}
+        forms={dataverseForms}
+        metadataBusy={metadataBusy}
+        metadataError={metadataError}
+        onSelectEntity={setSelectedMetadataEntityLogicalName}
+        onCreateReference={handleCreateReferenceStarter}
+        onCreateBlank={(draft) => void handleCreateBlankStarter(draft)}
+      />
     </DndContext>
   );
 }

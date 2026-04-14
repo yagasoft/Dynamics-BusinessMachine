@@ -212,7 +212,17 @@
     ],
     "transitions": [
       { "id": "submit-request", "fromStageId": "draft-request", "toStageId": "internal-screening-stage", "outcomeId": "submit", "guardRuleId": "request-ready-for-screening" },
-      { "id": "screening-complete-transition", "fromStageId": "internal-screening-stage", "toStageId": "manager-review", "outcomeId": "screen-complete", "guardRuleId": "screening-complete" },
+      {
+        "id": "screening-complete-transition",
+        "fromStageId": "internal-screening-stage",
+        "toStageId": "manager-review",
+        "outcomeId": "screen-complete",
+        "guardRuleId": "screening-complete",
+        "subjectHandoff": {
+          "strategy": "create-related",
+          "relationshipId": "request-to-decision"
+        }
+      },
       { "id": "approve-request", "fromStageId": "manager-review", "toStageId": "approved", "outcomeId": "approve", "guardRuleId": "approval-step-complete" },
       { "id": "reject-request", "fromStageId": "manager-review", "toStageId": "rejected", "outcomeId": "reject", "guardRuleId": "rejection-step-complete" }
     ],
@@ -220,7 +230,16 @@
       { "id": "capture-to-supporting", "fromStepId": "capture-request", "guardRuleId": "supporting-details-needed", "target": { "stepId": "capture-supporting-details" } },
       { "id": "capture-to-screening", "fromStepId": "capture-request", "guardRuleId": "request-ready-for-screening", "target": { "stageId": "internal-screening-stage" } },
       { "id": "supporting-to-screening", "fromStepId": "capture-supporting-details", "guardRuleId": "supporting-details-complete", "target": { "stageId": "internal-screening-stage" } },
-      { "id": "screening-to-review", "fromStepId": "screen-request", "guardRuleId": "screening-complete", "target": { "stageId": "manager-review" } },
+      {
+        "id": "screening-to-review",
+        "fromStepId": "screen-request",
+        "guardRuleId": "screening-complete",
+        "target": { "stageId": "manager-review" },
+        "subjectHandoff": {
+          "strategy": "create-related",
+          "relationshipId": "request-to-decision"
+        }
+      },
       { "id": "choose-to-approval", "fromStepId": "choose-decision", "guardRuleId": "approval-path-selected", "target": { "stepId": "record-approval" } },
       { "id": "choose-to-rejection", "fromStepId": "choose-decision", "guardRuleId": "rejection-path-selected", "target": { "stepId": "record-rejection" } },
       { "id": "approval-to-approved", "fromStepId": "record-approval", "guardRuleId": "approval-step-complete", "target": { "stageId": "approved" } },

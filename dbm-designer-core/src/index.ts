@@ -23,7 +23,8 @@ export {
   validateDesignerGraphDocument
 } from './graph-document';
 export { buildProcessExperienceSnapshot } from './process-experience';
-export { createApprovalRequestTemplate } from './template';
+export { createApprovalRequestTemplate, createBlankExistingFormTemplate } from './template';
+export type { BlankExistingFormStarterOptions } from './template';
 export type {
   AddNodeCommand,
   DesignerCommand,

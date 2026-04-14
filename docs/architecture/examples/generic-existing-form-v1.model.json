@@ -1,0 +1,347 @@
+{
+  "schemaVersion": "dbm.model/v1",
+  "package": {
+    "id": "dbm-case-assignment",
+    "displayName": "DBM Case Assignment",
+    "version": "1.0.0",
+    "publisher": {
+      "name": "Dynamics Business Machine",
+      "website": "https://example.invalid/dbm",
+      "prefix": "dbm"
+    },
+    "entryProcessId": "case-assignment-process",
+    "supportedHosts": ["model-driven", "xrmtoolbox"],
+    "supportedRuntimes": ["pcf", "dataverse"],
+    "processUiSurfaces": ["model-driven"],
+    "exposesPortalState": true,
+    "ownsGeneratedDataverseArtifacts": true,
+    "compatibility": {
+      "minimumReaderSchemaVersion": "dbm.model/v1",
+      "maximumReaderSchemaVersion": "dbm.model/v1",
+      "breakingChangePolicy": "reject-newer-major"
+    },
+    "deployment": {
+      "solutionName": "DBM Case Assignment",
+      "releaseLine": "R2.5",
+      "artifactRoot": "artifacts/dbm-case-assignment"
+    }
+  },
+  "process": {
+    "id": "case-assignment-process",
+    "displayName": "Case Assignment",
+    "scenarioType": "custom",
+    "actors": [
+      { "id": "requester", "displayName": "Requester", "actorType": "requester", "source": "current-user" },
+      { "id": "case-worker", "displayName": "Case Worker", "actorType": "approver", "source": "field-binding" },
+      { "id": "platform", "displayName": "Platform", "actorType": "system", "source": "system" }
+    ],
+    "variables": [],
+    "statuses": [
+      { "id": "draft", "displayName": "Draft", "audience": "shared", "kind": "progress" },
+      { "id": "assigned", "displayName": "Assigned", "audience": "shared", "kind": "progress" },
+      { "id": "complete", "displayName": "Complete", "audience": "shared", "kind": "terminal" }
+    ],
+    "tasks": [
+      { "id": "capture-case", "displayName": "Capture Case", "taskType": "data-entry", "instructions": "Capture the initial case details." },
+      { "id": "prepare-assignment", "displayName": "Prepare Assignment", "taskType": "data-entry", "instructions": "Prepare and complete the related assignment record." }
+    ],
+    "notifications": [],
+    "stages": [
+      {
+        "id": "draft-case",
+        "displayName": "Draft Case",
+        "stageType": "start",
+        "actorId": "requester",
+        "formId": "case-form",
+        "portalVisibility": "visible",
+        "stepIds": ["capture-case"],
+        "defaultStepId": "capture-case",
+        "entryRuleIds": [],
+        "exitRuleIds": ["case-ready"],
+        "allowedOutcomeIds": ["submit"]
+      },
+      {
+        "id": "assignment-work",
+        "displayName": "Assignment Work",
+        "stageType": "task",
+        "actorId": "case-worker",
+        "formId": "assignment-form",
+        "portalVisibility": "visible",
+        "stepIds": ["prepare-assignment"],
+        "defaultStepId": "prepare-assignment",
+        "entryRuleIds": [],
+        "exitRuleIds": ["assignment-ready"],
+        "allowedOutcomeIds": ["complete"]
+      },
+      {
+        "id": "completed",
+        "displayName": "Completed",
+        "stageType": "end",
+        "actorId": "platform",
+        "formId": null,
+        "portalVisibility": "visible",
+        "stepIds": [],
+        "defaultStepId": null,
+        "entryRuleIds": [],
+        "exitRuleIds": [],
+        "allowedOutcomeIds": ["complete"]
+      }
+    ],
+    "steps": [
+      {
+        "id": "capture-case",
+        "stageId": "draft-case",
+        "displayName": "Capture Case",
+        "stepType": "data-entry",
+        "ownerActorId": "requester",
+        "notificationId": null,
+        "taskId": "capture-case",
+        "internalStatusId": "draft",
+        "portalStatusId": "draft",
+        "formStateId": "case-edit-state",
+        "entryRuleIds": [],
+        "exitRuleIds": ["case-ready"]
+      },
+      {
+        "id": "prepare-assignment",
+        "stageId": "assignment-work",
+        "displayName": "Prepare Assignment",
+        "stepType": "data-entry",
+        "ownerActorId": "case-worker",
+        "notificationId": null,
+        "taskId": "prepare-assignment",
+        "internalStatusId": "assigned",
+        "portalStatusId": "assigned",
+        "formStateId": "assignment-work-state",
+        "entryRuleIds": [],
+        "exitRuleIds": ["assignment-ready"]
+      }
+    ],
+    "transitions": [
+      {
+        "id": "submit-case",
+        "fromStageId": "draft-case",
+        "toStageId": "assignment-work",
+        "outcomeId": "submit",
+        "guardRuleId": "case-ready",
+        "subjectHandoff": {
+          "strategy": "create-related",
+          "relationshipId": "case-to-assignment"
+        }
+      },
+      {
+        "id": "complete-assignment",
+        "fromStageId": "assignment-work",
+        "toStageId": "completed",
+        "outcomeId": "complete",
+        "guardRuleId": "assignment-ready"
+      }
+    ],
+    "stepTransitions": [],
+    "outcomes": [
+      { "id": "submit", "displayName": "Submit" },
+      { "id": "complete", "displayName": "Complete" }
+    ]
+  },
+  "forms": [
+    {
+      "id": "case-form",
+      "displayName": "Case Form",
+      "primaryEntityBindingId": "case-primary",
+      "providerBindings": {
+        "dataverse": {
+          "formId": "{11111111-1111-1111-1111-111111111111}"
+        }
+      },
+      "entityBindings": [
+        { "id": "case-primary", "displayName": "Case", "entityId": "case", "relationshipId": null, "role": "primary" }
+      ],
+      "layout": {
+        "layoutType": "single-page",
+        "regions": [
+          {
+            "id": "case-intake-region",
+            "displayName": "Case Intake",
+            "order": 1,
+            "providerBindings": {
+              "dataverse": {
+                "tabName": "case_main_tab",
+                "sectionName": "case_intake_section"
+              }
+            }
+          }
+        ]
+      },
+      "elements": [
+        {
+          "id": "case-title-element",
+          "elementType": "text",
+          "regionId": "case-intake-region",
+          "displayName": "Case Title",
+          "binding": { "entityBindingId": "case-primary", "fieldId": "case-title" },
+          "behavior": { "requiredRuleIds": ["case-ready"], "visibleRuleIds": [], "editableRuleIds": [] },
+          "providerBindings": { "dataverse": { "controlName": "dbm_title" } }
+        },
+        {
+          "id": "case-description-element",
+          "elementType": "multiline-text",
+          "regionId": "case-intake-region",
+          "displayName": "Case Description",
+          "binding": { "entityBindingId": "case-primary", "fieldId": "case-description" },
+          "behavior": { "requiredRuleIds": [], "visibleRuleIds": [], "editableRuleIds": [] },
+          "providerBindings": { "dataverse": { "controlName": "dbm_description" } }
+        }
+      ],
+      "formStates": [
+        {
+          "id": "case-edit-state",
+          "displayName": "Case Edit",
+          "activationRuleIds": [],
+          "visibleEntityBindingIds": ["case-primary"],
+          "elementBehaviors": [
+            {
+              "elementId": "case-title-element",
+              "label": "Case Title",
+              "hint": "Enter the case title.",
+              "requiredRuleIds": ["case-ready"],
+              "visibleRuleIds": [],
+              "editableRuleIds": []
+            },
+            {
+              "elementId": "case-description-element",
+              "label": "Case Description",
+              "hint": "Provide the case details.",
+              "requiredRuleIds": [],
+              "visibleRuleIds": [],
+              "editableRuleIds": []
+            }
+          ]
+        }
+      ]
+    },
+    {
+      "id": "assignment-form",
+      "displayName": "Assignment Form",
+      "primaryEntityBindingId": "assignment-primary",
+      "providerBindings": {
+        "dataverse": {
+          "formId": "{22222222-2222-2222-2222-222222222222}"
+        }
+      },
+      "entityBindings": [
+        { "id": "assignment-primary", "displayName": "Assignment", "entityId": "case-assignment", "relationshipId": null, "role": "primary" },
+        { "id": "assignment-case", "displayName": "Case", "entityId": "case", "relationshipId": "case-to-assignment", "role": "related" }
+      ],
+      "layout": {
+        "layoutType": "single-page",
+        "regions": [
+          {
+            "id": "assignment-work-region",
+            "displayName": "Assignment Work",
+            "order": 1,
+            "providerBindings": {
+              "dataverse": {
+                "tabName": "assignment_main_tab",
+                "sectionName": "assignment_work_section"
+              }
+            }
+          }
+        ]
+      },
+      "elements": [
+        {
+          "id": "assignment-summary-element",
+          "elementType": "multiline-text",
+          "regionId": "assignment-work-region",
+          "displayName": "Assignment Summary",
+          "binding": { "entityBindingId": "assignment-primary", "fieldId": "assignment-summary" },
+          "behavior": { "requiredRuleIds": ["assignment-ready"], "visibleRuleIds": [], "editableRuleIds": [] },
+          "providerBindings": { "dataverse": { "controlName": "dbm_summary" } }
+        }
+      ],
+      "formStates": [
+        {
+          "id": "assignment-work-state",
+          "displayName": "Assignment Work",
+          "activationRuleIds": [],
+          "visibleEntityBindingIds": ["assignment-primary", "assignment-case"],
+          "elementBehaviors": [
+            {
+              "elementId": "assignment-summary-element",
+              "label": "Assignment Summary",
+              "hint": "Describe the assignment work performed.",
+              "requiredRuleIds": ["assignment-ready"],
+              "visibleRuleIds": [],
+              "editableRuleIds": []
+            }
+          ]
+        }
+      ]
+    }
+  ],
+  "metadata": {
+    "entities": [
+      {
+        "id": "case",
+        "displayName": "Case",
+        "providerBindings": { "dataverse": { "logicalName": "dbm_case" } },
+        "primaryKeyFieldId": "case-id",
+        "fields": [
+          { "id": "case-id", "displayName": "Case Id", "dataType": "string", "providerBindings": { "dataverse": { "logicalName": "dbm_caseid" } }, "isRequired": true, "isReadOnly": true },
+          { "id": "case-title", "displayName": "Case Title", "dataType": "string", "providerBindings": { "dataverse": { "logicalName": "dbm_title" } }, "isRequired": true, "isReadOnly": false },
+          { "id": "case-description", "displayName": "Case Description", "dataType": "multiline-string", "providerBindings": { "dataverse": { "logicalName": "dbm_description" } }, "isRequired": false, "isReadOnly": false }
+        ]
+      },
+      {
+        "id": "case-assignment",
+        "displayName": "Case Assignment",
+        "providerBindings": { "dataverse": { "logicalName": "dbm_caseassignment" } },
+        "primaryKeyFieldId": "assignment-id",
+        "fields": [
+          { "id": "assignment-id", "displayName": "Assignment Id", "dataType": "string", "providerBindings": { "dataverse": { "logicalName": "dbm_caseassignmentid" } }, "isRequired": true, "isReadOnly": true },
+          {
+            "id": "assignment-case-lookup",
+            "displayName": "Case",
+            "dataType": "lookup",
+            "providerBindings": { "dataverse": { "logicalName": "dbm_caseid" } },
+            "isRequired": true,
+            "isReadOnly": false,
+            "lookupTargetEntityId": "case"
+          },
+          { "id": "assignment-summary", "displayName": "Assignment Summary", "dataType": "multiline-string", "providerBindings": { "dataverse": { "logicalName": "dbm_summary" } }, "isRequired": false, "isReadOnly": false }
+        ]
+      }
+    ],
+    "relationships": [
+      {
+        "id": "case-to-assignment",
+        "fromEntityId": "case",
+        "toEntityId": "case-assignment",
+        "relationshipType": "one-to-many",
+        "providerBindings": { "dataverse": { "logicalName": "dbm_case_dbm_caseassignment" } },
+        "referencingFieldId": "assignment-case-lookup"
+      }
+    ]
+  },
+  "rules": [
+    { "id": "case-ready", "displayName": "Case Ready", "ruleType": "condition", "scope": "transition", "language": "dbm-expression-v1", "body": "notEmpty(case-title)" },
+    { "id": "assignment-ready", "displayName": "Assignment Ready", "ruleType": "condition", "scope": "transition", "language": "dbm-expression-v1", "body": "notEmpty(assignment-summary)" }
+  ],
+  "runtime": {
+    "capabilities": ["load-record", "render-form", "validate-input", "evaluate-rules", "persist-record", "advance-stage"],
+    "requestContract": {
+      "schemaVersion": "dbm.runtime.request/v1",
+      "operations": ["initialize", "load-form", "validate", "submit", "transition"]
+    },
+    "resultContract": {
+      "schemaVersion": "dbm.runtime.result/v1",
+      "statuses": ["ok", "validation-failed", "blocked", "error"]
+    },
+    "ownership": {
+      "pcf": { "responsibilities": ["form-rendering", "local-interaction", "responsive-validation"] },
+      "dataverse": { "responsibilities": ["authoritative-persistence", "stage-transition"] },
+      "azure": { "responsibilities": ["support-services-only"] }
+    }
+  },
+  "artifacts": []
+}

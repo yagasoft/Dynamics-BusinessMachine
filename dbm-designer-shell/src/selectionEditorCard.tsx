@@ -14,6 +14,8 @@ interface SelectionEditorCardProps {
 
 const stageTypeOptions = ['start', 'task', 'approval', 'system', 'end'] as const;
 const stepTypeOptions = ['data-entry', 'review', 'approval', 'system'] as const;
+const stagePortalVisibilityOptions = ['visible', 'hidden'] as const;
+const handoffStrategyOptions = ['select-existing-related', 'create-related'] as const;
 
 function summarizeRuleLabels(document: DesignerDocument, ruleIds: string[]): string {
   if (ruleIds.length === 0) {
@@ -48,6 +50,127 @@ function resolveFormStateIssues(document: DesignerDocument, stepId: string, form
     .forEach((issue) => issueMessages.add(issue.message));
 
   return [...issueMessages];
+}
+
+function resolveStageForm(document: DesignerDocument, stageId: string): DbmFormV1 | null {
+  const stage = document.model.process.stages.find((entry) => entry.id === stageId);
+  return stage?.formId ? document.model.forms.find((form) => form.id === stage.formId) ?? null : null;
+}
+
+function resolveStagePrimaryEntityId(document: DesignerDocument, stageId: string): string | null {
+  const form = resolveStageForm(document, stageId);
+  const binding = form?.entityBindings.find((entry) => entry.id === form.primaryEntityBindingId);
+  return binding?.entityId ?? null;
+}
+
+function resolveRelationshipOptions(document: DesignerDocument, sourceStageId: string, targetStageId: string) {
+  const sourceEntityId = resolveStagePrimaryEntityId(document, sourceStageId);
+  const targetEntityId = resolveStagePrimaryEntityId(document, targetStageId);
+  if (!sourceEntityId || !targetEntityId || sourceEntityId === targetEntityId) {
+    return [];
+  }
+
+  return document.model.metadata.relationships.filter((relationship) => {
+    const pair = new Set([relationship.fromEntityId, relationship.toEntityId]);
+    return pair.has(sourceEntityId) && pair.has(targetEntityId);
+  });
+}
+
+function HandoffEditor({
+  document,
+  sourceStageId,
+  targetStageId,
+  handoff,
+  onChange
+}: {
+  document: DesignerDocument;
+  sourceStageId: string;
+  targetStageId: string;
+  handoff: { strategy: 'reuse-current-primary' | 'select-existing-related' | 'create-related'; relationshipId: string | null } | null | undefined;
+  onChange(subjectHandoff: { strategy: 'reuse-current-primary' | 'select-existing-related' | 'create-related'; relationshipId: string | null } | null): void;
+}) {
+  const sourceEntityId = resolveStagePrimaryEntityId(document, sourceStageId);
+  const targetEntityId = resolveStagePrimaryEntityId(document, targetStageId);
+  const relationshipOptions = resolveRelationshipOptions(document, sourceStageId, targetStageId);
+  const sourceEntity = sourceEntityId ? document.model.metadata.entities.find((entity) => entity.id === sourceEntityId) : null;
+  const targetEntity = targetEntityId ? document.model.metadata.entities.find((entity) => entity.id === targetEntityId) : null;
+
+  if (!sourceEntityId || !targetEntityId) {
+    return (
+      <div style={inspectionPanelStyle}>
+        <div style={inspectionHeadingStyle}>Cross-Form Handoff</div>
+        <div style={metaStyle}>Import and bind both source and target forms before configuring handoff behavior.</div>
+      </div>
+    );
+  }
+
+  if (sourceEntityId === targetEntityId) {
+    return (
+      <div style={inspectionPanelStyle}>
+        <div style={inspectionHeadingStyle}>Cross-Form Handoff</div>
+        <div style={metaStyle}>Same primary entity: no handoff is required for this connection.</div>
+      </div>
+    );
+  }
+
+  return (
+    <div style={inspectionPanelStyle}>
+      <div style={inspectionHeadingStyle}>Cross-Form Handoff</div>
+      <div style={metaStyle}>
+        {sourceEntity?.displayName ?? sourceEntityId}
+        {' -> '}
+        {targetEntity?.displayName ?? targetEntityId}
+      </div>
+      <label style={fieldStyle}>
+        <span>Strategy</span>
+        <select
+          style={inputStyle}
+          value={handoff?.strategy ?? ''}
+          onChange={(event) =>
+            onChange(
+              event.target.value
+                ? {
+                    strategy: event.target.value as typeof handoffStrategyOptions[number],
+                    relationshipId: handoff?.relationshipId ?? relationshipOptions[0]?.id ?? null
+                  }
+                : null
+            )
+          }
+        >
+          <option value="">Select strategy</option>
+          {handoffStrategyOptions.map((option) => (
+            <option key={option} value={option}>
+              {option}
+            </option>
+          ))}
+        </select>
+      </label>
+      <label style={fieldStyle}>
+        <span>Relationship</span>
+        <select
+          style={inputStyle}
+          value={handoff?.relationshipId ?? ''}
+          onChange={(event) =>
+            onChange(
+              handoff?.strategy
+                ? {
+                    strategy: handoff.strategy,
+                    relationshipId: event.target.value || null
+                  }
+                : null
+            )
+          }
+        >
+          <option value="">Select relationship</option>
+          {relationshipOptions.map((relationship) => (
+            <option key={relationship.id} value={relationship.id}>
+              {relationship.providerBindings.dataverse?.logicalName ?? relationship.id}
+            </option>
+          ))}
+        </select>
+      </label>
+    </div>
+  );
 }
 
 function FormStateInspectionSummary({
@@ -188,6 +311,14 @@ export function SelectionEditorCard({
   if (selection.kind === 'stage') {
     const collapsed = isStageCollapsed(selection.stage.id);
     const selectedOutcomeIds = new Set(selection.stage.allowedOutcomeIds);
+    const availableForms = document.model.forms;
+    const currentForm = selection.stage.formId
+      ? document.model.forms.find((form) => form.id === selection.stage.formId) ?? null
+      : null;
+    const currentPrimaryBinding = currentForm?.entityBindings.find((binding) => binding.id === currentForm.primaryEntityBindingId) ?? null;
+    const currentPrimaryEntity = currentPrimaryBinding
+      ? document.model.metadata.entities.find((entity) => entity.id === currentPrimaryBinding.entityId) ?? null
+      : null;
 
     return (
       <div style={cardStyle}>
@@ -269,6 +400,70 @@ export function SelectionEditorCard({
               ))}
             </select>
           </label>
+
+          <label style={fieldStyle}>
+            <span>Bound Form</span>
+            <select
+              aria-label="Stage form"
+              style={inputStyle}
+              value={selection.stage.formId ?? ''}
+              onChange={(event) => {
+                const nextFormId = event.target.value || null;
+                if (!nextFormId) {
+                  onIntent({
+                    kind: 'update-stage',
+                    stageId: selection.stage.id,
+                    value: {
+                      formId: null
+                    }
+                  });
+                  return;
+                }
+                onIntent({
+                  kind: 'rebind-stage-form',
+                  stageId: selection.stage.id,
+                  formId: nextFormId
+                });
+              }}
+            >
+              <option value="">None</option>
+              {availableForms.map((form) => (
+                <option key={form.id} value={form.id}>
+                  {form.displayName}
+                </option>
+              ))}
+            </select>
+          </label>
+
+          <label style={fieldStyle}>
+            <span>Portal Visibility</span>
+            <select
+              aria-label="Stage portal visibility"
+              style={inputStyle}
+              value={selection.stage.portalVisibility}
+              onChange={(event) =>
+                onIntent({
+                  kind: 'update-stage',
+                  stageId: selection.stage.id,
+                  value: {
+                    portalVisibility: event.target.value as typeof stagePortalVisibilityOptions[number]
+                  }
+                })
+              }
+            >
+              {stagePortalVisibilityOptions.map((option) => (
+                <option key={option} value={option}>
+                  {option}
+                </option>
+              ))}
+            </select>
+          </label>
+
+          <div style={inspectionPanelStyle}>
+            <div style={inspectionHeadingStyle}>Form Binding</div>
+            <div style={metaStyle}>Form: {currentForm?.displayName ?? 'None'}</div>
+            <div style={metaStyle}>Primary Table: {currentPrimaryEntity?.displayName ?? currentPrimaryBinding?.entityId ?? 'None'}</div>
+          </div>
 
           <div style={fieldStyle}>
             <span>Allowed Outcomes</span>
@@ -674,15 +869,32 @@ export function SelectionEditorCard({
   }
 
   if (selection.kind === 'transition') {
+    const sourceStage = document.model.process.stages.find((stage) => stage.id === selection.transition.fromStageId);
+    const targetStage = document.model.process.stages.find((stage) => stage.id === selection.transition.toStageId);
+    const outcome = document.model.process.outcomes.find((entry) => entry.id === selection.transition.outcomeId);
+
     return (
       <div style={cardStyle}>
         <div style={sectionLabelStyle}>Stage Connection</div>
         <div style={metaStyle}>
-          {selection.transition.fromStageId}
+          {sourceStage?.displayName ?? selection.transition.fromStageId}
           {' -> '}
-          {selection.transition.toStageId}
+          {targetStage?.displayName ?? selection.transition.toStageId}
         </div>
-        <div style={metaStyle}>Outcome: {selection.transition.outcomeId}</div>
+        <div style={metaStyle}>Outcome: {outcome?.displayName ?? selection.transition.outcomeId}</div>
+        <HandoffEditor
+          document={document}
+          sourceStageId={selection.transition.fromStageId}
+          targetStageId={selection.transition.toStageId}
+          handoff={selection.transition.subjectHandoff ?? null}
+          onChange={(subjectHandoff) =>
+            onIntent({
+              kind: 'update-transition-handoff',
+              transitionId: selection.transition.id,
+              subjectHandoff
+            })
+          }
+        />
         <button
           type="button"
           style={dangerButtonStyle}
@@ -699,18 +911,43 @@ export function SelectionEditorCard({
     );
   }
 
+  const sourceStep = document.model.process.steps.find((step) => step.id === selection.transition.fromStepId) ?? null;
+  const sourceStage = sourceStep ? document.model.process.stages.find((stage) => stage.id === sourceStep.stageId) ?? null : null;
+  const targetStageId = 'stageId' in selection.transition.target
+    ? selection.transition.target.stageId
+    : 'stepId' in selection.transition.target
+      ? document.model.process.steps.find((step) => step.id === selection.transition.target.stepId)?.stageId ?? null
+      : null;
+  const targetLabel =
+    'stepId' in selection.transition.target
+      ? document.model.process.steps.find((step) => step.id === selection.transition.target.stepId)?.displayName ?? selection.transition.target.stepId
+      : 'stageId' in selection.transition.target
+        ? document.model.process.stages.find((stage) => stage.id === selection.transition.target.stageId)?.displayName ?? selection.transition.target.stageId
+        : document.model.process.outcomes.find((outcome) => outcome.id === selection.transition.target.outcomeId)?.displayName ?? selection.transition.target.outcomeId;
+
   return (
     <div style={cardStyle}>
       <div style={sectionLabelStyle}>Step Connection</div>
-      <div style={metaStyle}>From: {selection.transition.fromStepId}</div>
+      <div style={metaStyle}>From: {sourceStep?.displayName ?? selection.transition.fromStepId}</div>
       <div style={metaStyle}>
         Target:{' '}
-        {'stepId' in selection.transition.target
-          ? selection.transition.target.stepId
-          : 'stageId' in selection.transition.target
-            ? selection.transition.target.stageId
-            : selection.transition.target.outcomeId}
+        {targetLabel}
       </div>
+      {'outcomeId' in selection.transition.target ? null : (
+        <HandoffEditor
+          document={document}
+          sourceStageId={sourceStage?.id ?? selection.transition.fromStepId}
+          targetStageId={targetStageId ?? sourceStage?.id ?? selection.transition.fromStepId}
+          handoff={selection.transition.subjectHandoff ?? null}
+          onChange={(subjectHandoff) =>
+            onIntent({
+              kind: 'update-step-transition-handoff',
+              transitionId: selection.transition.id,
+              subjectHandoff
+            })
+          }
+        />
+      )}
       <button
         type="button"
         style={dangerButtonStyle}

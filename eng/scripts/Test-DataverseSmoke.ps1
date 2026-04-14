@@ -76,6 +76,54 @@ function Convert-ToVersionOrNull {
     }
 }
 
+function Get-DbmSafeIdentifier {
+    param(
+        [Parameter(Mandatory = $true)]
+        [string]$Value
+    )
+
+    $normalized = [regex]::Replace($Value, '[^A-Za-z0-9_]', '_')
+    if ($normalized -match '^[A-Za-z_]') {
+        return $normalized
+    }
+
+    return "_$normalized"
+}
+
+function Get-DbmExpectedProcessHostForms {
+    param(
+        [Parameter(Mandatory = $true)]
+        [string]$ModelPath
+    )
+
+    $model = Get-Content -Path $ModelPath -Raw | ConvertFrom-Json
+    $expectedForms = @()
+
+    foreach ($form in @($model.forms)) {
+        $dataverseFormId = [string]$form.providerBindings.dataverse.formId
+        if ([string]::IsNullOrWhiteSpace($dataverseFormId)) {
+            continue
+        }
+
+        $formId = [string]$form.id
+        $safeFormId = Get-DbmSafeIdentifier -Value $formId
+        $expectedForms += [pscustomobject]@{
+            formId                        = $dataverseFormId
+            label                         = $formId
+            expectedSectionName           = "dbm_process_host_$safeFormId"
+            expectedControlName           = "WebResource_dbmProcessHost_$safeFormId"
+            expectedHostWebResourceName   = 'ys_/dbm/process-experience/host.html'
+            expectedConfigWebResourceName = "ys_/dbm/forms/config/$formId.js"
+        }
+    }
+
+    if ($expectedForms.Count -eq 0) {
+        throw "Dataverse smoke validation could not derive any Dataverse-backed forms from '$ModelPath'."
+    }
+
+    return @($expectedForms)
+}
+
 function Get-DbmSolutionVersionFromList {
     param(
         [Parameter(Mandatory = $true)]
@@ -209,34 +257,14 @@ if (-not $SkipGeneratedMetadataValidation) {
         details = 'Generated metadata readback matched the synthesized Dataverse plan without blocking drift.'
     }
 
-    $expectedFormIds = @(
-        '{8d65fa31-b54d-5d9b-84e0-07d87e113130}',
-        '{4e37e2e6-61cb-544d-848a-9f870ec4cf4d}'
-    )
-    foreach ($expectedFormId in $expectedFormIds) {
-        $normalizedExpectedFormId = ([string]$expectedFormId).Trim('{}').ToLowerInvariant()
+    $expectedProcessHostForms = Get-DbmExpectedProcessHostForms -ModelPath $ModelPath
+    foreach ($expectedProcessHostForm in $expectedProcessHostForms) {
+        $normalizedExpectedFormId = ([string]$expectedProcessHostForm.formId).Trim('{}').ToLowerInvariant()
         $form = $readbackSnapshot.forms | Where-Object { ([string]$_.formId).Trim('{}').ToLowerInvariant() -eq $normalizedExpectedFormId } | Select-Object -First 1
         if (-not $form) {
-            throw "Generated metadata validation could not find expected form '$expectedFormId' in '$TargetEnvironment'. Review '$readbackPath'."
+            throw "Generated metadata validation could not find expected form '$($expectedProcessHostForm.formId)' in '$TargetEnvironment'. Review '$readbackPath'."
         }
     }
-
-    $expectedProcessHostForms = @(
-        [pscustomobject]@{
-            formId = '{8d65fa31-b54d-5d9b-84e0-07d87e113130}'
-            label = 'request-form'
-            expectedSectionName = 'dbm_process_host_request_form'
-            expectedControlName = 'WebResource_dbmProcessHost_request_form'
-            expectedHostWebResourceName = 'ys_/dbm/process-experience/host.html'
-        },
-        [pscustomobject]@{
-            formId = '{4e37e2e6-61cb-544d-848a-9f870ec4cf4d}'
-            label = 'review-form'
-            expectedSectionName = 'dbm_process_host_review_form'
-            expectedControlName = 'WebResource_dbmProcessHost_review_form'
-            expectedHostWebResourceName = 'ys_/dbm/process-experience/host.html'
-        }
-    )
 
     foreach ($expectedProcessHostForm in $expectedProcessHostForms) {
         $normalizedExpectedFormId = ([string]$expectedProcessHostForm.formId).Trim('{}').ToLowerInvariant()
@@ -260,10 +288,9 @@ if (-not $SkipGeneratedMetadataValidation) {
     $expectedWebResources = @(
         'ys_/dbm/process-experience/renderer.js',
         'ys_/dbm/process-experience/host.html',
-        'ys_/dbm/forms/runtime.js',
-        'ys_/dbm/forms/config/request-form.js',
-        'ys_/dbm/forms/config/review-form.js'
+        'ys_/dbm/forms/runtime.js'
     )
+    $expectedWebResources += $expectedProcessHostForms.expectedConfigWebResourceName
     foreach ($expectedWebResource in $expectedWebResources) {
         $webResource = $readbackSnapshot.webResources | Where-Object { [string]$_.name -eq $expectedWebResource } | Select-Object -First 1
         if (-not $webResource) {
@@ -274,19 +301,16 @@ if (-not $SkipGeneratedMetadataValidation) {
     $automatedChecks += [ordered]@{
         name = 'generated-metadata-forms-present'
         passed = $true
-        details = 'Expected DBM-managed Dataverse forms were found in the generated metadata readback.'
+        details = 'Expected DBM-managed Dataverse forms selected in the supplied model were found in the generated metadata readback.'
     }
 
     $automatedChecks += [ordered]@{
         name = 'generated-metadata-behavior-assets-present'
         passed = $true
-        details = 'Expected DBM form behavior web resources were found in the generated metadata readback.'
+        details = 'Expected DBM form behavior web resources were found in the generated metadata readback for the supplied model.'
     }
 
-    $expectedConfigResources = @(
-        'ys_/dbm/forms/config/request-form.js',
-        'ys_/dbm/forms/config/review-form.js'
-    )
+    $expectedConfigResources = @($expectedProcessHostForms.expectedConfigWebResourceName)
     foreach ($expectedConfigResource in $expectedConfigResources) {
         $webResource = $readbackSnapshot.webResources | Where-Object { [string]$_.name -eq $expectedConfigResource } | Select-Object -First 1
         if (-not $webResource) {
@@ -301,7 +325,7 @@ if (-not $SkipGeneratedMetadataValidation) {
     $automatedChecks += [ordered]@{
         name = 'generated-metadata-process-host-artifacts-present'
         passed = $true
-        details = 'Expected DBM process-host sections, controls, and runtime processHost configuration were found in the generated metadata readback.'
+        details = 'Expected DBM process-host sections, controls, and runtime processHost configuration were found for every Dataverse-backed form in the supplied model.'
     }
 }
 
@@ -325,8 +349,8 @@ $automatedChecks += [ordered]@{
 $manualChecks = @(
     'Review the deployment workflow logs for import warnings or component issues.',
     "Open the hosted designer using '$($designerHostResults.designerUrl)' or review '$designerHostSummaryPath', then verify the designer entry flow loads successfully in the target environment.",
-    'Create one new model document, save it, refresh, and reopen it without host or validation dead ends.',
-    'Verify one representative DBM runtime action loads successfully in the target environment.'
+    'Create or reopen one DBM package in the hosted designer, save it, refresh, and reopen it without host or validation dead ends.',
+    'Verify one representative DBM runtime action from the supplied model path loads successfully in the target environment.'
 )
 
 $result = [ordered]@{

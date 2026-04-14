@@ -4,6 +4,7 @@ import type {
   DbmModelV1,
   DbmProcessExperienceAudienceV1,
   DbmStageV1,
+  DbmSubjectHandoffV1,
   DbmStepV1
 } from 'dbm-contract';
 
@@ -180,8 +181,15 @@ export type DesignerGraphIntent =
           'displayName'
           | 'stageType'
           | 'actorId'
+          | 'formId'
+          | 'portalVisibility'
         >
       >;
+    }
+  | {
+      kind: 'rebind-stage-form';
+      stageId: string;
+      formId: string | null;
     }
   | {
       kind: 'update-stage-outcomes';
@@ -202,6 +210,16 @@ export type DesignerGraphIntent =
           | 'formStateId'
         >
       >;
+    }
+  | {
+      kind: 'update-transition-handoff';
+      transitionId: string;
+      subjectHandoff: DbmSubjectHandoffV1 | null;
+    }
+  | {
+      kind: 'update-step-transition-handoff';
+      stepTransitionId: string;
+      subjectHandoff: DbmSubjectHandoffV1 | null;
     }
   | {
       kind: 'remove-node';

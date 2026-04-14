@@ -53,13 +53,10 @@ The `R2` process-host delivery is complete only when these artifacts are present
   - `ys_/dbm/process-experience/host.html`
 - Form runtime web resources:
   - `ys_/dbm/forms/runtime.js`
-  - `ys_/dbm/forms/config/request-form.js`
-  - `ys_/dbm/forms/config/review-form.js`
-- Form XML artifacts:
-  - request-form process-host section `dbm_process_host_request_form`
-  - review-form process-host section `dbm_process_host_review_form`
-  - request-form host control `WebResource_dbmProcessHost_request_form`
-  - review-form host control `WebResource_dbmProcessHost_review_form`
+  - one `ys_/dbm/forms/config/<form-id>.js` resource for every Dataverse-backed form selected in the package
+- Form XML artifacts for every Dataverse-backed form selected in the package:
+  - process-host section `dbm_process_host_<safe-form-id>`
+  - host control `WebResource_dbmProcessHost_<safe-form-id>`
 - Runtime config:
   - `processHost.supported`
   - `processHost.overlay`
@@ -103,17 +100,30 @@ Use the normal Dataverse smoke entrypoint and keep generated metadata validation
 
 ```powershell
 Set-Location C:\Git\Dynamics-BusinessMachine
-.\eng\scripts\Test-DataverseSmoke.ps1 -TargetEnvironment Dev -DataverseUrl https://<your-org>.crm?.dynamics.com
+.\eng\scripts\Test-DataverseSmoke.ps1 `
+  -TargetEnvironment Dev `
+  -DataverseUrl https://<your-org>.crm?.dynamics.com `
+  -ModelPath .\docs\architecture\examples\approval-request-v1.model.json
 ```
 
 `R2` process-host smoke is considered passing only when the smoke evidence confirms all of the following:
 
-- expected request/review forms are present
-- request/review form XML contains the generated process-host sections and controls
+- every Dataverse-backed form declared in the supplied model is present
+- each supplied form XML contains the generated process-host section and control for that form id
 - `renderer.js` and `host.html` are present in the readback snapshot
-- request/review form config web resources contain a `processHost` runtime block
+- every generated form config web resource contains a `processHost` runtime block
 - generated metadata diff is free of blocking drift
 - designer host validation still passes
+
+For the generic `R2.5` close-out proof, prefer:
+
+```powershell
+Set-Location C:\Git\Dynamics-BusinessMachine
+.\eng\scripts\Test-DataverseSmoke.ps1 `
+  -TargetEnvironment Dev `
+  -DataverseUrl https://<your-org>.crm?.dynamics.com `
+  -ModelPath .\docs\architecture\examples\generic-existing-form-v1.model.json
+```
 
 ## Release Decision
 
