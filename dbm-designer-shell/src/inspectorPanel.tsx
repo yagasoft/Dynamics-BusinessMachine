@@ -9,7 +9,7 @@ import type {
 import type { DesignerDocument, DesignerGraphIntent } from 'dbm-designer-core';
 import { ProcessPreview } from './processPreview';
 
-type InspectorSelection =
+export type InspectorSelection =
   | {
       kind: 'document';
     }

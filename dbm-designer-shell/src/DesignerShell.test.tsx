@@ -96,7 +96,7 @@ function createRepositoryHarness() {
 }
 
 describe('DesignerShell', () => {
-  it('loads a package into the graph-first shell and routes selection into the inspector', async () => {
+  it('loads a package into the graph-first shell and routes selection into the inline editor', async () => {
     const { repository } = createRepositoryHarness();
     const user = userEvent.setup();
 
@@ -107,7 +107,7 @@ describe('DesignerShell', () => {
 
     await user.click(screen.getByRole('button', { name: 'Select Draft Stage' }));
 
-    const renameInput = await screen.findByRole('textbox');
+    const renameInput = await screen.findByRole('textbox', { name: 'Stage name' });
     expect((renameInput as HTMLInputElement).value).toBe('Draft Request');
     expect(screen.getByRole('button', { name: 'Add Step' })).toBeTruthy();
   });

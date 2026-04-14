@@ -1,7 +1,7 @@
 import React from 'react';
 import { cleanup, render, screen, waitFor } from '@testing-library/react';
 import { afterAll, afterEach, beforeAll, describe, expect, it, vi } from 'vitest';
-import { createApprovalRequestTemplate, loadModelPackage } from 'dbm-designer-core';
+import { createApprovalRequestTemplate, createDefaultWorkspace, loadModelPackage } from 'dbm-designer-core';
 import { GraphCanvas } from './graphCanvas';
 
 const originalResizeObserver = globalThis.ResizeObserver;
@@ -100,10 +100,14 @@ afterEach(() => {
 
 describe('GraphCanvas', () => {
   it('renders visible stage and step labels for a loaded approval request package', async () => {
-    const document = loadModelPackage(createApprovalRequestTemplate(), null);
+    const template = createApprovalRequestTemplate();
+    const workspace = createDefaultWorkspace(template);
+    workspace.collapsedNodeIds = workspace.collapsedNodeIds.filter((nodeId) => nodeId !== 'stage:draft-request');
+    const document = loadModelPackage(template, workspace);
     const onSelectionChange = vi.fn();
     const onGraphIntent = vi.fn();
     const onNodePositionCommit = vi.fn();
+    const onToggleStageCollapse = vi.fn();
 
     const { container } = render(
       React.createElement(
@@ -113,7 +117,8 @@ describe('GraphCanvas', () => {
           document,
           onSelectionChange,
           onGraphIntent,
-          onNodePositionCommit
+          onNodePositionCommit,
+          onToggleStageCollapse
         })
       )
     );

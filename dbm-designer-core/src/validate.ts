@@ -397,6 +397,47 @@ export function validateModel(model: DbmModelV1): DesignerIssue[] {
     }
   });
 
+  model.process.stages.forEach((stage) => {
+    const stageTargetIds = new Set(
+      model.process.transitions
+        .filter((transition) => transition.fromStageId === stage.id)
+        .map((transition) => transition.toStageId)
+    );
+    const stepTargetStageIds = new Set<string>();
+
+    model.process.stepTransitions
+      .filter((transition) => stepMap.get(transition.fromStepId)?.stageId === stage.id)
+      .forEach((transition) => {
+        if ('stageId' in transition.target && transition.target.stageId !== stage.id) {
+          stepTargetStageIds.add(transition.target.stageId);
+          return;
+        }
+
+        if ('stepId' in transition.target) {
+          const targetStep = stepMap.get(transition.target.stepId);
+          if (targetStep && targetStep.stageId !== stage.id) {
+            stepTargetStageIds.add(targetStep.stageId);
+          }
+        }
+      });
+
+    const duplicatedTargets = [...stageTargetIds].filter((targetStageId) => stepTargetStageIds.has(targetStageId));
+    if (duplicatedTargets.length > 0) {
+      const labels = duplicatedTargets
+        .map((targetStageId) => stageMap.get(targetStageId)?.displayName ?? targetStageId)
+        .join(', ');
+      issues.push(
+        issue(
+          'warning',
+          'duplicate-cross-stage-routing',
+          `Stage '${stage.id}' defines both stage and step routing to ${labels}. Prefer one emphasized cross-stage path per source stage for readability.`,
+          `/process/stages/${stage.id}`,
+          stageNodeId(stage.id)
+        )
+      );
+    }
+  });
+
   model.forms.forEach((form) => {
     const regionIds = new Set(form.layout.regions.map((region) => region.id));
     const bindingMap = new Map(form.entityBindings.map((binding) => [binding.id, binding]));

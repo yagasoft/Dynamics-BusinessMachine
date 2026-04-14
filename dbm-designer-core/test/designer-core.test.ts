@@ -4,6 +4,7 @@ import type { DbmDesignerWorkspaceV1, DbmFormStateV1, DbmRuntimeStateV1, DbmStat
 import {
   addNode,
   applyGraphIntent,
+  buildDesignerClipboardPayload,
   buildDesignerGraphDocument,
   buildProcessExperienceSnapshot,
   createDefaultWorkspace,
@@ -14,6 +15,7 @@ import {
   loadModel,
   loadModelPackage,
   moveNode,
+  pasteDesignerClipboardPayload,
   removeNode,
   serializeModel,
   serializeModelPackage,
@@ -223,6 +225,36 @@ test('applyGraphIntent removes graph edges through canonical transition deletion
   assert.equal(result.document.graph.edges.some((edge) => edge.id === 'transition:approve-request'), false);
 });
 
+test('DBM-owned clipboard helpers duplicate stages and steps without persisting transitions', () => {
+  const initialDocument = loadModel(createApprovalRequestTemplate());
+  const stagePayload = buildDesignerClipboardPayload(initialDocument, stageNodeId('manager-review'));
+  assert.ok(stagePayload);
+  assert.equal(stagePayload.kind, 'stage');
+
+  const pastedStage = pasteDesignerClipboardPayload(initialDocument, stagePayload);
+  const pastedStageNode = pastedStage.document.model.process.stages.find((stage) => stage.displayName === 'Manager Review Copy');
+  assert.ok(pastedStageNode);
+  assert.equal(
+    pastedStage.document.model.process.transitions.some((transition) => transition.fromStageId === pastedStageNode.id || transition.toStageId === pastedStageNode.id),
+    false
+  );
+
+  const stepPayload = buildDesignerClipboardPayload(initialDocument, stepNodeId('record-approval'));
+  assert.ok(stepPayload);
+  assert.equal(stepPayload.kind, 'step');
+
+  const pastedStep = pasteDesignerClipboardPayload(initialDocument, stepPayload);
+  const pastedStepNode = pastedStep.document.model.process.steps.find((step) => step.displayName === 'Record Approval Copy');
+  assert.ok(pastedStepNode);
+  assert.equal(
+    pastedStep.document.model.process.stepTransitions.some((transition) =>
+      transition.fromStepId === pastedStepNode.id
+      || ('stepId' in transition.target && transition.target.stepId === pastedStepNode.id)
+    ),
+    false
+  );
+});
+
 test('designer commands support statuses, stage steps, and form states', () => {
   let document = loadModel(createApprovalRequestTemplate());
 
@@ -385,4 +417,20 @@ test('validateDocument rejects library-specific graph metadata and graph drift f
   assert.equal(issues.some((entry) => entry.code === 'library-specific-graph-key'), true);
   assert.equal(issues.some((entry) => entry.code === 'graph-schema-invalid'), true);
   assert.equal(issues.some((entry) => entry.code === 'graph-document-not-derived'), true);
+});
+
+test('validateDocument warns when both stage and step routing target the same downstream stage', () => {
+  const model = createApprovalRequestTemplate();
+  model.process.stepTransitions.push({
+    id: 'decision-to-approved-direct',
+    fromStepId: 'choose-decision',
+    guardRuleId: model.rules[0]?.id ?? 'rule',
+    target: {
+      stageId: 'approved'
+    }
+  });
+
+  const issues = validateDocument(loadModel(model));
+
+  assert.equal(issues.some((entry) => entry.code === 'duplicate-cross-stage-routing'), true);
 });

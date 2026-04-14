@@ -11,8 +11,12 @@ describe('designer graph adapters', () => {
     const flowGraph = xyflowGraphAdapter.toLibraryGraph(document);
     const alternateGraph = alternatePreviewGraphAdapter.toLibraryGraph(document);
 
-    expect(flowGraph.nodes).toHaveLength(document.graph.nodes.length + document.graph.groups.length);
-    expect(flowGraph.edges).toHaveLength(document.graph.edges.length);
+    expect(flowGraph.nodes).toHaveLength(
+      document.model.process.stages.length
+      + document.model.process.outcomes.length
+      + document.graph.groups.length
+    );
+    expect(flowGraph.edges).toHaveLength(document.model.process.transitions.length);
     expect(alternateGraph.vertices).toHaveLength(document.graph.nodes.length);
     expect(alternateGraph.links).toHaveLength(document.graph.edges.length);
     expect(flowGraph.nodes.find((node) => node.id === 'stage:draft-request')).toMatchObject({
@@ -20,7 +24,8 @@ describe('designer graph adapters', () => {
       data: {
         label: 'Draft Request',
         kind: 'stage',
-        inPortId: 'port:stage:draft-request:in'
+        inPortId: 'port:stage:draft-request:in',
+        collapsed: true
       }
     });
     expect(alternateGraph.vertices.find((node) => node.vertexId === 'stage:draft-request')).toMatchObject({

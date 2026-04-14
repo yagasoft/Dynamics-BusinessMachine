@@ -1,5 +1,5 @@
 import type { DbmDesignerWorkspaceV1, DbmModelV1 } from 'dbm-contract';
-import { DOCUMENT_NODE_ID } from './node-ids';
+import { DOCUMENT_NODE_ID, stageNodeId } from './node-ids';
 import { buildDesignerGraphDocument } from './graph-document';
 import { buildTree, indexTree } from './tree';
 import type { DesignerDocument, DesignerModelPackage } from './types';
@@ -39,12 +39,12 @@ export function createDefaultWorkspace(model: DbmModelV1): DbmDesignerWorkspaceV
       zoom: 1
     },
     nodePositions: {},
-    collapsedNodeIds: [],
+    collapsedNodeIds: model.process.stages.map((stage) => stageNodeId(stage.id)),
     selectionNodeId: DOCUMENT_NODE_ID,
     panels: {
       catalog: { open: true, size: 280 },
-      inspector: { open: true, size: 360 },
-      preview: { open: true, size: 420 },
+      inspector: { open: false, size: 360 },
+      preview: { open: true, size: 340 },
       diagnostics: { open: false, size: 260 }
     },
     preview: {

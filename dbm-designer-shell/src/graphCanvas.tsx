@@ -1,27 +1,37 @@
 import { memo, useMemo } from 'react';
 import {
   Background,
+  BaseEdge,
   Controls,
+  EdgeLabelRenderer,
   Handle,
   Position,
   ReactFlow,
   ReactFlowProvider,
-  type Connection
+  getSmoothStepPath,
+  type Connection,
+  type EdgeProps,
+  type NodeProps
 } from '@xyflow/react';
 import { useDroppable } from '@dnd-kit/core';
 import type { DesignerDocument, DesignerGraphIntent } from 'dbm-designer-core';
 import { isStableDesignerGraphNodeId } from 'dbm-designer-core';
 import flowStyles from '@xyflow/react/dist/style.css?inline';
-import { xyflowGraphAdapter } from './graphAdapter';
+import { type DesignerFlowEdgeData, type FlowLaneData, type FlowOutcomeData, type FlowStageData, type FlowStepData, xyflowGraphAdapter } from './graphAdapter';
 
 interface GraphCanvasProps {
   document: DesignerDocument | null;
   onSelectionChange(selectionId: string | null): void;
   onGraphIntent(intent: DesignerGraphIntent): void;
   onNodePositionCommit(nodeId: string, position: { x: number; y: number }): void;
+  onToggleStageCollapse(stageId: string): void;
 }
 
 const FLOW_STYLE_ELEMENT_ID = 'dbm-xyflow-base-styles';
+
+type StageNodePayload = FlowStageData & {
+  onToggleCollapse(stageId: string): void;
+};
 
 function ensureFlowStyles() {
   if (typeof document === 'undefined') {
@@ -38,24 +48,7 @@ function ensureFlowStyles() {
   document.head.appendChild(styleElement);
 }
 
-const laneNodeStyle = {
-  width: '100%',
-  height: '100%',
-  borderRadius: '1.35rem',
-  background: 'linear-gradient(180deg, rgba(148, 163, 184, 0.14) 0%, rgba(148, 163, 184, 0.05) 100%)',
-  border: '1px solid rgba(148, 163, 184, 0.28)',
-  boxShadow: 'inset 0 1px 0 rgba(255,255,255,0.4)'
-} as const;
-
-const laneTitleStyle = {
-  padding: '0.85rem 1rem',
-  fontSize: '0.78rem',
-  textTransform: 'uppercase',
-  letterSpacing: '0.12em',
-  color: '#475569'
-} as const;
-
-function LaneNode({ data }: { data: { label: string } }) {
+function LaneNode({ data }: NodeProps<FlowLaneData>) {
   return (
     <div style={laneNodeStyle}>
       <div style={laneTitleStyle}>{data.label}</div>
@@ -63,26 +56,42 @@ function LaneNode({ data }: { data: { label: string } }) {
   );
 }
 
-function StageNode({
-  data
-}: {
-  data: {
-    label: string;
-    stageType: string;
-    actorLabel: string | null;
-    inPortId: string;
-    outcomes: Array<{ portId: string; label: string | null }>;
-  };
-}) {
+function StageNode({ data, selected }: NodeProps<StageNodePayload>) {
   return (
-    <div style={stageCardStyle}>
+    <div
+      style={{
+        ...stageCardStyle,
+        ...(selected ? selectedStageCardStyle : {})
+      }}
+    >
       <Handle type="target" position={Position.Left} id={data.inPortId} style={handleStyle} />
-      <div style={nodeEyebrowStyle}>{data.stageType}</div>
-      <div style={stageTitleStyle}>{data.label}</div>
-      <div style={nodeMetaStyle}>{data.actorLabel ?? 'No actor'}</div>
-      <div style={outcomeHandleStackStyle}>
+      <div style={stageHeaderStyle}>
+        <div>
+          <div style={nodeEyebrowStyle}>{data.stageType}</div>
+          <div style={stageTitleStyle}>{data.label}</div>
+          <div style={nodeMetaStyle}>{data.actorLabel ?? 'No actor'}</div>
+        </div>
+        <button
+          type="button"
+          style={chipButtonStyle}
+          onClick={(event) => {
+            event.stopPropagation();
+            data.onToggleCollapse(data.stageId);
+          }}
+        >
+          {data.collapsed ? 'Expand' : 'Collapse'}
+        </button>
+      </div>
+
+      <div style={stageSummaryRowStyle}>
+        <span style={summaryChipStyle}>{data.stepCount} step(s)</span>
+        {data.currentStepLabel ? <span style={summaryChipStyle}>Current: {data.currentStepLabel}</span> : null}
+        {!data.currentStepLabel && data.defaultStepLabel ? <span style={summaryChipStyle}>Default: {data.defaultStepLabel}</span> : null}
+      </div>
+
+      <div style={outcomeChipsStyle}>
         {data.outcomes.map((outcome) => (
-          <div key={outcome.portId} style={outcomeHandleRowStyle}>
+          <div key={outcome.portId} style={outcomeChipStyle}>
             <span style={outcomeHandleLabelStyle}>{outcome.label ?? 'Outcome'}</span>
             <Handle type="source" position={Position.Right} id={outcome.portId} style={handleStyle} />
           </div>
@@ -92,41 +101,98 @@ function StageNode({
   );
 }
 
-function StepNode({
-  data
-}: {
-  data: {
-    label: string;
-    stepType: string;
-    stageLabel: string | null;
-    inPortId: string;
-    outPortId: string;
-  };
-}) {
+function StepNode({ data, selected }: NodeProps<FlowStepData>) {
   return (
-    <div style={stepCardStyle}>
+    <div
+      style={{
+        ...stepCardStyle,
+        ...(selected ? selectedStepCardStyle : {})
+      }}
+    >
       <Handle type="target" position={Position.Left} id={data.inPortId} style={handleStyle} />
       <div style={nodeEyebrowStyle}>{data.stepType}</div>
       <div style={stepTitleStyle}>{data.label}</div>
-      <div style={nodeMetaStyle}>{data.stageLabel ?? 'No stage'}</div>
+      <div style={nodeMetaStyle}>{data.ownerLabel ?? data.stageLabel ?? 'No owner'}</div>
       <Handle type="source" position={Position.Right} id={data.outPortId} style={handleStyle} />
     </div>
   );
 }
 
-function OutcomeNode({
-  data
-}: {
-  data: {
-    label: string;
-    inPortId: string;
-  };
-}) {
+function OutcomeNode({ data, selected }: NodeProps<FlowOutcomeData>) {
   return (
-    <div style={outcomeNodeStyle}>
+    <div
+      style={{
+        ...outcomeNodeStyle,
+        ...(selected ? selectedOutcomeStyle : {})
+      }}
+    >
       <Handle type="target" position={Position.Left} id={data.inPortId} style={handleStyle} />
       <span style={outcomeNodeLabelStyle}>{data.label}</span>
     </div>
+  );
+}
+
+function SelectableEdge({
+  id,
+  sourceX,
+  sourceY,
+  targetX,
+  targetY,
+  sourcePosition,
+  targetPosition,
+  markerEnd,
+  label,
+  selected,
+  data
+}: EdgeProps<DesignerFlowEdgeData>) {
+  const [edgePath, labelX, labelY] = getSmoothStepPath({
+    sourceX,
+    sourceY,
+    targetX,
+    targetY,
+    sourcePosition,
+    targetPosition,
+    offset: data?.mode === 'detail' ? 26 : 18,
+    borderRadius: data?.mode === 'detail' ? 18 : 24
+  });
+  const stroke = selected
+    ? '#c2410c'
+    : data?.kind === 'step-transition'
+      ? '#2563eb'
+      : '#b45309';
+  const opacity = data?.emphasis === 'muted' ? 0.22 : 1;
+
+  return (
+    <>
+      <BaseEdge id={`${id}-hit`} path={edgePath} style={{ stroke: 'transparent', strokeWidth: 24 }} interactionWidth={32} />
+      <BaseEdge
+        id={id}
+        path={edgePath}
+        markerEnd={markerEnd}
+        style={{
+          stroke,
+          strokeWidth: selected ? 3.25 : 2.2,
+          strokeDasharray: data?.mode === 'detail' ? '10 5' : undefined,
+          opacity
+        }}
+        interactionWidth={26}
+      />
+      {label ? (
+        <EdgeLabelRenderer>
+          <div
+            style={{
+              ...edgeLabelStyle,
+              transform: `translate(-50%, -50%) translate(${labelX}px, ${labelY}px)`,
+              borderColor: stroke,
+              color: stroke,
+              opacity
+            }}
+          >
+            {label}
+          </div>
+        </EdgeLabelRenderer>
+      ) : null}
+    </>
   );
 }
 
@@ -137,14 +203,36 @@ const nodeTypes = {
   outcome: memo(OutcomeNode)
 };
 
-function GraphCanvasInner({ document, onSelectionChange, onGraphIntent, onNodePositionCommit }: GraphCanvasProps) {
+const edgeTypes = {
+  'dbm-edge': memo(SelectableEdge)
+};
+
+function GraphCanvasInner({ document, onSelectionChange, onGraphIntent, onNodePositionCommit, onToggleStageCollapse }: GraphCanvasProps) {
   const { setNodeRef, isOver } = useDroppable({
     id: 'graph-canvas'
   });
-  const flowDocument = useMemo(
-    () => (document ? xyflowGraphAdapter.toLibraryGraph(document) : null),
-    [document]
-  );
+
+  const flowDocument = useMemo(() => {
+    if (!document) {
+      return null;
+    }
+
+    const baseGraph = xyflowGraphAdapter.toLibraryGraph(document);
+    return {
+      nodes: baseGraph.nodes.map((node) => (
+        node.type === 'stage'
+          ? {
+              ...node,
+              data: {
+                ...(node.data as FlowStageData),
+                onToggleCollapse: onToggleStageCollapse
+              }
+            }
+          : node
+      )),
+      edges: baseGraph.edges
+    };
+  }, [document, onToggleStageCollapse]);
 
   if (!document || !flowDocument) {
     return <div style={emptyCanvasStyle}>Load or create a package to start graph authoring.</div>;
@@ -196,10 +284,11 @@ function GraphCanvasInner({ document, onSelectionChange, onGraphIntent, onNodePo
       <div style={flowViewportStyle}>
         <ReactFlow
           fitView
-          fitViewOptions={{ padding: 0.15 }}
+          fitViewOptions={{ padding: 0.14 }}
           nodes={flowDocument.nodes}
           edges={flowDocument.edges}
           nodeTypes={nodeTypes}
+          edgeTypes={edgeTypes}
           onNodeClick={(_, node) => onSelectionChange(node.id)}
           onEdgeClick={(_, edge) => onSelectionChange(edge.id)}
           onPaneClick={() => onSelectionChange('document:root')}
@@ -211,10 +300,11 @@ function GraphCanvasInner({ document, onSelectionChange, onGraphIntent, onNodePo
           onConnect={handleConnect}
           deleteKeyCode={null}
           selectionOnDrag={false}
-          nodesDraggable
+          minZoom={0.45}
+          maxZoom={1.6}
         >
           <Background color="#e2e8f0" gap={28} />
-          <Controls position="bottom-right" showInteractive={false} />
+          <Controls position="bottom-left" showInteractive={false} />
         </ReactFlow>
       </div>
     </div>
@@ -233,20 +323,20 @@ export function GraphCanvas(props: GraphCanvasProps) {
 
 const canvasShellStyle = {
   width: '100%',
-  height: '72vh',
-  minHeight: '560px',
-  borderRadius: '1.25rem',
+  height: '78vh',
+  minHeight: '640px',
+  borderRadius: '1.35rem',
   border: '1px solid #d6d3d1',
   overflow: 'hidden',
-  background: 'linear-gradient(180deg, #fafaf9 0%, #ffffff 100%)',
+  background: 'linear-gradient(180deg, #f8fafc 0%, #ffffff 100%)',
   position: 'relative'
 } as const;
 
 const emptyCanvasStyle = {
   width: '100%',
-  height: '72vh',
-  minHeight: '560px',
-  borderRadius: '1.25rem',
+  height: '78vh',
+  minHeight: '640px',
+  borderRadius: '1.35rem',
   border: '1px dashed #d6d3d1',
   background: 'rgba(255,255,255,0.7)',
   display: 'grid',
@@ -266,37 +356,43 @@ const handleStyle = {
   border: '2px solid #fff'
 } as const;
 
+const laneNodeStyle = {
+  width: '100%',
+  height: '100%',
+  borderRadius: '1.45rem',
+  background: 'linear-gradient(180deg, rgba(148, 163, 184, 0.12) 0%, rgba(148, 163, 184, 0.04) 100%)',
+  border: '1px solid rgba(148, 163, 184, 0.24)',
+  boxShadow: 'inset 0 1px 0 rgba(255,255,255,0.52)'
+} as const;
+
+const laneTitleStyle = {
+  padding: '0.95rem 1rem',
+  fontSize: '0.76rem',
+  textTransform: 'uppercase',
+  letterSpacing: '0.12em',
+  color: '#475569'
+} as const;
+
 const stageCardStyle = {
   minHeight: '100%',
-  borderRadius: '1rem',
+  borderRadius: '1.12rem',
   border: '1px solid #d97706',
   background: 'linear-gradient(180deg, #fff7ed 0%, #fffbeb 100%)',
-  boxShadow: '0 16px 36px rgba(180, 83, 9, 0.18)',
-  padding: '0.9rem 1rem',
+  boxShadow: '0 16px 36px rgba(180, 83, 9, 0.16)',
+  padding: '0.95rem 1rem',
   display: 'grid',
-  gap: '0.5rem'
+  gap: '0.65rem'
 } as const;
 
-const stepCardStyle = {
-  minHeight: '100%',
-  borderRadius: '0.95rem',
-  border: '1px solid #2563eb',
-  background: 'linear-gradient(180deg, #eff6ff 0%, #f8fbff 100%)',
-  boxShadow: '0 14px 30px rgba(37, 99, 235, 0.14)',
-  padding: '0.8rem 0.9rem',
-  display: 'grid',
-  gap: '0.45rem'
+const selectedStageCardStyle = {
+  boxShadow: '0 0 0 2px rgba(37, 99, 235, 0.2), 0 16px 36px rgba(180, 83, 9, 0.16)'
 } as const;
 
-const outcomeNodeStyle = {
-  minHeight: '100%',
-  borderRadius: '999px',
-  border: '1px solid #0f766e',
-  background: 'linear-gradient(180deg, #ecfeff 0%, #f0fdfa 100%)',
-  boxShadow: '0 10px 22px rgba(15, 118, 110, 0.14)',
-  padding: '0.8rem 1rem',
-  display: 'grid',
-  alignItems: 'center'
+const stageHeaderStyle = {
+  display: 'flex',
+  justifyContent: 'space-between',
+  gap: '0.8rem',
+  alignItems: 'flex-start'
 } as const;
 
 const nodeEyebrowStyle = {
@@ -307,7 +403,8 @@ const nodeEyebrowStyle = {
 } as const;
 
 const stageTitleStyle = {
-  fontSize: '1rem',
+  marginTop: '0.18rem',
+  fontSize: '1.04rem',
   fontWeight: 700,
   color: '#111827'
 } as const;
@@ -323,18 +420,35 @@ const nodeMetaStyle = {
   color: '#475569'
 } as const;
 
-const outcomeHandleStackStyle = {
-  display: 'grid',
-  gap: '0.4rem',
-  marginTop: '0.25rem'
+const stageSummaryRowStyle = {
+  display: 'flex',
+  gap: '0.45rem',
+  flexWrap: 'wrap'
 } as const;
 
-const outcomeHandleRowStyle = {
+const summaryChipStyle = {
+  padding: '0.26rem 0.55rem',
+  borderRadius: '999px',
+  background: 'rgba(255,255,255,0.72)',
+  border: '1px solid rgba(180, 83, 9, 0.18)',
+  fontSize: '0.76rem',
+  color: '#7c2d12'
+} as const;
+
+const outcomeChipsStyle = {
+  display: 'grid',
+  gap: '0.45rem'
+} as const;
+
+const outcomeChipStyle = {
   display: 'flex',
   alignItems: 'center',
   justifyContent: 'space-between',
   gap: '0.5rem',
-  paddingRight: '0.4rem'
+  padding: '0.34rem 0.5rem',
+  borderRadius: '0.82rem',
+  background: 'rgba(255,255,255,0.66)',
+  border: '1px solid rgba(180, 83, 9, 0.16)'
 } as const;
 
 const outcomeHandleLabelStyle = {
@@ -342,9 +456,61 @@ const outcomeHandleLabelStyle = {
   color: '#7c2d12'
 } as const;
 
+const chipButtonStyle = {
+  padding: '0.38rem 0.68rem',
+  borderRadius: '999px',
+  border: '1px solid #fdba74',
+  background: '#fff',
+  color: '#9a3412',
+  cursor: 'pointer',
+  fontSize: '0.76rem'
+} as const;
+
+const stepCardStyle = {
+  minHeight: '100%',
+  borderRadius: '1rem',
+  border: '1px solid #2563eb',
+  background: 'linear-gradient(180deg, #eff6ff 0%, #f8fbff 100%)',
+  boxShadow: '0 14px 30px rgba(37, 99, 235, 0.14)',
+  padding: '0.88rem 0.92rem',
+  display: 'grid',
+  gap: '0.45rem'
+} as const;
+
+const selectedStepCardStyle = {
+  boxShadow: '0 0 0 2px rgba(37, 99, 235, 0.22), 0 14px 30px rgba(37, 99, 235, 0.14)'
+} as const;
+
+const outcomeNodeStyle = {
+  minHeight: '100%',
+  borderRadius: '999px',
+  border: '1px solid #0f766e',
+  background: 'linear-gradient(180deg, #ecfeff 0%, #f0fdfa 100%)',
+  boxShadow: '0 10px 22px rgba(15, 118, 110, 0.14)',
+  padding: '0.8rem 1rem',
+  display: 'grid',
+  alignItems: 'center'
+} as const;
+
+const selectedOutcomeStyle = {
+  boxShadow: '0 0 0 2px rgba(20, 184, 166, 0.18), 0 10px 22px rgba(15, 118, 110, 0.14)'
+} as const;
+
 const outcomeNodeLabelStyle = {
   display: 'inline-block',
   paddingLeft: '0.5rem',
   fontWeight: 700,
   color: '#134e4a'
+} as const;
+
+const edgeLabelStyle = {
+  position: 'absolute',
+  pointerEvents: 'none',
+  padding: '0.22rem 0.45rem',
+  borderRadius: '999px',
+  border: '1px solid #cbd5e1',
+  background: 'rgba(255,255,255,0.92)',
+  fontSize: '0.72rem',
+  fontWeight: 600,
+  whiteSpace: 'nowrap'
 } as const;

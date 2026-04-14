@@ -7,6 +7,8 @@ import type {
   DbmDesignerGraphPortV1,
   DbmModelV1,
   DbmOutcomeV1,
+  DbmStageV1,
+  DbmStepV1,
   DbmStepTransitionV1
 } from 'dbm-contract';
 import {
@@ -24,6 +26,7 @@ import {
 import { addNode, moveNode, removeNode, updateNode } from './commands';
 import type {
   DesignerCommand,
+  DesignerClipboardPayload,
   DesignerCommandResult,
   DesignerGraphConnectionTarget,
   DesignerGraphIntent,
@@ -523,6 +526,164 @@ function buildTransitionTargetLabel(target: DesignerGraphConnectionTarget): stri
   return target.outcomeId;
 }
 
+function buildCopyDisplayName(label: string): string {
+  return label.endsWith(' Copy') ? `${label} 2` : `${label} Copy`;
+}
+
+function cloneStageForPaste(document: DesignerDocument, stage: DbmStageV1, steps: DbmStepV1[]): {
+  stage: DbmStageV1;
+  steps: DbmStepV1[];
+} {
+  const existingStageIds = document.model.process.stages.map((entry) => entry.id);
+  const existingStepIds = document.model.process.steps.map((entry) => entry.id);
+  const nextStageId = uniqueId(existingStageIds, `${stage.id}-copy`);
+  const stepIdMap = new Map<string, string>();
+
+  steps.forEach((step) => {
+    stepIdMap.set(step.id, uniqueId([...existingStepIds, ...stepIdMap.values()], `${step.id}-copy`));
+  });
+
+  return {
+    stage: {
+      ...structuredClone(stage),
+      id: nextStageId,
+      displayName: buildCopyDisplayName(stage.displayName),
+      stepIds: steps.map((step) => stepIdMap.get(step.id) ?? step.id),
+      defaultStepId: stage.defaultStepId ? (stepIdMap.get(stage.defaultStepId) ?? null) : null
+    },
+    steps: steps.map((step) => ({
+      ...structuredClone(step),
+      id: stepIdMap.get(step.id) ?? step.id,
+      stageId: nextStageId
+    }))
+  };
+}
+
+function cloneStepForPaste(document: DesignerDocument, step: DbmStepV1): DbmStepV1 {
+  const existingStepIds = document.model.process.steps.map((entry) => entry.id);
+  return {
+    ...structuredClone(step),
+    id: uniqueId(existingStepIds, `${step.id}-copy`),
+    displayName: buildCopyDisplayName(step.displayName)
+  };
+}
+
+export function buildDesignerClipboardPayload(
+  document: DesignerDocument,
+  selectionId: string | null = document.selectionId
+): DesignerClipboardPayload | null {
+  if (!selectionId) {
+    return null;
+  }
+
+  if (selectionId.startsWith('stage:')) {
+    const stageId = selectionId.slice('stage:'.length);
+    const stage = document.model.process.stages.find((entry) => entry.id === stageId);
+    if (!stage) {
+      return null;
+    }
+
+    return {
+      kind: 'stage',
+      stage: structuredClone(stage),
+      steps: stage.stepIds
+        .map((stepId) => document.model.process.steps.find((entry) => entry.id === stepId))
+        .filter((step): step is DbmStepV1 => !!step)
+        .map((step) => structuredClone(step))
+    };
+  }
+
+  if (selectionId.startsWith('step:')) {
+    const stepId = selectionId.slice('step:'.length);
+    const step = document.model.process.steps.find((entry) => entry.id === stepId);
+    return step
+      ? {
+          kind: 'step',
+          step: structuredClone(step)
+        }
+      : null;
+  }
+
+  return null;
+}
+
+export function pasteDesignerClipboardPayload(
+  document: DesignerDocument,
+  payload: DesignerClipboardPayload
+): DesignerCommandResult {
+  if (payload.kind === 'stage') {
+    const sourceStageIndex = document.model.process.stages.findIndex((entry) => entry.id === payload.stage.id);
+    const insertIndex = sourceStageIndex >= 0 ? sourceStageIndex + 1 : document.model.process.stages.length;
+    const duplicated = cloneStageForPaste(document, payload.stage, payload.steps);
+    const commands: DesignerCommand[] = [
+      {
+        kind: 'stage',
+        parentId: PROCESS_STAGES_NODE_ID,
+        index: insertIndex,
+        value: duplicated.stage
+      },
+      ...duplicated.steps.map((step, index) => ({
+        kind: 'step' as const,
+        parentId: stageStepsNodeId(duplicated.stage.id),
+        index,
+        value: step
+      }))
+    ];
+
+    let currentResult: DesignerCommandResult = {
+      document,
+      affectedNodeId: document.selectionId,
+      issues: document.issues
+    };
+
+    commands.forEach((command) => {
+      currentResult = applyDesignerCommand(currentResult.document, command);
+    });
+
+    return {
+      ...currentResult,
+      affectedNodeId: stageNodeId(duplicated.stage.id)
+    };
+  }
+
+  const selectionId = document.selectionId;
+  const fallbackStageId =
+    selectionId?.startsWith('stage:')
+      ? selectionId.slice('stage:'.length)
+      : selectionId?.startsWith('step:')
+        ? document.model.process.steps.find((entry) => entry.id === selectionId.slice('step:'.length))?.stageId
+        : document.workspace.preview.stageId;
+  const targetStageId = document.model.process.stages.some((entry) => entry.id === payload.step.stageId)
+    ? payload.step.stageId
+    : fallbackStageId;
+
+  if (!targetStageId) {
+    return {
+      document,
+      affectedNodeId: document.selectionId,
+      issues: document.issues
+    };
+  }
+
+  const stage = document.model.process.stages.find((entry) => entry.id === targetStageId);
+  const sourceStepIndex = stage?.stepIds.findIndex((stepId) => stepId === payload.step.id) ?? -1;
+  const duplicatedStep = cloneStepForPaste(document, {
+    ...payload.step,
+    stageId: targetStageId
+  });
+  const result = applyDesignerCommand(document, {
+    kind: 'step',
+    parentId: stageStepsNodeId(targetStageId),
+    index: sourceStepIndex >= 0 ? sourceStepIndex + 1 : stage?.stepIds.length ?? 0,
+    value: duplicatedStep
+  });
+
+  return {
+    ...result,
+    affectedNodeId: stepNodeId(duplicatedStep.id)
+  };
+}
+
 export function translateGraphIntentToCommands(intent: DesignerGraphIntent, document: DesignerDocument): DesignerCommand[] {
   switch (intent.kind) {
     case 'add-stage':
@@ -560,6 +721,22 @@ export function translateGraphIntentToCommands(intent: DesignerGraphIntent, docu
         }
       ];
     }
+
+    case 'update-stage':
+      return [
+        {
+          nodeId: stageNodeId(intent.stageId),
+          value: intent.value
+        }
+      ];
+
+    case 'update-step':
+      return [
+        {
+          nodeId: stepNodeId(intent.stepId),
+          value: intent.value
+        }
+      ];
 
     case 'create-stage-transition': {
       const rule = createDefaultTransitionRule(document, 'transition-guard', `Guard ${intent.fromStageId} to ${intent.toStageId}`);

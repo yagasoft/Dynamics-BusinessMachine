@@ -2,7 +2,9 @@ import type {
   DbmDesignerGraphDocumentV1,
   DbmDesignerWorkspaceV1,
   DbmModelV1,
-  DbmProcessExperienceAudienceV1
+  DbmProcessExperienceAudienceV1,
+  DbmStageV1,
+  DbmStepV1
 } from 'dbm-contract';
 
 export type DesignerNodeKind =
@@ -89,6 +91,17 @@ export interface DesignerCommandResult {
   issues: DesignerIssue[];
 }
 
+export type DesignerClipboardPayload =
+  | {
+      kind: 'stage';
+      stage: DbmStageV1;
+      steps: DbmStepV1[];
+    }
+  | {
+      kind: 'step';
+      step: DbmStepV1;
+    };
+
 export interface AddNodeCommand {
   kind:
     | 'actor'
@@ -153,6 +166,33 @@ export type DesignerGraphIntent =
       kind: 'rename-node';
       nodeId: string;
       label: string;
+    }
+  | {
+      kind: 'update-stage';
+      stageId: string;
+      value: Partial<
+        Pick<
+          DbmStageV1,
+          'displayName'
+          | 'stageType'
+          | 'actorId'
+        >
+      >;
+    }
+  | {
+      kind: 'update-step';
+      stepId: string;
+      value: Partial<
+        Pick<
+          DbmStepV1,
+          'displayName'
+          | 'stepType'
+          | 'ownerActorId'
+          | 'internalStatusId'
+          | 'portalStatusId'
+          | 'formStateId'
+        >
+      >;
     }
   | {
       kind: 'remove-node';

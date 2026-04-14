@@ -13,6 +13,7 @@ export interface FlowLaneData {
 
 export interface FlowStageData {
   kind: 'stage';
+  stageId: string;
   label: string;
   stageType: string;
   actorLabel: string | null;
@@ -21,13 +22,19 @@ export interface FlowStageData {
     portId: string;
     label: string | null;
   }>;
+  collapsed: boolean;
+  stepCount: number;
+  defaultStepLabel: string | null;
+  currentStepLabel: string | null;
 }
 
 export interface FlowStepData {
   kind: 'step';
+  stepId: string;
   label: string;
   stepType: string;
   stageLabel: string | null;
+  ownerLabel: string | null;
   inPortId: string;
   outPortId: string;
 }
@@ -38,9 +45,15 @@ export interface FlowOutcomeData {
   inPortId: string;
 }
 
+export interface DesignerFlowEdgeData {
+  kind: 'stage-transition' | 'step-transition';
+  mode: 'overview' | 'detail';
+  emphasis: 'normal' | 'muted';
+}
+
 export type DesignerFlowNodeData = FlowLaneData | FlowStageData | FlowStepData | FlowOutcomeData;
 export type DesignerFlowNode = Node<DesignerFlowNodeData, 'lane' | 'stage' | 'step' | 'outcome'>;
-export type DesignerFlowEdge = Edge<{ kind: 'stage-transition' | 'step-transition' }>;
+export type DesignerFlowEdge = Edge<DesignerFlowEdgeData>;
 
 export interface DesignerFlowGraphDocument {
   nodes: DesignerFlowNode[];
@@ -121,21 +134,20 @@ export type AlternatePreviewLibraryIntent =
     };
 
 const laneTop = 40;
-const laneHeight = 340;
-const laneGap = 24;
-const stageStartX = 160;
-const stageGapX = 340;
-const stageOffsetY = 72;
-const stepOffsetX = 24;
-const stepOffsetY = 150;
-const stepGapY = 110;
+const laneHeight = 460;
+const laneGap = 28;
+const stageStartX = 170;
+const stageGapX = 360;
+const stageOffsetY = 62;
+const expandedStepOffsetY = 204;
+const expandedStepGapX = 212;
 const outcomeStartX = 220;
-const outcomeGapX = 250;
+const outcomeGapX = 260;
 const outcomeHeightOffset = 120;
-const stageWidth = 228;
-const stageHeight = 120;
-const stepWidth = 176;
-const stepHeight = 84;
+const stageWidth = 280;
+const stageHeight = 168;
+const stepWidth = 188;
+const stepHeight = 96;
 
 function parseOutcomePort(handleId: string): { stageId: string; outcomeId: string } | null {
   const match = /^port:stage:(.+):outcome:(.+)$/.exec(handleId);
@@ -161,11 +173,26 @@ function resolveFlowPosition(document: DesignerDocument, nodeId: string, fallbac
   };
 }
 
+function isStageCollapsed(document: DesignerDocument, stageId: string): boolean {
+  return document.workspace.collapsedNodeIds.includes(`stage:${stageId}`);
+}
+
+function stageForNode(document: DesignerDocument, nodeId: string) {
+  return document.model.process.stages.find((stage) => `stage:${stage.id}` === nodeId) ?? null;
+}
+
 function buildFlowGraph(document: DesignerDocument): DesignerFlowGraphDocument {
   const laneIndexById = new Map(document.graph.groups.map((group, index) => [group.id, index]));
   const stageIndexById = new Map(document.model.process.stages.map((stage, index) => [stage.id, index]));
-  const stageLabelById = new Map(document.model.process.stages.map((stage) => [stage.id, stage.displayName]));
+  const actorLabelById = new Map(document.model.process.actors.map((actor) => [actor.id, actor.displayName]));
+  const stepById = new Map(document.model.process.steps.map((step) => [step.id, step]));
   const stageById = new Map(document.model.process.stages.map((stage) => [stage.id, stage]));
+  const expandedStageIds = new Set(
+    document.model.process.stages
+      .filter((stage) => !isStageCollapsed(document, stage.id))
+      .map((stage) => stage.id)
+  );
+  const stageNodesWidth = Math.max(1120, document.model.process.stages.length * stageGapX + 240);
 
   const laneNodes: DesignerFlowNode[] = document.graph.groups.map((group, index) => ({
     id: group.id,
@@ -181,7 +208,7 @@ function buildFlowGraph(document: DesignerDocument): DesignerFlowGraphDocument {
     selectable: false,
     focusable: false,
     style: {
-      width: Math.max(960, document.model.process.stages.length * stageGapX + 120),
+      width: stageNodesWidth,
       height: laneHeight,
       zIndex: 0
     }
@@ -193,11 +220,18 @@ function buildFlowGraph(document: DesignerDocument): DesignerFlowGraphDocument {
       const stage = stageById.get(node.semanticRef.stageId ?? '');
       const stageIndex = stageIndexById.get(node.semanticRef.stageId ?? '') ?? 0;
       const laneIndex = node.groupId ? (laneIndexById.get(node.groupId) ?? 0) : 0;
+      const collapsed = isStageCollapsed(document, node.semanticRef.stageId ?? '');
       const fallbackPosition = {
         x: stageStartX + stageIndex * stageGapX,
         y: laneTop + laneIndex * (laneHeight + laneGap) + stageOffsetY
       };
       const position = resolveFlowPosition(document, node.id, fallbackPosition);
+      const currentStep = stage?.id === document.workspace.preview.stageId
+        ? document.model.process.steps.find((step) => step.id === document.workspace.preview.stepId)
+        : null;
+      const defaultStep = stage?.defaultStepId
+        ? stepById.get(stage.defaultStepId)
+        : null;
 
       return {
         id: node.id,
@@ -205,23 +239,28 @@ function buildFlowGraph(document: DesignerDocument): DesignerFlowGraphDocument {
         position,
         data: {
           kind: 'stage',
+          stageId: stage?.id ?? node.semanticRef.stageId ?? node.id,
           label: node.label,
           stageType: stage?.stageType ?? 'task',
-          actorLabel: stage?.actorId
-            ? document.model.process.actors.find((actor) => actor.id === stage.actorId)?.displayName ?? null
-            : null,
+          actorLabel: stage?.actorId ? actorLabelById.get(stage.actorId) ?? null : null,
           inPortId: node.ports.find((port) => port.role === 'primary-in')?.id ?? `${node.id}:in`,
           outcomes: node.ports
             .filter((port) => port.role === 'outcome')
             .map((port) => ({
               portId: port.id,
               label: port.label
-            }))
+            })),
+          collapsed,
+          stepCount: stage?.stepIds.length ?? 0,
+          defaultStepLabel: defaultStep?.displayName ?? null,
+          currentStepLabel: currentStep?.displayName ?? null
         },
         selected: document.selectionId === node.id,
+        draggable: true,
         style: {
           width: stageWidth,
-          minHeight: stageHeight
+          minHeight: stageHeight,
+          zIndex: 2
         }
       };
     });
@@ -229,15 +268,15 @@ function buildFlowGraph(document: DesignerDocument): DesignerFlowGraphDocument {
   const stagePositionById = new Map(stageNodes.map((node) => [node.id, node.position]));
 
   const stepNodes: DesignerFlowNode[] = document.graph.nodes
-    .filter((node) => node.kind === 'step')
+    .filter((node) => node.kind === 'step' && expandedStageIds.has(node.semanticRef.stageId ?? ''))
     .map((node) => {
       const step = document.model.process.steps.find((entry) => entry.id === node.semanticRef.stepId);
       const stage = stageById.get(node.semanticRef.stageId ?? '');
       const stepIndex = stage?.stepIds.findIndex((stepId) => stepId === step?.id) ?? 0;
       const stagePosition = stagePositionById.get(`stage:${node.semanticRef.stageId ?? ''}`) ?? { x: stageStartX, y: laneTop };
       const fallbackPosition = {
-        x: stagePosition.x + stepOffsetX,
-        y: stagePosition.y + stepOffsetY + Math.max(0, stepIndex) * stepGapY
+        x: stagePosition.x + stepIndex * expandedStepGapX,
+        y: stagePosition.y + expandedStepOffsetY
       };
       const position = resolveFlowPosition(document, node.id, fallbackPosition);
 
@@ -247,16 +286,20 @@ function buildFlowGraph(document: DesignerDocument): DesignerFlowGraphDocument {
         position,
         data: {
           kind: 'step',
+          stepId: step?.id ?? node.semanticRef.stepId ?? node.id,
           label: node.label,
           stepType: step?.stepType ?? 'review',
-          stageLabel: stageLabelById.get(node.semanticRef.stageId ?? '') ?? null,
+          stageLabel: stage?.displayName ?? null,
+          ownerLabel: step?.ownerActorId ? actorLabelById.get(step.ownerActorId) ?? null : null,
           inPortId: node.ports.find((port) => port.role === 'primary-in')?.id ?? `${node.id}:in`,
           outPortId: node.ports.find((port) => port.role === 'primary-out')?.id ?? `${node.id}:out`
         },
         selected: document.selectionId === node.id,
+        draggable: false,
         style: {
           width: stepWidth,
-          minHeight: stepHeight
+          minHeight: stepHeight,
+          zIndex: 3
         }
       };
     });
@@ -281,34 +324,69 @@ function buildFlowGraph(document: DesignerDocument): DesignerFlowGraphDocument {
           inPortId: node.ports.find((port) => port.role === 'primary-in')?.id ?? `${node.id}:in`
         },
         selected: document.selectionId === node.id,
+        draggable: false,
         style: {
-          width: 180,
-          minHeight: 60
+          width: 190,
+          minHeight: 64,
+          zIndex: 1
         }
       };
     });
 
-  const edges: DesignerFlowEdge[] = document.graph.edges.map((edge) => ({
-    id: edge.id,
-    source: edge.sourceNodeId,
-    sourceHandle: edge.sourcePortId,
-    target: edge.targetNodeId,
-    targetHandle: edge.targetPortId,
-    label: edge.label ?? undefined,
-    selected: document.selectionId === edge.id,
-    animated: edge.id === document.selectionId,
-    type: 'smoothstep',
-    markerEnd: {
-      type: MarkerType.ArrowClosed
-    },
-    data: {
-      kind: edge.kind
-    }
-  }));
+  const stageEdges: DesignerFlowEdge[] = document.graph.edges
+    .filter((edge) => edge.kind === 'stage-transition')
+    .map((edge) => {
+      const sourceStage = stageForNode(document, edge.sourceNodeId);
+      return {
+        id: edge.id,
+        source: edge.sourceNodeId,
+        sourceHandle: edge.sourcePortId,
+        target: edge.targetNodeId,
+        targetHandle: edge.targetPortId,
+        label: edge.label ?? undefined,
+        selected: document.selectionId === edge.id,
+        type: 'dbm-edge',
+        markerEnd: {
+          type: MarkerType.ArrowClosed
+        },
+        data: {
+          kind: edge.kind,
+          mode: 'overview',
+          emphasis: sourceStage && expandedStageIds.has(sourceStage.id) ? 'muted' : 'normal'
+        }
+      };
+    });
+
+  const stepEdges: DesignerFlowEdge[] = document.graph.edges
+    .filter((edge) => edge.kind === 'step-transition')
+    .filter((edge) => {
+      const sourceStep = edge.sourceNodeId.startsWith('step:')
+        ? document.model.process.steps.find((step) => `step:${step.id}` === edge.sourceNodeId)
+        : null;
+      return !!sourceStep && expandedStageIds.has(sourceStep.stageId);
+    })
+    .map((edge) => ({
+      id: edge.id,
+      source: edge.sourceNodeId,
+      sourceHandle: edge.sourcePortId,
+      target: edge.targetNodeId,
+      targetHandle: edge.targetPortId,
+      label: edge.label ?? undefined,
+      selected: document.selectionId === edge.id,
+      type: 'dbm-edge',
+      markerEnd: {
+        type: MarkerType.ArrowClosed
+      },
+      data: {
+        kind: edge.kind,
+        mode: 'detail',
+        emphasis: 'normal'
+      }
+    }));
 
   return {
     nodes: [...laneNodes, ...stageNodes, ...stepNodes, ...outcomeNodes],
-    edges
+    edges: [...stageEdges, ...stepEdges]
   };
 }
 

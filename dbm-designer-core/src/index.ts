@@ -9,6 +9,7 @@ export {
 } from './model';
 export {
   applyGraphIntent,
+  buildDesignerClipboardPayload,
   buildDesignerGraphDocument,
   graphActorGroupId,
   graphOutcomeInPortId,
@@ -17,6 +18,7 @@ export {
   graphStepInPortId,
   graphStepOutPortId,
   isStableDesignerGraphNodeId,
+  pasteDesignerClipboardPayload,
   translateGraphIntentToCommands,
   validateDesignerGraphDocument
 } from './graph-document';
@@ -25,6 +27,7 @@ export { createApprovalRequestTemplate } from './template';
 export type {
   AddNodeCommand,
   DesignerCommand,
+  DesignerClipboardPayload,
   DesignerCommandResult,
   DesignerDocument,
   DesignerGraphIntent,
