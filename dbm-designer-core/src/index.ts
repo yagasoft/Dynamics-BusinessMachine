@@ -8,6 +8,7 @@ export {
   serializeWorkspace
 } from './model';
 export {
+  applyGraphIntent,
   buildDesignerGraphDocument,
   graphActorGroupId,
   graphOutcomeInPortId,

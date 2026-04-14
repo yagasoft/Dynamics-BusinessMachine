@@ -1,23 +1,27 @@
 import { describe, expect, it } from 'vitest';
-import { buildDesignerGraphDocument, createApprovalRequestTemplate } from 'dbm-designer-core';
+import { createApprovalRequestTemplate, loadModelPackage } from 'dbm-designer-core';
 import {
   alternatePreviewGraphAdapter,
-  previewGraphAdapter
+  xyflowGraphAdapter
 } from './graphAdapter';
 
 describe('designer graph adapters', () => {
   it('maps the DBM-owned graph document into multiple library projections without changing the saved package format', () => {
-    const graph = buildDesignerGraphDocument(createApprovalRequestTemplate());
-    const previewGraph = previewGraphAdapter.toLibraryGraph(graph);
-    const alternateGraph = alternatePreviewGraphAdapter.toLibraryGraph(graph);
+    const document = loadModelPackage(createApprovalRequestTemplate());
+    const flowGraph = xyflowGraphAdapter.toLibraryGraph(document);
+    const alternateGraph = alternatePreviewGraphAdapter.toLibraryGraph(document);
 
-    expect(previewGraph.nodes).toHaveLength(graph.nodes.length);
-    expect(previewGraph.edges).toHaveLength(graph.edges.length);
-    expect(alternateGraph.vertices).toHaveLength(graph.nodes.length);
-    expect(alternateGraph.links).toHaveLength(graph.edges.length);
-    expect(previewGraph.nodes.find((node) => node.id === 'stage:draft-request')).toMatchObject({
-      label: 'Draft Request',
-      kind: 'stage'
+    expect(flowGraph.nodes).toHaveLength(document.graph.nodes.length + document.graph.groups.length);
+    expect(flowGraph.edges).toHaveLength(document.graph.edges.length);
+    expect(alternateGraph.vertices).toHaveLength(document.graph.nodes.length);
+    expect(alternateGraph.links).toHaveLength(document.graph.edges.length);
+    expect(flowGraph.nodes.find((node) => node.id === 'stage:draft-request')).toMatchObject({
+      type: 'stage',
+      data: {
+        label: 'Draft Request',
+        kind: 'stage',
+        inPortId: 'port:stage:draft-request:in'
+      }
     });
     expect(alternateGraph.vertices.find((node) => node.vertexId === 'stage:draft-request')).toMatchObject({
       caption: 'Draft Request',
@@ -27,15 +31,18 @@ describe('designer graph adapters', () => {
 
   it('translates library intents back into DBM-owned graph intents', () => {
     expect(
-      previewGraphAdapter.fromLibraryIntent({
-        kind: 'rename-node',
-        nodeId: 'stage:manager-review',
-        label: 'Manager Resolution'
+      xyflowGraphAdapter.fromLibraryIntent({
+        kind: 'connect',
+        sourceNodeId: 'stage:manager-review',
+        sourceHandleId: 'port:stage:manager-review:outcome:approve',
+        targetNodeId: 'stage:completed',
+        targetHandleId: 'port:stage:completed:in'
       })
     ).toEqual({
-      kind: 'rename-node',
-      nodeId: 'stage:manager-review',
-      label: 'Manager Resolution'
+      kind: 'create-stage-transition',
+      fromStageId: 'manager-review',
+      toStageId: 'completed',
+      outcomeId: 'approve'
     });
 
     expect(

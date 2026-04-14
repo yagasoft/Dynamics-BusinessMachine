@@ -133,7 +133,22 @@ export interface MoveNodeCommand {
 
 export type DesignerCommand = AddNodeCommand | UpdateNodeCommand | RemoveNodeCommand | MoveNodeCommand;
 
+export type DesignerGraphConnectionTarget =
+  | { stepId: string }
+  | { stageId: string }
+  | { outcomeId: string };
+
 export type DesignerGraphIntent =
+  | {
+      kind: 'add-stage';
+      targetIndex?: number;
+      actorId?: string;
+    }
+  | {
+      kind: 'add-step';
+      stageId: string;
+      targetIndex?: number;
+    }
   | {
       kind: 'rename-node';
       nodeId: string;
@@ -153,4 +168,19 @@ export type DesignerGraphIntent =
       stepId: string;
       targetStageId: string;
       targetIndex: number;
+    }
+  | {
+      kind: 'create-stage-transition';
+      fromStageId: string;
+      toStageId: string;
+      outcomeId: string;
+    }
+  | {
+      kind: 'create-step-transition';
+      fromStepId: string;
+      target: DesignerGraphConnectionTarget;
+    }
+  | {
+      kind: 'remove-edge';
+      edgeId: string;
     };

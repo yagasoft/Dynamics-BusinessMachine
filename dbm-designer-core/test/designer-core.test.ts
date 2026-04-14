@@ -3,6 +3,7 @@ import test from 'node:test';
 import type { DbmDesignerWorkspaceV1, DbmFormStateV1, DbmRuntimeStateV1, DbmStatusV1, DbmStepV1 } from 'dbm-contract';
 import {
   addNode,
+  applyGraphIntent,
   buildDesignerGraphDocument,
   buildProcessExperienceSnapshot,
   createDefaultWorkspace,
@@ -159,6 +160,67 @@ test('graph intents translate into canonical designer commands rather than persi
       }
     ]
   );
+});
+
+test('applyGraphIntent can add stages and steps while keeping graph identifiers stable', () => {
+  const initialDocument = loadModel(createApprovalRequestTemplate());
+  const stageResult = applyGraphIntent(initialDocument, {
+    kind: 'add-stage',
+    targetIndex: 1,
+    actorId: 'finance-reviewer'
+  });
+  const newStage = stageResult.document.model.process.stages[1];
+
+  assert.ok(newStage);
+  assert.equal(newStage.actorId, 'finance-reviewer');
+  assert.equal(stageResult.document.graph.nodes.some((node) => node.id === stageNodeId(newStage.id)), true);
+
+  const stepResult = applyGraphIntent(stageResult.document, {
+    kind: 'add-step',
+    stageId: newStage.id,
+    targetIndex: 0
+  });
+  const newStep = stepResult.document.model.process.steps.find((step) => step.stageId === newStage.id);
+
+  assert.ok(newStep);
+  assert.equal(stepResult.document.model.process.stages.find((stage) => stage.id === newStage.id)?.stepIds.includes(newStep.id), true);
+  assert.equal(stepResult.document.graph.nodes.some((node) => node.id === stepNodeId(newStep.id)), true);
+});
+
+test('applyGraphIntent can create stage and step transitions through canonical commands', () => {
+  const initialDocument = loadModel(createApprovalRequestTemplate());
+
+  const stageTransitionResult = applyGraphIntent(initialDocument, {
+    kind: 'create-stage-transition',
+    fromStageId: 'draft-request',
+    toStageId: 'approved',
+    outcomeId: 'approve'
+  });
+
+  const addedStageTransition = stageTransitionResult.document.model.process.transitions.find((transition) => transition.toStageId === 'approved' && transition.fromStageId === 'draft-request');
+  assert.ok(addedStageTransition);
+  assert.equal(stageTransitionResult.document.model.rules.some((rule) => rule.id === addedStageTransition.guardRuleId), true);
+
+  const stepTransitionResult = applyGraphIntent(stageTransitionResult.document, {
+    kind: 'create-step-transition',
+    fromStepId: 'capture-request',
+    target: { stepId: 'choose-decision' }
+  });
+
+  const addedStepTransition = stepTransitionResult.document.model.process.stepTransitions.find((transition) => transition.fromStepId === 'capture-request' && 'stepId' in transition.target && transition.target.stepId === 'choose-decision');
+  assert.ok(addedStepTransition);
+  assert.equal(stepTransitionResult.document.model.rules.some((rule) => rule.id === addedStepTransition.guardRuleId), true);
+});
+
+test('applyGraphIntent removes graph edges through canonical transition deletion', () => {
+  const initialDocument = loadModel(createApprovalRequestTemplate());
+  const result = applyGraphIntent(initialDocument, {
+    kind: 'remove-edge',
+    edgeId: 'transition:approve-request'
+  });
+
+  assert.equal(result.document.model.process.transitions.some((transition) => transition.id === 'approve-request'), false);
+  assert.equal(result.document.graph.edges.some((edge) => edge.id === 'transition:approve-request'), false);
 });
 
 test('designer commands support statuses, stage steps, and form states', () => {

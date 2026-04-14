@@ -11,13 +11,25 @@ import type {
 } from 'dbm-contract';
 import {
   outcomeNodeId,
+  PROCESS_STAGES_NODE_ID,
+  PROCESS_STEP_TRANSITIONS_NODE_ID,
+  PROCESS_TRANSITIONS_NODE_ID,
+  RULES_NODE_ID,
   stageNodeId,
   stageStepsNodeId,
   stepNodeId,
   stepTransitionNodeId,
   transitionNodeId
 } from './node-ids';
-import type { DesignerCommand, DesignerGraphIntent, DesignerIssue, DesignerDocument } from './types';
+import { addNode, moveNode, removeNode, updateNode } from './commands';
+import type {
+  DesignerCommand,
+  DesignerCommandResult,
+  DesignerGraphConnectionTarget,
+  DesignerGraphIntent,
+  DesignerIssue,
+  DesignerDocument
+} from './types';
 
 function issue(
   level: DesignerIssue['level'],
@@ -61,6 +73,16 @@ export function graphOutcomeInPortId(outcomeId: string): string {
 
 export function isStableDesignerGraphNodeId(nodeId: string): boolean {
   return nodeId.startsWith('stage:') || nodeId.startsWith('step:') || nodeId.startsWith('outcome:');
+}
+
+function uniqueId(existingIds: string[], prefix: string): string {
+  let counter = 1;
+  let candidate = prefix;
+  while (existingIds.includes(candidate)) {
+    counter += 1;
+    candidate = `${prefix}-${counter}`;
+  }
+  return candidate;
 }
 
 function buildStagePorts(model: DbmModelV1, stageId: string): DbmDesignerGraphPortV1[] {
@@ -371,8 +393,158 @@ function parseGraphNodeIntentNodeId(nodeId: string): 'stage' | 'step' | 'outcome
   return null;
 }
 
-export function translateGraphIntentToCommands(intent: DesignerGraphIntent, _document: DesignerDocument): DesignerCommand[] {
+function createDefaultTransitionRule(
+  document: DesignerDocument,
+  prefix: string,
+  displayName: string
+): { ruleId: string; command: DesignerCommand } {
+  const existingRuleIds = document.model.rules.map((rule) => rule.id);
+  const ruleId = uniqueId(existingRuleIds, prefix);
+
+  return {
+    ruleId,
+    command: {
+      kind: 'rule',
+      parentId: RULES_NODE_ID,
+      value: {
+        id: ruleId,
+        displayName,
+        ruleType: 'condition',
+        scope: 'transition',
+        language: 'dbm-expression-v1',
+        body: 'true'
+      }
+    }
+  };
+}
+
+function createDefaultStepTransitionRule(
+  document: DesignerDocument,
+  prefix: string,
+  displayName: string
+): { ruleId: string; command: DesignerCommand } {
+  const existingRuleIds = document.model.rules.map((rule) => rule.id);
+  const ruleId = uniqueId(existingRuleIds, prefix);
+
+  return {
+    ruleId,
+    command: {
+      kind: 'rule',
+      parentId: RULES_NODE_ID,
+      value: {
+        id: ruleId,
+        displayName,
+        ruleType: 'condition',
+        scope: 'step-transition',
+        language: 'dbm-expression-v1',
+        body: 'true'
+      }
+    }
+  };
+}
+
+function buildNewStage(document: DesignerDocument, actorId?: string) {
+  const existingStageIds = document.model.process.stages.map((stage) => stage.id);
+  const id = uniqueId(existingStageIds, 'stage');
+  const fallbackActorId = actorId
+    ?? document.model.process.actors[0]?.id
+    ?? '';
+  const defaultFormId = document.model.forms[0]?.id ?? null;
+  const firstOutcomeId = document.model.process.outcomes[0]?.id;
+
+  return {
+    id,
+    displayName: `New Stage ${document.model.process.stages.length + 1}`,
+    stageType: 'task',
+    actorId: fallbackActorId,
+    formId: defaultFormId,
+    portalVisibility: 'visible',
+    stepIds: [],
+    defaultStepId: null,
+    entryRuleIds: [],
+    exitRuleIds: [],
+    allowedOutcomeIds: firstOutcomeId ? [firstOutcomeId] : []
+  };
+}
+
+function buildNewStep(document: DesignerDocument, stageId: string) {
+  const stage = document.model.process.stages.find((entry) => entry.id === stageId);
+  if (!stage) {
+    throw new Error(`Cannot add step. Stage '${stageId}' was not found.`);
+  }
+
+  const existingStepIds = document.model.process.steps.map((step) => step.id);
+  const id = uniqueId(existingStepIds, 'step');
+  const form = stage.formId
+    ? document.model.forms.find((entry) => entry.id === stage.formId)
+    : null;
+
+  return {
+    id,
+    stageId,
+    displayName: `New Step ${stage.stepIds.length + 1}`,
+    stepType: 'review',
+    ownerActorId: stage.actorId || document.model.process.actors[0]?.id || '',
+    notificationId: document.model.process.notifications[0]?.id ?? null,
+    taskId: document.model.process.tasks[0]?.id ?? null,
+    internalStatusId: document.model.process.statuses.find((status) => status.audience !== 'portal')?.id ?? document.model.process.statuses[0]?.id ?? '',
+    portalStatusId: document.model.process.statuses.find((status) => status.audience !== 'internal')?.id ?? null,
+    formStateId: form?.formStates[0]?.id ?? null,
+    entryRuleIds: [],
+    exitRuleIds: []
+  };
+}
+
+function normalizeStageOutcomeId(document: DesignerDocument, fromStageId: string, outcomeId: string): DesignerCommand[] {
+  const stage = document.model.process.stages.find((entry) => entry.id === fromStageId);
+  if (!stage || stage.allowedOutcomeIds.includes(outcomeId)) {
+    return [];
+  }
+
+  return [
+    {
+      nodeId: stageNodeId(fromStageId),
+      value: {
+        allowedOutcomeIds: [...stage.allowedOutcomeIds, outcomeId]
+      }
+    }
+  ];
+}
+
+function buildTransitionTargetLabel(target: DesignerGraphConnectionTarget): string {
+  if ('stepId' in target) {
+    return target.stepId;
+  }
+
+  if ('stageId' in target) {
+    return target.stageId;
+  }
+
+  return target.outcomeId;
+}
+
+export function translateGraphIntentToCommands(intent: DesignerGraphIntent, document: DesignerDocument): DesignerCommand[] {
   switch (intent.kind) {
+    case 'add-stage':
+      return [
+        {
+          kind: 'stage',
+          parentId: PROCESS_STAGES_NODE_ID,
+          index: intent.targetIndex,
+          value: buildNewStage(document, intent.actorId)
+        }
+      ];
+
+    case 'add-step':
+      return [
+        {
+          kind: 'step',
+          parentId: stageStepsNodeId(intent.stageId),
+          index: intent.targetIndex,
+          value: buildNewStep(document, intent.stageId)
+        }
+      ];
+
     case 'rename-node': {
       const nodeKind = parseGraphNodeIntentNodeId(intent.nodeId);
       if (!nodeKind || nodeKind === 'transition' || nodeKind === 'step-transition') {
@@ -389,10 +561,59 @@ export function translateGraphIntentToCommands(intent: DesignerGraphIntent, _doc
       ];
     }
 
+    case 'create-stage-transition': {
+      const rule = createDefaultTransitionRule(document, 'transition-guard', `Guard ${intent.fromStageId} to ${intent.toStageId}`);
+
+      return [
+        ...normalizeStageOutcomeId(document, intent.fromStageId, intent.outcomeId),
+        rule.command,
+        {
+          kind: 'transition',
+          parentId: PROCESS_TRANSITIONS_NODE_ID,
+          value: {
+            id: uniqueId(document.model.process.transitions.map((transition) => transition.id), 'transition'),
+            fromStageId: intent.fromStageId,
+            toStageId: intent.toStageId,
+            outcomeId: intent.outcomeId,
+            guardRuleId: rule.ruleId
+          }
+        }
+      ];
+    }
+
+    case 'create-step-transition': {
+      const rule = createDefaultStepTransitionRule(
+        document,
+        'step-transition-guard',
+        `Guard ${intent.fromStepId} to ${buildTransitionTargetLabel(intent.target)}`
+      );
+
+      return [
+        rule.command,
+        {
+          kind: 'step-transition',
+          parentId: PROCESS_STEP_TRANSITIONS_NODE_ID,
+          value: {
+            id: uniqueId(document.model.process.stepTransitions.map((transition) => transition.id), 'step-transition'),
+            fromStepId: intent.fromStepId,
+            guardRuleId: rule.ruleId,
+            target: intent.target
+          }
+        }
+      ];
+    }
+
     case 'remove-node':
       return [
         {
           nodeId: intent.nodeId
+        }
+      ];
+
+    case 'remove-edge':
+      return [
+        {
+          nodeId: intent.edgeId
         }
       ];
 
@@ -416,4 +637,43 @@ export function translateGraphIntentToCommands(intent: DesignerGraphIntent, _doc
     default:
       return [];
   }
+}
+
+function applyDesignerCommand(document: DesignerDocument, command: DesignerCommand): DesignerCommandResult {
+  if ('kind' in command && 'parentId' in command) {
+    return addNode(document, command);
+  }
+
+  if ('targetIndex' in command) {
+    return moveNode(document, command);
+  }
+
+  if ('value' in command) {
+    return updateNode(document, command);
+  }
+
+  return removeNode(document, command);
+}
+
+export function applyGraphIntent(document: DesignerDocument, intent: DesignerGraphIntent): DesignerCommandResult {
+  const commands = translateGraphIntentToCommands(intent, document);
+  if (commands.length === 0) {
+    return {
+      document,
+      affectedNodeId: document.selectionId,
+      issues: document.issues
+    };
+  }
+
+  let currentResult: DesignerCommandResult = {
+    document,
+    affectedNodeId: document.selectionId,
+    issues: document.issues
+  };
+
+  commands.forEach((command) => {
+    currentResult = applyDesignerCommand(currentResult.document, command);
+  });
+
+  return currentResult;
 }
