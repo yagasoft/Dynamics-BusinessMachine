@@ -79,6 +79,7 @@ vi.mock('./previewDock', () => ({
 
 afterEach(() => {
   cleanup();
+  window.history.replaceState({}, '', '/');
 });
 
 function createRepositoryHarness(model = createApprovalRequestTemplate()) {
@@ -247,5 +248,26 @@ describe('DesignerShell', () => {
     await user.click(await screen.findByRole('button', { name: /missing-form-state-element/i }));
 
     expect(await screen.findByText('focus:step:capture-request:1')).toBeTruthy();
+  });
+
+  it('auto-loads the requested package from the packageName query parameter', async () => {
+    const { repository, getCurrentRecord } = createRepositoryHarness();
+    window.history.replaceState({}, '', `/?packageName=${getCurrentRecord().packageName}`);
+
+    render(React.createElement(DesignerShell, { repository }));
+
+    await screen.findByRole('heading', { name: 'DBM Approval Request' });
+
+    expect(repository.loadPackage).toHaveBeenCalledWith(getCurrentRecord().packageName);
+  });
+
+  it('falls back safely when the requested packageName query parameter is invalid', async () => {
+    const { repository } = createRepositoryHarness();
+    window.history.replaceState({}, '', '/?packageName=missing-package');
+
+    render(React.createElement(DesignerShell, { repository }));
+
+    await screen.findByRole('heading', { name: 'DBM Approval Request' });
+    expect(await screen.findByText("Requested package 'missing-package' was not found. Showing the available package list instead.")).toBeTruthy();
   });
 });

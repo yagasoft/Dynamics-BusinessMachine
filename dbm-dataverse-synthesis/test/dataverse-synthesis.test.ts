@@ -401,6 +401,10 @@ test('planDataverseSynthesis maps the approval example into entities, existing f
   assert.equal(reviewForm?.runtime?.currentForm.relatedProcessOwnerLookupFieldLogicalName, 'dbm_requestid');
   assert.equal(reviewForm?.runtime?.stageHandoffsByStageId['manager-review']?.strategy, 'create-related');
   assert.equal(reviewForm?.processHost?.overlay.enabled, true);
+  assert.equal(
+    reviewForm?.processHost?.designerEntryUrl,
+    '/main.aspx?forceUCI=1&pagetype=webresource&webresourceName=ys_%2Fdbm%2Fapps%2Feditor%2Findex.html&packageName=dbm-approval-request'
+  );
 });
 
 test('planDataverseSynthesis supports a non-reference existing-form model with explicit cross-entity handoff', () => {
@@ -443,6 +447,10 @@ test('planDataverseSynthesis supports a non-reference existing-form model with e
     true
   );
   assert.equal(assignmentForm?.processHost?.supported?.sectionName, 'dbm_process_host_assignment_form');
+  assert.equal(
+    assignmentForm?.processHost?.designerEntryUrl,
+    '/main.aspx?forceUCI=1&pagetype=webresource&webresourceName=ys_%2Fdbm%2Fapps%2Feditor%2Findex.html&packageName=dbm-case-assignment'
+  );
 });
 
 test('normalizeReadbackEntity captures lookup targets and picklist values', () => {

@@ -1,6 +1,6 @@
 import { cleanup, render, screen, within } from '@testing-library/react';
 import userEvent from '@testing-library/user-event';
-import { afterEach, expect, test } from 'vitest';
+import { afterEach, expect, test, vi } from 'vitest';
 import type { DbmProcessExperienceSnapshotV1 } from 'dbm-contract';
 import { ProcessExperienceSurface } from './ProcessExperienceSurface';
 import { buildRuntimeProcessExperienceSnapshot } from './runtime-snapshot';
@@ -240,6 +240,45 @@ test('ProcessExperienceSurface keeps cross-form handoff navigation visible', asy
 
   await user.click(screen.getByRole('button', { name: 'Open Review Details' }));
   expect(events).toEqual(['navigate:dbm_review_status']);
+});
+
+test('ProcessExperienceSurface auto-opens the flow for model-driven handoff states and exposes Edit process', async () => {
+  const user = userEvent.setup();
+  const openSpy = vi.spyOn(window, 'open').mockImplementation(() => null);
+  const snapshot = buildRuntimeProcessExperienceSnapshot(
+    approvalRequestRuntimeModel,
+    {
+      stageId: 'manager-review',
+      stepId: 'review-request',
+      formStateId: 'review-state',
+      internalStatusId: 'under-review',
+      portalStatusId: 'under-review'
+    },
+    {
+      audience: 'internal',
+      currentFormId: 'request-form'
+    }
+  );
+
+  render(
+    <ProcessExperienceSurface
+      snapshot={snapshot}
+      mode="model-driven-section"
+      designerEntryUrl="/main.aspx?forceUCI=1&pagetype=webresource&webresourceName=ys_%2Fdbm%2Fapps%2Feditor%2Findex.html&packageName=dbm-testtableone-to-testtabletwo"
+    />
+  );
+
+  expect(screen.getByRole('button', { name: 'Hide flow' })).toBeTruthy();
+  expect(screen.getByText('How this request can move')).toBeTruthy();
+
+  await user.click(screen.getByRole('button', { name: 'Edit process' }));
+  expect(openSpy).toHaveBeenCalledWith(
+    '/main.aspx?forceUCI=1&pagetype=webresource&webresourceName=ys_%2Fdbm%2Fapps%2Feditor%2Findex.html&packageName=dbm-testtableone-to-testtabletwo',
+    '_blank',
+    'noopener'
+  );
+
+  openSpy.mockRestore();
 });
 
 test('buildRuntimeProcessExperienceSnapshot allows a terminal end stage without an active step', () => {

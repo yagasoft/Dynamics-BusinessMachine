@@ -1,4 +1,4 @@
-import { useMemo, useState } from 'react';
+import { useEffect, useMemo, useRef, useState } from 'react';
 import type { DbmProcessExperienceSnapshotV1 } from 'dbm-contract';
 import { buildGuidedWorkspaceViewModel, type GuidedWorkspaceTone } from './guidedWorkspace';
 import type { ProcessExperienceSurfaceProps } from './types';
@@ -61,7 +61,7 @@ function renderProjectionCallToAction(
   }
 
   return (
-    <div style={projectionNoticeStyle}>
+    <>
       <div style={projectionCopyStyle}>
         <span style={projectionLabelStyle}>Heads up</span>
         <div>{snapshot.projection.message}</div>
@@ -75,13 +75,14 @@ function renderProjectionCallToAction(
           Open {props.navigationTarget.label}
         </button>
       ) : null}
-    </div>
+    </>
   );
 }
 
 export function ProcessExperienceSurface(props: ProcessExperienceSurfaceProps) {
   const snapshot = props.snapshot;
   const [isFlowOpen, setFlowOpen] = useState(false);
+  const lastAutoOpenKeyRef = useRef<string | null>(null);
 
   const viewModel = useMemo(
     () => (snapshot ? buildGuidedWorkspaceViewModel(snapshot, props.audience ?? snapshot.audience) : null),
@@ -93,23 +94,82 @@ export function ProcessExperienceSurface(props: ProcessExperienceSurfaceProps) {
   }
 
   const resolvedAudience = props.audience ?? snapshot.audience;
+  const isModelDriven = props.mode === 'model-driven-section' || props.mode === 'model-driven-overlay';
+  const currentStageOutgoingTransitions = snapshot.transitions.filter((transition) => transition.fromStageId === snapshot.currentStageId);
+  const shouldAutoOpenFlow = isModelDriven
+    && (
+      Boolean(snapshot.projection.message)
+      || snapshot.availableOutcomes.length > 1
+      || currentStageOutgoingTransitions.length > 1
+    );
+  const autoOpenKey = `${props.mode}:${snapshot.currentStageId}:${snapshot.currentStepId ?? 'none'}:${snapshot.projection.message ?? 'none'}:${snapshot.availableOutcomes.map((outcome) => outcome.id).join(',')}:${currentStageOutgoingTransitions.map((transition) => transition.id).join(',')}`;
   const currentTone = tonePalette(viewModel.currentTask.tone);
+  const resolvedSurfaceShellStyle = isModelDriven ? compactSurfaceShellStyle : surfaceShellStyle;
+  const resolvedHeadingStyle = isModelDriven ? compactHeadingStyle : headingStyle;
+  const resolvedIntroCopyStyle = isModelDriven ? compactIntroCopyStyle : introCopyStyle;
+  const resolvedStatusPillStyle = isModelDriven ? compactStatusPillStyle : statusPillStyle;
+  const resolvedFlowToggleButtonStyle = isModelDriven ? compactFlowToggleButtonStyle : flowToggleButtonStyle;
+  const resolvedProjectionNoticeStyle = isModelDriven ? compactProjectionNoticeStyle : projectionNoticeStyle;
+  const resolvedJourneyTrackerShellStyle = isModelDriven ? compactJourneyTrackerShellStyle : journeyTrackerShellStyle;
+  const resolvedTrackerItemStyle = isModelDriven ? compactTrackerItemStyle : trackerItemStyle;
+  const resolvedTrackerLabelStyle = isModelDriven ? compactTrackerLabelStyle : trackerLabelStyle;
+  const resolvedTrackerHelperStyle = isModelDriven ? compactTrackerHelperStyle : trackerHelperStyle;
+  const resolvedCurrentTaskCardStyle = isModelDriven ? compactCurrentTaskCardStyle : currentTaskCardStyle;
+  const resolvedCurrentStageTitleStyle = isModelDriven ? compactCurrentStageTitleStyle : currentStageTitleStyle;
+  const resolvedActorBadgeStyle = isModelDriven ? compactActorBadgeStyle : actorBadgeStyle;
+  const resolvedCurrentTaskBodyStyle = isModelDriven ? compactCurrentTaskBodyStyle : currentTaskBodyStyle;
+  const resolvedCurrentStepCardStyle = isModelDriven ? compactCurrentStepCardStyle : currentStepCardStyle;
+  const resolvedCurrentStepTitleStyle = isModelDriven ? compactCurrentStepTitleStyle : currentStepTitleStyle;
+  const resolvedCurrentStepSummaryStyle = isModelDriven ? compactCurrentStepSummaryStyle : currentStepSummaryStyle;
+  const resolvedCurrentStepHelperStyle = isModelDriven ? compactCurrentStepHelperStyle : currentStepHelperStyle;
+  const resolvedActionGroupStyle = isModelDriven ? compactActionGroupStyle : actionGroupStyle;
+  const resolvedPrimaryActionButtonStyle = isModelDriven ? compactPrimaryActionButtonStyle : primaryActionButtonStyle;
+  const resolvedSecondaryActionButtonStyle = isModelDriven ? compactSecondaryActionButtonStyle : secondaryActionButtonStyle;
+  const resolvedSupportingColumnStyle = isModelDriven ? compactSupportingColumnStyle : supportingColumnStyle;
+  const resolvedSupportCardStyle = isModelDriven ? compactSupportCardStyle : supportCardStyle;
+  const resolvedSupportParagraphStyle = isModelDriven ? compactSupportParagraphStyle : supportParagraphStyle;
+  const resolvedStepChecklistItemStyle = isModelDriven ? compactStepChecklistItemStyle : stepChecklistItemStyle;
+  const resolvedStepChecklistTitleStyle = isModelDriven ? compactStepChecklistTitleStyle : stepChecklistTitleStyle;
+  const resolvedStepChecklistHelperStyle = isModelDriven ? compactStepChecklistHelperStyle : stepChecklistHelperStyle;
+  const resolvedFlowDrawerStyle = isModelDriven ? compactFlowDrawerStyle : flowDrawerStyle;
+  const resolvedFlowHeadingStyle = isModelDriven ? compactFlowHeadingStyle : flowHeadingStyle;
+  const resolvedFlowStageCardStyle = isModelDriven ? compactFlowStageCardStyle : flowStageCardStyle;
+  const resolvedFlowStageHelperStyle = isModelDriven ? compactFlowStageHelperStyle : flowStageHelperStyle;
+  const resolvedFlowDestinationStyle = isModelDriven ? compactFlowDestinationStyle : flowDestinationStyle;
+
+  useEffect(() => {
+    if (lastAutoOpenKeyRef.current === autoOpenKey) {
+      return;
+    }
+
+    lastAutoOpenKeyRef.current = autoOpenKey;
+    setFlowOpen(shouldAutoOpenFlow);
+  }, [autoOpenKey, shouldAutoOpenFlow]);
 
   return (
-    <div style={surfaceShellStyle}>
+    <div style={resolvedSurfaceShellStyle}>
       <div style={headerShellStyle}>
         <div>
           <div style={eyebrowStyle}>DBM Process</div>
-          <h2 style={headingStyle}>{viewModel.processTitle}</h2>
-          <p style={introCopyStyle}>{viewModel.introCopy}</p>
+          <h2 style={resolvedHeadingStyle}>{viewModel.processTitle}</h2>
+          <p style={resolvedIntroCopyStyle}>{viewModel.introCopy}</p>
         </div>
         <div style={statusClusterStyle}>
-          <span style={{ ...statusPillStyle, color: currentTone.text, borderColor: currentTone.border, background: currentTone.chip }}>
+          <span style={{ ...resolvedStatusPillStyle, color: currentTone.text, borderColor: currentTone.border, background: currentTone.chip }}>
             {viewModel.currentTask.statusLabel}
           </span>
+          {isModelDriven && props.designerEntryUrl ? (
+            <button
+              type="button"
+              style={resolvedSecondaryActionButtonStyle}
+              onClick={() => window.open(props.designerEntryUrl ?? '', '_blank', 'noopener')}
+            >
+              Edit process
+            </button>
+          ) : null}
           <button
             type="button"
-            style={flowToggleButtonStyle}
+            style={resolvedFlowToggleButtonStyle}
             aria-expanded={isFlowOpen}
             onClick={() => setFlowOpen((current) => !current)}
           >
@@ -118,9 +178,9 @@ export function ProcessExperienceSurface(props: ProcessExperienceSurfaceProps) {
         </div>
       </div>
 
-      {renderProjectionCallToAction(snapshot, props)}
+      {snapshot.projection.message ? <div style={resolvedProjectionNoticeStyle}>{renderProjectionCallToAction(snapshot, props)}</div> : null}
 
-      <div style={journeyTrackerShellStyle}>
+      <div style={resolvedJourneyTrackerShellStyle}>
         {viewModel.trackerItems.map((item) => {
           const palette = tonePalette(item.tone);
           return (
@@ -128,7 +188,7 @@ export function ProcessExperienceSurface(props: ProcessExperienceSurfaceProps) {
               key={item.id}
               type="button"
               style={{
-                ...trackerItemStyle,
+                ...resolvedTrackerItemStyle,
                 background: palette.background,
                 borderColor: item.isCurrent ? palette.border : '#d7dee8',
                 boxShadow: item.isCurrent ? `0 18px 40px ${palette.shadow}` : 'none'
@@ -139,8 +199,8 @@ export function ProcessExperienceSurface(props: ProcessExperienceSurfaceProps) {
                 <span style={{ ...trackerStatePillStyle, color: palette.text, background: palette.chip }}>{item.stateLabel}</span>
                 {item.actorLabel ? <span style={trackerActorStyle}>{item.actorLabel}</span> : null}
               </div>
-              <strong style={trackerLabelStyle}>{item.label}</strong>
-              <span style={trackerHelperStyle}>{item.helperCopy}</span>
+              <strong style={resolvedTrackerLabelStyle}>{item.label}</strong>
+              <span style={resolvedTrackerHelperStyle}>{item.helperCopy}</span>
             </button>
           );
         })}
@@ -149,7 +209,7 @@ export function ProcessExperienceSurface(props: ProcessExperienceSurfaceProps) {
       <div style={workspaceGridStyle}>
         <section
           style={{
-            ...currentTaskCardStyle,
+            ...resolvedCurrentTaskCardStyle,
             background: currentTone.background,
             borderColor: currentTone.border,
             boxShadow: `0 22px 44px ${currentTone.shadow}`
@@ -158,28 +218,28 @@ export function ProcessExperienceSurface(props: ProcessExperienceSurfaceProps) {
           <div style={currentTaskHeaderStyle}>
             <div>
               <div style={currentTaskLabelStyle}>{viewModel.currentTask.stageLabel}</div>
-              <h3 style={currentStageTitleStyle}>{viewModel.currentTask.stageTitle}</h3>
+              <h3 style={resolvedCurrentStageTitleStyle}>{viewModel.currentTask.stageTitle}</h3>
             </div>
             {viewModel.currentTask.actorLabel ? (
-              <div style={actorBadgeStyle}>{viewModel.currentTask.actorLabel}</div>
+              <div style={resolvedActorBadgeStyle}>{viewModel.currentTask.actorLabel}</div>
             ) : null}
           </div>
 
-          <div style={currentTaskBodyStyle}>
+          <div style={resolvedCurrentTaskBodyStyle}>
             <div style={currentTaskMainColumnStyle}>
-              <div style={currentStepCardStyle}>
+              <div style={resolvedCurrentStepCardStyle}>
                 <div style={currentStepEyebrowStyle}>What to do now</div>
-                <div style={currentStepTitleStyle}>{viewModel.currentTask.stepTitle}</div>
-                <p style={currentStepSummaryStyle}>{viewModel.currentTask.stepSummary}</p>
-                <p style={currentStepHelperStyle}>{viewModel.currentTask.helperCopy}</p>
+                <div style={resolvedCurrentStepTitleStyle}>{viewModel.currentTask.stepTitle}</div>
+                <p style={resolvedCurrentStepSummaryStyle}>{viewModel.currentTask.stepSummary}</p>
+                <p style={resolvedCurrentStepHelperStyle}>{viewModel.currentTask.helperCopy}</p>
 
                 {viewModel.currentTask.actions.length > 0 ? (
-                  <div style={actionGroupStyle}>
+                  <div style={resolvedActionGroupStyle}>
                     {viewModel.currentTask.actions.map((action) => (
                       <button
                         key={action.id}
                         type="button"
-                        style={action.emphasis === 'primary' ? primaryActionButtonStyle : secondaryActionButtonStyle}
+                        style={action.emphasis === 'primary' ? resolvedPrimaryActionButtonStyle : resolvedSecondaryActionButtonStyle}
                         onClick={() => props.onInvokeOutcome?.(action.id)}
                         disabled={!props.onInvokeOutcome}
                       >
@@ -205,9 +265,9 @@ export function ProcessExperienceSurface(props: ProcessExperienceSurfaceProps) {
               </div>
             </div>
 
-            <aside style={supportingColumnStyle}>
+            <aside style={resolvedSupportingColumnStyle}>
               {viewModel.currentTask.siblingSteps.length > 0 ? (
-                <div style={supportCardStyle}>
+                <div style={resolvedSupportCardStyle}>
                   <div style={supportCardLabelStyle}>Step sequence</div>
                   <div style={stepChecklistStyle}>
                     {viewModel.currentTask.siblingSteps.map((step) => {
@@ -217,41 +277,41 @@ export function ProcessExperienceSurface(props: ProcessExperienceSurfaceProps) {
                           key={step.id}
                           type="button"
                           style={{
-                            ...stepChecklistItemStyle,
+                            ...resolvedStepChecklistItemStyle,
                             borderColor: step.isCurrent ? palette.border : '#d8dee8',
                             background: step.isCurrent ? palette.background : '#ffffff'
                           }}
                           onClick={() => props.onRequestFocus?.(`step:${step.id}`)}
                         >
                           <span style={{ ...stepChecklistStateStyle, color: palette.text }}>{step.stateLabel}</span>
-                          <strong style={stepChecklistTitleStyle}>{step.label}</strong>
-                          <span style={stepChecklistHelperStyle}>{step.helperCopy}</span>
+                          <strong style={resolvedStepChecklistTitleStyle}>{step.label}</strong>
+                          <span style={resolvedStepChecklistHelperStyle}>{step.helperCopy}</span>
                         </button>
                       );
                     })}
                   </div>
                 </div>
               ) : (
-                <div style={supportCardStyle}>
+                <div style={resolvedSupportCardStyle}>
                   <div style={supportCardLabelStyle}>{viewModel.currentTask.supportingLabel}</div>
-                  <p style={supportParagraphStyle}>{viewModel.currentTask.supportingCopy}</p>
+                  <p style={resolvedSupportParagraphStyle}>{viewModel.currentTask.supportingCopy}</p>
                 </div>
               )}
 
-              <div style={supportCardStyle}>
+              <div style={resolvedSupportCardStyle}>
                 <div style={supportCardLabelStyle}>What happens next</div>
-                <p style={supportParagraphStyle}>{viewModel.currentTask.nextCopy}</p>
+                <p style={resolvedSupportParagraphStyle}>{viewModel.currentTask.nextCopy}</p>
               </div>
             </aside>
           </div>
         </section>
 
         {isFlowOpen ? (
-          <aside style={flowDrawerStyle}>
+          <aside style={resolvedFlowDrawerStyle}>
             <div style={flowDrawerHeaderStyle}>
               <div>
                 <div style={eyebrowStyle}>Process flow</div>
-                <h3 style={flowHeadingStyle}>How this request can move</h3>
+                <h3 style={resolvedFlowHeadingStyle}>How this request can move</h3>
               </div>
             </div>
             <div style={flowStageListStyle}>
@@ -261,7 +321,7 @@ export function ProcessExperienceSurface(props: ProcessExperienceSurfaceProps) {
                   <div
                     key={stage.id}
                     style={{
-                      ...flowStageCardStyle,
+                      ...resolvedFlowStageCardStyle,
                       borderColor: stage.isCurrent ? palette.border : '#d7dee8',
                       background: stage.isCurrent ? palette.background : '#ffffff'
                     }}
@@ -270,7 +330,7 @@ export function ProcessExperienceSurface(props: ProcessExperienceSurfaceProps) {
                       <strong style={flowStageTitleStyle}>{stage.label}</strong>
                       <span style={{ ...flowStatePillStyle, color: palette.text, background: palette.chip }}>{stage.stateLabel}</span>
                     </div>
-                    <div style={flowStageHelperStyle}>{stage.helperCopy}</div>
+                    <div style={resolvedFlowStageHelperStyle}>{stage.helperCopy}</div>
                     {stage.transitions.length > 0 ? (
                       <div style={flowTransitionListStyle}>
                         {stage.transitions.map((transition) => {
@@ -281,7 +341,7 @@ export function ProcessExperienceSurface(props: ProcessExperienceSurfaceProps) {
                                 {transition.label}
                               </span>
                               <span style={flowArrowStyle}>to</span>
-                              <span style={flowDestinationStyle}>{transition.destinationLabel}</span>
+                              <span style={resolvedFlowDestinationStyle}>{transition.destinationLabel}</span>
                             </div>
                           );
                         })}
@@ -323,6 +383,14 @@ const surfaceShellStyle = {
   color: '#10233f'
 } as const;
 
+const compactSurfaceShellStyle = {
+  ...surfaceShellStyle,
+  gap: '0.8rem',
+  padding: '0.85rem 0.95rem',
+  borderRadius: '1rem',
+  background: '#fffdf8'
+} as const;
+
 const headerShellStyle = {
   display: 'flex',
   justifyContent: 'space-between',
@@ -344,10 +412,21 @@ const headingStyle = {
   lineHeight: 1.1
 } as const;
 
+const compactHeadingStyle = {
+  ...headingStyle,
+  fontSize: '1.22rem',
+  margin: '0.25rem 0 0.1rem'
+} as const;
+
 const introCopyStyle = {
   margin: 0,
   color: '#5b6470',
   fontSize: '0.98rem'
+} as const;
+
+const compactIntroCopyStyle = {
+  ...introCopyStyle,
+  fontSize: '0.9rem'
 } as const;
 
 const statusClusterStyle = {
@@ -365,6 +444,12 @@ const statusPillStyle = {
   fontWeight: 700
 } as const;
 
+const compactStatusPillStyle = {
+  ...statusPillStyle,
+  padding: '0.35rem 0.68rem',
+  fontSize: '0.78rem'
+} as const;
+
 const flowToggleButtonStyle = {
   padding: '0.7rem 1rem',
   borderRadius: '999px',
@@ -373,6 +458,12 @@ const flowToggleButtonStyle = {
   color: '#10233f',
   cursor: 'pointer',
   fontWeight: 600
+} as const;
+
+const compactFlowToggleButtonStyle = {
+  ...flowToggleButtonStyle,
+  padding: '0.58rem 0.88rem',
+  fontSize: '0.86rem'
 } as const;
 
 const projectionNoticeStyle = {
@@ -385,6 +476,12 @@ const projectionNoticeStyle = {
   borderRadius: '1rem',
   background: '#fff6e4',
   border: '1px solid #f0d08a'
+} as const;
+
+const compactProjectionNoticeStyle = {
+  ...projectionNoticeStyle,
+  padding: '0.8rem 0.9rem',
+  borderRadius: '0.9rem'
 } as const;
 
 const projectionCopyStyle = {
@@ -406,6 +503,13 @@ const journeyTrackerShellStyle = {
   gridTemplateColumns: 'repeat(auto-fit, minmax(180px, 1fr))'
 } as const;
 
+const compactJourneyTrackerShellStyle = {
+  display: 'flex',
+  gap: '0.65rem',
+  overflowX: 'auto',
+  paddingBottom: '0.2rem'
+} as const;
+
 const trackerItemStyle = {
   display: 'grid',
   gap: '0.45rem',
@@ -414,6 +518,16 @@ const trackerItemStyle = {
   border: '1px solid #d7dee8',
   textAlign: 'left',
   cursor: 'pointer'
+} as const;
+
+const compactTrackerItemStyle = {
+  ...trackerItemStyle,
+  gap: '0.3rem',
+  padding: '0.72rem 0.78rem',
+  borderRadius: '0.9rem',
+  minWidth: '168px',
+  maxWidth: '220px',
+  flex: '0 0 168px'
 } as const;
 
 const trackerHeaderStyle = {
@@ -442,9 +556,20 @@ const trackerLabelStyle = {
   lineHeight: 1.2
 } as const;
 
+const compactTrackerLabelStyle = {
+  ...trackerLabelStyle,
+  fontSize: '0.9rem'
+} as const;
+
 const trackerHelperStyle = {
   fontSize: '0.86rem',
   color: '#516071'
+} as const;
+
+const compactTrackerHelperStyle = {
+  ...trackerHelperStyle,
+  fontSize: '0.78rem',
+  lineHeight: 1.35
 } as const;
 
 const workspaceGridStyle = {
@@ -458,6 +583,13 @@ const currentTaskCardStyle = {
   padding: '1.2rem',
   borderRadius: '1.25rem',
   border: '1px solid #d7dee8'
+} as const;
+
+const compactCurrentTaskCardStyle = {
+  ...currentTaskCardStyle,
+  gap: '0.8rem',
+  padding: '0.9rem',
+  borderRadius: '1rem'
 } as const;
 
 const currentTaskHeaderStyle = {
@@ -482,6 +614,11 @@ const currentStageTitleStyle = {
   lineHeight: 1.15
 } as const;
 
+const compactCurrentStageTitleStyle = {
+  ...currentStageTitleStyle,
+  fontSize: '1.12rem'
+} as const;
+
 const actorBadgeStyle = {
   padding: '0.45rem 0.75rem',
   borderRadius: '999px',
@@ -491,10 +628,23 @@ const actorBadgeStyle = {
   fontWeight: 600
 } as const;
 
+const compactActorBadgeStyle = {
+  ...actorBadgeStyle,
+  padding: '0.35rem 0.62rem',
+  fontSize: '0.78rem'
+} as const;
+
 const currentTaskBodyStyle = {
   display: 'grid',
   gap: '1rem',
   gridTemplateColumns: 'repeat(auto-fit, minmax(260px, 1fr))',
+  alignItems: 'start'
+} as const;
+
+const compactCurrentTaskBodyStyle = {
+  display: 'grid',
+  gap: '0.8rem',
+  gridTemplateColumns: 'minmax(0, 1fr)',
   alignItems: 'start'
 } as const;
 
@@ -511,6 +661,13 @@ const currentStepCardStyle = {
   border: '1px solid rgba(255,255,255,0.8)'
 } as const;
 
+const compactCurrentStepCardStyle = {
+  ...currentStepCardStyle,
+  gap: '0.65rem',
+  padding: '0.9rem',
+  borderRadius: '1rem'
+} as const;
+
 const currentStepEyebrowStyle = {
   fontSize: '0.8rem',
   textTransform: 'uppercase',
@@ -525,11 +682,23 @@ const currentStepTitleStyle = {
   fontWeight: 800
 } as const;
 
+const compactCurrentStepTitleStyle = {
+  ...currentStepTitleStyle,
+  fontSize: '1.26rem',
+  lineHeight: 1.12
+} as const;
+
 const currentStepSummaryStyle = {
   margin: 0,
   fontSize: '1rem',
   lineHeight: 1.55,
   color: '#243247'
+} as const;
+
+const compactCurrentStepSummaryStyle = {
+  ...currentStepSummaryStyle,
+  fontSize: '0.92rem',
+  lineHeight: 1.42
 } as const;
 
 const currentStepHelperStyle = {
@@ -539,11 +708,22 @@ const currentStepHelperStyle = {
   color: '#5d6675'
 } as const;
 
+const compactCurrentStepHelperStyle = {
+  ...currentStepHelperStyle,
+  fontSize: '0.84rem',
+  lineHeight: 1.38
+} as const;
+
 const actionGroupStyle = {
   display: 'flex',
   gap: '0.75rem',
   flexWrap: 'wrap',
   alignItems: 'center'
+} as const;
+
+const compactActionGroupStyle = {
+  ...actionGroupStyle,
+  gap: '0.55rem'
 } as const;
 
 const primaryActionButtonStyle = {
@@ -557,6 +737,13 @@ const primaryActionButtonStyle = {
   fontSize: '0.96rem'
 } as const;
 
+const compactPrimaryActionButtonStyle = {
+  ...primaryActionButtonStyle,
+  padding: '0.7rem 1rem',
+  borderRadius: '0.82rem',
+  fontSize: '0.88rem'
+} as const;
+
 const secondaryActionButtonStyle = {
   padding: '0.82rem 1.08rem',
   borderRadius: '0.95rem',
@@ -566,6 +753,13 @@ const secondaryActionButtonStyle = {
   cursor: 'pointer',
   fontWeight: 700,
   fontSize: '0.94rem'
+} as const;
+
+const compactSecondaryActionButtonStyle = {
+  ...secondaryActionButtonStyle,
+  padding: '0.66rem 0.92rem',
+  borderRadius: '0.82rem',
+  fontSize: '0.86rem'
 } as const;
 
 const readOnlyNoticeStyle = {
@@ -592,6 +786,11 @@ const supportingColumnStyle = {
   gap: '1rem'
 } as const;
 
+const compactSupportingColumnStyle = {
+  display: 'grid',
+  gap: '0.75rem'
+} as const;
+
 const supportCardStyle = {
   display: 'grid',
   gap: '0.7rem',
@@ -599,6 +798,13 @@ const supportCardStyle = {
   borderRadius: '1rem',
   background: 'rgba(255,255,255,0.86)',
   border: '1px solid rgba(255,255,255,0.8)'
+} as const;
+
+const compactSupportCardStyle = {
+  ...supportCardStyle,
+  gap: '0.55rem',
+  padding: '0.8rem',
+  borderRadius: '0.92rem'
 } as const;
 
 const supportCardLabelStyle = {
@@ -625,6 +831,13 @@ const stepChecklistItemStyle = {
   cursor: 'pointer'
 } as const;
 
+const compactStepChecklistItemStyle = {
+  ...stepChecklistItemStyle,
+  gap: '0.16rem',
+  padding: '0.68rem',
+  borderRadius: '0.82rem'
+} as const;
+
 const stepChecklistStateStyle = {
   fontSize: '0.76rem',
   textTransform: 'uppercase',
@@ -636,9 +849,19 @@ const stepChecklistTitleStyle = {
   fontSize: '0.94rem'
 } as const;
 
+const compactStepChecklistTitleStyle = {
+  ...stepChecklistTitleStyle,
+  fontSize: '0.88rem'
+} as const;
+
 const stepChecklistHelperStyle = {
   fontSize: '0.82rem',
   color: '#5d6675'
+} as const;
+
+const compactStepChecklistHelperStyle = {
+  ...stepChecklistHelperStyle,
+  fontSize: '0.76rem'
 } as const;
 
 const supportParagraphStyle = {
@@ -648,6 +871,12 @@ const supportParagraphStyle = {
   color: '#546173'
 } as const;
 
+const compactSupportParagraphStyle = {
+  ...supportParagraphStyle,
+  fontSize: '0.84rem',
+  lineHeight: 1.42
+} as const;
+
 const flowDrawerStyle = {
   display: 'grid',
   gap: '1rem',
@@ -655,6 +884,13 @@ const flowDrawerStyle = {
   borderRadius: '1.2rem',
   background: '#ffffff',
   border: '1px solid #e0e7f0'
+} as const;
+
+const compactFlowDrawerStyle = {
+  ...flowDrawerStyle,
+  gap: '0.75rem',
+  padding: '0.85rem',
+  borderRadius: '1rem'
 } as const;
 
 const flowDrawerHeaderStyle = {
@@ -669,6 +905,11 @@ const flowHeadingStyle = {
   fontSize: '1.2rem'
 } as const;
 
+const compactFlowHeadingStyle = {
+  ...flowHeadingStyle,
+  fontSize: '1rem'
+} as const;
+
 const flowStageListStyle = {
   display: 'grid',
   gap: '0.8rem'
@@ -680,6 +921,13 @@ const flowStageCardStyle = {
   padding: '0.95rem',
   borderRadius: '1rem',
   border: '1px solid #d7dee8'
+} as const;
+
+const compactFlowStageCardStyle = {
+  ...flowStageCardStyle,
+  gap: '0.5rem',
+  padding: '0.78rem',
+  borderRadius: '0.9rem'
 } as const;
 
 const flowStageHeaderStyle = {
@@ -704,6 +952,11 @@ const flowStatePillStyle = {
 const flowStageHelperStyle = {
   fontSize: '0.88rem',
   color: '#576273'
+} as const;
+
+const compactFlowStageHelperStyle = {
+  ...flowStageHelperStyle,
+  fontSize: '0.8rem'
 } as const;
 
 const flowTransitionListStyle = {
@@ -738,6 +991,11 @@ const flowDestinationStyle = {
   fontSize: '0.9rem',
   color: '#10233f',
   fontWeight: 600
+} as const;
+
+const compactFlowDestinationStyle = {
+  ...flowDestinationStyle,
+  fontSize: '0.84rem'
 } as const;
 
 const flowTerminalCopyStyle = {

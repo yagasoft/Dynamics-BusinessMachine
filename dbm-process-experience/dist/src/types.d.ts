@@ -10,6 +10,7 @@ export interface ProcessExperienceSurfaceProps {
     snapshot: DbmProcessExperienceSnapshotV1 | null;
     audience?: DbmProcessExperienceAudienceV1;
     mode: DbmProcessExperienceModeV1;
+    designerEntryUrl?: string | null;
     navigationTarget?: DbmProcessExperienceNavigationTargetV1 | null;
     onNavigateToFormRegion?(target: DbmProcessExperienceNavigationTargetV1): void;
     onInvokeOutcome?(outcomeId: string): void;
@@ -103,6 +104,7 @@ export interface DbmProcessExperienceHostConfigV1 {
     packageId: string;
     processId: string;
     currentFormId: string;
+    designerEntryUrl: string | null;
     supported: DbmProcessExperienceSectionHostConfigV1;
     overlay: DbmProcessExperienceOverlayHostConfigV1;
     jumpTargetsByFormStateId: Record<string, DbmProcessExperienceNavigationTargetV1>;

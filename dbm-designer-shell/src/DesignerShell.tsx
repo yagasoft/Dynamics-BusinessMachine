@@ -33,6 +33,7 @@ import {
   buildPackageResourceNames,
   createDraftPackageRecord,
   createNormalizedModelPackage,
+  parsePackageNameFromResourceName,
   type DbmPackageRepository
 } from './packageRepository';
 import { PreviewDock } from './previewDock';
@@ -225,6 +226,19 @@ function toggleCollapsedNodeId(workspace: DbmDesignerWorkspaceV1, nodeId: string
     : [...workspace.collapsedNodeIds, nodeId];
 }
 
+function resolveRequestedPackageNameFromLocation(): string | null {
+  if (typeof window === 'undefined') {
+    return null;
+  }
+
+  const queryValue = new URLSearchParams(window.location.search).get('packageName')?.trim();
+  if (!queryValue) {
+    return null;
+  }
+
+  return parsePackageNameFromResourceName(queryValue)?.packageName ?? queryValue;
+}
+
 function packagesEqual(left: DesignerDocument, right: DesignerDocument): boolean {
   return JSON.stringify(serializeModelPackage(left)) === JSON.stringify(serializeModelPackage(right));
 }
@@ -286,6 +300,8 @@ function PaletteButton({
 }
 
 export function DesignerShell({ repository }: DesignerShellProps) {
+  const requestedPackageNameRef = useRef<string | null>(resolveRequestedPackageNameFromLocation());
+  const pendingRequestedPackageStatusRef = useRef<string | null>(null);
   const [packages, setPackages] = useState<DbmHostModelPackageSummary[]>([]);
   const [selectedPackageName, setSelectedPackageName] = useState<string | null>(null);
   const [currentRecord, setCurrentRecord] = useState<DbmHostModelPackageRecord | null>(null);
@@ -326,6 +342,9 @@ export function DesignerShell({ repository }: DesignerShellProps) {
       if (targetPackageName && nextPackages.some((entry) => entry.packageName === targetPackageName)) {
         setSelectedPackageName(targetPackageName);
         return;
+      }
+      if (preferredPackageName && targetPackageName) {
+        pendingRequestedPackageStatusRef.current = `Requested package '${targetPackageName}' was not found. Showing the available package list instead.`;
       }
       if (!currentRecord && nextPackages.length > 0) {
         setSelectedPackageName(nextPackages[0].packageName);
@@ -375,7 +394,13 @@ export function DesignerShell({ repository }: DesignerShellProps) {
         return;
       }
       applyLoadedRecord(loaded);
-      setStatusMessage(`Loaded ${loaded.displayName ?? loaded.packageName}.`);
+      const pendingRequestedPackageStatus = pendingRequestedPackageStatusRef.current;
+      if (pendingRequestedPackageStatus) {
+        pendingRequestedPackageStatusRef.current = null;
+        setStatusMessage(pendingRequestedPackageStatus);
+      } else {
+        setStatusMessage(`Loaded ${loaded.displayName ?? loaded.packageName}.`);
+      }
     } finally {
       setIsBusy(false);
     }
@@ -730,7 +755,9 @@ export function DesignerShell({ repository }: DesignerShellProps) {
   }
 
   useEffect(() => {
-    void refreshPackages(null);
+    const preferredPackageName = requestedPackageNameRef.current;
+    requestedPackageNameRef.current = null;
+    void refreshPackages(preferredPackageName);
   }, []);
 
   useEffect(() => {

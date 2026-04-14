@@ -16,6 +16,7 @@ exports.SHARED_PROCESS_EXPERIENCE_HOST_PAGE_BEHAVIOR_ID = 'dbm-process-experienc
 exports.SHARED_PROCESS_EXPERIENCE_HOST_PAGE_WEB_RESOURCE_NAME = 'ys_/dbm/process-experience/host.html';
 exports.HTML_WEB_RESOURCE_CLASS_ID = '{9FDF5F91-88B1-47f4-AD53-C11EFC01A01D}';
 const SHARED_PROCESS_EXPERIENCE_SECTION_LABEL = 'DBM Process';
+const HOSTED_DESIGNER_ENTRY_PATH = '/main.aspx?forceUCI=1&pagetype=webresource&webresourceName=ys_%2Fdbm%2Fapps%2Feditor%2Findex.html';
 function escapeForJavaScriptString(value) {
     return value
         .replace(/\\/g, '\\\\')
@@ -26,6 +27,9 @@ function escapeForJavaScriptString(value) {
 function sanitizeFunctionIdentifier(value) {
     const normalized = value.replace(/[^A-Za-z0-9_]/g, '_');
     return /^[A-Za-z_]/.test(normalized) ? normalized : `_${normalized}`;
+}
+function buildDesignerEntryUrl(packageId) {
+    return `${HOSTED_DESIGNER_ENTRY_PATH}&packageName=${encodeURIComponent(packageId)}`;
 }
 function getDefaultFormStateId(model, formId) {
     const stageMap = new Map(model.process.stages.map((stage) => [stage.id, stage]));
@@ -226,6 +230,7 @@ function buildProcessHostConfig(formPlan, displayName, model) {
         packageId: model.package.id,
         processId: model.process.id,
         currentFormId: formPlan.id,
+        designerEntryUrl: buildDesignerEntryUrl(model.package.id),
         supported: {
             placementMode: 'section',
             label: SHARED_PROCESS_EXPERIENCE_SECTION_LABEL,
@@ -1305,6 +1310,7 @@ function buildSharedRuntimeBehaviorContent() {
       snapshot,
       audience: 'internal',
       mode,
+      designerEntryUrl: config?.processHost?.designerEntryUrl || null,
       navigationTarget,
       onNavigateToFormRegion: function (target) {
         focusNavigationTarget(formContext, target);
