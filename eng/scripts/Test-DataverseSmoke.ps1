@@ -222,6 +222,8 @@ if (-not $SkipGeneratedMetadataValidation) {
     }
 
     $expectedWebResources = @(
+        'ys_/dbm/process-experience/renderer.js',
+        'ys_/dbm/process-experience/host.html',
         'ys_/dbm/forms/runtime.js',
         'ys_/dbm/forms/config/request-form.js',
         'ys_/dbm/forms/config/review-form.js'

@@ -19,6 +19,7 @@ type MockControlState = {
   visible: boolean;
   disabled: boolean;
   requiredLevel: 'none' | 'required';
+  focused: boolean;
 };
 
 type RuntimeHarness = {
@@ -36,6 +37,7 @@ function jsonResponse(status: number, payload?: unknown): Response {
 }
 
 async function createRuntimeHarness(formId: 'request-form' | 'review-form'): Promise<RuntimeHarness> {
+  const { buildRuntimeProcessExperienceSnapshot } = await import('dbm-process-experience');
   const plan = planDataverseSynthesis(approvalRequestModel as DbmModelV1);
   const outputRoot = path.join(process.cwd(), 'dist', 'runtime-test-output', `${formId}-${Date.now()}-${Math.random().toString(16).slice(2)}`);
   const templateRoot = path.join(
@@ -82,6 +84,11 @@ async function createRuntimeHarness(formId: 'request-form' | 'review-form'): Pro
 
   const context = createContext(sandbox);
   runInContext(runtimeJs, context);
+  sandbox.DBM.ProcessExperienceHost = {
+    buildRuntimeProcessExperienceSnapshot,
+    render: () => undefined,
+    unmount: () => undefined
+  };
 
   const originalInitialize = sandbox.DBM.ProcessRuntime.initialize;
   let capturedConfig: any = null;
@@ -105,42 +112,59 @@ async function createRuntimeHarness(formId: 'request-form' | 'review-form'): Pro
 }
 
 function createMockFormContext(config: any, entityId: string, initialValues: Record<string, unknown>) {
+  type MockAttributeState = {
+    getValue: () => unknown;
+    setValue: (value: unknown) => void;
+    setRequiredLevel: (level: 'none' | 'required') => void;
+    getRequiredLevel: () => 'none' | 'required';
+    fireOnChange: () => void;
+  };
   const attributes = new Map<
     string,
-    {
-      getValue: () => unknown;
-      setValue: (value: unknown) => void;
-      setRequiredLevel: (level: 'none' | 'required') => void;
-      getRequiredLevel: () => 'none' | 'required';
-    }
+    MockAttributeState
   >();
   const controls = new Map<
     string,
     {
-      getAttribute: () => ReturnType<typeof attributes.get>;
+      getAttribute: () => MockAttributeState | null;
       setVisible: (value: boolean) => void;
       getVisible: () => boolean;
       setDisabled: (value: boolean) => void;
       getDisabled: () => boolean;
+      setFocus: () => void;
+      getContentWindow?: () => Promise<any>;
+      getObject?: () => any;
       state: MockControlState;
     }
   >();
-  const sections = new Map<string, { visible: boolean; setVisible: (value: boolean) => void; getVisible: () => boolean }>();
-  const tabs = new Map<
+  const sections = new Map<
     string,
     {
       visible: boolean;
-      sections: { get: (name: string) => { visible: boolean; setVisible: (value: boolean) => void; getVisible: () => boolean } | null };
       setVisible: (value: boolean) => void;
       getVisible: () => boolean;
     }
   >();
+  const tabs = new Map<
+    string,
+    {
+      visible: boolean;
+      focused: boolean;
+      sections: { get: (name: string) => { visible: boolean; setVisible: (value: boolean) => void; getVisible: () => boolean } | null };
+      setVisible: (value: boolean) => void;
+      getVisible: () => boolean;
+      setFocus: () => void;
+    }
+  >();
+  const sectionRenders: any[] = [];
+  const overlayRenders: any[] = [];
   const notifications: Array<{ message: string; level: string; id: string }> = [];
 
   for (const sectionConfig of config.sections as any[]) {
     if (!tabs.has(sectionConfig.tabName)) {
       tabs.set(sectionConfig.tabName, {
         visible: true,
+        focused: false,
         sections: {
           get: (name: string) => sections.get(`${sectionConfig.tabName}:${name}`) ?? null
         },
@@ -149,6 +173,9 @@ function createMockFormContext(config: any, entityId: string, initialValues: Rec
         },
         getVisible() {
           return this.visible;
+        },
+        setFocus() {
+          this.focused = true;
         }
       });
     }
@@ -178,7 +205,8 @@ function createMockFormContext(config: any, entityId: string, initialValues: Rec
           setRequiredLevel: (level: 'none' | 'required') => {
             requiredLevel = level;
           },
-          getRequiredLevel: () => requiredLevel
+          getRequiredLevel: () => requiredLevel,
+          fireOnChange: () => undefined
         });
       }
 
@@ -187,7 +215,8 @@ function createMockFormContext(config: any, entityId: string, initialValues: Rec
           controlName: controlConfig.controlName,
           visible: true,
           disabled: false,
-          requiredLevel: 'none'
+          requiredLevel: 'none',
+          focused: false
         };
         const attribute = attributes.get(controlConfig.controlName)!;
         controls.set(controlConfig.controlName, {
@@ -198,7 +227,8 @@ function createMockFormContext(config: any, entityId: string, initialValues: Rec
               state.requiredLevel = level;
               attribute.setRequiredLevel(level);
             },
-            getRequiredLevel: attribute.getRequiredLevel
+            getRequiredLevel: attribute.getRequiredLevel,
+            fireOnChange: attribute.fireOnChange
           }),
           setVisible: (value: boolean) => {
             state.visible = value;
@@ -208,11 +238,75 @@ function createMockFormContext(config: any, entityId: string, initialValues: Rec
             state.disabled = value;
           },
           getDisabled: () => state.disabled,
+          setFocus: () => {
+            state.focused = true;
+          },
           state
         });
       }
     }
   }
+
+  if (config.processHost?.supported?.controlName) {
+    const controlName = config.processHost.supported.controlName;
+    if (!controls.has(controlName)) {
+      controls.set(controlName, {
+        getAttribute: () => null,
+        setVisible: () => undefined,
+        getVisible: () => true,
+        setDisabled: () => undefined,
+        getDisabled: () => false,
+        setFocus: () => undefined,
+        getContentWindow: async () => ({
+          DBM: {
+            [config.processHost.supported.frameBridgeName]: {
+              render: (props: any) => sectionRenders.push(props)
+            }
+          }
+        }),
+        getObject: () => ({ tagName: 'IFRAME', id: controlName }),
+        state: {
+          controlName,
+          visible: true,
+          disabled: false,
+          requiredLevel: 'none',
+          focused: false
+        }
+      });
+    }
+  }
+
+  const documentElements = new Map<string, any>();
+  const documentBody: any = {
+    firstChild: null,
+    prepend(node: any) {
+      if (node.id) {
+        documentElements.set(node.id, node);
+      }
+      this.firstChild = node;
+    },
+    insertBefore(node: any) {
+      if (node.id) {
+        documentElements.set(node.id, node);
+      }
+      this.firstChild = node;
+    },
+    appendChild(node: any) {
+      if (node.id) {
+        documentElements.set(node.id, node);
+      }
+      this.firstChild = this.firstChild ?? node;
+    }
+  };
+
+  const document = {
+    body: documentBody,
+    getElementById: (id: string) => documentElements.get(id) ?? null,
+    createElement: (_tagName: string) => ({
+      id: '',
+      style: {}
+    })
+  };
 
   const formContext: any = {
     getAttribute: (name: string) => attributes.get(name) ?? null,
@@ -246,7 +340,19 @@ function createMockFormContext(config: any, entityId: string, initialValues: Rec
     controls,
     sections,
     tabs,
-    notifications
+    notifications,
+    sectionRenders,
+    overlayRenders,
+    document,
+    installOverlayBridge(targetSandbox: any) {
+      targetSandbox.document = document;
+      targetSandbox.DBM.ProcessExperienceHost.render = (target: any, props: any) => {
+        overlayRenders.push({
+          targetId: target?.id ?? null,
+          props
+        });
+      };
+    }
   };
 }
 
@@ -260,15 +366,16 @@ test('planDataverseSynthesis maps the approval example into entities, existing f
   assert.equal(plan.relationships.some((relationship) => relationship.logicalName === 'dbm_request_dbm_requestdecision'), true);
   assert.equal(plan.forms.length, 2);
   assert.equal(plan.forms.every((form) => form.supported), true);
-  assert.equal(plan.behaviors.filter((behavior) => behavior.supported).length, 3);
+  assert.equal(plan.behaviors.filter((behavior) => behavior.supported).length, 5);
   assert.equal(plan.summary.supportedForms, 2);
-  assert.equal(plan.summary.supportedBehaviors, 3);
+  assert.equal(plan.summary.supportedBehaviors, 5);
   assert.equal(
     plan.forms.some(
       (form) =>
         form.id === 'request-form' &&
         form.systemFormId === '{8d65fa31-b54d-5d9b-84e0-07d87e113130}' &&
-        form.sections.some((section) => section.sectionName === 'request_supporting_section')
+        form.sections.some((section) => section.sectionName === 'request_supporting_section') &&
+        form.processHost?.supported?.sectionName === 'dbm_process_host_request_form'
     ),
     true
   );
@@ -280,10 +387,19 @@ test('planDataverseSynthesis maps the approval example into entities, existing f
     ),
     true
   );
+  assert.equal(
+    plan.behaviors.some(
+      (behavior) =>
+        behavior.webResourceName === 'ys_/dbm/process-experience/renderer.js' &&
+        behavior.kind === 'process-renderer'
+    ),
+    true
+  );
   assert.ok(requestEntity);
   assert.equal(requestEntity?.columns.some((column) => column.logicalName === 'dbm_currentstageid' && column.source === 'synthetic'), true);
   assert.ok(reviewForm?.runtime);
   assert.equal(reviewForm?.runtime?.decisionOutcomeFieldLogicalName, 'dbm_decisionoutcome');
+  assert.equal(reviewForm?.processHost?.overlay.enabled, true);
 });
 
 test('normalizeReadbackEntity captures lookup targets and picklist values', () => {
@@ -386,6 +502,14 @@ test('emitGeneratedMetadataSolution writes patched forms and behavior web resour
     path.join(outputRoot, 'src', 'WebResources', 'ys_', 'dbm', 'forms', 'runtime.js'),
     'utf8'
   );
+  const rendererJs = await fs.readFile(
+    path.join(outputRoot, 'src', 'WebResources', 'ys_', 'dbm', 'process-experience', 'renderer.js'),
+    'utf8'
+  );
+  const hostHtml = await fs.readFile(
+    path.join(outputRoot, 'src', 'WebResources', 'ys_', 'dbm', 'process-experience', 'host.html'),
+    'utf8'
+  );
   const reviewFormXml = await fs.readFile(
     path.join(outputRoot, 'src', 'Entities', 'dbm_Requestdecision', 'FormXml', 'main', '{4e37e2e6-61cb-544d-848a-9f870ec4cf4d}.xml'),
     'utf8'
@@ -396,17 +520,26 @@ test('emitGeneratedMetadataSolution writes patched forms and behavior web resour
   );
 
   assert.match(solutionXml, /DynamicsBusinessMachineGeneratedMetadata/);
+  assert.match(solutionXml, /type="61" schemaName="ys_\/dbm\/process-experience\/renderer\.js"/);
   assert.match(solutionXml, /type="61" schemaName="ys_\/dbm\/forms\/runtime\.js"/);
   assert.match(requestEntityXml, /<Name>dbm_title<\/Name>/);
   assert.match(requestFormXml, /<formLibraries>/);
+  assert.match(requestFormXml, /ys_\/dbm\/process-experience\/renderer\.js/);
   assert.match(requestFormXml, /ys_\/dbm\/forms\/runtime\.js/);
   assert.match(requestFormXml, /ys_\/dbm\/forms\/config\/request-form\.js/);
+  assert.match(requestFormXml, /WebResource_dbmProcessHost_request_form/);
+  assert.match(requestFormXml, /ys_\/dbm\/process-experience\/host\.html/);
   assert.match(requestFormXml, /<event name="onload"/);
   assert.match(requestConfigJs, /dbmOnLoad_request_form/);
   assert.match(requestConfigJs, /"runtime": \{/);
+  assert.match(requestConfigJs, /"processHost": \{/);
   assert.match(reviewConfigJs, /dbm_decisionoutcome/);
   assert.match(runtimeJs, /DBM\.ProcessRuntime/);
+  assert.match(runtimeJs, /ProcessExperienceHost/);
+  assert.match(rendererJs, /ProcessExperienceHost/);
+  assert.match(hostHtml, /dbm-process-host-root/);
   assert.match(reviewFormXml, /dbm_decisionoutcome/);
+  assert.match(reviewFormXml, /WebResource_dbmProcessHost_review_form/);
   assert.match(runtimeMetadataXml, /<Name>ys_\/dbm\/forms\/runtime\.js<\/Name>/);
 
   await fs.rm(outputRoot, { recursive: true, force: true });
@@ -449,6 +582,7 @@ test('generated request runtime sync advances large requests into supporting det
       dbm_supportingnotes: '',
       dbm_screeningresult: 100000000
     });
+    form.installOverlayBridge(harness.sandbox);
 
     const result = await harness.sync(form.executionContext, harness.config);
 
@@ -466,7 +600,16 @@ test('generated request runtime sync advances large requests into supporting det
     ]);
     assert.equal(form.controls.get('dbm_supportingnotes')?.state.visible, true);
     assert.equal(form.controls.get('dbm_screeningresult')?.state.visible, false);
-    assert.match(form.notifications[0]?.message ?? '', /Capture Supporting Details/);
+    assert.equal(form.sectionRenders.length, 1);
+    assert.equal(form.sectionRenders[0]?.snapshot.currentStepId, 'capture-supporting-details');
+    assert.equal(form.sectionRenders[0]?.mode, 'model-driven-section');
+    assert.equal(form.sectionRenders[0]?.navigationTarget?.controlName, 'dbm_supportingnotes');
+    assert.equal(form.overlayRenders.length, 1);
+    assert.equal(form.overlayRenders[0]?.targetId, harness.config.processHost.overlay.containerId);
+    assert.equal(form.overlayRenders[0]?.props.mode, 'model-driven-overlay');
+    form.sectionRenders[0]?.onNavigateToFormRegion?.(form.sectionRenders[0]?.navigationTarget);
+    assert.equal(form.tabs.get('request_main_tab')?.focused, true);
+    assert.equal(form.controls.get('dbm_supportingnotes')?.state.focused, true);
   } finally {
     await harness.cleanup();
   }
@@ -524,6 +667,7 @@ test('generated request runtime creates a review record when screening completes
       dbm_supportingnotes: '',
       dbm_screeningresult: 100000001
     });
+    form.installOverlayBridge(harness.sandbox);
 
     const result = await harness.sync(form.executionContext, harness.config);
 
@@ -545,8 +689,10 @@ test('generated request runtime creates a review record when screening completes
         dbm_decisionsummary: 'Review request Travel Request.'
       }
     ]);
-    assert.match(form.notifications[1]?.message ?? '', /different DBM form/i);
     assert.equal(form.controls.get('dbm_screeningresult')?.state.disabled, true);
+    assert.equal(form.sectionRenders.length, 1);
+    assert.match(form.sectionRenders[0]?.snapshot.projection.message ?? '', /different DBM form/i);
+    assert.equal(form.overlayRenders.length, 1);
   } finally {
     await harness.cleanup();
   }
@@ -615,6 +761,7 @@ test('generated review runtime uses review-form defaults and resolves lookup val
       dbm_decisionoutcome: null,
       dbm_decisioncomment: ''
     });
+    form.installOverlayBridge(harness.sandbox);
 
     const result = await harness.sync(form.executionContext, harness.config);
 
@@ -632,7 +779,9 @@ test('generated review runtime uses review-form defaults and resolves lookup val
     ]);
     assert.equal(form.controls.get('dbm_decisionoutcome')?.state.visible, true);
     assert.equal(form.controls.get('dbm_decisioncomment')?.state.visible, false);
-    assert.match(form.notifications[0]?.message ?? '', /Manager Review -> Record Approval/);
+    assert.equal(form.sectionRenders.length, 1);
+    assert.equal(form.sectionRenders[0]?.snapshot.currentStepId, 'record-approval');
+    assert.equal(form.overlayRenders.length, 1);
   } finally {
     await harness.cleanup();
   }

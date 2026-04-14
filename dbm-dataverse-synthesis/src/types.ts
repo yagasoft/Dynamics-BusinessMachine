@@ -4,6 +4,10 @@ import type {
   DbmModelV1,
   DbmRelationshipTypeV1
 } from 'dbm-contract';
+import type {
+  DbmProcessExperienceHostConfigV1,
+  DbmProcessExperienceRuntimeModelV1
+} from 'dbm-process-experience' with { "resolution-mode": "import" };
 
 export type DataverseSynthesisSeverity = 'info' | 'warning' | 'error';
 export type DataverseApplyStatus = 'success' | 'warning' | 'error';
@@ -21,7 +25,7 @@ export type DataverseAttributeType =
 export type DataverseApplyActionState = 'created' | 'updated' | 'skipped' | 'failed';
 export type DataverseFormKind = 'main';
 export type DataverseFormFolder = 'main';
-export type DataverseBehaviorKind = 'shared-runtime' | 'form-config';
+export type DataverseBehaviorKind = 'shared-runtime' | 'form-config' | 'process-renderer' | 'process-host-page';
 
 export interface DataverseSynthesisDiagnostic {
   code: string;
@@ -208,6 +212,8 @@ export interface DataverseFormRuntimePlan {
   stepTransitions: DataverseRuntimeStepTransitionPlan[];
   rules: Record<string, string>;
   valueBindings: DataverseRuntimeValueBindingPlan[];
+  decisionOutcomeOptionValuesByOutcomeId: Record<string, number>;
+  processExperienceRuntime: DbmProcessExperienceRuntimeModelV1;
 }
 
 export interface DataverseFormPlan {
@@ -233,6 +239,7 @@ export interface DataverseFormPlan {
   states: DataverseFormStatePlan[];
   configBehaviorId: string;
   runtime: DataverseFormRuntimePlan | null;
+  processHost: DbmProcessExperienceHostConfigV1 | null;
 }
 
 export interface DataverseBehaviorPlan {

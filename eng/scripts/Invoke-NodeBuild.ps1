@@ -7,6 +7,7 @@ param(
 $nodeProjects = @(
     @{ Name = 'dbm-contract'; Path = 'dbm-contract'; OutputPaths = @('dist'); Commands = @('npm ci', 'npm run build') },
     @{ Name = 'dbm-designer-core'; Path = 'dbm-designer-core'; OutputPaths = @('dist'); Commands = @('npm ci', 'npm run build') },
+    @{ Name = 'dbm-process-experience'; Path = 'dbm-process-experience'; OutputPaths = @('dist'); Commands = @('npm ci', 'npm run build') },
     @{ Name = 'dbm-dataverse-synthesis'; Path = 'dbm-dataverse-synthesis'; OutputPaths = @('dist'); Commands = @('npm ci', 'npm run build') },
     @{ Name = 'dbm-live-e2e'; Path = 'dbm-live-e2e'; OutputPaths = @('dist'); Commands = @('npm ci', 'npm run build') },
     @{ Name = 'dbm-app'; Path = 'dbm-designer-shell'; OutputPaths = @('..\dbm-app\bundle'); Commands = @('npm ci', 'npm run build') },

@@ -1,8 +1,15 @@
+import { readFileSync } from 'node:fs';
+import path from 'node:path';
 import type {
   DbmFormElementV1,
   DbmFormStateV1,
   DbmModelV1
 } from 'dbm-contract';
+import type {
+  DbmProcessExperienceHostConfigV1,
+  DbmProcessExperienceNavigationTargetV1,
+  DbmProcessExperienceRuntimeModelV1
+} from 'dbm-process-experience' with { "resolution-mode": "import" };
 import {
   createDeterministicGuid,
   createDiagnostic,
@@ -27,6 +34,12 @@ import type {
 
 export const SHARED_FORM_RUNTIME_BEHAVIOR_ID = 'dbm-shared-form-runtime';
 export const SHARED_FORM_RUNTIME_WEB_RESOURCE_NAME = 'ys_/dbm/forms/runtime.js';
+export const SHARED_PROCESS_EXPERIENCE_RENDERER_BEHAVIOR_ID = 'dbm-process-experience-renderer';
+export const SHARED_PROCESS_EXPERIENCE_RENDERER_WEB_RESOURCE_NAME = 'ys_/dbm/process-experience/renderer.js';
+export const SHARED_PROCESS_EXPERIENCE_HOST_PAGE_BEHAVIOR_ID = 'dbm-process-experience-host-page';
+export const SHARED_PROCESS_EXPERIENCE_HOST_PAGE_WEB_RESOURCE_NAME = 'ys_/dbm/process-experience/host.html';
+export const HTML_WEB_RESOURCE_CLASS_ID = '{9FDF5F91-88B1-47f4-AD53-C11EFC01A01D}';
+const SHARED_PROCESS_EXPERIENCE_SECTION_LABEL = 'DBM Process';
 
 function escapeForJavaScriptString(value: string): string {
   return value
@@ -194,6 +207,216 @@ function buildRuntimeValueBindings(model: DbmModelV1): DataverseRuntimeValueBind
   return bindings;
 }
 
+function invertChoiceMap(choiceMap: Record<string, string> | undefined): Record<string, number> {
+  const inverted: Record<string, number> = {};
+  if (!choiceMap) {
+    return inverted;
+  }
+
+  for (const [rawValue, outcomeId] of Object.entries(choiceMap)) {
+    const numericValue = Number(rawValue);
+    if (!Number.isNaN(numericValue)) {
+      inverted[outcomeId] = numericValue;
+    }
+  }
+
+  return inverted;
+}
+
+function buildProcessExperienceRuntimeModel(model: DbmModelV1): DbmProcessExperienceRuntimeModelV1 {
+  return {
+    packageId: model.package.id,
+    packageVersion: model.package.version,
+    processId: model.process.id,
+    actors: model.process.actors.map((actor) => ({
+      id: actor.id,
+      displayName: actor.displayName,
+      actorType: actor.actorType
+    })),
+    statuses: model.process.statuses.map((status) => ({
+      id: status.id,
+      displayName: status.displayName,
+      audience: status.audience,
+      kind: status.kind
+    })),
+    outcomes: model.process.outcomes.map((outcome) => ({
+      id: outcome.id,
+      displayName: outcome.displayName
+    })),
+    stages: model.process.stages.map((stage) => ({
+      id: stage.id,
+      displayName: stage.displayName,
+      stageType: stage.stageType,
+      actorId: stage.actorId,
+      formId: stage.formId,
+      portalVisibility: stage.portalVisibility,
+      stepIds: [...stage.stepIds],
+      defaultStepId: stage.defaultStepId,
+      allowedOutcomeIds: [...stage.allowedOutcomeIds]
+    })),
+    steps: model.process.steps.map((step) => ({
+      id: step.id,
+      stageId: step.stageId,
+      displayName: step.displayName,
+      stepType: step.stepType,
+      ownerActorId: step.ownerActorId,
+      internalStatusId: step.internalStatusId,
+      portalStatusId: step.portalStatusId,
+      formStateId: step.formStateId
+    })),
+    transitions: model.process.transitions.map((transition) => ({
+      id: transition.id,
+      fromStageId: transition.fromStageId,
+      toStageId: transition.toStageId,
+      outcomeId: transition.outcomeId
+    }))
+  };
+}
+
+function buildStateJumpTarget(
+  formPlan: Pick<DataverseFormPlan, 'sections' | 'states'>,
+  state: DataverseFormStatePlan
+): DbmProcessExperienceNavigationTargetV1 | null {
+  const targetControlName = state.visibleControlNames[0] ?? null;
+  if (!targetControlName) {
+    return null;
+  }
+
+  const section = formPlan.sections.find((candidate) =>
+    candidate.controls.some((control) => control.controlName === targetControlName)
+  );
+
+  if (!section) {
+    return null;
+  }
+
+  return {
+    label: state.displayName,
+    tabName: section.tabName,
+    sectionName: section.sectionName,
+    controlName: targetControlName
+  };
+}
+
+function buildProcessHostConfig(
+  formPlan: Pick<DataverseFormPlan, 'id' | 'sections' | 'states'>,
+  displayName: string,
+  model: DbmModelV1
+): DbmProcessExperienceHostConfigV1 | null {
+  const firstSection = formPlan.sections[0];
+  if (!firstSection) {
+    return null;
+  }
+
+  const safeFormId = sanitizeFunctionIdentifier(formPlan.id);
+  const jumpTargetsByFormStateId = Object.fromEntries(
+    formPlan.states
+      .map((state) => {
+        const target = buildStateJumpTarget(formPlan, state);
+        return target ? [state.id, target] : null;
+      })
+      .filter((entry): entry is [string, DbmProcessExperienceNavigationTargetV1] => Boolean(entry))
+  );
+
+  return {
+    packageId: model.package.id,
+    processId: model.process.id,
+    currentFormId: formPlan.id,
+    supported: {
+      placementMode: 'section',
+      label: SHARED_PROCESS_EXPERIENCE_SECTION_LABEL,
+      tabName: firstSection.tabName,
+      sectionName: `dbm_process_host_${safeFormId}`,
+      sectionId: createDeterministicGuid(`${formPlan.id}:process-host-section`),
+      cellId: createDeterministicGuid(`${formPlan.id}:process-host-cell`),
+      controlName: `WebResource_dbmProcessHost_${safeFormId}`,
+      webResourceName: SHARED_PROCESS_EXPERIENCE_HOST_PAGE_WEB_RESOURCE_NAME,
+      webResourceId: createDeterministicGuid(SHARED_PROCESS_EXPERIENCE_HOST_PAGE_WEB_RESOURCE_NAME),
+      frameBridgeName: 'ProcessExperienceSectionFrame',
+      data: JSON.stringify({
+        formId: formPlan.id,
+        displayName,
+        placement: 'section'
+      })
+    },
+    overlay: {
+      placementMode: 'overlay',
+      enabled: true,
+      containerId: `dbm-process-overlay-${safeFormId}`,
+      capabilityGuard: 'best-effort-dom'
+    },
+    jumpTargetsByFormStateId
+  };
+}
+
+function readSharedProcessExperienceRendererContent(): string {
+  let packageRoot = __dirname;
+  while (path.basename(packageRoot) !== 'dbm-dataverse-synthesis') {
+    const parent = path.dirname(packageRoot);
+    if (parent === packageRoot) {
+      throw new Error('Unable to locate the dbm-dataverse-synthesis package root.');
+    }
+
+    packageRoot = parent;
+  }
+
+  const repoRoot = path.dirname(packageRoot);
+  const bundlePath = path.join(repoRoot, 'dbm-process-experience', 'dist', 'browser', 'renderer.js');
+  return readFileSync(bundlePath, 'utf8');
+}
+
+function buildProcessHostPageContent(): string {
+  return [
+    '<!doctype html>',
+    '<html lang="en">',
+    '<head>',
+    '  <meta charset="utf-8" />',
+    '  <meta name="viewport" content="width=device-width, initial-scale=1" />',
+    '  <title>DBM Process Experience</title>',
+    '  <style>',
+    '    html, body, #dbm-process-host-root { height: 100%; margin: 0; }',
+    '    body { overflow: hidden; background: transparent; font-family: Segoe UI, Arial, sans-serif; }',
+    '  </style>',
+    '</head>',
+    '<body>',
+    '  <div id="dbm-process-host-root"></div>',
+    '  <script>',
+    '    (function () {',
+    '      function getClientUrl() {',
+    '        return window.parent?.Xrm?.Utility?.getGlobalContext?.()?.getClientUrl?.() || \'\';',
+    '      }',
+    '      function bootFrameBridge() {',
+    '        if (!window.DBM || !window.DBM.ProcessExperienceHost) {',
+    '          window.setTimeout(bootFrameBridge, 50);',
+    '          return;',
+    '        }',
+    '        const root = document.getElementById(\'dbm-process-host-root\');',
+    '        window.DBM = window.DBM || {};',
+    '        window.DBM.ProcessExperienceSectionFrame = {',
+    '          render: function (props) {',
+    '            window.DBM.ProcessExperienceHost.render(root, props);',
+    '          },',
+    '          unmount: function () {',
+    '            window.DBM.ProcessExperienceHost.unmount(root);',
+    '          }',
+    '        };',
+    '      }',
+    '      function loadRenderer() {',
+    `        const scriptUrl = getClientUrl().replace(/\\/$/, '') + '/WebResources/${SHARED_PROCESS_EXPERIENCE_RENDERER_WEB_RESOURCE_NAME}';`,
+    '        const script = document.createElement(\'script\');',
+    '        script.src = scriptUrl;',
+    '        script.onload = bootFrameBridge;',
+    '        document.head.appendChild(script);',
+    '      }',
+    '      loadRenderer();',
+    '    })();',
+    '  </script>',
+    '</body>',
+    '</html>',
+    ''
+  ].join('\n');
+}
+
 function buildFormRuntimePlan(
   model: DbmModelV1,
   form: DbmModelV1['forms'][number],
@@ -281,6 +504,11 @@ function buildFormRuntimePlan(
   })();
 
   const valueBindings = buildRuntimeValueBindings(model);
+  const processExperienceRuntime = buildProcessExperienceRuntimeModel(model);
+  const decisionOutcomeOptionValuesByOutcomeId = (() => {
+    const outcomeField = reviewMetadataEntity?.fields.find((entry) => entry.id === 'decision-outcome');
+    return invertChoiceMap(outcomeField ? buildChoiceMap(outcomeField) : undefined);
+  })();
   if (decisionOutcomeFieldLogicalName) {
     const outcomeField = reviewMetadataEntity?.fields.find((entry) => entry.id === 'decision-outcome');
     valueBindings.push({
@@ -345,7 +573,9 @@ function buildFormRuntimePlan(
         .filter((rule) => rule.language === 'dbm-expression-v1')
         .map((rule) => [rule.id, rule.body])
     ),
-    valueBindings
+    valueBindings,
+    decisionOutcomeOptionValuesByOutcomeId,
+    processExperienceRuntime
   };
 }
 
@@ -798,37 +1028,158 @@ function buildSharedRuntimeBehaviorContent(): string {
     }
     return await response.json().catch(() => null);
   }
-  function clearNotifications(formContext) {
-    if (typeof formContext?.ui?.clearFormNotification === 'function') {
-      formContext.ui.clearFormNotification(STATE_NOTIFICATION_ID);
-      formContext.ui.clearFormNotification(ACTION_NOTIFICATION_ID);
-    }
+  function getProcessExperienceBridge() {
+    return global.DBM?.ProcessExperienceHost ?? null;
   }
-  function renderProcessExperience(formContext, config, result) {
-    if (!formContext?.ui?.setFormNotification) {
+  function resolveNavigationTarget(config, formStateId) {
+    if (!formStateId || !config?.processHost?.jumpTargetsByFormStateId) {
+      return null;
+    }
+    return config.processHost.jumpTargetsByFormStateId[formStateId] || null;
+  }
+  function focusNavigationTarget(formContext, target) {
+    if (!target) {
       return;
     }
-    clearNotifications(formContext);
-    const runtime = config.runtime;
-    const stage = getStage(runtime, result.state.stageId);
-    const step = getStep(runtime, result.state.stepId);
-    const stageText = stage?.displayName || result.state.stageId;
-    const stepText = step?.displayName || result.state.stepId;
-    const internalStatus = getStatusDisplayName(runtime, result.state.internalStatusId);
-    const portalStatus = result.state.portalStatusId ? getStatusDisplayName(runtime, result.state.portalStatusId) : 'None';
-    formContext.ui.setFormNotification(
-      'DBM Process: ' + stageText + ' -> ' + stepText + ' | Internal: ' + internalStatus + ' | Portal: ' + portalStatus,
-      'INFO',
-      STATE_NOTIFICATION_ID
-    );
-    const activeStage = getStage(runtime, result.state.stageId);
-    if (activeStage?.formId && activeStage.formId !== config.formId) {
-      formContext.ui.setFormNotification(
-        'This record has moved to a different DBM form. Open the active form to continue the process.',
-        'INFO',
-        ACTION_NOTIFICATION_ID
-      );
+    const tab = target.tabName ? getTab(formContext, target.tabName) : null;
+    if (typeof tab?.setVisible === 'function') {
+      tab.setVisible(true);
     }
+    if (typeof tab?.setFocus === 'function') {
+      tab.setFocus();
+    }
+    const section = target.tabName && target.sectionName ? getSection(formContext, target.tabName, target.sectionName) : null;
+    if (typeof section?.setVisible === 'function') {
+      section.setVisible(true);
+    }
+    const control = target.controlName ? getControl(formContext, target.controlName) : null;
+    if (typeof control?.setVisible === 'function') {
+      control.setVisible(true);
+    }
+    if (typeof control?.setFocus === 'function') {
+      control.setFocus();
+    }
+  }
+  function applyOutcomeSelection(formContext, config, outcomeId) {
+    const runtime = config?.runtime;
+    if (!runtime?.decisionOutcomeFieldLogicalName) {
+      return false;
+    }
+    const optionValue = runtime.decisionOutcomeOptionValuesByOutcomeId?.[outcomeId];
+    if (optionValue === null || optionValue === undefined) {
+      return false;
+    }
+    const attribute = formContext?.getAttribute?.(runtime.decisionOutcomeFieldLogicalName);
+    if (!attribute || typeof attribute.setValue !== 'function') {
+      return false;
+    }
+    attribute.setValue(optionValue);
+    if (typeof attribute.fireOnChange === 'function') {
+      attribute.fireOnChange();
+    }
+    return true;
+  }
+  function buildProcessExperienceProps(formContext, config, result, mode) {
+    const bridge = getProcessExperienceBridge();
+    if (!bridge || typeof bridge.buildRuntimeProcessExperienceSnapshot !== 'function') {
+      return null;
+    }
+    const navigationTarget = resolveNavigationTarget(config, result.state.formStateId);
+    const snapshot = bridge.buildRuntimeProcessExperienceSnapshot(
+      config.runtime.processExperienceRuntime,
+      result.state,
+      {
+        audience: 'internal',
+        currentFormId: config.formId
+      }
+    );
+    return {
+      snapshot,
+      audience: 'internal',
+      mode,
+      navigationTarget,
+      onNavigateToFormRegion: function (target) {
+        focusNavigationTarget(formContext, target);
+      },
+      onInvokeOutcome: function (outcomeId) {
+        if (applyOutcomeSelection(formContext, config, outcomeId)) {
+          void sync(formContext, config);
+        }
+      },
+      onRequestFocus: function () {
+        if (navigationTarget) {
+          focusNavigationTarget(formContext, navigationTarget);
+        }
+      }
+    };
+  }
+  async function renderSectionHost(formContext, config, result, attempt) {
+    const props = buildProcessExperienceProps(formContext, config, result, 'model-driven-section');
+    const controlName = config?.processHost?.supported?.controlName;
+    if (!props || !controlName) {
+      return false;
+    }
+    const control = getControl(formContext, controlName);
+    if (!control || typeof control.getContentWindow !== 'function') {
+      return false;
+    }
+    const contentWindow = await control.getContentWindow().catch(() => null);
+    const frame = contentWindow?.DBM?.[config.processHost.supported.frameBridgeName];
+    if (frame && typeof frame.render === 'function') {
+      frame.render(props);
+      return true;
+    }
+    if ((attempt || 0) < 6) {
+      global.setTimeout(function () {
+        void renderSectionHost(formContext, config, result, (attempt || 0) + 1);
+      }, 120);
+    }
+    return false;
+  }
+  function ensureOverlayContainer(config) {
+    if (!global.document?.body || !config?.processHost?.overlay?.containerId) {
+      return null;
+    }
+    const existing = global.document.getElementById(config.processHost.overlay.containerId);
+    if (existing) {
+      return existing;
+    }
+    const container = global.document.createElement('div');
+    container.id = config.processHost.overlay.containerId;
+    container.style.position = 'sticky';
+    container.style.top = '0';
+    container.style.zIndex = '30';
+    container.style.margin = '0 0 16px';
+    container.style.background = 'transparent';
+    container.style.padding = '8px 0';
+    if (typeof global.document.body.prepend === 'function') {
+      global.document.body.prepend(container);
+    } else if (global.document.body.firstChild) {
+      global.document.body.insertBefore(container, global.document.body.firstChild);
+    } else {
+      global.document.body.appendChild(container);
+    }
+    return container;
+  }
+  function renderOverlayHost(formContext, config, result) {
+    if (!config?.processHost?.overlay?.enabled) {
+      return false;
+    }
+    const bridge = getProcessExperienceBridge();
+    const container = ensureOverlayContainer(config);
+    if (!bridge || typeof bridge.render !== 'function' || !container) {
+      return false;
+    }
+    const props = buildProcessExperienceProps(formContext, config, result, 'model-driven-overlay');
+    if (!props) {
+      return false;
+    }
+    bridge.render(container, props);
+    return true;
+  }
+  async function renderProcessExperience(formContext, config, result) {
+    await renderSectionHost(formContext, config, result, 0);
+    renderOverlayHost(formContext, config, result);
   }
   async function ensureReviewRecord(runtime, requestId, values) {
     if (!requestId || !runtime.reviewEntityLogicalName || !runtime.reviewEntityRequestLookupFieldLogicalName || !runtime.decisionSummaryFieldLogicalName) {
@@ -913,7 +1264,7 @@ function buildSharedRuntimeBehaviorContent(): string {
     } else {
       applyState(executionContext, config, result.state.formStateId || config.defaultStateId);
     }
-    renderProcessExperience(formContext, config, result);
+    await renderProcessExperience(formContext, config, result);
     return result;
   }
   function initialize(executionContext, config) {
@@ -964,7 +1315,8 @@ function buildFormConfigBehaviorContent(formPlan: DataverseFormPlan): string {
       }))
     })),
     states: formPlan.states,
-    runtime: formPlan.runtime
+    runtime: formPlan.runtime,
+    processHost: formPlan.processHost
   };
 
   return [
@@ -1181,6 +1533,10 @@ function createFormPlan(
   const configFunctionName = sanitizeFunctionIdentifier(`dbmOnLoad_${form.id}`);
   const libraries: DataverseFormLibraryPlan[] = [
     {
+      name: SHARED_PROCESS_EXPERIENCE_RENDERER_WEB_RESOURCE_NAME,
+      libraryUniqueId: createDeterministicGuid(`${form.id}:process-renderer-library`)
+    },
+    {
       name: SHARED_FORM_RUNTIME_WEB_RESOURCE_NAME,
       libraryUniqueId: createDeterministicGuid(`${form.id}:runtime-library`)
     },
@@ -1205,6 +1561,16 @@ function createFormPlan(
   ];
 
   const runtimePlan = buildFormRuntimePlan(model, form, entityPlans, primaryEntityPlan, diagnostics);
+  const states = buildStatePlans(form, controlsByElementId);
+  const processHost = buildProcessHostConfig(
+    {
+      id: form.id,
+      sections,
+      states
+    },
+    form.displayName,
+    model
+  );
 
   const plan: DataverseFormPlan = {
     id: form.id,
@@ -1222,6 +1588,7 @@ function createFormPlan(
       primaryBinding?.role === 'primary' &&
       Boolean(primaryEntityPlan) &&
       Boolean(runtimePlan) &&
+      Boolean(processHost) &&
       sections.every((section) => section.tabName && section.sectionName) &&
       form.elements.length === controlsByElementId.size,
     reason: null,
@@ -1233,9 +1600,10 @@ function createFormPlan(
     managedFormLibrariesXml: buildFormLibrariesXml(libraries),
     managedEventsXml: buildFormEventsXml(eventHandlers),
     defaultFormStateId: getDefaultFormStateId(model, form.id),
-    states: buildStatePlans(form, controlsByElementId),
+    states,
     configBehaviorId,
-    runtime: runtimePlan
+    runtime: runtimePlan,
+    processHost
   };
 
   if (!plan.supported && !plan.reason) {
@@ -1256,6 +1624,32 @@ export function planExistingDataverseForms(
   const forms = model.forms.map((form) => createFormPlan(model, form, entityPlans, diagnostics));
 
   const behaviors: DataverseBehaviorPlan[] = [
+    {
+      id: SHARED_PROCESS_EXPERIENCE_RENDERER_BEHAVIOR_ID,
+      kind: 'process-renderer',
+      displayName: 'DBM Process Experience Renderer',
+      webResourceName: SHARED_PROCESS_EXPERIENCE_RENDERER_WEB_RESOURCE_NAME,
+      webResourceId: createDeterministicGuid(SHARED_PROCESS_EXPERIENCE_RENDERER_WEB_RESOURCE_NAME),
+      supported: true,
+      reason: null,
+      webResourceType: 3,
+      relativePath: 'src/WebResources/ys_/dbm/process-experience/renderer.js',
+      content: readSharedProcessExperienceRendererContent(),
+      attachedFormIds: forms.filter((form) => form.supported).map((form) => form.id)
+    },
+    {
+      id: SHARED_PROCESS_EXPERIENCE_HOST_PAGE_BEHAVIOR_ID,
+      kind: 'process-host-page',
+      displayName: 'DBM Process Experience Host Page',
+      webResourceName: SHARED_PROCESS_EXPERIENCE_HOST_PAGE_WEB_RESOURCE_NAME,
+      webResourceId: createDeterministicGuid(SHARED_PROCESS_EXPERIENCE_HOST_PAGE_WEB_RESOURCE_NAME),
+      supported: true,
+      reason: null,
+      webResourceType: 1,
+      relativePath: 'src/WebResources/ys_/dbm/process-experience/host.html',
+      content: buildProcessHostPageContent(),
+      attachedFormIds: forms.filter((form) => form.supported).map((form) => form.id)
+    },
     {
       id: SHARED_FORM_RUNTIME_BEHAVIOR_ID,
       kind: 'shared-runtime',

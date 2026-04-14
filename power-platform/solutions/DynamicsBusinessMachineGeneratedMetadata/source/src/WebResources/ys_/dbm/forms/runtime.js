@@ -445,37 +445,158 @@
     }
     return await response.json().catch(() => null);
   }
-  function clearNotifications(formContext) {
-    if (typeof formContext?.ui?.clearFormNotification === 'function') {
-      formContext.ui.clearFormNotification(STATE_NOTIFICATION_ID);
-      formContext.ui.clearFormNotification(ACTION_NOTIFICATION_ID);
-    }
+  function getProcessExperienceBridge() {
+    return global.DBM?.ProcessExperienceHost ?? null;
   }
-  function renderProcessExperience(formContext, config, result) {
-    if (!formContext?.ui?.setFormNotification) {
+  function resolveNavigationTarget(config, formStateId) {
+    if (!formStateId || !config?.processHost?.jumpTargetsByFormStateId) {
+      return null;
+    }
+    return config.processHost.jumpTargetsByFormStateId[formStateId] || null;
+  }
+  function focusNavigationTarget(formContext, target) {
+    if (!target) {
       return;
     }
-    clearNotifications(formContext);
-    const runtime = config.runtime;
-    const stage = getStage(runtime, result.state.stageId);
-    const step = getStep(runtime, result.state.stepId);
-    const stageText = stage?.displayName || result.state.stageId;
-    const stepText = step?.displayName || result.state.stepId;
-    const internalStatus = getStatusDisplayName(runtime, result.state.internalStatusId);
-    const portalStatus = result.state.portalStatusId ? getStatusDisplayName(runtime, result.state.portalStatusId) : 'None';
-    formContext.ui.setFormNotification(
-      'DBM Process: ' + stageText + ' -> ' + stepText + ' | Internal: ' + internalStatus + ' | Portal: ' + portalStatus,
-      'INFO',
-      STATE_NOTIFICATION_ID
-    );
-    const activeStage = getStage(runtime, result.state.stageId);
-    if (activeStage?.formId && activeStage.formId !== config.formId) {
-      formContext.ui.setFormNotification(
-        'This record has moved to a different DBM form. Open the active form to continue the process.',
-        'INFO',
-        ACTION_NOTIFICATION_ID
-      );
+    const tab = target.tabName ? getTab(formContext, target.tabName) : null;
+    if (typeof tab?.setVisible === 'function') {
+      tab.setVisible(true);
     }
+    if (typeof tab?.setFocus === 'function') {
+      tab.setFocus();
+    }
+    const section = target.tabName && target.sectionName ? getSection(formContext, target.tabName, target.sectionName) : null;
+    if (typeof section?.setVisible === 'function') {
+      section.setVisible(true);
+    }
+    const control = target.controlName ? getControl(formContext, target.controlName) : null;
+    if (typeof control?.setVisible === 'function') {
+      control.setVisible(true);
+    }
+    if (typeof control?.setFocus === 'function') {
+      control.setFocus();
+    }
+  }
+  function applyOutcomeSelection(formContext, config, outcomeId) {
+    const runtime = config?.runtime;
+    if (!runtime?.decisionOutcomeFieldLogicalName) {
+      return false;
+    }
+    const optionValue = runtime.decisionOutcomeOptionValuesByOutcomeId?.[outcomeId];
+    if (optionValue === null || optionValue === undefined) {
+      return false;
+    }
+    const attribute = formContext?.getAttribute?.(runtime.decisionOutcomeFieldLogicalName);
+    if (!attribute || typeof attribute.setValue !== 'function') {
+      return false;
+    }
+    attribute.setValue(optionValue);
+    if (typeof attribute.fireOnChange === 'function') {
+      attribute.fireOnChange();
+    }
+    return true;
+  }
+  function buildProcessExperienceProps(formContext, config, result, mode) {
+    const bridge = getProcessExperienceBridge();
+    if (!bridge || typeof bridge.buildRuntimeProcessExperienceSnapshot !== 'function') {
+      return null;
+    }
+    const navigationTarget = resolveNavigationTarget(config, result.state.formStateId);
+    const snapshot = bridge.buildRuntimeProcessExperienceSnapshot(
+      config.runtime.processExperienceRuntime,
+      result.state,
+      {
+        audience: 'internal',
+        currentFormId: config.formId
+      }
+    );
+    return {
+      snapshot,
+      audience: 'internal',
+      mode,
+      navigationTarget,
+      onNavigateToFormRegion: function (target) {
+        focusNavigationTarget(formContext, target);
+      },
+      onInvokeOutcome: function (outcomeId) {
+        if (applyOutcomeSelection(formContext, config, outcomeId)) {
+          void sync(formContext, config);
+        }
+      },
+      onRequestFocus: function () {
+        if (navigationTarget) {
+          focusNavigationTarget(formContext, navigationTarget);
+        }
+      }
+    };
+  }
+  async function renderSectionHost(formContext, config, result, attempt) {
+    const props = buildProcessExperienceProps(formContext, config, result, 'model-driven-section');
+    const controlName = config?.processHost?.supported?.controlName;
+    if (!props || !controlName) {
+      return false;
+    }
+    const control = getControl(formContext, controlName);
+    if (!control || typeof control.getContentWindow !== 'function') {
+      return false;
+    }
+    const contentWindow = await control.getContentWindow().catch(() => null);
+    const frame = contentWindow?.DBM?.[config.processHost.supported.frameBridgeName];
+    if (frame && typeof frame.render === 'function') {
+      frame.render(props);
+      return true;
+    }
+    if ((attempt || 0) < 6) {
+      global.setTimeout(function () {
+        void renderSectionHost(formContext, config, result, (attempt || 0) + 1);
+      }, 120);
+    }
+    return false;
+  }
+  function ensureOverlayContainer(config) {
+    if (!global.document?.body || !config?.processHost?.overlay?.containerId) {
+      return null;
+    }
+    const existing = global.document.getElementById(config.processHost.overlay.containerId);
+    if (existing) {
+      return existing;
+    }
+    const container = global.document.createElement('div');
+    container.id = config.processHost.overlay.containerId;
+    container.style.position = 'sticky';
+    container.style.top = '0';
+    container.style.zIndex = '30';
+    container.style.margin = '0 0 16px';
+    container.style.background = 'transparent';
+    container.style.padding = '8px 0';
+    if (typeof global.document.body.prepend === 'function') {
+      global.document.body.prepend(container);
+    } else if (global.document.body.firstChild) {
+      global.document.body.insertBefore(container, global.document.body.firstChild);
+    } else {
+      global.document.body.appendChild(container);
+    }
+    return container;
+  }
+  function renderOverlayHost(formContext, config, result) {
+    if (!config?.processHost?.overlay?.enabled) {
+      return false;
+    }
+    const bridge = getProcessExperienceBridge();
+    const container = ensureOverlayContainer(config);
+    if (!bridge || typeof bridge.render !== 'function' || !container) {
+      return false;
+    }
+    const props = buildProcessExperienceProps(formContext, config, result, 'model-driven-overlay');
+    if (!props) {
+      return false;
+    }
+    bridge.render(container, props);
+    return true;
+  }
+  async function renderProcessExperience(formContext, config, result) {
+    await renderSectionHost(formContext, config, result, 0);
+    renderOverlayHost(formContext, config, result);
   }
   async function ensureReviewRecord(runtime, requestId, values) {
     if (!requestId || !runtime.reviewEntityLogicalName || !runtime.reviewEntityRequestLookupFieldLogicalName || !runtime.decisionSummaryFieldLogicalName) {
@@ -560,7 +681,7 @@
     } else {
       applyState(executionContext, config, result.state.formStateId || config.defaultStateId);
     }
-    renderProcessExperience(formContext, config, result);
+    await renderProcessExperience(formContext, config, result);
     return result;
   }
   function initialize(executionContext, config) {

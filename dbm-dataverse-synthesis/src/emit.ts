@@ -449,8 +449,75 @@ function replaceXmlNode(xml: string, nodeName: string, replacement: string): str
   return xml.replace(/<\/form>/i, `${replacement}\n    </form>`);
 }
 
+function escapeForRegex(value: string): string {
+  return value.replace(/[.*+?^${}()|[\]\\]/g, '\\$&');
+}
+
+function buildProcessHostSectionXml(formPlan: DataverseFormPlan): string {
+  const processHost = formPlan.processHost?.supported;
+  if (!processHost) {
+    return '';
+  }
+
+  return [
+    `                <section name="${processHost.sectionName}" id="${processHost.sectionId}" IsUserDefined="1" showlabel="false" showbar="false" columns="1">`,
+    '                  <labels>',
+    `                    <label description="${processHost.label}" languagecode="1033" />`,
+    '                  </labels>',
+    '                  <rows>',
+    '                    <row>',
+    `                      <cell id="${processHost.cellId}" showlabel="false" rowspan="4">`,
+    '                        <labels>',
+    `                          <label description="${processHost.label}" languagecode="1033" />`,
+    '                        </labels>',
+    `                        <control id="${processHost.controlName}" classid="{9FDF5F91-88B1-47f4-AD53-C11EFC01A01D}">`,
+    '                          <parameters>',
+    `                            <Url>${processHost.webResourceName}</Url>`,
+    `                            <Data>${encodeURIComponent(processHost.data)}</Data>`,
+    '                            <PassParameters>false</PassParameters>',
+    '                            <ShowOnMobileClient>false</ShowOnMobileClient>',
+    '                            <Security>false</Security>',
+    '                            <Scrolling>auto</Scrolling>',
+    '                            <Border>false</Border>',
+    `                            <WebResourceId>${processHost.webResourceId}</WebResourceId>`,
+    '                          </parameters>',
+    '                        </control>',
+    '                      </cell>',
+    '                    </row>',
+    '                    <row />',
+    '                    <row />',
+    '                    <row />',
+    '                  </rows>',
+    '                </section>'
+  ].join('\n');
+}
+
+function insertProcessHostSection(xml: string, formPlan: DataverseFormPlan): string {
+  const processHost = formPlan.processHost?.supported;
+  if (!processHost) {
+    return xml;
+  }
+
+  const sectionXml = buildProcessHostSectionXml(formPlan);
+  if (!sectionXml) {
+    return xml;
+  }
+
+  const sectionsPattern = new RegExp(
+    `(<tab\\b[^>]*name="${escapeForRegex(processHost.tabName)}"[^>]*>[\\s\\S]*?<columns>\\s*<column[^>]*>\\s*<sections>)`,
+    'i'
+  );
+
+  if (sectionsPattern.test(xml)) {
+    return xml.replace(sectionsPattern, `$1\n${sectionXml}`);
+  }
+
+  return xml;
+}
+
 function patchFormXml(formXml: string, formPlan: DataverseFormPlan): string {
   let patchedXml = formXml.replace(/\r\n/g, '\n');
+  patchedXml = insertProcessHostSection(patchedXml, formPlan);
   patchedXml = replaceXmlNode(patchedXml, 'formLibraries', formPlan.managedFormLibrariesXml);
   patchedXml = replaceXmlNode(patchedXml, 'events', formPlan.managedEventsXml);
   return patchedXml.endsWith('\n') ? patchedXml : `${patchedXml}\n`;

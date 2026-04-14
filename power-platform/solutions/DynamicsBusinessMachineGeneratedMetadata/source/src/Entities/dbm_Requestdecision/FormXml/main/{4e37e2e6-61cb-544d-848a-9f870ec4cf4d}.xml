@@ -14,6 +14,35 @@
           <columns>
             <column width="50%">
               <sections>
+                <section name="dbm_process_host_review_form" id="{f0176f82-f54a-58a5-ab77-bcbc87d263f7}" IsUserDefined="1" showlabel="false" showbar="false" columns="1">
+                  <labels>
+                    <label description="DBM Process" languagecode="1033" />
+                  </labels>
+                  <rows>
+                    <row>
+                      <cell id="{978218e5-193e-5803-a506-52c0e44fdbfe}" showlabel="false" rowspan="4">
+                        <labels>
+                          <label description="DBM Process" languagecode="1033" />
+                        </labels>
+                        <control id="WebResource_dbmProcessHost_review_form" classid="{9FDF5F91-88B1-47f4-AD53-C11EFC01A01D}">
+                          <parameters>
+                            <Url>ys_/dbm/process-experience/host.html</Url>
+                            <Data>%7B%22formId%22%3A%22review-form%22%2C%22displayName%22%3A%22Review%20Form%22%2C%22placement%22%3A%22section%22%7D</Data>
+                            <PassParameters>false</PassParameters>
+                            <ShowOnMobileClient>false</ShowOnMobileClient>
+                            <Security>false</Security>
+                            <Scrolling>auto</Scrolling>
+                            <Border>false</Border>
+                            <WebResourceId>{df0e9bb8-596f-5294-9398-7db0010a0948}</WebResourceId>
+                          </parameters>
+                        </control>
+                      </cell>
+                    </row>
+                    <row />
+                    <row />
+                    <row />
+                  </rows>
+                </section>
                 <section name="review_summary_section" id="{4e37e2e6-61cb-544d-848a-9f870ec4cf41}" IsUserDefined="1" showlabel="true" showbar="false" columns="1">
                   <labels>
                     <label description="Review Summary" languagecode="1033" />
@@ -78,6 +107,7 @@
         <rows />
       </header>
       <formLibraries>
+    <Library name="ys_/dbm/process-experience/renderer.js" libraryUniqueId="{2476b0fa-62f8-5df6-b69c-d7287fdfaee7}" />
     <Library name="ys_/dbm/forms/runtime.js" libraryUniqueId="{7d6edff9-b01c-573f-a609-27ea5ad25267}" />
     <Library name="ys_/dbm/forms/config/review-form.js" libraryUniqueId="{b1b4bdb0-c5ca-5926-ba73-dbb35d22e60f}" />
   </formLibraries>

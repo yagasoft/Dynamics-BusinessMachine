@@ -1,4 +1,5 @@
 import type { DbmElementTypeV1, DbmFieldDataTypeV1, DbmModelV1, DbmRelationshipTypeV1 } from 'dbm-contract';
+import type { DbmProcessExperienceHostConfigV1, DbmProcessExperienceRuntimeModelV1 } from 'dbm-process-experience' with { "resolution-mode": "import" };
 export type DataverseSynthesisSeverity = 'info' | 'warning' | 'error';
 export type DataverseApplyStatus = 'success' | 'warning' | 'error';
 export type DataversePlanSource = 'field' | 'synthetic';
@@ -6,7 +7,7 @@ export type DataverseAttributeType = 'String' | 'Memo' | 'Money' | 'Integer' | '
 export type DataverseApplyActionState = 'created' | 'updated' | 'skipped' | 'failed';
 export type DataverseFormKind = 'main';
 export type DataverseFormFolder = 'main';
-export type DataverseBehaviorKind = 'shared-runtime' | 'form-config';
+export type DataverseBehaviorKind = 'shared-runtime' | 'form-config' | 'process-renderer' | 'process-host-page';
 export interface DataverseSynthesisDiagnostic {
     code: string;
     severity: DataverseSynthesisSeverity;
@@ -175,6 +176,8 @@ export interface DataverseFormRuntimePlan {
     stepTransitions: DataverseRuntimeStepTransitionPlan[];
     rules: Record<string, string>;
     valueBindings: DataverseRuntimeValueBindingPlan[];
+    decisionOutcomeOptionValuesByOutcomeId: Record<string, number>;
+    processExperienceRuntime: DbmProcessExperienceRuntimeModelV1;
 }
 export interface DataverseFormPlan {
     id: string;
@@ -199,6 +202,7 @@ export interface DataverseFormPlan {
     states: DataverseFormStatePlan[];
     configBehaviorId: string;
     runtime: DataverseFormRuntimePlan | null;
+    processHost: DbmProcessExperienceHostConfigV1 | null;
 }
 export interface DataverseBehaviorPlan {
     id: string;

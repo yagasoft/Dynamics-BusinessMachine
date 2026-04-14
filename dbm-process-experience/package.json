@@ -1,0 +1,29 @@
+{
+  "name": "dbm-process-experience",
+  "version": "0.0.0",
+  "private": true,
+  "type": "module",
+  "scripts": {
+    "vite": "npx -p node@20.19.0 node ./node_modules/vite/bin/vite.js",
+    "vitest": "npx -p node@20.19.0 node ./node_modules/vitest/vitest.mjs",
+    "build": "npm --prefix ../dbm-contract run build && tsc -p tsconfig.json && npm run vite -- build",
+    "test": "npm run vitest -- run"
+  },
+  "dependencies": {
+    "react": "19.2.5",
+    "react-dom": "19.2.5"
+  },
+  "devDependencies": {
+    "@rolldown/binding-win32-x64-msvc": "^1.0.0-rc.15",
+    "@testing-library/react": "^16.3.2",
+    "@testing-library/user-event": "^14.6.1",
+    "@types/node": "^24.10.0",
+    "@types/react": "19.2.14",
+    "@types/react-dom": "19.2.3",
+    "@vitejs/plugin-react-swc": "4.3.0",
+    "jsdom": "29.0.2",
+    "typescript": "6.0.2",
+    "vite": "8.0.8",
+    "vitest": "4.1.4"
+  }
+}

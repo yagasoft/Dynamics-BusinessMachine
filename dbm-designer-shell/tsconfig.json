@@ -8,6 +8,7 @@
     "esModuleInterop": true,
     "allowSyntheticDefaultImports": true,
     "skipLibCheck": true,
+    "ignoreDeprecations": "6.0",
     "types": [
       "vitest/globals"
     ],
@@ -18,6 +19,9 @@
       ],
       "dbm-designer-core": [
         "../dbm-designer-core/dist/index.d.ts"
+      ],
+      "dbm-process-experience": [
+        "../dbm-process-experience/dist/src/index.d.ts"
       ]
     }
   },

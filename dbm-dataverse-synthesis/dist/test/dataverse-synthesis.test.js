@@ -17,6 +17,7 @@ function jsonResponse(status, payload) {
     });
 }
 async function createRuntimeHarness(formId) {
+    const { buildRuntimeProcessExperienceSnapshot } = await import('dbm-process-experience');
     const plan = (0, index_1.planDataverseSynthesis)(approval_request_v1_model_json_1.default);
     const outputRoot = node_path_1.default.join(process.cwd(), 'dist', 'runtime-test-output', `${formId}-${Date.now()}-${Math.random().toString(16).slice(2)}`);
     const templateRoot = node_path_1.default.join(process.cwd(), '..', 'power-platform', 'solutions', 'DynamicsBusinessMachineGeneratedMetadata', 'template');
@@ -47,6 +48,11 @@ async function createRuntimeHarness(formId) {
     sandbox.globalThis = sandbox;
     const context = (0, node_vm_1.createContext)(sandbox);
     (0, node_vm_1.runInContext)(runtimeJs, context);
+    sandbox.DBM.ProcessExperienceHost = {
+        buildRuntimeProcessExperienceSnapshot,
+        render: () => undefined,
+        unmount: () => undefined
+    };
     const originalInitialize = sandbox.DBM.ProcessRuntime.initialize;
     let capturedConfig = null;
     sandbox.DBM.ProcessRuntime.initialize = (_executionContext, config) => {
@@ -70,11 +76,14 @@ function createMockFormContext(config, entityId, initialValues) {
     const controls = new Map();
     const sections = new Map();
     const tabs = new Map();
+    const sectionRenders = [];
+    const overlayRenders = [];
     const notifications = [];
     for (const sectionConfig of config.sections) {
         if (!tabs.has(sectionConfig.tabName)) {
             tabs.set(sectionConfig.tabName, {
                 visible: true,
+                focused: false,
                 sections: {
                     get: (name) => sections.get(`${sectionConfig.tabName}:${name}`) ?? null
                 },
@@ -83,6 +92,9 @@ function createMockFormContext(config, entityId, initialValues) {
                 },
                 getVisible() {
                     return this.visible;
+                },
+                setFocus() {
+                    this.focused = true;
                 }
             });
         }
@@ -110,7 +122,8 @@ function createMockFormContext(config, entityId, initialValues) {
                     setRequiredLevel: (level) => {
                         requiredLevel = level;
                     },
-                    getRequiredLevel: () => requiredLevel
+                    getRequiredLevel: () => requiredLevel,
+                    fireOnChange: () => undefined
                 });
             }
             if (!controls.has(controlConfig.controlName)) {
@@ -118,7 +131,8 @@ function createMockFormContext(config, entityId, initialValues) {
                     controlName: controlConfig.controlName,
                     visible: true,
                     disabled: false,
-                    requiredLevel: 'none'
+                    requiredLevel: 'none',
+                    focused: false
                 };
                 const attribute = attributes.get(controlConfig.controlName);
                 controls.set(controlConfig.controlName, {
@@ -129,7 +143,8 @@ function createMockFormContext(config, entityId, initialValues) {
                             state.requiredLevel = level;
                             attribute.setRequiredLevel(level);
                         },
-                        getRequiredLevel: attribute.getRequiredLevel
+                        getRequiredLevel: attribute.getRequiredLevel,
+                        fireOnChange: attribute.fireOnChange
                     }),
                     setVisible: (value) => {
                         state.visible = value;
@@ -139,11 +154,72 @@ function createMockFormContext(config, entityId, initialValues) {
                         state.disabled = value;
                     },
                     getDisabled: () => state.disabled,
+                    setFocus: () => {
+                        state.focused = true;
+                    },
                     state
                 });
             }
         }
     }
+    if (config.processHost?.supported?.controlName) {
+        const controlName = config.processHost.supported.controlName;
+        if (!controls.has(controlName)) {
+            controls.set(controlName, {
+                getAttribute: () => null,
+                setVisible: () => undefined,
+                getVisible: () => true,
+                setDisabled: () => undefined,
+                getDisabled: () => false,
+                setFocus: () => undefined,
+                getContentWindow: async () => ({
+                    DBM: {
+                        [config.processHost.supported.frameBridgeName]: {
+                            render: (props) => sectionRenders.push(props)
+                        }
+                    }
+                }),
+                getObject: () => ({ tagName: 'IFRAME', id: controlName }),
+                state: {
+                    controlName,
+                    visible: true,
+                    disabled: false,
+                    requiredLevel: 'none',
+                    focused: false
+                }
+            });
+        }
+    }
+    const documentElements = new Map();
+    const documentBody = {
+        firstChild: null,
+        prepend(node) {
+            if (node.id) {
+                documentElements.set(node.id, node);
+            }
+            this.firstChild = node;
+        },
+        insertBefore(node) {
+            if (node.id) {
+                documentElements.set(node.id, node);
+            }
+            this.firstChild = node;
+        },
+        appendChild(node) {
+            if (node.id) {
+                documentElements.set(node.id, node);
+            }
+            this.firstChild = this.firstChild ?? node;
+        }
+    };
+    const document = {
+        body: documentBody,
+        getElementById: (id) => documentElements.get(id) ?? null,
+        createElement: (_tagName) => ({
+            id: '',
+            style: {}
+        })
+    };
     const formContext = {
         getAttribute: (name) => attributes.get(name) ?? null,
         getControl: (name) => controls.get(name) ?? null,
@@ -175,7 +251,19 @@ function createMockFormContext(config, entityId, initialValues) {
         controls,
         sections,
         tabs,
-        notifications
+        notifications,
+        sectionRenders,
+        overlayRenders,
+        document,
+        installOverlayBridge(targetSandbox) {
+            targetSandbox.document = document;
+            targetSandbox.DBM.ProcessExperienceHost.render = (target, props) => {
+                overlayRenders.push({
+                    targetId: target?.id ?? null,
+                    props
+                });
+            };
+        }
     };
 }
 (0, node_test_1.default)('planDataverseSynthesis maps the approval example into entities, existing forms, and JS behaviors', () => {
@@ -187,18 +275,22 @@ function createMockFormContext(config, entityId, initialValues) {
     strict_1.default.equal(plan.relationships.some((relationship) => relationship.logicalName === 'dbm_request_dbm_requestdecision'), true);
     strict_1.default.equal(plan.forms.length, 2);
     strict_1.default.equal(plan.forms.every((form) => form.supported), true);
-    strict_1.default.equal(plan.behaviors.filter((behavior) => behavior.supported).length, 3);
+    strict_1.default.equal(plan.behaviors.filter((behavior) => behavior.supported).length, 5);
     strict_1.default.equal(plan.summary.supportedForms, 2);
-    strict_1.default.equal(plan.summary.supportedBehaviors, 3);
+    strict_1.default.equal(plan.summary.supportedBehaviors, 5);
     strict_1.default.equal(plan.forms.some((form) => form.id === 'request-form' &&
         form.systemFormId === '{8d65fa31-b54d-5d9b-84e0-07d87e113130}' &&
-        form.sections.some((section) => section.sectionName === 'request_supporting_section')), true);
+        form.sections.some((section) => section.sectionName === 'request_supporting_section') &&
+        form.processHost?.supported?.sectionName === 'dbm_process_host_request_form'), true);
     strict_1.default.equal(plan.behaviors.some((behavior) => behavior.webResourceName === 'ys_/dbm/forms/config/request-form.js' &&
         behavior.kind === 'form-config'), true);
+    strict_1.default.equal(plan.behaviors.some((behavior) => behavior.webResourceName === 'ys_/dbm/process-experience/renderer.js' &&
+        behavior.kind === 'process-renderer'), true);
     strict_1.default.ok(requestEntity);
     strict_1.default.equal(requestEntity?.columns.some((column) => column.logicalName === 'dbm_currentstageid' && column.source === 'synthetic'), true);
     strict_1.default.ok(reviewForm?.runtime);
     strict_1.default.equal(reviewForm?.runtime?.decisionOutcomeFieldLogicalName, 'dbm_decisionoutcome');
+    strict_1.default.equal(reviewForm?.processHost?.overlay.enabled, true);
 });
 (0, node_test_1.default)('normalizeReadbackEntity captures lookup targets and picklist values', () => {
     const entity = (0, index_1.normalizeReadbackEntity)({
@@ -273,20 +365,31 @@ function createMockFormContext(config, entityId, initialValues) {
     const requestConfigJs = await node_fs_1.promises.readFile(node_path_1.default.join(outputRoot, 'src', 'WebResources', 'ys_', 'dbm', 'forms', 'config', 'request-form.js'), 'utf8');
     const reviewConfigJs = await node_fs_1.promises.readFile(node_path_1.default.join(outputRoot, 'src', 'WebResources', 'ys_', 'dbm', 'forms', 'config', 'review-form.js'), 'utf8');
     const runtimeJs = await node_fs_1.promises.readFile(node_path_1.default.join(outputRoot, 'src', 'WebResources', 'ys_', 'dbm', 'forms', 'runtime.js'), 'utf8');
+    const rendererJs = await node_fs_1.promises.readFile(node_path_1.default.join(outputRoot, 'src', 'WebResources', 'ys_', 'dbm', 'process-experience', 'renderer.js'), 'utf8');
+    const hostHtml = await node_fs_1.promises.readFile(node_path_1.default.join(outputRoot, 'src', 'WebResources', 'ys_', 'dbm', 'process-experience', 'host.html'), 'utf8');
     const reviewFormXml = await node_fs_1.promises.readFile(node_path_1.default.join(outputRoot, 'src', 'Entities', 'dbm_Requestdecision', 'FormXml', 'main', '{4e37e2e6-61cb-544d-848a-9f870ec4cf4d}.xml'), 'utf8');
     const runtimeMetadataXml = await node_fs_1.promises.readFile(node_path_1.default.join(outputRoot, 'src', 'WebResources', 'ys_', 'dbm', 'forms', 'runtime.js.data.xml'), 'utf8');
     strict_1.default.match(solutionXml, /DynamicsBusinessMachineGeneratedMetadata/);
+    strict_1.default.match(solutionXml, /type="61" schemaName="ys_\/dbm\/process-experience\/renderer\.js"/);
     strict_1.default.match(solutionXml, /type="61" schemaName="ys_\/dbm\/forms\/runtime\.js"/);
     strict_1.default.match(requestEntityXml, /<Name>dbm_title<\/Name>/);
     strict_1.default.match(requestFormXml, /<formLibraries>/);
+    strict_1.default.match(requestFormXml, /ys_\/dbm\/process-experience\/renderer\.js/);
     strict_1.default.match(requestFormXml, /ys_\/dbm\/forms\/runtime\.js/);
     strict_1.default.match(requestFormXml, /ys_\/dbm\/forms\/config\/request-form\.js/);
+    strict_1.default.match(requestFormXml, /WebResource_dbmProcessHost_request_form/);
+    strict_1.default.match(requestFormXml, /ys_\/dbm\/process-experience\/host\.html/);
     strict_1.default.match(requestFormXml, /<event name="onload"/);
     strict_1.default.match(requestConfigJs, /dbmOnLoad_request_form/);
     strict_1.default.match(requestConfigJs, /"runtime": \{/);
+    strict_1.default.match(requestConfigJs, /"processHost": \{/);
     strict_1.default.match(reviewConfigJs, /dbm_decisionoutcome/);
     strict_1.default.match(runtimeJs, /DBM\.ProcessRuntime/);
+    strict_1.default.match(runtimeJs, /ProcessExperienceHost/);
+    strict_1.default.match(rendererJs, /ProcessExperienceHost/);
+    strict_1.default.match(hostHtml, /dbm-process-host-root/);
     strict_1.default.match(reviewFormXml, /dbm_decisionoutcome/);
+    strict_1.default.match(reviewFormXml, /WebResource_dbmProcessHost_review_form/);
     strict_1.default.match(runtimeMetadataXml, /<Name>ys_\/dbm\/forms\/runtime\.js<\/Name>/);
     await node_fs_1.promises.rm(outputRoot, { recursive: true, force: true });
 });
@@ -322,6 +425,7 @@ function createMockFormContext(config, entityId, initialValues) {
             dbm_supportingnotes: '',
             dbm_screeningresult: 100000000
         });
+        form.installOverlayBridge(harness.sandbox);
         const result = await harness.sync(form.executionContext, harness.config);
         strict_1.default.equal(result?.state.stageId, 'draft-request');
         strict_1.default.equal(result?.state.stepId, 'capture-supporting-details');
@@ -337,7 +441,16 @@ function createMockFormContext(config, entityId, initialValues) {
         ]);
         strict_1.default.equal(form.controls.get('dbm_supportingnotes')?.state.visible, true);
         strict_1.default.equal(form.controls.get('dbm_screeningresult')?.state.visible, false);
-        strict_1.default.match(form.notifications[0]?.message ?? '', /Capture Supporting Details/);
+        strict_1.default.equal(form.sectionRenders.length, 1);
+        strict_1.default.equal(form.sectionRenders[0]?.snapshot.currentStepId, 'capture-supporting-details');
+        strict_1.default.equal(form.sectionRenders[0]?.mode, 'model-driven-section');
+        strict_1.default.equal(form.sectionRenders[0]?.navigationTarget?.controlName, 'dbm_supportingnotes');
+        strict_1.default.equal(form.overlayRenders.length, 1);
+        strict_1.default.equal(form.overlayRenders[0]?.targetId, harness.config.processHost.overlay.containerId);
+        strict_1.default.equal(form.overlayRenders[0]?.props.mode, 'model-driven-overlay');
+        form.sectionRenders[0]?.onNavigateToFormRegion?.(form.sectionRenders[0]?.navigationTarget);
+        strict_1.default.equal(form.tabs.get('request_main_tab')?.focused, true);
+        strict_1.default.equal(form.controls.get('dbm_supportingnotes')?.state.focused, true);
     }
     finally {
         await harness.cleanup();
@@ -388,6 +501,7 @@ function createMockFormContext(config, entityId, initialValues) {
             dbm_supportingnotes: '',
             dbm_screeningresult: 100000001
         });
+        form.installOverlayBridge(harness.sandbox);
         const result = await harness.sync(form.executionContext, harness.config);
         strict_1.default.equal(result?.state.stageId, 'manager-review');
         strict_1.default.equal(result?.state.stepId, 'choose-decision');
@@ -407,8 +521,10 @@ function createMockFormContext(config, entityId, initialValues) {
                 dbm_decisionsummary: 'Review request Travel Request.'
             }
         ]);
-        strict_1.default.match(form.notifications[1]?.message ?? '', /different DBM form/i);
         strict_1.default.equal(form.controls.get('dbm_screeningresult')?.state.disabled, true);
+        strict_1.default.equal(form.sectionRenders.length, 1);
+        strict_1.default.match(form.sectionRenders[0]?.snapshot.projection.message ?? '', /different DBM form/i);
+        strict_1.default.equal(form.overlayRenders.length, 1);
     }
     finally {
         await harness.cleanup();
@@ -470,6 +586,7 @@ function createMockFormContext(config, entityId, initialValues) {
             dbm_decisionoutcome: null,
             dbm_decisioncomment: ''
         });
+        form.installOverlayBridge(harness.sandbox);
         const result = await harness.sync(form.executionContext, harness.config);
         strict_1.default.equal(result?.state.stageId, 'manager-review');
         strict_1.default.equal(result?.state.stepId, 'record-approval');
@@ -485,7 +602,9 @@ function createMockFormContext(config, entityId, initialValues) {
         ]);
         strict_1.default.equal(form.controls.get('dbm_decisionoutcome')?.state.visible, true);
         strict_1.default.equal(form.controls.get('dbm_decisioncomment')?.state.visible, false);
-        strict_1.default.match(form.notifications[0]?.message ?? '', /Manager Review -> Record Approval/);
+        strict_1.default.equal(form.sectionRenders.length, 1);
+        strict_1.default.equal(form.sectionRenders[0]?.snapshot.currentStepId, 'record-approval');
+        strict_1.default.equal(form.overlayRenders.length, 1);
     }
     finally {
         await harness.cleanup();

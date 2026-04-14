@@ -1,6 +1,9 @@
 import path from 'node:path';
+import { fileURLToPath } from 'node:url';
 import react from '@vitejs/plugin-react-swc';
 import { defineConfig } from 'vite';
+
+const __dirname = path.dirname(fileURLToPath(import.meta.url));
 
 export default defineConfig(({ command }) => ({
   plugins: [react()],
@@ -14,19 +17,17 @@ export default defineConfig(({ command }) => ({
       },
   resolve: {
     alias: {
-      'dbm-contract': path.resolve(__dirname, '../dbm-contract/dist/index.js'),
-      'dbm-designer-core': path.resolve(__dirname, '../dbm-designer-core/dist/index.js'),
-      'dbm-process-experience': path.resolve(__dirname, '../dbm-process-experience/dist/src/index.js')
+      'dbm-contract': path.resolve(__dirname, '../dbm-contract/dist/index.js')
     }
   },
   build: {
-    emptyOutDir: true,
-    outDir: path.resolve(__dirname, '../dbm-app/bundle'),
+    emptyOutDir: false,
+    outDir: path.resolve(__dirname, 'dist/browser'),
     lib: {
-      entry: path.resolve(__dirname, 'src/main.tsx'),
+      entry: path.resolve(__dirname, 'src/browser-entry.ts'),
       formats: ['iife'],
-      name: 'DbmDesignerShell',
-      fileName: () => 'bundle.js'
+      name: 'DbmProcessExperience',
+      fileName: () => 'renderer.js'
     },
     rollupOptions: {
       output: {
@@ -35,6 +36,7 @@ export default defineConfig(({ command }) => ({
     }
   },
   test: {
-    environment: 'jsdom'
+    environment: 'jsdom',
+    exclude: ['dist/**', 'node_modules/**']
   }
 }));

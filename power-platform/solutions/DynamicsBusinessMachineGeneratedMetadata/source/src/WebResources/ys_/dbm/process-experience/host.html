@@ -1,0 +1,46 @@
+<!doctype html>
+<html lang="en">
+<head>
+  <meta charset="utf-8" />
+  <meta name="viewport" content="width=device-width, initial-scale=1" />
+  <title>DBM Process Experience</title>
+  <style>
+    html, body, #dbm-process-host-root { height: 100%; margin: 0; }
+    body { overflow: hidden; background: transparent; font-family: Segoe UI, Arial, sans-serif; }
+  </style>
+</head>
+<body>
+  <div id="dbm-process-host-root"></div>
+  <script>
+    (function () {
+      function getClientUrl() {
+        return window.parent?.Xrm?.Utility?.getGlobalContext?.()?.getClientUrl?.() || '';
+      }
+      function bootFrameBridge() {
+        if (!window.DBM || !window.DBM.ProcessExperienceHost) {
+          window.setTimeout(bootFrameBridge, 50);
+          return;
+        }
+        const root = document.getElementById('dbm-process-host-root');
+        window.DBM = window.DBM || {};
+        window.DBM.ProcessExperienceSectionFrame = {
+          render: function (props) {
+            window.DBM.ProcessExperienceHost.render(root, props);
+          },
+          unmount: function () {
+            window.DBM.ProcessExperienceHost.unmount(root);
+          }
+        };
+      }
+      function loadRenderer() {
+        const scriptUrl = getClientUrl().replace(/\/$/, '') + '/WebResources/ys_/dbm/process-experience/renderer.js';
+        const script = document.createElement('script');
+        script.src = scriptUrl;
+        script.onload = bootFrameBridge;
+        document.head.appendChild(script);
+      }
+      loadRenderer();
+    })();
+  </script>
+</body>
+</html>

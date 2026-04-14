@@ -32,6 +32,8 @@
     <RootComponents>
       <RootComponent type="1" schemaName="dbm_request" behavior="0"/>
       <RootComponent type="1" schemaName="dbm_requestdecision" behavior="0"/>
+      <RootComponent type="61" schemaName="ys_/dbm/process-experience/renderer.js" behavior="0"/>
+      <RootComponent type="61" schemaName="ys_/dbm/process-experience/host.html" behavior="0"/>
       <RootComponent type="61" schemaName="ys_/dbm/forms/runtime.js" behavior="0"/>
       <RootComponent type="61" schemaName="ys_/dbm/forms/config/request-form.js" behavior="0"/>
       <RootComponent type="61" schemaName="ys_/dbm/forms/config/review-form.js" behavior="0"/>

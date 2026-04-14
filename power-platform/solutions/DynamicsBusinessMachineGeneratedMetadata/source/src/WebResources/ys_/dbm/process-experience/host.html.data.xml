@@ -1,0 +1,15 @@
+<?xml version="1.0" encoding="utf-8"?>
+<WebResource xmlns:xsi="http://www.w3.org/2001/XMLSchema-instance">
+  <WebResourceId>{df0e9bb8-596f-5294-9398-7db0010a0948}</WebResourceId>
+  <Name>ys_/dbm/process-experience/host.html</Name>
+  <DisplayName>DBM Process Experience Host Page</DisplayName>
+  <WebResourceType>1</WebResourceType>
+  <IntroducedVersion>0.2.0.0</IntroducedVersion>
+  <IsEnabledForMobileClient>0</IsEnabledForMobileClient>
+  <IsAvailableForMobileOffline>0</IsAvailableForMobileOffline>
+  <DependencyXml>&lt;Dependencies&gt;&lt;Dependency componentType="WebResource"/&gt;&lt;/Dependencies&gt;</DependencyXml>
+  <IsCustomizable>1</IsCustomizable>
+  <CanBeDeleted>1</CanBeDeleted>
+  <IsHidden>0</IsHidden>
+  <FileName>/WebResources/ys_dbmprocessexperiencehosthtmlDF0E9BB8596F529493987DB0010A0948</FileName>
+</WebResource>

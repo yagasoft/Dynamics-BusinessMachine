@@ -5,8 +5,8 @@
   "main": "dist/src/index.js",
   "types": "dist/src/index.d.ts",
   "scripts": {
-    "build": "npm --prefix ../dbm-contract run build && tsc -p tsconfig.json",
-    "test": "npm --prefix ../dbm-contract run build && tsx --test test/dataverse-synthesis.test.ts",
+    "build": "npm --prefix ../dbm-contract run build && npm --prefix ../dbm-process-experience run build && tsc -p tsconfig.json",
+    "test": "npm --prefix ../dbm-contract run build && npm --prefix ../dbm-process-experience run build && tsx --test test/dataverse-synthesis.test.ts",
     "validate": "npm run build && npm run test"
   },
   "dependencies": {

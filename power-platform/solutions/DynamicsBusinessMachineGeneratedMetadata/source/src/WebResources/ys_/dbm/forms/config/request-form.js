@@ -414,7 +414,308 @@
           "100000001": "reject"
         }
       }
-    ]
+    ],
+    "decisionOutcomeOptionValuesByOutcomeId": {
+      "approve": 100000000,
+      "reject": 100000001
+    },
+    "processExperienceRuntime": {
+      "packageId": "dbm-approval-request",
+      "packageVersion": "1.2.1",
+      "processId": "approval-request-process",
+      "actors": [
+        {
+          "id": "requester",
+          "displayName": "Requester",
+          "actorType": "requester"
+        },
+        {
+          "id": "manager-approver",
+          "displayName": "Manager Approver",
+          "actorType": "approver"
+        },
+        {
+          "id": "finance-reviewer",
+          "displayName": "Finance Reviewer",
+          "actorType": "approver"
+        },
+        {
+          "id": "platform",
+          "displayName": "Platform",
+          "actorType": "system"
+        }
+      ],
+      "statuses": [
+        {
+          "id": "draft",
+          "displayName": "Draft",
+          "audience": "shared",
+          "kind": "progress"
+        },
+        {
+          "id": "under-review",
+          "displayName": "Under Review",
+          "audience": "shared",
+          "kind": "progress"
+        },
+        {
+          "id": "internal-screening",
+          "displayName": "Internal Screening",
+          "audience": "internal",
+          "kind": "progress"
+        },
+        {
+          "id": "awaiting-manager-decision",
+          "displayName": "Awaiting Manager Decision",
+          "audience": "internal",
+          "kind": "progress"
+        },
+        {
+          "id": "approved",
+          "displayName": "Approved",
+          "audience": "shared",
+          "kind": "terminal"
+        },
+        {
+          "id": "rejected",
+          "displayName": "Rejected",
+          "audience": "shared",
+          "kind": "terminal"
+        }
+      ],
+      "outcomes": [
+        {
+          "id": "submit",
+          "displayName": "Submit"
+        },
+        {
+          "id": "screen-complete",
+          "displayName": "Screen Complete"
+        },
+        {
+          "id": "approve",
+          "displayName": "Approve"
+        },
+        {
+          "id": "reject",
+          "displayName": "Reject"
+        },
+        {
+          "id": "cancel",
+          "displayName": "Cancel"
+        }
+      ],
+      "stages": [
+        {
+          "id": "draft-request",
+          "displayName": "Draft Request",
+          "stageType": "start",
+          "actorId": "requester",
+          "formId": "request-form",
+          "portalVisibility": "visible",
+          "stepIds": [
+            "capture-request",
+            "capture-supporting-details"
+          ],
+          "defaultStepId": "capture-request",
+          "allowedOutcomeIds": [
+            "submit",
+            "cancel"
+          ]
+        },
+        {
+          "id": "internal-screening-stage",
+          "displayName": "Internal Screening",
+          "stageType": "system",
+          "actorId": "finance-reviewer",
+          "formId": "request-form",
+          "portalVisibility": "hidden",
+          "stepIds": [
+            "screen-request"
+          ],
+          "defaultStepId": "screen-request",
+          "allowedOutcomeIds": [
+            "screen-complete"
+          ]
+        },
+        {
+          "id": "manager-review",
+          "displayName": "Manager Review",
+          "stageType": "approval",
+          "actorId": "manager-approver",
+          "formId": "review-form",
+          "portalVisibility": "visible",
+          "stepIds": [
+            "choose-decision",
+            "record-approval",
+            "record-rejection"
+          ],
+          "defaultStepId": "choose-decision",
+          "allowedOutcomeIds": [
+            "approve",
+            "reject"
+          ]
+        },
+        {
+          "id": "approved",
+          "displayName": "Approved",
+          "stageType": "end",
+          "actorId": "platform",
+          "formId": null,
+          "portalVisibility": "visible",
+          "stepIds": [],
+          "defaultStepId": null,
+          "allowedOutcomeIds": [
+            "approve"
+          ]
+        },
+        {
+          "id": "rejected",
+          "displayName": "Rejected",
+          "stageType": "end",
+          "actorId": "platform",
+          "formId": null,
+          "portalVisibility": "visible",
+          "stepIds": [],
+          "defaultStepId": null,
+          "allowedOutcomeIds": [
+            "reject"
+          ]
+        }
+      ],
+      "steps": [
+        {
+          "id": "capture-request",
+          "stageId": "draft-request",
+          "displayName": "Capture Request",
+          "stepType": "data-entry",
+          "ownerActorId": "requester",
+          "internalStatusId": "draft",
+          "portalStatusId": "draft",
+          "formStateId": "request-edit-state"
+        },
+        {
+          "id": "capture-supporting-details",
+          "stageId": "draft-request",
+          "displayName": "Capture Supporting Details",
+          "stepType": "data-entry",
+          "ownerActorId": "requester",
+          "internalStatusId": "draft",
+          "portalStatusId": "draft",
+          "formStateId": "request-supporting-state"
+        },
+        {
+          "id": "screen-request",
+          "stageId": "internal-screening-stage",
+          "displayName": "Screen Request",
+          "stepType": "review",
+          "ownerActorId": "finance-reviewer",
+          "internalStatusId": "internal-screening",
+          "portalStatusId": "under-review",
+          "formStateId": "request-screening-state"
+        },
+        {
+          "id": "choose-decision",
+          "stageId": "manager-review",
+          "displayName": "Choose Decision",
+          "stepType": "approval",
+          "ownerActorId": "manager-approver",
+          "internalStatusId": "awaiting-manager-decision",
+          "portalStatusId": "under-review",
+          "formStateId": "review-decision-state"
+        },
+        {
+          "id": "record-approval",
+          "stageId": "manager-review",
+          "displayName": "Record Approval",
+          "stepType": "approval",
+          "ownerActorId": "manager-approver",
+          "internalStatusId": "approved",
+          "portalStatusId": "approved",
+          "formStateId": "review-approval-state"
+        },
+        {
+          "id": "record-rejection",
+          "stageId": "manager-review",
+          "displayName": "Record Rejection",
+          "stepType": "approval",
+          "ownerActorId": "manager-approver",
+          "internalStatusId": "rejected",
+          "portalStatusId": "rejected",
+          "formStateId": "review-rejection-state"
+        }
+      ],
+      "transitions": [
+        {
+          "id": "submit-request",
+          "fromStageId": "draft-request",
+          "toStageId": "internal-screening-stage",
+          "outcomeId": "submit"
+        },
+        {
+          "id": "screening-complete-transition",
+          "fromStageId": "internal-screening-stage",
+          "toStageId": "manager-review",
+          "outcomeId": "screen-complete"
+        },
+        {
+          "id": "approve-request",
+          "fromStageId": "manager-review",
+          "toStageId": "approved",
+          "outcomeId": "approve"
+        },
+        {
+          "id": "reject-request",
+          "fromStageId": "manager-review",
+          "toStageId": "rejected",
+          "outcomeId": "reject"
+        }
+      ]
+    }
+  },
+  "processHost": {
+    "packageId": "dbm-approval-request",
+    "processId": "approval-request-process",
+    "currentFormId": "request-form",
+    "supported": {
+      "placementMode": "section",
+      "label": "DBM Process",
+      "tabName": "request_main_tab",
+      "sectionName": "dbm_process_host_request_form",
+      "sectionId": "{c530b799-a485-5620-95b3-ae1c02d1614f}",
+      "cellId": "{f47d8fc2-f355-52cb-8795-c017b9cdadbc}",
+      "controlName": "WebResource_dbmProcessHost_request_form",
+      "webResourceName": "ys_/dbm/process-experience/host.html",
+      "webResourceId": "{df0e9bb8-596f-5294-9398-7db0010a0948}",
+      "frameBridgeName": "ProcessExperienceSectionFrame",
+      "data": "{\"formId\":\"request-form\",\"displayName\":\"Request Form\",\"placement\":\"section\"}"
+    },
+    "overlay": {
+      "placementMode": "overlay",
+      "enabled": true,
+      "containerId": "dbm-process-overlay-request_form",
+      "capabilityGuard": "best-effort-dom"
+    },
+    "jumpTargetsByFormStateId": {
+      "request-edit-state": {
+        "label": "Request Edit",
+        "tabName": "request_main_tab",
+        "sectionName": "request_details_section",
+        "controlName": "dbm_title"
+      },
+      "request-supporting-state": {
+        "label": "Supporting Details",
+        "tabName": "request_main_tab",
+        "sectionName": "request_supporting_section",
+        "controlName": "dbm_supportingnotes"
+      },
+      "request-screening-state": {
+        "label": "Screening",
+        "tabName": "request_main_tab",
+        "sectionName": "request_details_section",
+        "controlName": "dbm_title"
+      }
+    }
   }
 };
   function dbmOnLoad_request_form(executionContext) {

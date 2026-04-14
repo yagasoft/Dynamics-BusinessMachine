@@ -14,6 +14,35 @@
           <columns>
             <column width="50%">
               <sections>
+                <section name="dbm_process_host_request_form" id="{c530b799-a485-5620-95b3-ae1c02d1614f}" IsUserDefined="1" showlabel="false" showbar="false" columns="1">
+                  <labels>
+                    <label description="DBM Process" languagecode="1033" />
+                  </labels>
+                  <rows>
+                    <row>
+                      <cell id="{f47d8fc2-f355-52cb-8795-c017b9cdadbc}" showlabel="false" rowspan="4">
+                        <labels>
+                          <label description="DBM Process" languagecode="1033" />
+                        </labels>
+                        <control id="WebResource_dbmProcessHost_request_form" classid="{9FDF5F91-88B1-47f4-AD53-C11EFC01A01D}">
+                          <parameters>
+                            <Url>ys_/dbm/process-experience/host.html</Url>
+                            <Data>%7B%22formId%22%3A%22request-form%22%2C%22displayName%22%3A%22Request%20Form%22%2C%22placement%22%3A%22section%22%7D</Data>
+                            <PassParameters>false</PassParameters>
+                            <ShowOnMobileClient>false</ShowOnMobileClient>
+                            <Security>false</Security>
+                            <Scrolling>auto</Scrolling>
+                            <Border>false</Border>
+                            <WebResourceId>{df0e9bb8-596f-5294-9398-7db0010a0948}</WebResourceId>
+                          </parameters>
+                        </control>
+                      </cell>
+                    </row>
+                    <row />
+                    <row />
+                    <row />
+                  </rows>
+                </section>
                 <section name="request_details_section" id="{8d65fa31-b54d-5d9b-84e0-07d87e113132}" IsUserDefined="1" showlabel="true" showbar="false" columns="1">
                   <labels>
                     <label description="Request Details" languagecode="1033" />
@@ -91,6 +120,7 @@
         <rows />
       </header>
       <formLibraries>
+    <Library name="ys_/dbm/process-experience/renderer.js" libraryUniqueId="{a272dd08-2592-5612-8675-2f85b4b0068d}" />
     <Library name="ys_/dbm/forms/runtime.js" libraryUniqueId="{da7c1be2-50e0-5bd6-932b-17f0b33787e7}" />
     <Library name="ys_/dbm/forms/config/request-form.js" libraryUniqueId="{130db66b-dad1-52e3-a5e2-cc77f5a3b0ac}" />
   </formLibraries>
