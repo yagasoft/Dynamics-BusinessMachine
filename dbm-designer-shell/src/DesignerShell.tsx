@@ -1,4 +1,4 @@
-import { useEffect, useMemo, useState } from 'react';
+import { useEffect, useMemo, useRef, useState } from 'react';
 import { DndContext, DragOverlay, useDraggable } from '@dnd-kit/core';
 import type { DbmDesignerWorkspaceV1, DbmModelV1, DbmProcessExperienceSnapshotV1, DbmRuntimeStateV1 } from 'dbm-contract';
 import {
@@ -223,6 +223,14 @@ export function DesignerShell({ repository }: DesignerShellProps) {
   const [diagnosticsOpen, setDiagnosticsOpen] = useState(false);
   const [activeDragLabel, setActiveDragLabel] = useState<string | null>(null);
   const [focusToken, setFocusToken] = useState(0);
+  const [palettePosition, setPalettePosition] = useState({ x: 24, y: 24 });
+  const paletteDragRef = useRef<{
+    pointerId: number;
+    startX: number;
+    startY: number;
+    originX: number;
+    originY: number;
+  } | null>(null);
 
   async function refreshPackages(preferredPackageName?: string | null) {
     setIsBusy(true);
@@ -584,6 +592,36 @@ export function DesignerShell({ repository }: DesignerShellProps) {
     return () => window.removeEventListener('keydown', onKeyDown);
   }, [clipboardPayload, editorState.document, history.future, history.past]);
 
+  useEffect(() => {
+    function onPointerMove(event: PointerEvent) {
+      const activeDrag = paletteDragRef.current;
+      if (!activeDrag) {
+        return;
+      }
+
+      setPalettePosition({
+        x: Math.max(16, activeDrag.originX + event.clientX - activeDrag.startX),
+        y: Math.max(16, activeDrag.originY + event.clientY - activeDrag.startY)
+      });
+    }
+
+    function onPointerUp(event: PointerEvent) {
+      if (!paletteDragRef.current || paletteDragRef.current.pointerId !== event.pointerId) {
+        return;
+      }
+
+      paletteDragRef.current = null;
+    }
+
+    window.addEventListener('pointermove', onPointerMove);
+    window.addEventListener('pointerup', onPointerUp);
+
+    return () => {
+      window.removeEventListener('pointermove', onPointerMove);
+      window.removeEventListener('pointerup', onPointerUp);
+    };
+  }, []);
+
   const validationIssues = editorState.document?.issues ?? [];
   const errorIssues = validationIssues.filter((issue) => issue.level === 'error');
   const selection: InspectorSelection | null = useMemo(() => resolveInspectorSelection(editorState.document), [editorState.document]);
@@ -653,6 +691,7 @@ export function DesignerShell({ repository }: DesignerShellProps) {
               </div>
             ) : <div style={mutedCopyStyle}>The current model passes designer-core validation.</div>}
           </div>
+          <PreviewDock document={editorState.document} snapshot={editorState.snapshot} onPreviewStageChange={handlePreviewStageChange} onPreviewStepChange={handlePreviewStepChange} onPreviewModeChange={handlePreviewModeChange} />
         </aside>
         <main style={mainStyle}>
           <header style={workspaceHeaderStyle}>
@@ -681,16 +720,27 @@ export function DesignerShell({ repository }: DesignerShellProps) {
             <div style={topLeftOverlayStyle}>
               <SelectionEditorCard document={editorState.document} selection={selection} focusToken={focusToken} onIntent={handleGraphIntent} onToggleStageCollapse={handleToggleStageCollapse} isStageCollapsed={(stageId) => !!editorState.document?.workspace.collapsedNodeIds.includes(toStageNodeId(stageId))} />
             </div>
-            <div style={topRightOverlayStyle}>
+            <div style={{ ...paletteOverlayStyle, left: `${palettePosition.x}px`, top: `${palettePosition.y}px` }}>
               <div style={floatingPanelStyle}>
-                <div style={eyebrowStyle}>Palette</div>
+                <div
+                  style={paletteHeaderStyle}
+                  onPointerDown={(event) => {
+                    paletteDragRef.current = {
+                      pointerId: event.pointerId,
+                      startX: event.clientX,
+                      startY: event.clientY,
+                      originX: palettePosition.x,
+                      originY: palettePosition.y
+                    };
+                  }}
+                >
+                  <div style={eyebrowStyle}>Palette</div>
+                  <span style={dragHandleStyle}>Drag</span>
+                </div>
                 <div style={mutedCopyStyle}>Drag to the canvas or click to author through DBM graph intents.</div>
                 <PaletteButton id="palette-stage" label="Stage" description="Add a new durable process milestone." onClick={() => handleAddPaletteItem('stage')} />
                 <PaletteButton id="palette-step" label="Step" description={paletteStageId ? `Add to ${paletteStageId}` : 'Select a stage first.'} disabled={!paletteStageId} onClick={() => handleAddPaletteItem('step')} />
               </div>
-            </div>
-            <div style={bottomRightOverlayStyle}>
-              <PreviewDock document={editorState.document} snapshot={editorState.snapshot} onPreviewStageChange={handlePreviewStageChange} onPreviewStepChange={handlePreviewStepChange} onPreviewModeChange={handlePreviewModeChange} />
             </div>
           </section>
         </main>
@@ -706,9 +756,10 @@ const sidebarStyle = { padding: '1.15rem', borderRight: '1px solid #d6d3d1', bac
 const mainStyle = { display: 'grid', gap: '1rem', padding: '1.25rem' } as const;
 const graphWorkspaceStyle = { position: 'relative', minWidth: 0 } as const;
 const topLeftOverlayStyle = { position: 'absolute', top: '1rem', left: '1rem', zIndex: 12, pointerEvents: 'none' } as const;
-const topRightOverlayStyle = { position: 'absolute', top: '1rem', right: '1rem', zIndex: 12, pointerEvents: 'none' } as const;
-const bottomRightOverlayStyle = { position: 'absolute', right: '1rem', bottom: '1rem', zIndex: 12, pointerEvents: 'none' } as const;
+const paletteOverlayStyle = { position: 'absolute', zIndex: 12, pointerEvents: 'none' } as const;
 const floatingPanelStyle = { width: '260px', maxWidth: 'calc(100vw - 4rem)', padding: '1rem', borderRadius: '1rem', border: '1px solid rgba(214, 211, 209, 0.94)', background: 'rgba(255,255,255,0.94)', display: 'grid', gap: '0.8rem', boxShadow: '0 24px 54px rgba(15, 23, 42, 0.16)', backdropFilter: 'blur(14px)', pointerEvents: 'auto' } as const;
+const paletteHeaderStyle = { display: 'flex', justifyContent: 'space-between', alignItems: 'center', gap: '0.75rem', cursor: 'grab', userSelect: 'none' } as const;
+const dragHandleStyle = { fontSize: '0.78rem', color: '#64748b' } as const;
 const sectionHeaderStyle = { display: 'flex', justifyContent: 'space-between', gap: '0.75rem', alignItems: 'flex-start' } as const;
 const titleStyle = { margin: '0.35rem 0 0', fontSize: '1.35rem' } as const;
 const workspaceHeaderStyle = { display: 'flex', justifyContent: 'space-between', gap: '1rem', alignItems: 'flex-start', flexWrap: 'wrap' } as const;

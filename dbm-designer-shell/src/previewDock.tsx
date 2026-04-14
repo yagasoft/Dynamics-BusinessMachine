@@ -78,8 +78,8 @@ export function PreviewDock({
 }
 
 const dockStyle = {
-  width: '360px',
-  maxWidth: 'calc(100vw - 4rem)',
+  width: '100%',
+  maxWidth: '100%',
   display: 'grid',
   gap: '0.8rem',
   padding: '1rem',
