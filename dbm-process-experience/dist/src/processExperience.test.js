@@ -196,7 +196,7 @@ test('ProcessExperienceSurface uses portal shell actions for the external runtim
             actions: {
                 'submit-request': {
                     enabled: true,
-                    helperText: 'Move the request into internal screening.'
+                    helperText: 'Move the request into internal review.'
                 },
                 'refresh-status': {
                     enabled: true
@@ -211,6 +211,27 @@ test('ProcessExperienceSurface uses portal shell actions for the external runtim
     await user.click(screen.getAllByRole('button', { name: 'Submit request' })[0]);
     await user.click(screen.getAllByRole('button', { name: 'Refresh status' })[0]);
     expect(events).toEqual(['submit-request', 'refresh-status']);
+});
+test('ProcessExperienceSurface masks future hidden-stage labels in the external runtime', () => {
+    const snapshot = buildApprovalRequestSnapshot('portal-runtime-draft');
+    render(_jsx(ProcessExperienceSurface, { snapshot: snapshot, mode: "external-runtime", audience: "portal", portalShell: {
+            entryTitle: 'Approval request portal',
+            entrySummary: 'Continue the request from this browser session.',
+            requestReference: 'Request draft',
+            requestStateLabel: 'Draft',
+            sameSessionEnabled: true,
+            actions: {
+                'submit-request': {
+                    enabled: true
+                },
+                'refresh-status': {
+                    enabled: true
+                }
+            }
+        } }));
+    expect(screen.queryByText('Manager Review')).toBeNull();
+    expect(screen.queryByText('Manager Approver')).toBeNull();
+    expect(screen.getAllByText(/Internal review/i).length).toBeGreaterThan(0);
 });
 test('ProcessExperienceSurface keeps cross-form handoff navigation visible', async () => {
     const user = userEvent.setup();

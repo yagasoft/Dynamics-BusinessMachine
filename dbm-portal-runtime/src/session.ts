@@ -1,5 +1,5 @@
 import type { DbmPortalRuntimeBootstrapV1 } from 'dbm-contract';
-import type { DbmPortalRuntimeSessionStateV1, StorageLike } from './types';
+import type { DbmPortalRuntimeSessionStateV1, StorageLike } from './types.js';
 
 const SESSION_STORAGE_PREFIX = 'dbm.portal-runtime.session';
 export const PORTAL_RUNTIME_SESSION_EVENT = 'dbm-portal-runtime-session-changed';

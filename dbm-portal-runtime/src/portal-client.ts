@@ -4,7 +4,7 @@ import type {
   DbmPortalRuntimeRecordV1,
   DbmPortalRuntimeRefreshOptions,
   DbmPortalRuntimeSubmitOptions
-} from './types';
+} from './types.js';
 
 function getFetchImpl(options: DbmPortalRuntimeFetchOptions): typeof fetch {
   const fetchImpl = options.fetchImpl ?? globalThis.fetch;

@@ -78,7 +78,7 @@ function portalActionHelper(actionId) {
         case 'create-draft':
             return 'Start a new request in this browser session.';
         case 'submit-request':
-            return 'Send the request into the internal screening step.';
+            return 'Send the request into the next internal review step.';
         case 'refresh-status':
             return 'Reload the latest portal-safe process status.';
         default:

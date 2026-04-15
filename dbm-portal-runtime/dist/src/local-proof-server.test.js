@@ -3,7 +3,7 @@ import os from 'node:os';
 import path from 'node:path';
 import { promises as fs } from 'node:fs';
 import { afterEach, expect, test, vi } from 'vitest';
-import { createPortalRuntimeLocalProofServer } from './local-proof-server';
+import { createPortalRuntimeLocalProofServer } from './local-proof-server.js';
 const bootstrap = {
     schemaVersion: 'dbm.portal-runtime.bootstrap/v1',
     packageId: 'dbm-approval-request',
@@ -71,7 +71,7 @@ async function createTempDistRoot() {
     });
     return distRoot;
 }
-async function startServer(fetchImpl) {
+async function startServer(options = {}) {
     const distRoot = await createTempDistRoot();
     const handle = await createPortalRuntimeLocalProofServer({
         bootstrap,
@@ -82,8 +82,8 @@ async function startServer(fetchImpl) {
         port: 0,
         environment: 'Dev',
         dataverseUrl: 'https://example.crm.dynamics.com/',
-        getAccessToken: async () => 'token',
-        fetchImpl: fetchImpl ?? fetch
+        getAccessToken: options.getAccessToken ?? (async () => 'token'),
+        fetchImpl: options.fetchImpl ?? fetch
     });
     cleanupTasks.push(async () => {
         await handle.close();
@@ -91,7 +91,11 @@ async function startServer(fetchImpl) {
     return handle;
 }
 test('local proof host serves SPA routes and health from localhost', async () => {
-    const handle = await startServer();
+    const handle = await startServer({
+        getAccessToken: async () => {
+            throw new Error('health route should not request a Dataverse token');
+        }
+    });
     const entryResponse = await fetch(`${handle.baseUrl}/approval-request`);
     expect(entryResponse.status).toBe(200);
     expect(await entryResponse.text()).toContain('dbm-local-proof-root');
@@ -148,7 +152,7 @@ test('local proof host proxies create and submit through live Dataverse contract
         }
         throw new Error(`Unexpected Dataverse request in test double: ${method} ${url}`);
     });
-    const handle = await startServer(fetchSpy);
+    const handle = await startServer({ fetchImpl: fetchSpy });
     const createResponse = await fetch(`${handle.baseUrl}/api/runtime/drafts`, {
         method: 'POST',
         headers: { 'Content-Type': 'application/json' },

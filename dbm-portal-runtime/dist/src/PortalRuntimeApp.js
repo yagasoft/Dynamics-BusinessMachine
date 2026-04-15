@@ -1,9 +1,9 @@
 import { jsx as _jsx, jsxs as _jsxs } from "react/jsx-runtime";
 import { useEffect, useMemo, useState } from 'react';
 import { ProcessExperienceSurface } from 'dbm-process-experience';
-import { clearPortalRuntimeSessionState, loadPortalRuntimeSessionState, savePortalRuntimeSessionState } from './session';
-import { createPortalRuntimeDraft, refreshPortalRuntimeRecord, submitPortalRuntimeRequest } from './portal-client';
-import { buildPortalRuntimeSnapshot, buildPortalRuntimeViewModel } from './runtime';
+import { clearPortalRuntimeSessionState, loadPortalRuntimeSessionState, savePortalRuntimeSessionState } from './session.js';
+import { createPortalRuntimeDraft, refreshPortalRuntimeRecord, submitPortalRuntimeRequest } from './portal-client.js';
+import { buildPortalRuntimeSnapshot, buildPortalRuntimeViewModel } from './runtime.js';
 function buildInitialDraftValues(props) {
     const initialValues = props.initialDraftValues ?? {};
     const normalized = {};

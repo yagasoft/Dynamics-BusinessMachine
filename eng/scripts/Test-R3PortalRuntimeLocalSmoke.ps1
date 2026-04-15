@@ -109,7 +109,9 @@ $browserOutputPath = Join-Path $smokeWorkingDirectory 'portal-runtime-browser-sm
     expectedPortalStatus = $expectedPortalStatus
     hiddenLabels = @($hiddenLabels)
     persistedSessionStatePath = $sessionStatePath
-} | ConvertTo-Json -Depth 6 | Set-Content -Path $browserConfigPath -Encoding UTF8
+} | ConvertTo-Json -Depth 6 | ForEach-Object {
+    Write-DbmUtf8File -Path $browserConfigPath -Content $_
+}
 
 if (-not (Test-Path (Join-Path $resolvedRepoRoot 'dbm-live-e2e\node_modules'))) {
     Push-Location (Join-Path $resolvedRepoRoot 'dbm-live-e2e')
@@ -137,9 +139,9 @@ if (-not (Test-Path (Join-Path $env:LOCALAPPDATA 'ms-playwright'))) {
     }
 }
 
-Push-Location $resolvedRepoRoot
+Push-Location (Join-Path $resolvedRepoRoot 'dbm-live-e2e')
 try {
-    npm exec --prefix dbm-live-e2e -- tsx src/portal-runtime-smoke.ts --config $browserConfigPath --output $browserOutputPath
+    npm exec -- tsx src/portal-runtime-smoke.ts --config $browserConfigPath --output $browserOutputPath
     if ($LASTEXITCODE -ne 0) {
         throw "Portal runtime browser smoke failed with exit code $LASTEXITCODE."
     }
@@ -198,6 +200,8 @@ $summary = [ordered]@{
 }
 
 $summaryPath = Join-Path $resolvedEvidenceRoot 'portal-runtime-local-smoke.json'
-$summary | ConvertTo-Json -Depth 10 | Set-Content -Path $summaryPath -Encoding UTF8
+$summary | ConvertTo-Json -Depth 10 | ForEach-Object {
+    Write-DbmUtf8File -Path $summaryPath -Content $_
+}
 
 Write-Host "Portal runtime local smoke summary: $summaryPath"

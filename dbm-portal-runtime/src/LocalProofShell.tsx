@@ -1,10 +1,10 @@
 import { useEffect, useMemo, useState } from 'react';
-import { PortalRuntimeApp } from './PortalRuntimeApp';
-import { portalRuntimeBootstrap, portalRuntimeModel } from './generated-plan';
+import { PortalRuntimeApp } from './PortalRuntimeApp.js';
+import { portalRuntimeBootstrap, portalRuntimeModel } from './generated-plan.js';
 import {
   getPortalRuntimeSessionStorageKey,
   PORTAL_RUNTIME_SESSION_EVENT
-} from './session';
+} from './session.js';
 
 type LocalProofHealth = {
   status: string;
@@ -130,7 +130,7 @@ export function LocalProofShell() {
             <h1 style={headlineStyle}>External entry stays local while Dataverse keeps authority.</h1>
             <p style={introStyle}>
               This proof host runs entirely on your machine, proxies live Dev Dataverse through a local Node runtime,
-              and keeps hidden internal screening details out of the external shell.
+              and keeps hidden internal workflow details out of the external shell.
             </p>
           </div>
           <div style={heroMetaStyle}>

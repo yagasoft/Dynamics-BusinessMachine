@@ -4,14 +4,14 @@ import {
   clearPortalRuntimeSessionState,
   loadPortalRuntimeSessionState,
   savePortalRuntimeSessionState
-} from './session';
+} from './session.js';
 import {
   createPortalRuntimeDraft,
   refreshPortalRuntimeRecord,
   submitPortalRuntimeRequest
-} from './portal-client';
-import { buildPortalRuntimeSnapshot, buildPortalRuntimeViewModel } from './runtime';
-import type { DbmPortalRuntimeAppProps, DbmPortalRuntimeRecordV1 } from './types';
+} from './portal-client.js';
+import { buildPortalRuntimeSnapshot, buildPortalRuntimeViewModel } from './runtime.js';
+import type { DbmPortalRuntimeAppProps, DbmPortalRuntimeRecordV1 } from './types.js';
 
 function buildInitialDraftValues(props: DbmPortalRuntimeAppProps): Record<string, string> {
   const initialValues = props.initialDraftValues ?? {};

@@ -44,7 +44,7 @@ export function buildPortalRuntimeViewModel(options) {
                 },
                 'submit-request': {
                     enabled: canSubmitRequest(options.bootstrap, options.record) && !options.isBusy,
-                    helperText: 'Send the request into the internal screening step.'
+                    helperText: 'Send the request into the next internal review step.'
                 },
                 'refresh-status': {
                     enabled: canRefreshStatus(options.bootstrap, options.record) && !options.isBusy

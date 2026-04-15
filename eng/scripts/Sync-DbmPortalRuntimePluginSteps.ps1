@@ -80,25 +80,25 @@ if (([guid][string]$pluginType.'_pluginassemblyid_value').Guid -ne ([guid][strin
     throw "The portal runtime plugintype is not associated with the expected plugin assembly 'Yagasoft.Dbm.Plugins'."
 }
 
-$sdkMessages = Invoke-DbmDataverseQuery `
+$sdkMessages = @(Invoke-DbmDataverseQuery `
     -DataverseUrl $dataverseUrl `
     -AccessToken $accessToken `
     -EntitySetName 'sdkmessages' `
     -SelectFields @('sdkmessageid', 'name') `
     -Filter ("name eq {0} or name eq {1}" -f (ConvertTo-DbmODataStringLiteral -Value 'Create'), (ConvertTo-DbmODataStringLiteral -Value 'Update')) `
-    -Top 10
+    -Top 10)
 $sdkMessageMap = @{}
 foreach ($message in $sdkMessages) {
     $sdkMessageMap[[string]$message.name] = ([guid][string]$message.sdkmessageid).Guid
 }
 
-$filters = Invoke-DbmDataverseQuery `
+$filters = @(Invoke-DbmDataverseQuery `
     -DataverseUrl $dataverseUrl `
     -AccessToken $accessToken `
     -EntitySetName 'sdkmessagefilters' `
     -SelectFields @('sdkmessagefilterid', 'primaryobjecttypecode', '_sdkmessageid_value') `
     -Filter ("primaryobjecttypecode eq {0}" -f (ConvertTo-DbmODataStringLiteral -Value 'dbm_request')) `
-    -Top 50
+    -Top 50)
 
 $stepDefinitions = Get-DbmPortalRuntimePluginStepDefinitions
 $stepResults = New-Object System.Collections.ArrayList
@@ -119,13 +119,13 @@ foreach ($stepDefinition in $stepDefinitions) {
         throw "Could not resolve a single sdkmessagefilter for '$([string]$stepDefinition.messageName)' on '$([string]$stepDefinition.primaryEntityLogicalName)'."
     }
 
-    $existingCandidates = Invoke-DbmDataverseQuery `
+    $existingCandidates = @(Invoke-DbmDataverseQuery `
         -DataverseUrl $dataverseUrl `
         -AccessToken $accessToken `
         -EntitySetName 'sdkmessageprocessingsteps' `
         -SelectFields @('sdkmessageprocessingstepid', 'name', 'stage', 'mode', 'rank', 'filteringattributes', 'supporteddeployment', '_sdkmessageid_value', '_sdkmessagefilterid_value', '_eventhandler_value') `
         -Filter ("_eventhandler_value eq {0} and _sdkmessageid_value eq {1} and _sdkmessagefilterid_value eq {2}" -f ([guid][string]$pluginType.plugintypeid).Guid, $sdkMessageId, ([guid][string]$sdkMessageFilter[0].sdkmessagefilterid).Guid) `
-        -Top 5
+        -Top 5)
 
     if ($existingCandidates.Count -gt 1) {
         throw "Multiple existing sdkmessageprocessingsteps already target '$([string]$stepDefinition.messageName)' for the portal runtime plugintype. Resolve the ambiguity before rerunning the sync."

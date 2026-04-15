@@ -2,19 +2,19 @@ import { fireEvent, render, screen, waitFor } from '@testing-library/react';
 import { afterEach, expect, test, vi } from 'vitest';
 import type { DbmPortalRuntimeBootstrapV1 } from 'dbm-contract';
 import type { DbmProcessExperienceRuntimeModelV1 } from 'dbm-process-experience';
-import { parsePortalRuntimeBootstrap } from './bootstrap';
-import { PortalRuntimeApp } from './PortalRuntimeApp';
+import { parsePortalRuntimeBootstrap } from './bootstrap.js';
+import { PortalRuntimeApp } from './PortalRuntimeApp.js';
 import {
   createPortalRuntimeDraft,
   refreshPortalRuntimeRecord,
   submitPortalRuntimeRequest
-} from './portal-client';
+} from './portal-client.js';
 import {
   getPortalRuntimeSessionStorageKey,
   loadPortalRuntimeSessionState,
   PORTAL_RUNTIME_SESSION_EVENT,
   savePortalRuntimeSessionState
-} from './session';
+} from './session.js';
 
 const bootstrap: DbmPortalRuntimeBootstrapV1 = {
   schemaVersion: 'dbm.portal-runtime.bootstrap/v1',

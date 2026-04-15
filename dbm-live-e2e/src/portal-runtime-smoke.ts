@@ -83,10 +83,11 @@ async function collectPageText(page: Page): Promise<string> {
 }
 
 async function waitForPageText(page: Page, expectedText: string, timeoutMs = 60000): Promise<void> {
+  const expectedNeedle = normalizeText(expectedText).toLowerCase();
   const start = Date.now();
   while ((Date.now() - start) < timeoutMs) {
-    const text = await collectPageText(page);
-    if (text.includes(expectedText)) {
+    const text = (await collectPageText(page)).toLowerCase();
+    if (text.includes(expectedNeedle)) {
       return;
     }
 
@@ -97,8 +98,9 @@ async function waitForPageText(page: Page, expectedText: string, timeoutMs = 600
 }
 
 async function assertPageTextExcludes(page: Page, unexpectedText: string): Promise<void> {
-  const text = await collectPageText(page);
-  if (text.includes(unexpectedText)) {
+  const text = (await collectPageText(page)).toLowerCase();
+  const unexpectedNeedle = normalizeText(unexpectedText).toLowerCase();
+  if (text.includes(unexpectedNeedle)) {
     throw new Error(`Page text unexpectedly exposed '${unexpectedText}'.`);
   }
 }
@@ -151,12 +153,12 @@ async function runLocalSpaSmoke(page: Page, config: SmokeConfig): Promise<Omit<S
   await page.getByLabel('Request Title').fill(config.requestTitle);
   await page.getByLabel('Request Amount').fill(config.requestAmount);
   await page.getByLabel('Assigned Approver').fill(config.assignedApprover);
-  await page.getByRole('button', { name: 'Create draft' }).click();
+  await page.getByRole('button', { name: 'Create draft' }).first().click();
 
   await waitForPageText(page, config.requestTitle);
   await waitForPageText(page, 'Draft');
 
-  await page.getByRole('button', { name: 'Submit request' }).click();
+  await page.getByRole('button', { name: 'Submit request' }).first().click();
   await waitForPageText(page, config.expectedPortalStatus);
 
   for (const hiddenLabel of config.hiddenLabels) {
@@ -205,9 +207,13 @@ async function runModelDrivenSmoke(config: SmokeConfig, requestId: string): Prom
     const page = await browserContext.newPage();
     const recordUrl = `${config.dataverseUrl.replace(/\/$/, '')}/main.aspx?forceUCI=1&pagetype=entityrecord&etn=${encodeURIComponent(config.entityLogicalName)}&id=${encodeURIComponent(requestId)}`;
     await page.goto(recordUrl, { waitUntil: 'domcontentloaded' });
-    await waitForPageText(page, config.expectedPortalStatus, 90000);
-    for (const hiddenLabel of config.hiddenLabels) {
-      await assertPageTextExcludes(page, hiddenLabel);
+    await waitForPageText(page, config.requestTitle, 90000);
+
+    const expectedInternalLabel = config.hiddenLabels.find((label) => normalizeText(label).length > 0);
+    if (expectedInternalLabel) {
+      await waitForPageText(page, expectedInternalLabel, 90000);
+    } else {
+      await waitForPageText(page, config.expectedPortalStatus, 90000);
     }
 
     return {

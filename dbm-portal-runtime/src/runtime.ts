@@ -1,6 +1,6 @@
 import type { DbmPortalRuntimeBootstrapV1 } from 'dbm-contract';
 import { buildRuntimeProcessExperienceSnapshot, type DbmProcessExperienceRuntimeModelV1 } from 'dbm-process-experience';
-import type { DbmPortalRuntimeRecordV1, DbmPortalRuntimeViewModel, DbmPortalRuntimeViewModelOptions } from './types';
+import type { DbmPortalRuntimeRecordV1, DbmPortalRuntimeViewModel, DbmPortalRuntimeViewModelOptions } from './types.js';
 
 function canSubmitRequest(
   bootstrap: DbmPortalRuntimeBootstrapV1,
@@ -64,7 +64,7 @@ export function buildPortalRuntimeViewModel(options: DbmPortalRuntimeViewModelOp
         },
         'submit-request': {
           enabled: canSubmitRequest(options.bootstrap, options.record) && !options.isBusy,
-          helperText: 'Send the request into the internal screening step.'
+          helperText: 'Send the request into the next internal review step.'
         },
         'refresh-status': {
           enabled: canRefreshStatus(options.bootstrap, options.record) && !options.isBusy

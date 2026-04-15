@@ -1,7 +1,7 @@
 import type { DbmPortalRuntimeBootstrapV1 } from 'dbm-contract';
 import type { DbmProcessExperienceRuntimeModelV1 } from 'dbm-process-experience';
 import generatedPlan from '../../power-platform/solutions/DynamicsBusinessMachineGeneratedMetadata/source/dbm-generated-metadata.plan.json';
-import { parsePortalRuntimeBootstrap } from './bootstrap';
+import { parsePortalRuntimeBootstrap } from './bootstrap.js';
 
 type GeneratedPortalRuntimePlan = {
   portalRuntime?: {

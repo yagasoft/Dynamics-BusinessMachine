@@ -1,10 +1,10 @@
 import { jsx as _jsx } from "react/jsx-runtime";
 import { fireEvent, render, screen, waitFor } from '@testing-library/react';
 import { afterEach, expect, test, vi } from 'vitest';
-import { parsePortalRuntimeBootstrap } from './bootstrap';
-import { PortalRuntimeApp } from './PortalRuntimeApp';
-import { createPortalRuntimeDraft, refreshPortalRuntimeRecord, submitPortalRuntimeRequest } from './portal-client';
-import { getPortalRuntimeSessionStorageKey, loadPortalRuntimeSessionState, PORTAL_RUNTIME_SESSION_EVENT, savePortalRuntimeSessionState } from './session';
+import { parsePortalRuntimeBootstrap } from './bootstrap.js';
+import { PortalRuntimeApp } from './PortalRuntimeApp.js';
+import { createPortalRuntimeDraft, refreshPortalRuntimeRecord, submitPortalRuntimeRequest } from './portal-client.js';
+import { getPortalRuntimeSessionStorageKey, loadPortalRuntimeSessionState, PORTAL_RUNTIME_SESSION_EVENT, savePortalRuntimeSessionState } from './session.js';
 const bootstrap = {
     schemaVersion: 'dbm.portal-runtime.bootstrap/v1',
     packageId: 'dbm-approval-request',

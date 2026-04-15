@@ -1,5 +1,5 @@
 import { createRoot } from 'react-dom/client';
-import { LocalProofShell } from './LocalProofShell';
+import { LocalProofShell } from './LocalProofShell.js';
 
 const target = document.getElementById('dbm-local-proof-root');
 if (!target) {

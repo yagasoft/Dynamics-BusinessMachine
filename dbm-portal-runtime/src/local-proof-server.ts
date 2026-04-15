@@ -5,8 +5,8 @@ import path from 'node:path';
 import { fileURLToPath } from 'node:url';
 import type { DbmPortalRuntimeBootstrapV1 } from 'dbm-contract';
 import type { DbmProcessExperienceRuntimeModelV1 } from 'dbm-process-experience';
-import { parsePortalRuntimeBootstrap } from './bootstrap';
-import type { DbmPortalRuntimeRecordV1 } from './types';
+import { parsePortalRuntimeBootstrap } from './bootstrap.js';
+import type { DbmPortalRuntimeRecordV1 } from './types.js';
 
 type GeneratedPortalRuntimePlan = {
   portalRuntime?: {
@@ -55,6 +55,12 @@ type DataverseResponse = {
 const DEFAULT_HOST = '127.0.0.1';
 const DEFAULT_PORT = 4173;
 const JSON_CONTENT_TYPE = 'application/json; charset=utf-8';
+const DEFAULT_AZURE_CLI_WINDOWS_PATHS = [
+  'C:\\Program Files\\Microsoft SDKs\\Azure\\CLI2\\wbin\\az.exe',
+  'C:\\Program Files\\Microsoft SDKs\\Azure\\CLI2\\wbin\\az.cmd',
+  'C:\\Program Files (x86)\\Microsoft SDKs\\Azure\\CLI2\\wbin\\az.exe',
+  'C:\\Program Files (x86)\\Microsoft SDKs\\Azure\\CLI2\\wbin\\az.cmd'
+];
 
 function resolveRepoRoot(repoRoot?: string): string {
   if (repoRoot?.trim()) {
@@ -71,6 +77,13 @@ function getDefaultDistRoot(repoRoot: string): string {
 
 async function readJsonFile<T>(filePath: string): Promise<T> {
   return JSON.parse(await fs.readFile(filePath, 'utf8')) as T;
+}
+
+function splitPathEntries(value: string | undefined): string[] {
+  return (value ?? '')
+    .split(path.delimiter)
+    .map((entry) => entry.trim())
+    .filter(Boolean);
 }
 
 async function resolvePortalRuntimeMetadata(
@@ -323,8 +336,49 @@ function guessContentType(filePath: string): string {
 }
 
 async function acquireAzureCliAccessToken(dataverseUrl: string): Promise<{ accessToken: string; expiresOn: number | null }> {
+  const azureCliArgs = ['account', 'get-access-token', '--resource', dataverseUrl.replace(/\/$/, ''), '--output', 'json'];
+  let command = 'az';
+  let args = azureCliArgs;
+
+  if (process.platform === 'win32') {
+    const pathCandidates = [
+      ...splitPathEntries(process.env.PATH).flatMap((entry) => [
+        path.join(entry, 'az.exe'),
+        path.join(entry, 'az.cmd')
+      ]),
+      ...DEFAULT_AZURE_CLI_WINDOWS_PATHS
+    ];
+
+    let resolvedAzureCliPath: string | null = null;
+    for (const candidate of pathCandidates) {
+      if (await fileExists(candidate)) {
+        resolvedAzureCliPath = candidate;
+        break;
+      }
+    }
+
+    if (resolvedAzureCliPath?.toLowerCase().endsWith('.cmd')) {
+      const escapedAzureCliPath = resolvedAzureCliPath.replace(/'/g, "''");
+      const escapedDataverseUrl = dataverseUrl.replace(/\/$/, '').replace(/'/g, "''");
+      args = [
+        '-NoProfile',
+        '-NonInteractive',
+        '-ExecutionPolicy',
+        'Bypass',
+        '-Command',
+        `& '${escapedAzureCliPath}' account get-access-token --resource '${escapedDataverseUrl}' --output json`
+      ];
+      command = process.env.SystemRoot
+        ? path.join(process.env.SystemRoot, 'System32', 'WindowsPowerShell', 'v1.0', 'powershell.exe')
+        : 'powershell.exe';
+    }
+    else if (resolvedAzureCliPath) {
+      command = resolvedAzureCliPath;
+    }
+  }
+
   return new Promise((resolve, reject) => {
-    const child = spawn('az', ['account', 'get-access-token', '--resource', dataverseUrl.replace(/\/$/, ''), '--output', 'json'], {
+    const child = spawn(command, args, {
       stdio: ['ignore', 'pipe', 'pipe']
     });
 
@@ -402,8 +456,6 @@ export async function createPortalRuntimeLocalProofServer(
   });
 
   async function handleApiRequest(request: IncomingMessage, response: ServerResponse, pathname: string): Promise<void> {
-    const accessToken = await getAccessToken();
-
     if (request.method === 'GET' && pathname === '/api/runtime/health') {
       writeJson(response, 200, {
         status: 'ready',
@@ -414,6 +466,8 @@ export async function createPortalRuntimeLocalProofServer(
       });
       return;
     }
+
+    const accessToken = await getAccessToken();
 
     if (request.method === 'POST' && pathname === '/api/runtime/drafts') {
       const payload = await readRequestBody(request);

@@ -188,6 +188,18 @@ Assert-DbmCondition -Condition ($dataverseDeploymentSource -match 'function Invo
 Assert-DbmCondition -Condition ($dataverseDeploymentSource -match 'function Invoke-DbmPacDeleteWithRetry') -Message 'Dataverse deployment should retry transient solution delete lock failures.'
 Assert-DbmCondition -Condition ($dataverseDeploymentSource -match "blocked by an active Dataverse customization operation") -Message 'Dataverse deployment should surface a clear retry warning for transient import locks.'
 
+$solutionSourceScript = Get-Content -Path (Join-Path $resolvedRepoRoot 'eng\scripts\New-DataverseSolutionSource.ps1') -Raw
+Assert-DbmCondition -Condition ($solutionSourceScript -match "pluginTypeNode\.GetAttribute\('Name'\)") -Message 'Dataverse solution source emission should preserve each declared plugin type name.'
+Assert-DbmCondition -Condition ($solutionSourceScript -notmatch 'SetAttribute\(''Name'', \$entry\.pluginTypeName\)') -Message 'Dataverse solution source emission should not flatten plugin type names to a single manifest entry.'
+
+$coreBaselineCustomizations = Get-Content -Path (Join-Path $resolvedRepoRoot 'power-platform\solutions\DynamicsBusinessMachine\baseline\customizations.xml') -Raw
+Assert-DbmCondition -Condition ($coreBaselineCustomizations -match 'Yagasoft\.Dbm\.Plugins\.PortalRuntime\.DbmRequestPortalRuntime') -Message 'Core solution baseline should declare the portal runtime plugin type.'
+
+$pluginStepSyncSource = Get-Content -Path (Join-Path $resolvedRepoRoot 'eng\scripts\Sync-DbmPortalRuntimePluginSteps.ps1') -Raw
+Assert-DbmCondition -Condition ($pluginStepSyncSource -match '\$sdkMessages = @\(Invoke-DbmDataverseQuery') -Message 'Portal runtime plugin-step sync should normalize sdkmessage query results to arrays.'
+Assert-DbmCondition -Condition ($pluginStepSyncSource -match '\$filters = @\(Invoke-DbmDataverseQuery') -Message 'Portal runtime plugin-step sync should normalize sdkmessagefilter query results to arrays.'
+Assert-DbmCondition -Condition ($pluginStepSyncSource -match '\$existingCandidates = @\(Invoke-DbmDataverseQuery') -Message 'Portal runtime plugin-step sync should normalize existing step query results to arrays.'
+
 $wrapperScriptSource = Get-Content -Path (Join-Path $resolvedRepoRoot 'eng\scripts\Invoke-R3PortalRuntimeLocalProof.ps1') -Raw
 Assert-DbmCondition -Condition ($wrapperScriptSource -notmatch 'ReadToEnd\(') -Message 'Local proof wrapper should not buffer child output with ReadToEnd().'
 Assert-DbmCondition -Condition ($wrapperScriptSource -match '-RedirectStandardOutput') -Message 'Local proof wrapper should redirect child stdout to a log file.'
@@ -207,5 +219,8 @@ Assert-DbmCondition -Condition ($browserSmokeSource -notmatch 'portal-runtime\.j
 $localSmokeSource = Get-Content -Path (Join-Path $resolvedRepoRoot 'eng\scripts\Test-R3PortalRuntimeLocalSmoke.ps1') -Raw
 Assert-DbmCondition -Condition ($localSmokeSource -match 'http://127\.0\.0\.1:4173') -Message 'Local smoke should default to the local proof host base URL.'
 Assert-DbmCondition -Condition ($localSmokeSource -match 'portal-runtime-local-smoke\.json') -Message 'Local smoke should emit a local proof summary artifact.'
+Assert-DbmCondition -Condition ($localSmokeSource -match 'Push-Location \(Join-Path \$resolvedRepoRoot ''dbm-live-e2e''\)') -Message 'Local smoke should execute tsx from the dbm-live-e2e workspace.'
+Assert-DbmCondition -Condition ($localSmokeSource -match 'npm exec -- tsx src/portal-runtime-smoke\.ts') -Message 'Local smoke should invoke the browser smoke script without relying on repo-root-relative tsx resolution.'
+Assert-DbmCondition -Condition ($localSmokeSource -match 'Write-DbmUtf8File -Path \$browserConfigPath') -Message 'Local smoke should write the browser config without a UTF-8 BOM.'
 
 Write-Host 'R3 portal runtime automation validation passed.'

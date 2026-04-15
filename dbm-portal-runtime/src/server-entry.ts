@@ -1,4 +1,4 @@
-import { createPortalRuntimeLocalProofServer } from './local-proof-server';
+import { createPortalRuntimeLocalProofServer } from './local-proof-server.js';
 
 function parseArgs(argv: string[]): { repoRoot?: string; host?: string; port?: number } {
   const args = new Map<string, string>();
