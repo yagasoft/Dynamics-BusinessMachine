@@ -2,7 +2,7 @@
 
 ## Goal
 
-Turn the shipped `R1` builder-platform MVP into a product-grade authoring and runtime-foundation release by replacing the bridge-quality designer host and notification-based process runtime with a long-term designer shell, a shared DBM-owned process experience system, and a model-driven placement strategy that is ready to carry forward into portal continuity.
+Turn the shipped `R1` builder-platform MVP into a product-grade authoring and runtime-foundation release by replacing the bridge-quality designer host and notification-based process runtime with a long-term designer shell, a shared DBM-owned process experience system, and a model-driven placement strategy that is ready to carry forward into external continuity.
 
 ## Feature set and deliverables
 
@@ -20,7 +20,7 @@ Turn the shipped `R1` builder-platform MVP into a product-grade authoring and ru
 
 Out of scope for this release:
 
-- live Power Pages runtime
+- live hosted external runtime
 - queues, reassignment, delegation, escalation, and SLA timers
 - timeline and audit trail
 - Azure orchestration expansion
@@ -77,7 +77,7 @@ Must include:
 ### R2.4 Synthesis expansion, portal continuity fixtures, and release hardening
 
 Output:
-- release-shaped `R2` baseline that keeps existing-form ownership boundaries intact while preparing the shared process experience for `R3` portal delivery
+- release-shaped `R2` baseline that keeps existing-form ownership boundaries intact while preparing the shared process experience for `R3` external-runtime delivery
 
 Must include:
 - synthesis emission for process-host columns, assets, bindings, and form patch instructions
@@ -110,5 +110,5 @@ Must include:
 - the same process renderer works in the supported model-driven host and the preferred above-tabs overlay without changing business logic
 - form-state-driven tabs, sections, controls, and field behavior remain coherent on the existing request and review forms
 - generated metadata artifacts include the new process-host assets and placement patches without widening `R1` into full-form ownership
-- a portal-targeted fixture harness can render the same visible process projection that the model-driven host uses, ready for live Power Pages integration in `R3`
+- an external-runtime fixture harness can render the same visible process projection that the model-driven host uses, ready for live `R3` external-runtime integration
 - a non-reference custom process can be authored from the hosted designer on `Dev`, exported from Dataverse, synthesized to selected existing forms, and exercised through at least one explicit cross-entity handoff without approval/request-only assumptions

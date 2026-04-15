@@ -13,7 +13,7 @@ This runbook closes `R2` by proving DBM is not limited to the approval/request r
 Out of scope:
 
 - full generated main-form ownership
-- Power Pages runtime
+- live external runtime
 - multi-role operational hardening
 - Azure orchestration and support/admin surfaces
 

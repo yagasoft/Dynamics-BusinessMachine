@@ -78,5 +78,5 @@ Deferred beyond `R1`:
 - full-form XML ownership by DBM
 - whole-form drift enforcement against live Dataverse
 - editable multi-table composition on model-driven forms
-- live Power Pages runtime and full portal loop in the then-planned `R2`, now `R3` after the post-`R1` roadmap reset
+- live external runtime and full portal loop in the then-planned `R2`, now `R3` after the post-`R1` roadmap reset; the first accepted `R3.1` proof path is the local SPA direction recorded in ADR-0014
 - AI-assisted authoring and optimization in the then-planned `R3`, now `R4`

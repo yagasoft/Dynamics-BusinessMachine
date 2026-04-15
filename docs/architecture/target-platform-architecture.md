@@ -4,16 +4,16 @@ This document defines the intended high-level architecture for DBM. It describes
 
 ## Architectural intent
 
-DBM should let a solution architect or developer define, deploy, run, and support one business process that spans portal to backend to portal from a single designer-led experience.
+DBM should let a solution architect or developer define, deploy, run, and support one business process that spans the external front door to backend and back again from a single designer-led experience.
 
 The platform must support:
 
 - stage, step, and form-state definition
 - graph-first designer authoring and preview
-- coherent process UI across model-driven and portal surfaces
+- coherent process UI across model-driven and external surfaces
 - metadata, columns, and generated Dataverse form authoring
 - reusable conditions, branching, and status projection
-- execution across portal, client, Dataverse, and Azure
+- execution across external runtime, client, Dataverse, and Azure
 - pipeline-driven deployment and promotion
 - future AI-assisted design and validation
 
@@ -68,7 +68,7 @@ The designer core owns editing behavior, validation, model composition, semantic
 
 ### 5. Process experience layer
 
-DBM owns the business-process experience itself. That experience must remain coherent across model-driven and portal surfaces even when some internal stages or steps are intentionally hidden from portal users.
+DBM owns the business-process experience itself. That experience must remain coherent across model-driven and external surfaces even when some internal stages or steps are intentionally hidden from external users.
 
 The process experience should be driven through one derived UI read model built from canonical model plus runtime state. That keeps renderers consistent without making the renderer contract the system of record.
 
@@ -95,7 +95,7 @@ The host shell is replaceable. The canonical model, designer graph interchange c
 The same platform contract should support several execution contexts:
 
 - DBM-owned model-driven runtime
-- portal runtime and state projection
+- DBM-owned external runtime and state projection
 - Dataverse backend execution
 - Azure orchestration and service-plane execution
 
@@ -194,7 +194,7 @@ flowchart TB
         H["Model-Driven Runtime"]
         I["Dataverse Runtime"]
         J["Azure Orchestration and Services"]
-        K["Power Pages Runtime"]
+        K["DBM External Runtime"]
     end
 
     subgraph Delivery["Delivery and Operations"]
@@ -247,9 +247,9 @@ flowchart TB
 
 - Release 0 establishes delivery, governance, environments, and baseline recovery.
 - Release 1 locks the canonical process semantics, designer core, Dataverse synthesis layer, host adapters, and the first DBM-owned model-driven runtime for one approval/request scenario.
-- Release 1 also defines the portal-facing process projection contract, but it does not deliver the live Power Pages runtime.
-- Release 2 productizes the designer shell, the shared process-experience system, the model-driven placement strategy, and the portal-continuity UX foundation without yet delivering the live portal runtime.
-- Release 3 delivers the real Power Pages runtime, end-to-end portal continuity, Azure-backed supporting services, work-management, timeline, observability baselines, and pilot-ready hardening.
+- Release 1 also defines the portal-facing process projection contract, but it does not deliver the live external runtime.
+- Release 2 productizes the designer shell, the shared process-experience system, the model-driven placement strategy, and the portal-continuity UX foundation without yet delivering the live external runtime.
+- Release 3 delivers the real DBM-owned external runtime, beginning with the local SPA proof, plus end-to-end external continuity, Azure-backed supporting services, work-management, timeline, observability baselines, and pilot-ready hardening.
 - Release 4 adds AI drafting, review, gap detection, and optimization only after platform contracts and operations are reliable.
 - Release 5 deepens enterprise sophistication through simulation, replay, reusable building blocks, synthesis governance, and advanced analytics and optimization.
 

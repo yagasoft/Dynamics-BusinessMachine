@@ -82,8 +82,8 @@ The following are currently locked unless replaced by a future ADR:
 - Selective reuse beats blind preservation.
 - The first portable designer host is XrmToolBox.
 - Azure is used from the start where it adds clear value.
-- Power Pages is the first portal/front-door target.
+- The first `R3` external/front-door proof is a DBM-owned local SPA; later hosted front-door choices remain open to later release decisions.
 - The first post-`R1` release productizes the designer and DBM-owned process experience before pilot-readiness work resumes.
-- Portal projection semantics are defined in Release 1 before the live Power Pages runtime arrives in Release 3.
+- Portal projection semantics are defined in Release 1 before the live external runtime proof arrives in Release 3.
 - AI arrives after the core platform is stable enough to support it well.
 - `v1.0.0` means pilot-ready end-to-end delivery, not full product maturity.
