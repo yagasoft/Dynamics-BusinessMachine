@@ -32,6 +32,13 @@ describe('designer graph adapters', () => {
       caption: 'Draft Request',
       category: 'stage'
     });
+    expect(flowGraph.edges).not.toHaveLength(0);
+    expect(flowGraph.edges[0]).toMatchObject({
+      selectable: true,
+      focusable: true,
+      deletable: true,
+      type: 'dbm-edge'
+    });
   });
 
   it('translates library intents back into DBM-owned graph intents', () => {

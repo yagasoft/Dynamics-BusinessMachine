@@ -439,9 +439,22 @@ function GraphCanvasInner({ document, onSelectionChange, onGraphIntent, onNodePo
           edges={flowDocument.edges}
           nodeTypes={nodeTypes}
           edgeTypes={edgeTypes}
-          onNodeClick={(_, node) => onSelectionChange(node.id)}
-          onEdgeClick={(_, edge) => onSelectionChange(edge.id)}
-          onPaneClick={() => onSelectionChange('document:root')}
+          onNodeClick={(event, node) => {
+            event.preventDefault();
+            event.stopPropagation();
+            onSelectionChange(node.id);
+          }}
+          onEdgeClick={(event, edge) => {
+            event.preventDefault();
+            event.stopPropagation();
+            onSelectionChange(edge.id);
+          }}
+          onPaneClick={(event) => {
+            if (event.defaultPrevented) {
+              return;
+            }
+            onSelectionChange('document:root');
+          }}
           onNodeDragStop={(_, node) => {
             if (isStableDesignerGraphNodeId(node.id)) {
               onNodePositionCommit(node.id, node.position);

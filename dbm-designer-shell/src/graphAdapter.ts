@@ -354,6 +354,9 @@ function buildFlowGraph(document: DesignerDocument): DesignerFlowGraphDocument {
         targetHandle: edge.targetPortId,
         label: edge.label ?? undefined,
         selected: document.selectionId === edge.id,
+        selectable: true,
+        focusable: true,
+        deletable: true,
         type: 'dbm-edge',
         markerEnd: {
           type: MarkerType.ArrowClosed
@@ -383,6 +386,9 @@ function buildFlowGraph(document: DesignerDocument): DesignerFlowGraphDocument {
       targetHandle: edge.targetPortId,
       label: edge.label ?? undefined,
       selected: document.selectionId === edge.id,
+      selectable: true,
+      focusable: true,
+      deletable: true,
       type: 'dbm-edge',
       markerEnd: {
         type: MarkerType.ArrowClosed
