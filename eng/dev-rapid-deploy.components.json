@@ -101,17 +101,21 @@
     },
     {
       "name": "DbmPortalRuntime",
-      "description": "Power Pages portal runtime bundle, tracked portal templates, and export seam.",
+      "description": "Local SPA portal runtime proof host, smoke harness, and orchestration wrapper.",
       "sourcePatterns": [
         "dbm-portal-runtime/*",
-        "power-platform/solutions/DynamicsBusinessMachinePortalRuntime/*",
-        "eng/scripts/Export-PortalRuntimePackage.ps1"
+        "eng/scripts/PortalRuntimeDeployment.Common.ps1",
+        "eng/scripts/Invoke-R3PortalRuntimeLocalProof.ps1",
+        "eng/scripts/Test-R3PortalRuntimeLocalSmoke.ps1",
+        "eng/scripts/Sync-DbmPortalRuntimePluginSteps.ps1",
+        "power-platform/solutions/DynamicsBusinessMachineGeneratedMetadata/source/dbm-generated-metadata.plan.json"
       ],
       "nodeProjects": [
         "dbm-portal-runtime"
       ],
       "requiresDotNetBuild": false,
-      "deployable": true
+      "deployable": false,
+      "notes": "This component now runs as a local proof host on the developer machine; Dataverse deployment remains covered by plugin and solution asset components."
     },
     {
       "name": "DbmLiveE2E",

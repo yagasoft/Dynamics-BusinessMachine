@@ -132,12 +132,12 @@ test('designer-preview cross-form handoff visual baseline', async ({ page }) => 
   );
 });
 
-test('power-pages-runtime draft visual baseline', async ({ page }) => {
+test('external-runtime draft visual baseline', async ({ page }) => {
   await expectScenarioScreenshot(
     page,
     'portal-runtime-draft',
-    'power-pages-runtime',
-    'power-pages-runtime-draft.png',
+    'external-runtime',
+    'external-runtime-draft.png',
     {
       portalShell: {
         entryTitle: 'Approval request portal',

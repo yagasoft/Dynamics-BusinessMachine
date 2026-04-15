@@ -16,7 +16,6 @@ function canRefreshStatus(
   record: DbmPortalRuntimeRecordV1 | null
 ): boolean {
   return bootstrap.allowedActions.includes('refresh-status')
-    && bootstrap.devAnonymousReadbackEnabled
     && Boolean(record);
 }
 

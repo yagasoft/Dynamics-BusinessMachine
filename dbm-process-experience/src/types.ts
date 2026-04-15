@@ -15,7 +15,7 @@ export type DbmProcessExperienceModeV1 =
   | 'model-driven-section'
   | 'model-driven-overlay'
   | 'portal-fixture'
-  | 'power-pages-runtime';
+  | 'external-runtime';
 
 export type DbmProcessExperiencePortalShellActionIdV1 = DbmPortalAllowedActionV1;
 

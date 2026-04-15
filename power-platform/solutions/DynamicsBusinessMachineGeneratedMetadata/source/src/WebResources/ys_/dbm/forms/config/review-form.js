@@ -727,7 +727,7 @@
       "webResourceId": "{df0e9bb8-596f-5294-9398-7db0010a0948}",
       "frameBridgeName": "ProcessExperienceSectionFrame",
       "minHeightPx": 320,
-      "data": "{\"formId\":\"review-form\",\"displayName\":\"Review Form\",\"placement\":\"section\",\"minHeightPx\":320,\"rendererVersion\":\"84d544665a9056179b8f666419812eac\",\"hostVersion\":\"c4c07da7432650e3b35a9295207ce98a\"}"
+      "data": "{\"formId\":\"review-form\",\"displayName\":\"Review Form\",\"placement\":\"section\",\"minHeightPx\":320,\"rendererVersion\":\"9590ad75ed375fefa3e3bde75fce401e\",\"hostVersion\":\"c4c07da7432650e3b35a9295207ce98a\"}"
     },
     "overlay": {
       "placementMode": "overlay",

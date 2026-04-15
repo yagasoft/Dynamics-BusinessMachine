@@ -18,7 +18,9 @@ type SmokeConfig = {
 
 type SmokeResult = {
   generatedUtc: string;
-  anonymousScriptRefs: string[];
+  shellMode: 'local-spa';
+  entryRoutePath: string;
+  statusRoutePath: string;
   requestId: string;
   requestTitle: string;
   portalStatusLabel: string;
@@ -136,15 +138,15 @@ async function readPortalSessionRequestId(page: Page): Promise<string> {
   throw new Error('Portal smoke could not resolve a requestId from sessionStorage.');
 }
 
-async function runAnonymousPortalSmoke(page: Page, config: SmokeConfig): Promise<Omit<SmokeResult, 'generatedUtc' | 'modelDriven'>> {
-  await page.goto(config.entryUrl, { waitUntil: 'domcontentloaded' });
-  await page.waitForSelector('#dbm-portal-runtime-root', { timeout: 60000 });
-  await page.waitForSelector('script[src*="portal-runtime-context.js"]', { timeout: 60000 });
-  await page.waitForSelector('script[src*="portal-runtime.js"]', { timeout: 60000 });
+function getPagePath(page: Page): string {
+  return new URL(page.url()).pathname;
+}
 
-  const anonymousScriptRefs = await page.locator('script[src]').evaluateAll((elements) =>
-    elements.map((element) => element.getAttribute('src') ?? '').filter(Boolean)
-  );
+async function runLocalSpaSmoke(page: Page, config: SmokeConfig): Promise<Omit<SmokeResult, 'generatedUtc' | 'modelDriven'>> {
+  await page.goto(config.entryUrl, { waitUntil: 'domcontentloaded' });
+  await page.waitForSelector('#dbm-local-proof-root', { timeout: 60000 });
+  await waitForPageText(page, 'R3.1 Local SPA Runtime Proof');
+  await waitForPageText(page, 'Approval request intake');
 
   await page.getByLabel('Request Title').fill(config.requestTitle);
   await page.getByLabel('Request Amount').fill(config.requestAmount);
@@ -162,17 +164,22 @@ async function runAnonymousPortalSmoke(page: Page, config: SmokeConfig): Promise
   }
 
   const requestId = await readPortalSessionRequestId(page);
+  const entryRoutePath = getPagePath(page);
 
   await page.goto(config.requestShellUrl, { waitUntil: 'domcontentloaded' });
+  await page.waitForSelector('#dbm-local-proof-root', { timeout: 60000 });
   await waitForPageText(page, config.requestTitle);
   await waitForPageText(page, config.expectedPortalStatus);
+  await waitForPageText(page, 'Portal-visible status view');
 
   for (const hiddenLabel of config.hiddenLabels) {
     await assertPageTextExcludes(page, hiddenLabel);
   }
 
   return {
-    anonymousScriptRefs,
+    shellMode: 'local-spa',
+    entryRoutePath,
+    statusRoutePath: getPagePath(page),
     requestId,
     requestTitle: config.requestTitle,
     portalStatusLabel: config.expectedPortalStatus,
@@ -188,29 +195,29 @@ async function runModelDrivenSmoke(config: SmokeConfig, requestId: string): Prom
     };
   }
 
-  const storageStatePath = config.persistedSessionStatePath ?? undefined;
-  const context = await chromium.launch({ headless: true }).then((browser) =>
-    browser.newContext({
-      ignoreHTTPSErrors: true,
-      storageState: storageStatePath
-    }).then(async (browserContext) => {
-      const page = await browserContext.newPage();
-      const recordUrl = `${config.dataverseUrl.replace(/\/$/, '')}/main.aspx?forceUCI=1&pagetype=entityrecord&etn=${encodeURIComponent(config.entityLogicalName)}&id=${encodeURIComponent(requestId)}`;
-      await page.goto(recordUrl, { waitUntil: 'domcontentloaded' });
-      await waitForPageText(page, config.expectedPortalStatus, 90000);
-      for (const hiddenLabel of config.hiddenLabels) {
-        await assertPageTextExcludes(page, hiddenLabel);
-      }
-      await browserContext.close();
-      await browser.close();
-      return {
-        executed: true,
-        passed: true
-      };
-    })
-  );
+  const browser = await chromium.launch({ headless: true });
+  const browserContext = await browser.newContext({
+    ignoreHTTPSErrors: true,
+    storageState: config.persistedSessionStatePath
+  });
 
-  return context;
+  try {
+    const page = await browserContext.newPage();
+    const recordUrl = `${config.dataverseUrl.replace(/\/$/, '')}/main.aspx?forceUCI=1&pagetype=entityrecord&etn=${encodeURIComponent(config.entityLogicalName)}&id=${encodeURIComponent(requestId)}`;
+    await page.goto(recordUrl, { waitUntil: 'domcontentloaded' });
+    await waitForPageText(page, config.expectedPortalStatus, 90000);
+    for (const hiddenLabel of config.hiddenLabels) {
+      await assertPageTextExcludes(page, hiddenLabel);
+    }
+
+    return {
+      executed: true,
+      passed: true
+    };
+  } finally {
+    await browserContext.close().catch(() => undefined);
+    await browser.close().catch(() => undefined);
+  }
 }
 
 async function main(): Promise<void> {
@@ -222,7 +229,7 @@ async function main(): Promise<void> {
   try {
     anonymousContext = await browser.newContext({ ignoreHTTPSErrors: true });
     const page = await anonymousContext.newPage();
-    const anonymousResult = await runAnonymousPortalSmoke(page, config);
+    const anonymousResult = await runLocalSpaSmoke(page, config);
 
     let modelDrivenResult: { executed: boolean; passed: boolean } = {
       executed: false,

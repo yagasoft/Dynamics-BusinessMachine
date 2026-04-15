@@ -1,22 +1,24 @@
-# R3 Portal Runtime Dev Proof
+# R3 Local SPA Runtime Dev Proof
 
-This runbook is the operator path for `R3.1 Portal runtime and external entry`. It proves that Power Pages can create and submit an approval request through the canonical Dataverse runtime contract while preserving the shared portal-safe process experience from `R2`.
+This runbook is the operator path for `R3.1 Local SPA runtime proof and external entry`. It proves that a repo-owned local SPA can create and submit an approval request through the canonical Dataverse runtime contract while preserving the shared external-safe process experience from `R2`.
 
 ## Scope
 
 - canonical branch strategy for `R3.1`
-- Power Pages anonymous proof posture in `Dev`
+- local SPA external-entry proof in `Dev`
+- local Node proxy with Azure CLI Dataverse access
 - Dataverse-authoritative create and submit progression
-- shared portal runtime shell and same-session continuity
-- portal-safe status projection without internal-stage leakage
+- shared process-experience shell and same-session continuity
+- external-safe status projection without internal-stage leakage
 
 Out of scope:
 
+- Power Pages, IIS, or any hosted front-door technology
 - authenticated external-user ownership
-- cross-device anonymous recovery
+- cross-device recovery
 - queueing, escalation, SLA, and timeline features
-- UAT or Prod-ready portal security posture
-- any non-Dev portal identity hardening
+- UAT or Prod-ready external runtime hosting
+- browser-held Dataverse tokens
 
 ## Branch strategy
 
@@ -30,56 +32,64 @@ Out of scope:
 ## Target artifacts and packages
 
 - `dbm-contract`
-  - `DbmPortalRuntimeBootstrapV1`
+  - host-neutral `DbmPortalRuntimeBootstrapV1`
   - schema and valid fixture coverage
 - `dbm-process-experience`
-  - `power-pages-runtime` mode
-  - portal-shell actions around the existing shared snapshot builder
+  - `external-runtime` mode
+  - external-shell actions around the existing shared snapshot builder
 - `dbm-portal-runtime`
-  - Power Pages browser bundle
-  - entry-field capture form
+  - standalone SPA shell with `/approval-request` and `/approval-request/status`
+  - local Node host for static SPA serving plus `/api/runtime/*`
   - same-session continuity
-  - CRUD-only Dataverse portal client
+  - browser client that talks only to the local host API
 - `dbm-dataverse-synthesis`
   - synthetic portal runtime fields on the process-owner table
-  - portal runtime plan and bootstrap generation
+  - portal runtime plan and bootstrap generation for the local proof host
 - `DbmSolution/Plugins`
   - `DbmRequestPortalRuntime`
   - upgraded legacy package references
-- `power-platform/solutions/DynamicsBusinessMachinePortalRuntime`
-  - tracked bootstrap, templates, site settings, and permission payloads
-- `eng/scripts/Export-PortalRuntimePackage.ps1`
-  - export seam for the portal runtime bundle, generated context asset, and tracked portal assets
-- `eng/scripts/Invoke-PortalRuntimeDeployment.ps1`
-  - Dev-only Power Pages apply via Dataverse Web API
 - `eng/scripts/Sync-DbmPortalRuntimePluginSteps.ps1`
   - Dev plugin-step registration drift sync
-- `eng/scripts/Test-R3PortalRuntimeDevSmoke.ps1`
-  - portal/browser/model-driven acceptance smoke
-- `eng/scripts/Invoke-R3PortalRuntimeDevDeploy.ps1`
-  - one-command Dev deployment wrapper with evidence output
+- `eng/scripts/Test-R3PortalRuntimeLocalSmoke.ps1`
+  - local browser and optional model-driven acceptance smoke
+- `eng/scripts/Invoke-R3PortalRuntimeLocalProof.ps1`
+  - one-command Dev local-proof wrapper with evidence output
 
 ## Interface and config surface
 
 `DbmPortalRuntimeBootstrapV1` now carries:
 
 - package and process identity
-- `identityMode = anonymous-generic-profile`
+- `identityMode = generic-profile`
 - configured `genericProfileKey`
-- Power Pages entry and request-shell page ids/routes
+- `routes.entryPath`
+- `routes.statusPath`
 - request entity logical name and entity set name
 - start form id
-- portal entry fields for the start slice
+- entry fields for the start slice
 - portal command field logical name
 - runtime state field logical names
 - default start stage, step, form state, internal status, and portal status ids
-- allowed portal actions
-- `devAnonymousReadbackEnabled`
+- allowed external actions
 
 Dataverse runtime additions on the request owner record:
 
 - `dbm_portalcommand`
 - `dbm_portalprofilekey`
+
+Local proof host API surface:
+
+- `POST /api/runtime/drafts`
+- `GET /api/runtime/requests/:id`
+- `POST /api/runtime/requests/:id/submit`
+- `GET /api/runtime/health`
+
+Local proof host defaults:
+
+- bind `127.0.0.1`
+- port `4173`
+- entry URL `http://127.0.0.1:4173/approval-request`
+- status URL `http://127.0.0.1:4173/approval-request/status`
 
 Plugin contract for `R3.1`:
 
@@ -90,7 +100,7 @@ Plugin contract for `R3.1`:
 
 ## Local build and validation
 
-Run the local package/test path before touching `Dev`:
+Run the local package and test path before touching `Dev`:
 
 ```powershell
 Set-Location C:\Git\Dynamics-BusinessMachine\dbm-contract
@@ -130,95 +140,78 @@ Set-Location C:\Git\Dynamics-BusinessMachine
 .\eng\scripts\Invoke-DataverseSynthesis.ps1 -Mode EmitSource
 ```
 
-Export the portal runtime package seam:
+Run the local automation validation:
 
 ```powershell
 Set-Location C:\Git\Dynamics-BusinessMachine
-.\eng\scripts\Export-PortalRuntimePackage.ps1
+.\eng\scripts\Test-R3PortalRuntimeAutomation.ps1
 ```
 
-Expected portal export output:
+## Dev proof path
 
-- `artifacts/portal-runtime/DynamicsBusinessMachinePortalRuntime/web-files/dbm/portal-runtime/portal-runtime.js`
-- `artifacts/portal-runtime/DynamicsBusinessMachinePortalRuntime/web-files/dbm/portal-runtime/portal-runtime-context.js`
-- `artifacts/portal-runtime/DynamicsBusinessMachinePortalRuntime/bootstrap/*.json`
-- `artifacts/portal-runtime/DynamicsBusinessMachinePortalRuntime/web-templates/*.liquid`
-- `artifacts/portal-runtime/DynamicsBusinessMachinePortalRuntime/site-settings/*.json`
-- `artifacts/portal-runtime/DynamicsBusinessMachinePortalRuntime/permissions/*.json`
-- `artifacts/portal-runtime/DynamicsBusinessMachinePortalRuntime/export-manifest.json`
+Prerequisites:
 
-## Dev deployment path
-
-Populate the Dev Power Pages target first:
-
-- provision the Dev Power Pages site outside this repo before running any `R3.1` deployment script
-- set `azure/config/dev.json` `powerPages.websiteId`
-- set `azure/config/dev.json` `powerPages.websiteName`
-- ensure the configured website already exists in Dataverse/Power Pages
-- do not use arbitrary or placeholder values; the deployment scripts validate the configured id and name against a live `mspp_website`
-- ensure the provisioned site already has:
-  - a primary domain name
-  - one default publishing state
-  - a default language
-  - one matching `powerpagesite` row
-  - one matching `powerpagesitelanguage` row
-- ensure a persisted model-driven live E2E session exists:
+- Azure CLI is installed and authenticated to the target tenant
+- `azure/config/dev.json` contains a valid `dataverseUrl`
+- the approved DBM strong-name key is available:
+  - pass `-AssemblyKeyFile <official.snk>` to the wrapper, or
+  - set `DBM_ASSEMBLY_KEY_FILE` to the official `.snk` path
+- a persisted model-driven live E2E session is optional for the final model-driven check:
   - `.\eng\scripts\Initialize-LiveDbmE2ESession.ps1 -TargetEnvironment Dev`
+- no Power Pages site configuration is required
 
-Run the full Dev deployment wrapper:
+Run the full local proof wrapper:
 
 ```powershell
 Set-Location C:\Git\Dynamics-BusinessMachine
-.\eng\scripts\Invoke-R3PortalRuntimeDevDeploy.ps1 -TargetEnvironment Dev
+.\eng\scripts\Invoke-R3PortalRuntimeLocalProof.ps1 -TargetEnvironment Dev -AssemblyKeyFile <official.snk>
 ```
 
 The wrapper performs the canonical sequence:
 
-1. package build/test/validate for `dbm-contract`, `dbm-process-experience`, `dbm-portal-runtime`, and `dbm-dataverse-synthesis`
-2. plugin restore/build
+1. package build, validate, and test for `dbm-contract`, `dbm-process-experience`, `dbm-portal-runtime`, and `dbm-dataverse-synthesis`
+2. plugin restore and build
 3. Dataverse packaging and deployment
-4. Power Pages apply through `Invoke-PortalRuntimeDeployment.ps1`
-5. plugin-step sync through `Sync-DbmPortalRuntimePluginSteps.ps1`
-6. browser and model-driven smoke through `Test-R3PortalRuntimeDevSmoke.ps1`
+4. plugin-step sync through `Sync-DbmPortalRuntimePluginSteps.ps1`
+5. local proof host start on `http://127.0.0.1:4173`
+6. local browser and optional model-driven smoke through `Test-R3PortalRuntimeLocalSmoke.ps1`
 
 Evidence is written under:
 
-- `artifacts/r3-portal-runtime-dev-deploy/<timestamp>/`
+- `artifacts/r3-portal-runtime-local-proof/<timestamp>/`
 
 ## Dev proof steps
 
-1. Open the Power Pages entry route anonymously.
+1. Open `http://127.0.0.1:4173/approval-request`.
 2. Complete the request fields and create a draft.
 3. Confirm the request record was created with:
    - draft stage and step ids
    - draft internal and portal status
    - generic profile key stamped by the plugin
-4. Submit the request from the portal shell.
+4. Submit the request from the local SPA shell.
 5. Confirm Dataverse advances the request to the hidden internal screening stage.
-6. Confirm the portal shell shows `Under Review` and does not reveal:
+6. Confirm the external shell shows `Under Review` and does not reveal:
    - `Internal Screening`
    - internal-only step names
    - internal-only actions
-7. Refresh or reopen the request in the same browser session and confirm the portal shell resumes from stored request context.
-8. Open the same request in the model-driven host and confirm the shared process experience remains coherent.
+7. Refresh or reopen `http://127.0.0.1:4173/approval-request/status` in the same browser session and confirm the shell resumes from stored request context.
+8. If a persisted model-driven session is available, open the same request in the model-driven host and confirm the shared process experience remains coherent.
 
 ## Acceptance before R3.2
 
 `R3.1` is complete enough to begin `R3.2` only when all of the following are true:
 
 - the canonical continuation branch remains `codex/r3-1-portal-runtime-and-external-entry`
-- the anonymous proof posture and Dataverse authority boundary are documented in ADR and runbook form
+- the local SPA proof posture and Dataverse authority boundary are documented in ADR and runbook form
 - local contract, renderer, synthesis, and portal runtime tests pass
 - the touched legacy plugin project builds on the upgraded package set
-- the portal runtime package export completes successfully
-- the one-command Dev deployment wrapper completes with evidence
-- the `Dev` proof shows anonymous draft create, portal submit, canonical Dataverse advance, and portal-safe `Under Review`
-- the portal never exposes hidden internal screening details
-- the model-driven host still renders the same request coherently after portal initiation
+- the one-command local proof wrapper completes with evidence
+- the `Dev` proof shows draft create, local submit, canonical Dataverse advance, and external-safe `Under Review`
+- the external shell never exposes hidden internal screening details
+- the model-driven host still renders the same request coherently after local-SPA initiation when the persisted session is available
 
 ## Notes
 
 - `R3.1` intentionally stays on a `Dev` proof posture.
-- Treat anonymous readback and generic profile ownership as temporary proof assumptions, not pilot-ready production design.
-- Power Pages site provisioning is an external prerequisite for this slice; the repo only configures an already provisioned site.
-- This automated path fails fast when the configured Power Pages site is missing or ambiguous; it does not prompt operators to choose a site interactively.
+- Treat the generic profile ownership assumption as a temporary proof constraint, not pilot-ready production design.
+- The local proof keeps Dataverse authority in the backend plugin and the local Node proxy; the browser never receives a Dataverse access token.

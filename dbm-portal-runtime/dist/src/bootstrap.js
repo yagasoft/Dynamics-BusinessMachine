@@ -16,10 +16,8 @@ export function parsePortalRuntimeBootstrap(input) {
     assertNonEmptyString(bootstrap.processId, 'processId');
     assertNonEmptyString(bootstrap.identityMode, 'identityMode');
     assertNonEmptyString(bootstrap.genericProfileKey, 'genericProfileKey');
-    assertNonEmptyString(bootstrap.entryPage?.pageId, 'entryPage.pageId');
-    assertNonEmptyString(bootstrap.entryPage?.routePath, 'entryPage.routePath');
-    assertNonEmptyString(bootstrap.requestShellPage?.pageId, 'requestShellPage.pageId');
-    assertNonEmptyString(bootstrap.requestShellPage?.routePath, 'requestShellPage.routePath');
+    assertNonEmptyString(bootstrap.routes?.entryPath, 'routes.entryPath');
+    assertNonEmptyString(bootstrap.routes?.statusPath, 'routes.statusPath');
     assertNonEmptyString(bootstrap.requestEntityLogicalName, 'requestEntityLogicalName');
     assertNonEmptyString(bootstrap.requestEntitySetName, 'requestEntitySetName');
     assertNonEmptyString(bootstrap.startFormId, 'startFormId');

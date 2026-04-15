@@ -74,16 +74,15 @@ export function PortalRuntimeApp(props) {
     const storage = props.storage ?? (typeof window !== 'undefined' ? window.sessionStorage : null);
     useEffect(() => {
         const session = loadPortalRuntimeSessionState(storage, props.bootstrap);
-        if (!session?.requestId || !props.bootstrap.devAnonymousReadbackEnabled) {
+        if (!session?.requestId) {
             return;
         }
         let cancelled = false;
         setBusy(true);
         void refreshPortalRuntimeRecord({
-            bootstrap: props.bootstrap,
             requestId: session.requestId,
             fetchImpl: props.fetchImpl,
-            siteOrigin: props.siteOrigin
+            apiBasePath: props.apiBasePath
         })
             .then((nextRecord) => {
             if (!cancelled) {
@@ -105,7 +104,7 @@ export function PortalRuntimeApp(props) {
         return () => {
             cancelled = true;
         };
-    }, [props.bootstrap, props.fetchImpl, props.siteOrigin, storage]);
+    }, [props.apiBasePath, props.bootstrap, props.fetchImpl, storage]);
     const draftValidationErrors = useMemo(() => buildDraftValidationErrors(props, draftValues), [props, draftValues]);
     const snapshot = useMemo(() => buildPortalRuntimeSnapshot(props.bootstrap, props.runtimeModel, record), [props.bootstrap, props.runtimeModel, record]);
     const viewModel = useMemo(() => buildPortalRuntimeViewModel({
@@ -126,10 +125,9 @@ export function PortalRuntimeApp(props) {
                     return;
                 }
                 const nextRecord = await createPortalRuntimeDraft({
-                    bootstrap: props.bootstrap,
                     values: toDraftPayload(props, draftValues),
                     fetchImpl: props.fetchImpl,
-                    siteOrigin: props.siteOrigin
+                    apiBasePath: props.apiBasePath
                 });
                 savePortalRuntimeSessionState(storage, props.bootstrap, {
                     requestId: nextRecord.id,
@@ -143,18 +141,23 @@ export function PortalRuntimeApp(props) {
                 return;
             }
             if (actionId === 'submit-request') {
-                await submitPortalRuntimeRequest({
-                    bootstrap: props.bootstrap,
+                const submittedRecord = await submitPortalRuntimeRequest({
                     requestId: record.id,
                     fetchImpl: props.fetchImpl,
-                    siteOrigin: props.siteOrigin
+                    apiBasePath: props.apiBasePath
                 });
+                savePortalRuntimeSessionState(storage, props.bootstrap, {
+                    requestId: submittedRecord.id,
+                    requestReference: submittedRecord.requestReference,
+                    sessionKey: submittedRecord.id
+                });
+                setRecord(submittedRecord);
+                return;
             }
             const refreshedRecord = await refreshPortalRuntimeRecord({
-                bootstrap: props.bootstrap,
                 requestId: record.id,
                 fetchImpl: props.fetchImpl,
-                siteOrigin: props.siteOrigin
+                apiBasePath: props.apiBasePath
             });
             savePortalRuntimeSessionState(storage, props.bootstrap, {
                 requestId: refreshedRecord.id,
@@ -214,7 +217,7 @@ export function PortalRuntimeApp(props) {
                                         border: '1px solid #cbd5e1',
                                         padding: '0.7rem 0.85rem',
                                         font: 'inherit'
-                                    } })), field.hint ? (_jsx("span", { style: { color: '#64748b', fontSize: '0.82rem', lineHeight: 1.35 }, children: field.hint })) : null] }, field.logicalName))) })] })) : null, _jsx(ProcessExperienceSurface, { snapshot: snapshot, mode: "power-pages-runtime", audience: "portal", portalShell: viewModel.portalShell, onPortalAction: (actionId) => {
+                                    } })), field.hint ? (_jsx("span", { style: { color: '#64748b', fontSize: '0.82rem', lineHeight: 1.35 }, children: field.hint })) : null] }, field.logicalName))) })] })) : null, _jsx(ProcessExperienceSurface, { snapshot: snapshot, mode: "external-runtime", audience: "portal", portalShell: viewModel.portalShell, onPortalAction: (actionId) => {
                     void handlePortalAction(actionId);
                 } })] }));
 }

@@ -8,7 +8,8 @@
     "vitest": "npx -p node@20.19.0 node ./node_modules/vitest/vitest.mjs",
     "prepare-local-deps": "npm --prefix ../dbm-contract run build && npm --prefix ../dbm-process-experience run build",
     "build": "npm run prepare-local-deps && tsc -p tsconfig.json && npm run vite -- build",
-    "test": "npm run prepare-local-deps && npm run vitest -- run"
+    "test": "npm run prepare-local-deps && npm run vitest -- run",
+    "start:proof": "node ./dist/src/server-entry.js"
   },
   "dependencies": {
     "react": "19.2.5",

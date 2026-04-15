@@ -1,5 +1,5 @@
 import type { DbmActorTypeV1, DbmPortalAllowedActionV1, DbmProcessExperienceAudienceV1, DbmProcessExperienceSnapshotV1, DbmStagePortalVisibilityV1, DbmStageTypeV1, DbmStatusAudienceV1, DbmStatusKindV1, DbmStepTypeV1 } from 'dbm-contract';
-export type DbmProcessExperienceModeV1 = 'designer-preview' | 'model-driven-section' | 'model-driven-overlay' | 'portal-fixture' | 'power-pages-runtime';
+export type DbmProcessExperienceModeV1 = 'designer-preview' | 'model-driven-section' | 'model-driven-overlay' | 'portal-fixture' | 'external-runtime';
 export type DbmProcessExperiencePortalShellActionIdV1 = DbmPortalAllowedActionV1;
 export interface DbmProcessExperiencePortalShellActionStateV1 {
     enabled: boolean;

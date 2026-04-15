@@ -225,15 +225,11 @@ function buildPortalRuntimePlan(model, entityPlans, runtimeOwnerEntityId, diagno
             packageId: model.package.id,
             packageVersion: model.package.version,
             processId: model.process.id,
-            identityMode: 'anonymous-generic-profile',
+            identityMode: 'generic-profile',
             genericProfileKey: 'dev-anonymous-requester',
-            entryPage: {
-                pageId: `${routeSegment}-entry`,
-                routePath: `/${routeSegment}`
-            },
-            requestShellPage: {
-                pageId: `${routeSegment}-request-shell`,
-                routePath: `/${routeSegment}/status`
+            routes: {
+                entryPath: `/${routeSegment}`,
+                statusPath: `/${routeSegment}/status`
             },
             requestEntityLogicalName: runtimeOwnerEntity.logicalName,
             requestEntitySetName: runtimeOwnerEntity.logicalCollectionName,
@@ -255,15 +251,13 @@ function buildPortalRuntimePlan(model, entityPlans, runtimeOwnerEntityId, diagno
                 internalStatusId: defaultStep.internalStatusId,
                 portalStatusId: defaultStep.portalStatusId
             },
-            allowedActions: ['create-draft', 'submit-request', 'refresh-status'],
-            devAnonymousReadbackEnabled: true
+            allowedActions: ['create-draft', 'submit-request', 'refresh-status']
         },
         processExperienceRuntime: buildProcessExperienceRuntimeModel(model),
         requestEntityId: runtimeOwnerEntityId,
         requestEntityLogicalName: runtimeOwnerEntity.logicalName,
         requestEntitySetName: runtimeOwnerEntity.logicalCollectionName,
-        bundlePackageName: 'dbm-portal-runtime',
-        solutionName: 'DynamicsBusinessMachinePortalRuntime'
+        hostPackageName: 'dbm-portal-runtime'
     };
 }
 function appendUniqueColumns(columns, additionalColumns) {

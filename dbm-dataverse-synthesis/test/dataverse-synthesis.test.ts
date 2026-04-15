@@ -425,12 +425,15 @@ test('planDataverseSynthesis maps the approval example into entities, existing f
   assert.equal(plan.portalRuntime?.bootstrap.runtimeStateFieldLogicalNames.portalProfileKey, 'dbm_portalprofilekey');
   assert.equal(plan.portalRuntime?.bootstrap.defaultState.stageId, 'draft-request');
   assert.equal(plan.portalRuntime?.bootstrap.defaultState.stepId, 'capture-request');
+  assert.equal(plan.portalRuntime?.bootstrap.identityMode, 'generic-profile');
+  assert.equal(plan.portalRuntime?.bootstrap.routes.entryPath, '/approval-request');
+  assert.equal(plan.portalRuntime?.bootstrap.routes.statusPath, '/approval-request/status');
   assert.deepEqual(
     plan.portalRuntime?.bootstrap.entryFields.map((field) => field.logicalName),
     ['dbm_title', 'dbm_amount', 'dbm_assignedapprover', 'dbm_supportingnotes']
   );
   assert.deepEqual(plan.portalRuntime?.bootstrap.allowedActions, ['create-draft', 'submit-request', 'refresh-status']);
-  assert.equal(plan.portalRuntime?.solutionName, 'DynamicsBusinessMachinePortalRuntime');
+  assert.equal(plan.portalRuntime?.hostPackageName, 'dbm-portal-runtime');
 });
 
 test('planDataverseSynthesis supports a non-reference existing-form model with explicit cross-entity handoff', () => {

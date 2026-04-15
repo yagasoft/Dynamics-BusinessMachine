@@ -125,8 +125,8 @@ export function ProcessExperienceSurface(props: ProcessExperienceSurfaceProps) {
     () => (snapshot ? buildGuidedWorkspaceViewModel(snapshot, props.audience ?? snapshot.audience) : null),
     [props.audience, snapshot]
   );
-  const resolvedAudience = props.audience ?? snapshot?.audience ?? (props.mode === 'power-pages-runtime' ? 'portal' : undefined);
-  const isPowerPagesRuntime = props.mode === 'power-pages-runtime';
+  const resolvedAudience = props.audience ?? snapshot?.audience ?? (props.mode === 'external-runtime' ? 'portal' : undefined);
+  const isExternalRuntime = props.mode === 'external-runtime';
   const isModelDriven = props.mode === 'model-driven-section' || props.mode === 'model-driven-overlay';
   const currentStageOutgoingTransitions = snapshot
     ? snapshot.transitions.filter((transition) => transition.fromStageId === snapshot.currentStageId)
@@ -212,12 +212,12 @@ export function ProcessExperienceSurface(props: ProcessExperienceSurfaceProps) {
   }, [autoOpenKey, shouldAutoOpenFlow]);
 
   if (!snapshot || !viewModel || !resolvedAudience) {
-    if (isPowerPagesRuntime && portalShell) {
+    if (isExternalRuntime && portalShell) {
       return (
         <div style={surfaceShellStyle}>
           <div style={headerShellStyle}>
             <div>
-              <div style={eyebrowStyle}>DBM Portal Runtime</div>
+              <div style={eyebrowStyle}>DBM External Runtime</div>
               <h2 style={headingStyle}>{portalShell.entryTitle ?? 'Start your request'}</h2>
               <p style={introCopyStyle}>
                 {portalShell.entrySummary ?? 'Create a draft request to begin the external entry flow.'}
@@ -350,17 +350,17 @@ export function ProcessExperienceSurface(props: ProcessExperienceSurfaceProps) {
           <div style={eyebrowStyle}>DBM Process</div>
           <h2 style={resolvedHeadingStyle}>{viewModel.processTitle}</h2>
           <p style={resolvedIntroCopyStyle}>
-            {isPowerPagesRuntime && portalShell?.entrySummary ? portalShell.entrySummary : viewModel.introCopy}
+            {isExternalRuntime && portalShell?.entrySummary ? portalShell.entrySummary : viewModel.introCopy}
           </p>
         </div>
         <div style={statusClusterStyle}>
           <span style={{ ...resolvedStatusPillStyle, color: currentTone.text, borderColor: currentTone.border, background: currentTone.chip }}>
             {viewModel.currentTask.statusLabel}
           </span>
-          {isPowerPagesRuntime && portalShell?.requestReference ? (
+          {isExternalRuntime && portalShell?.requestReference ? (
             <span style={resolvedStatusPillStyle}>{portalShell.requestReference}</span>
           ) : null}
-          {isPowerPagesRuntime && portalShell?.sameSessionEnabled ? (
+          {isExternalRuntime && portalShell?.sameSessionEnabled ? (
             <span style={resolvedStatusPillStyle}>Same browser session</span>
           ) : null}
           {isModelDriven && props.designerEntryUrl ? (
@@ -385,7 +385,7 @@ export function ProcessExperienceSurface(props: ProcessExperienceSurfaceProps) {
         </div>
       </div>
 
-      {isPowerPagesRuntime && portalShell ? (
+      {isExternalRuntime && portalShell ? (
         <div style={resolvedSupportCardStyle}>
           <div style={supportCardLabelStyle}>{portalShell.entryTitle ?? 'Portal session'}</div>
           <p style={resolvedSupportParagraphStyle}>
@@ -468,7 +468,7 @@ export function ProcessExperienceSurface(props: ProcessExperienceSurfaceProps) {
                 <p style={resolvedCurrentStepSummaryStyle}>{viewModel.currentTask.stepSummary}</p>
                 <p style={resolvedCurrentStepHelperStyle}>{viewModel.currentTask.helperCopy}</p>
 
-                {isPowerPagesRuntime && portalActionEntries.length > 0 ? (
+                {isExternalRuntime && portalActionEntries.length > 0 ? (
                   <div style={resolvedActionGroupStyle}>
                     {portalActionEntries.map((action) => (
                       <button
@@ -500,7 +500,7 @@ export function ProcessExperienceSurface(props: ProcessExperienceSurfaceProps) {
                   <div style={readOnlyNoticeStyle}>No action is needed from this surface right now.</div>
                 )}
 
-                {isPowerPagesRuntime && portalActionEntries.some((action) => action.helperText) ? (
+                {isExternalRuntime && portalActionEntries.some((action) => action.helperText) ? (
                   <div style={nextActionHintsStyle}>
                     {portalActionEntries.map((action) =>
                       action.helperText ? (

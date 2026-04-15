@@ -23,17 +23,9 @@ export default defineConfig(({ command }) => ({
     },
     build: {
         emptyOutDir: false,
-        outDir: path.resolve(__dirname, 'dist/browser'),
-        lib: {
-            entry: path.resolve(__dirname, 'src/browser-entry.ts'),
-            formats: ['iife'],
-            name: 'DbmPortalRuntime',
-            fileName: () => 'portal-runtime.js'
-        },
+        outDir: path.resolve(__dirname, 'dist/spa'),
         rollupOptions: {
-            output: {
-                extend: true
-            }
+            input: path.resolve(__dirname, 'index.html')
         }
     },
     test: {

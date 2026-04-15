@@ -97,17 +97,16 @@ export function PortalRuntimeApp(props: DbmPortalRuntimeAppProps) {
 
   useEffect(() => {
     const session = loadPortalRuntimeSessionState(storage, props.bootstrap);
-    if (!session?.requestId || !props.bootstrap.devAnonymousReadbackEnabled) {
+    if (!session?.requestId) {
       return;
     }
 
     let cancelled = false;
     setBusy(true);
     void refreshPortalRuntimeRecord({
-      bootstrap: props.bootstrap,
       requestId: session.requestId,
       fetchImpl: props.fetchImpl,
-      siteOrigin: props.siteOrigin
+      apiBasePath: props.apiBasePath
     })
       .then((nextRecord) => {
         if (!cancelled) {
@@ -130,7 +129,7 @@ export function PortalRuntimeApp(props: DbmPortalRuntimeAppProps) {
     return () => {
       cancelled = true;
     };
-  }, [props.bootstrap, props.fetchImpl, props.siteOrigin, storage]);
+  }, [props.apiBasePath, props.bootstrap, props.fetchImpl, storage]);
 
   const draftValidationErrors = useMemo(
     () => buildDraftValidationErrors(props, draftValues),
@@ -165,10 +164,9 @@ export function PortalRuntimeApp(props: DbmPortalRuntimeAppProps) {
         }
 
         const nextRecord = await createPortalRuntimeDraft({
-          bootstrap: props.bootstrap,
           values: toDraftPayload(props, draftValues),
           fetchImpl: props.fetchImpl,
-          siteOrigin: props.siteOrigin
+          apiBasePath: props.apiBasePath
         });
 
         savePortalRuntimeSessionState(storage, props.bootstrap, {
@@ -185,19 +183,25 @@ export function PortalRuntimeApp(props: DbmPortalRuntimeAppProps) {
       }
 
       if (actionId === 'submit-request') {
-        await submitPortalRuntimeRequest({
-          bootstrap: props.bootstrap,
+        const submittedRecord = await submitPortalRuntimeRequest({
           requestId: record.id,
           fetchImpl: props.fetchImpl,
-          siteOrigin: props.siteOrigin
+          apiBasePath: props.apiBasePath
         });
+
+        savePortalRuntimeSessionState(storage, props.bootstrap, {
+          requestId: submittedRecord.id,
+          requestReference: submittedRecord.requestReference,
+          sessionKey: submittedRecord.id
+        });
+        setRecord(submittedRecord);
+        return;
       }
 
       const refreshedRecord = await refreshPortalRuntimeRecord({
-        bootstrap: props.bootstrap,
         requestId: record.id,
         fetchImpl: props.fetchImpl,
-        siteOrigin: props.siteOrigin
+        apiBasePath: props.apiBasePath
       });
 
       savePortalRuntimeSessionState(storage, props.bootstrap, {
@@ -322,7 +326,7 @@ export function PortalRuntimeApp(props: DbmPortalRuntimeAppProps) {
       ) : null}
       <ProcessExperienceSurface
         snapshot={snapshot}
-        mode="power-pages-runtime"
+        mode="external-runtime"
         audience="portal"
         portalShell={viewModel.portalShell}
         onPortalAction={(actionId) => {

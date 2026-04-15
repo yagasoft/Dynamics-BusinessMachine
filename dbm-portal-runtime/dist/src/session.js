@@ -1,4 +1,11 @@
 const SESSION_STORAGE_PREFIX = 'dbm.portal-runtime.session';
+export const PORTAL_RUNTIME_SESSION_EVENT = 'dbm-portal-runtime-session-changed';
+function emitPortalRuntimeSessionChange() {
+    if (typeof window === 'undefined' || typeof window.dispatchEvent !== 'function') {
+        return;
+    }
+    window.dispatchEvent(new CustomEvent(PORTAL_RUNTIME_SESSION_EVENT));
+}
 export function getPortalRuntimeSessionStorageKey(bootstrap) {
     return `${SESSION_STORAGE_PREFIX}:${bootstrap.packageId}:${bootstrap.processId}`;
 }
@@ -21,10 +28,12 @@ export function savePortalRuntimeSessionState(storage, bootstrap, state) {
         return;
     }
     storage.setItem(getPortalRuntimeSessionStorageKey(bootstrap), JSON.stringify(state));
+    emitPortalRuntimeSessionChange();
 }
 export function clearPortalRuntimeSessionState(storage, bootstrap) {
     if (!storage) {
         return;
     }
     storage.removeItem(getPortalRuntimeSessionStorageKey(bootstrap));
+    emitPortalRuntimeSessionChange();
 }

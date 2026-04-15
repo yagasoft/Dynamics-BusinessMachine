@@ -1,5 +1,14 @@
 Set-StrictMode -Version 3
 
+try {
+    Add-Type -AssemblyName System.Net.Http -ErrorAction Stop
+}
+catch {
+    if ([string]$_.Exception.Message -notmatch 'already loaded') {
+        throw
+    }
+}
+
 function Get-DbmPortalRuntimeRepoRoot {
     param(
         [string]$RepoRoot
@@ -41,26 +50,13 @@ function Read-DbmJsonFile {
     return Get-Content -Path $Path -Raw | ConvertFrom-Json
 }
 
-function ConvertTo-DbmJsonForJavaScript {
-    param(
-        [Parameter(Mandatory = $true)]
-        [object]$Value
-    )
-
-    $json = $Value | ConvertTo-Json -Depth 100 -Compress
-    $json = $json.Replace('</', '<\/')
-    $json = $json.Replace([string][char]0x2028, '\u2028')
-    $json = $json.Replace([string][char]0x2029, '\u2029')
-    return $json
-}
-
 function Get-DbmPortalRuntimePlan {
     param(
         [string]$RepoRoot = (Get-DbmPortalRuntimeRepoRoot),
         [string]$PlanPath = 'power-platform/solutions/DynamicsBusinessMachineGeneratedMetadata/source/dbm-generated-metadata.plan.json'
     )
 
-    $resolvedPlanPath = Resolve-DbmAbsolutePath -BasePath $RepoRoot -CandidatePath $PlanPath
+    $resolvedPlanPath = Resolve-DbmAbsolutePath -BasePath (Get-DbmPortalRuntimeRepoRoot -RepoRoot $RepoRoot) -CandidatePath $PlanPath
     $plan = Read-DbmJsonFile -Path $resolvedPlanPath
     if ($null -eq $plan.portalRuntime -or $null -eq $plan.portalRuntime.bootstrap -or $null -eq $plan.portalRuntime.processExperienceRuntime) {
         throw "Generated metadata plan '$resolvedPlanPath' is missing portalRuntime bootstrap/runtime content."
@@ -69,187 +65,6 @@ function Get-DbmPortalRuntimePlan {
     return [pscustomobject]@{
         Path = $resolvedPlanPath
         Value = $plan.portalRuntime
-    }
-}
-
-function New-DbmPortalRuntimeContextScript {
-    param(
-        [Parameter(Mandatory = $true)]
-        [object]$PortalRuntimePlan
-    )
-
-    $bootstrapJson = ConvertTo-DbmJsonForJavaScript -Value $PortalRuntimePlan.bootstrap
-    $runtimeJson = ConvertTo-DbmJsonForJavaScript -Value $PortalRuntimePlan.processExperienceRuntime
-
-    return @"
-(function (global) {
-  global.dbmPortalRuntimeBootstrap = $bootstrapJson;
-  global.dbmPortalRuntimeProcessModel = $runtimeJson;
-})(typeof window !== 'undefined' ? window : globalThis);
-"@
-}
-
-function Get-DbmPortalRuntimeManifest {
-    param(
-        [string]$RepoRoot = (Get-DbmPortalRuntimeRepoRoot),
-        [string]$ManifestPath = 'power-platform/solutions/DynamicsBusinessMachinePortalRuntime/source/manifest.json'
-    )
-
-    $resolvedRepoRoot = Get-DbmPortalRuntimeRepoRoot -RepoRoot $RepoRoot
-    $resolvedManifestPath = Resolve-DbmAbsolutePath -BasePath $resolvedRepoRoot -CandidatePath $ManifestPath
-    $manifest = Read-DbmJsonFile -Path $resolvedManifestPath
-
-    if (-not $manifest.solutionName) {
-        throw "Portal runtime manifest '$resolvedManifestPath' is missing solutionName."
-    }
-
-    if (-not $manifest.webFiles -or @($manifest.webFiles).Count -eq 0) {
-        throw "Portal runtime manifest '$resolvedManifestPath' is missing webFiles."
-    }
-
-    if (-not $manifest.pages -or @($manifest.pages).Count -eq 0) {
-        throw "Portal runtime manifest '$resolvedManifestPath' is missing pages."
-    }
-
-    $resolvedWebFiles = @(
-        foreach ($webFile in @($manifest.webFiles)) {
-            $webFilePath = [string]$webFile.webFilePath
-            if ([string]::IsNullOrWhiteSpace($webFilePath)) {
-                throw "Portal runtime manifest '$resolvedManifestPath' contains a web file without webFilePath."
-            }
-
-            $kind = [string]$webFile.kind
-            if ([string]::IsNullOrWhiteSpace($kind)) {
-                throw "Portal runtime manifest '$resolvedManifestPath' contains web file '$webFilePath' without kind."
-            }
-
-            $sourcePath = $null
-            $generatedPlanPath = $null
-            switch ($kind) {
-                'bundle' {
-                    $sourcePath = Resolve-DbmAbsolutePath -BasePath $resolvedRepoRoot -CandidatePath ([string]$webFile.sourcePath)
-                }
-                'generated-context' {
-                    $generatedPlanPath = Resolve-DbmAbsolutePath -BasePath $resolvedRepoRoot -CandidatePath ([string]$webFile.generatedPlanPath)
-                }
-                default {
-                    throw "Portal runtime manifest '$resolvedManifestPath' contains unsupported web file kind '$kind'."
-                }
-            }
-
-            [pscustomobject]@{
-                kind = $kind
-                webFilePath = $webFilePath.Replace('\', '/')
-                fileName = Split-Path -Path $webFilePath -Leaf
-                sourcePath = $sourcePath
-                generatedPlanPath = $generatedPlanPath
-            }
-        }
-    )
-
-    $resolvedPages = @(
-        foreach ($page in @($manifest.pages)) {
-            $pageId = [string]$page.pageId
-            $routePath = [string]$page.routePath
-            $webPageName = [string]$page.webPageName
-            $webTemplateName = [string]$page.webTemplateName
-            $pageTemplateNameProperty = $page.PSObject.Properties['pageTemplateName']
-            $templatePath = Resolve-DbmAbsolutePath -BasePath $resolvedRepoRoot -CandidatePath ([string]$page.templatePath)
-            if ([string]::IsNullOrWhiteSpace($pageId) -or [string]::IsNullOrWhiteSpace($routePath) -or [string]::IsNullOrWhiteSpace($webPageName) -or [string]::IsNullOrWhiteSpace($webTemplateName)) {
-                throw "Portal runtime manifest '$resolvedManifestPath' contains an incomplete page entry."
-            }
-
-            $normalizedRoute = if ($routePath.StartsWith('/')) { $routePath } else { "/$routePath" }
-            $routeSegments = @(($normalizedRoute.Trim('/') -split '/') | Where-Object { -not [string]::IsNullOrWhiteSpace($_) })
-            $partialUrl = if ($routeSegments.Count -gt 0) { $routeSegments[-1] } else { '' }
-            if ([string]::IsNullOrWhiteSpace($partialUrl)) {
-                throw "Portal runtime page '$pageId' must resolve to a non-empty partial URL."
-            }
-
-            [pscustomobject]@{
-                pageId = $pageId
-                routePath = $normalizedRoute
-                routeSegments = @($routeSegments)
-                parentRoutePath = if ($routeSegments.Count -gt 1) { '/' + (($routeSegments | Select-Object -First ($routeSegments.Count - 1)) -join '/') } else { $null }
-                partialUrl = $partialUrl
-                webPageName = $webPageName
-                webTemplateName = $webTemplateName
-                pageTemplateName = if ($pageTemplateNameProperty -and -not [string]::IsNullOrWhiteSpace([string]$pageTemplateNameProperty.Value)) { [string]$pageTemplateNameProperty.Value } else { "$webTemplateName Page Template" }
-                templatePath = $templatePath
-            }
-        }
-    )
-
-    return [pscustomobject]@{
-        Path = $resolvedManifestPath
-        RepoRoot = $resolvedRepoRoot
-        Value = $manifest
-        solutionName = [string]$manifest.solutionName
-        bundlePackageName = [string]$manifest.bundlePackageName
-        webFiles = $resolvedWebFiles
-        pages = $resolvedPages
-        bootstrapPath = Resolve-DbmAbsolutePath -BasePath $resolvedRepoRoot -CandidatePath ([string]$manifest.bootstrapPath)
-        siteSettingsPath = Resolve-DbmAbsolutePath -BasePath $resolvedRepoRoot -CandidatePath ([string]$manifest.siteSettingsPath)
-        permissionsPath = Resolve-DbmAbsolutePath -BasePath $resolvedRepoRoot -CandidatePath ([string]$manifest.permissionsPath)
-    }
-}
-
-function Get-DbmPortalRuntimeDeployableAssets {
-    param(
-        [string]$RepoRoot = (Get-DbmPortalRuntimeRepoRoot),
-        [string]$ManifestPath = 'power-platform/solutions/DynamicsBusinessMachinePortalRuntime/source/manifest.json'
-    )
-
-    $manifest = Get-DbmPortalRuntimeManifest -RepoRoot $RepoRoot -ManifestPath $ManifestPath
-    $plan = Get-DbmPortalRuntimePlan -RepoRoot $manifest.RepoRoot
-
-    $webFiles = @(
-        foreach ($webFile in $manifest.webFiles) {
-            $content = if ($webFile.kind -eq 'generated-context') {
-                New-DbmPortalRuntimeContextScript -PortalRuntimePlan $plan.Value
-            }
-            else {
-                Get-Content -Path $webFile.sourcePath -Raw
-            }
-
-            [pscustomobject]@{
-                assetType = 'web-file'
-                kind = $webFile.kind
-                webFilePath = $webFile.webFilePath
-                fileName = $webFile.fileName
-                content = $content
-                sourcePath = if ($webFile.kind -eq 'generated-context') { $plan.Path } else { $webFile.sourcePath }
-                outputRelativePath = ('web-files/{0}' -f $webFile.webFilePath).Replace('/', '\')
-            }
-        }
-    )
-
-    $webTemplates = @(
-        foreach ($page in $manifest.pages) {
-            [pscustomobject]@{
-                assetType = 'web-template'
-                pageId = $page.pageId
-                webTemplateName = $page.webTemplateName
-                pageTemplateName = $page.pageTemplateName
-                templatePath = $page.templatePath
-                content = Get-Content -Path $page.templatePath -Raw
-                outputRelativePath = ('web-templates/{0}' -f [System.IO.Path]::GetFileName($page.templatePath)).Replace('/', '\')
-            }
-        }
-    )
-
-    return [pscustomobject]@{
-        manifest = $manifest
-        plan = $plan
-        webFiles = $webFiles
-        webTemplates = $webTemplates
-        pages = $manifest.pages
-        bootstrapPath = $manifest.bootstrapPath
-        bootstrap = Read-DbmJsonFile -Path $manifest.bootstrapPath
-        siteSettingsPath = $manifest.siteSettingsPath
-        siteSettings = Read-DbmJsonFile -Path $manifest.siteSettingsPath
-        permissionsPath = $manifest.permissionsPath
-        permissions = Read-DbmJsonFile -Path $manifest.permissionsPath
     }
 }
 
@@ -268,27 +83,10 @@ function Get-DbmPortalRuntimeConfig {
         throw "Environment config '$configPath' is missing dataverseUrl."
     }
 
-    if ($null -eq $config.powerPages) {
-        throw "Environment config '$configPath' is missing the powerPages block."
-    }
-
     return [pscustomobject]@{
         Path = $configPath
         Value = $config
     }
-}
-
-function Test-DbmPlaceholderValue {
-    param(
-        [AllowNull()]
-        [string]$Value
-    )
-
-    if ([string]::IsNullOrWhiteSpace($Value)) {
-        return $true
-    }
-
-    return $Value.Trim().StartsWith('SET-', [System.StringComparison]::OrdinalIgnoreCase)
 }
 
 function Get-DbmDataverseApiBaseUrl {
@@ -308,7 +106,7 @@ function Get-DbmDataverseAccessToken {
 
     $az = Get-Command az -ErrorAction SilentlyContinue
     if (-not $az) {
-        throw 'Azure CLI must be available to deploy or validate the portal runtime.'
+        throw 'Azure CLI must be available to validate or run the local portal runtime proof.'
     }
 
     $resource = $DataverseUrl.TrimEnd('/')
@@ -340,10 +138,157 @@ function Merge-DbmHashtable {
     return $merged
 }
 
+function Get-DbmPortalRuntimeRequestTimeoutSeconds {
+    param(
+        [int]$RequestedTimeoutSeconds
+    )
+
+    if ($PSBoundParameters.ContainsKey('RequestedTimeoutSeconds') -and $RequestedTimeoutSeconds -gt 0) {
+        return $RequestedTimeoutSeconds
+    }
+
+    $envValue = [System.Environment]::GetEnvironmentVariable('DBM_PORTAL_RUNTIME_HTTP_TIMEOUT_SECONDS')
+    if (-not [string]::IsNullOrWhiteSpace($envValue)) {
+        $parsedValue = 0
+        if (-not [int]::TryParse($envValue, [ref]$parsedValue) -or $parsedValue -le 0) {
+            throw "Environment variable DBM_PORTAL_RUNTIME_HTTP_TIMEOUT_SECONDS must be a positive integer. Actual value: '$envValue'."
+        }
+
+        return $parsedValue
+    }
+
+    return 120
+}
+
+function ConvertTo-DbmDataverseErrorPayload {
+    param(
+        [AllowNull()]
+        [string]$Payload
+    )
+
+    if ([string]::IsNullOrWhiteSpace($Payload)) {
+        return $null
+    }
+
+    $trimmedPayload = $Payload.Trim()
+    if ($trimmedPayload.Length -gt 4000) {
+        return $trimmedPayload.Substring(0, 4000) + ' ...[truncated]'
+    }
+
+    return $trimmedPayload
+}
+
+function Format-DbmDataverseRequestFailureMessage {
+    param(
+        [Parameter(Mandatory = $true)]
+        [string]$Method,
+
+        [Parameter(Mandatory = $true)]
+        [string]$Uri,
+
+        [string]$Description,
+
+        [Parameter(Mandatory = $true)]
+        [TimeSpan]$Elapsed,
+
+        [AllowNull()]
+        [int]$StatusCode,
+
+        [AllowNull()]
+        [string]$ReasonPhrase,
+
+        [AllowNull()]
+        [string]$ErrorPayload,
+
+        [AllowNull()]
+        [string]$ExceptionMessage
+    )
+
+    $lines = New-Object System.Collections.Generic.List[string]
+    $lines.Add('Dataverse request failed.')
+    $lines.Add(("Description: {0}" -f $(if ([string]::IsNullOrWhiteSpace($Description)) { '(unspecified)' } else { $Description })))
+    $lines.Add("Method: $Method")
+    $lines.Add("Uri: $Uri")
+    $lines.Add("ElapsedMs: $([math]::Round($Elapsed.TotalMilliseconds, 2))")
+    if ($StatusCode -gt 0) {
+        $statusLine = "HttpStatus: $StatusCode"
+        if (-not [string]::IsNullOrWhiteSpace($ReasonPhrase)) {
+            $statusLine = "$statusLine ($ReasonPhrase)"
+        }
+        $lines.Add($statusLine)
+    }
+    if (-not [string]::IsNullOrWhiteSpace($ExceptionMessage)) {
+        $lines.Add("Error: $ExceptionMessage")
+    }
+
+    $formattedPayload = ConvertTo-DbmDataverseErrorPayload -Payload $ErrorPayload
+    if (-not [string]::IsNullOrWhiteSpace($formattedPayload)) {
+        $lines.Add('DataverseErrorPayload:')
+        $lines.Add($formattedPayload)
+    }
+
+    return $lines -join [Environment]::NewLine
+}
+
+function ConvertTo-DbmDataverseResponseHeaders {
+    param(
+        [Parameter(Mandatory = $true)]
+        [System.Net.Http.HttpResponseMessage]$Response
+    )
+
+    $headers = @{}
+    foreach ($header in $Response.Headers) {
+        $headers[$header.Key] = ($header.Value -join ', ')
+    }
+
+    if ($null -ne $Response.Content) {
+        foreach ($header in $Response.Content.Headers) {
+            $headers[$header.Key] = ($header.Value -join ', ')
+        }
+    }
+
+    return $headers
+}
+
+function New-DbmDataverseRawResponse {
+    param(
+        [Parameter(Mandatory = $true)]
+        [System.Net.Http.HttpResponseMessage]$Response,
+
+        [AllowNull()]
+        [string]$Content
+    )
+
+    return [pscustomobject]@{
+        StatusCode = [int]$Response.StatusCode
+        ReasonPhrase = [string]$Response.ReasonPhrase
+        Headers = ConvertTo-DbmDataverseResponseHeaders -Response $Response
+        Content = $Content
+    }
+}
+
+function ConvertFrom-DbmDataverseResponseContent {
+    param(
+        [AllowNull()]
+        [string]$Content
+    )
+
+    if ([string]::IsNullOrWhiteSpace($Content)) {
+        return $null
+    }
+
+    try {
+        return $Content | ConvertFrom-Json
+    }
+    catch {
+        return $Content
+    }
+}
+
 function Get-DbmCreatedRecordIdFromResponse {
     param(
         [Parameter(Mandatory = $true)]
-        [Microsoft.PowerShell.Commands.HtmlWebResponseObject]$Response,
+        [object]$Response,
 
         [Parameter(Mandatory = $true)]
         [string]$PrimaryIdAttribute
@@ -399,9 +344,14 @@ function Invoke-DbmDataverseRequest {
 
         [hashtable]$AdditionalHeaders,
 
-        [switch]$ReturnRawResponse
+        [switch]$ReturnRawResponse,
+
+        [string]$Description,
+
+        [int]$RequestTimeoutSeconds
     )
 
+    $timeoutSeconds = Get-DbmPortalRuntimeRequestTimeoutSeconds -RequestedTimeoutSeconds $RequestTimeoutSeconds
     $headers = Merge-DbmHashtable -Base @{
         Authorization = "Bearer $AccessToken"
         Accept = 'application/json'
@@ -417,49 +367,101 @@ function Invoke-DbmDataverseRequest {
         $requestBody = if ($Body -is [string]) { $Body } else { $Body | ConvertTo-Json -Depth 20 -Compress }
     }
 
+    $client = [System.Net.Http.HttpClient]::new()
+    $client.Timeout = [System.Threading.Timeout]::InfiniteTimeSpan
+    $requestMessage = [System.Net.Http.HttpRequestMessage]::new([System.Net.Http.HttpMethod]::new($Method), $Uri)
+    $cancellationSource = [System.Threading.CancellationTokenSource]::new()
+    $response = $null
+    $responseContent = $null
+    $stopwatch = [System.Diagnostics.Stopwatch]::StartNew()
+
     try {
-        $invokeParams = @{
-            Method = $Method
-            Uri = $Uri
-            Headers = $headers
-            ErrorAction = 'Stop'
-        }
+        $requestMessage.Headers.Authorization = [System.Net.Http.Headers.AuthenticationHeaderValue]::new('Bearer', $AccessToken)
+        $requestMessage.Headers.Accept.Add([System.Net.Http.Headers.MediaTypeWithQualityHeaderValue]::new('application/json'))
+        [void]$requestMessage.Headers.TryAddWithoutValidation('OData-Version', '4.0')
+        [void]$requestMessage.Headers.TryAddWithoutValidation('OData-MaxVersion', '4.0')
 
         if ($null -ne $requestBody) {
-            $invokeParams['Body'] = $requestBody
-            $invokeParams['ContentType'] = $ContentType
+            if ($requestBody -is [byte[]]) {
+                $requestMessage.Content = [System.Net.Http.ByteArrayContent]::new($requestBody)
+            }
+            else {
+                $requestBytes = [System.Text.Encoding]::UTF8.GetBytes([string]$requestBody)
+                $requestMessage.Content = [System.Net.Http.ByteArrayContent]::new($requestBytes)
+            }
+
+            $requestMessage.Content.Headers.ContentType = [System.Net.Http.Headers.MediaTypeHeaderValue]::Parse($ContentType)
         }
 
-        $response = Invoke-WebRequest @invokeParams
+        foreach ($headerKey in $headers.Keys) {
+            if ($headerKey -in @('Authorization', 'Accept', 'OData-Version', 'OData-MaxVersion')) {
+                continue
+            }
+
+            $headerValue = [string]$headers[$headerKey]
+            if (-not $requestMessage.Headers.TryAddWithoutValidation($headerKey, $headerValue)) {
+                if ($null -eq $requestMessage.Content) {
+                    $requestMessage.Content = [System.Net.Http.ByteArrayContent]::new([byte[]]@())
+                }
+
+                [void]$requestMessage.Content.Headers.TryAddWithoutValidation($headerKey, $headerValue)
+            }
+        }
+
+        $cancellationSource.CancelAfter([TimeSpan]::FromSeconds($timeoutSeconds))
+        $response = $client.SendAsync($requestMessage, [System.Net.Http.HttpCompletionOption]::ResponseHeadersRead, $cancellationSource.Token).GetAwaiter().GetResult()
+        if ($null -ne $response.Content) {
+            $responseContent = $response.Content.ReadAsStringAsync().GetAwaiter().GetResult()
+        }
+    }
+    catch [System.OperationCanceledException] {
+        $stopwatch.Stop()
+        $message = Format-DbmDataverseRequestFailureMessage `
+            -Method $Method `
+            -Uri $Uri `
+            -Description $Description `
+            -Elapsed $stopwatch.Elapsed `
+            -ExceptionMessage ("Request timed out after {0} seconds." -f $timeoutSeconds)
+        throw $message
     }
     catch {
-        $details = $_.ErrorDetails.Message
-        if ([string]::IsNullOrWhiteSpace($details) -and $_.Exception.Response) {
-            try {
-                $reader = New-Object System.IO.StreamReader($_.Exception.Response.GetResponseStream())
-                $details = $reader.ReadToEnd()
-            }
-            catch {
-            }
-        }
-
-        $message = if ([string]::IsNullOrWhiteSpace($details)) { $_.Exception.Message } else { "$($_.Exception.Message)`n$details" }
-        throw "Dataverse request failed: $Method $Uri`n$message"
+        $stopwatch.Stop()
+        $message = Format-DbmDataverseRequestFailureMessage `
+            -Method $Method `
+            -Uri $Uri `
+            -Description $Description `
+            -Elapsed $stopwatch.Elapsed `
+            -ExceptionMessage $_.Exception.Message
+        throw $message
     }
 
-    if ($ReturnRawResponse) {
-        return $response
-    }
-
-    if ([string]::IsNullOrWhiteSpace($response.Content)) {
-        return $null
-    }
-
+    $stopwatch.Stop()
     try {
-        return $response.Content | ConvertFrom-Json
+        if (-not $response.IsSuccessStatusCode) {
+            $message = Format-DbmDataverseRequestFailureMessage `
+                -Method $Method `
+                -Uri $Uri `
+                -Description $Description `
+                -Elapsed $stopwatch.Elapsed `
+                -StatusCode ([int]$response.StatusCode) `
+                -ReasonPhrase ([string]$response.ReasonPhrase) `
+                -ErrorPayload $responseContent
+            throw $message
+        }
+
+        if ($ReturnRawResponse) {
+            return New-DbmDataverseRawResponse -Response $response -Content $responseContent
+        }
+
+        return ConvertFrom-DbmDataverseResponseContent -Content $responseContent
     }
-    catch {
-        return $response.Content
+    finally {
+        if ($null -ne $response) {
+            $response.Dispose()
+        }
+        $requestMessage.Dispose()
+        $cancellationSource.Dispose()
+        $client.Dispose()
     }
 }
 
@@ -486,7 +488,9 @@ function Invoke-DbmDataverseQuery {
         [string[]]$SelectFields,
         [string]$Filter,
         [string]$OrderBy,
-        [int]$Top = 50
+        [int]$Top = 50,
+        [string]$Description,
+        [int]$RequestTimeoutSeconds
     )
 
     $queryParts = @()
@@ -504,7 +508,12 @@ function Invoke-DbmDataverseQuery {
     }
 
     $uri = "{0}/{1}{2}" -f (Get-DbmDataverseApiBaseUrl -DataverseUrl $DataverseUrl), $EntitySetName, ($(if ($queryParts.Count -gt 0) { '?' + ($queryParts -join '&') } else { '' }))
-    $response = Invoke-DbmDataverseRequest -Method GET -Uri $uri -AccessToken $AccessToken
+    $response = Invoke-DbmDataverseRequest `
+        -Method GET `
+        -Uri $uri `
+        -AccessToken $AccessToken `
+        -Description $(if ([string]::IsNullOrWhiteSpace($Description)) { "query $EntitySetName" } else { $Description }) `
+        -RequestTimeoutSeconds $RequestTimeoutSeconds
     if ($null -eq $response) {
         return @()
     }
@@ -527,10 +536,20 @@ function Get-DbmDataverseSingleRecord {
         [string]$Filter,
         [string]$OrderBy,
         [string]$Description = $EntitySetName,
-        [switch]$AllowMissing
+        [switch]$AllowMissing,
+        [int]$RequestTimeoutSeconds
     )
 
-    $records = Invoke-DbmDataverseQuery -DataverseUrl $DataverseUrl -AccessToken $AccessToken -EntitySetName $EntitySetName -SelectFields $SelectFields -Filter $Filter -OrderBy $OrderBy -Top 2
+    $records = @(Invoke-DbmDataverseQuery `
+        -DataverseUrl $DataverseUrl `
+        -AccessToken $AccessToken `
+        -EntitySetName $EntitySetName `
+        -SelectFields $SelectFields `
+        -Filter $Filter `
+        -OrderBy $OrderBy `
+        -Top 2 `
+        -Description $Description `
+        -RequestTimeoutSeconds $RequestTimeoutSeconds)
     if ($records.Count -eq 0) {
         if ($AllowMissing) {
             return $null
@@ -544,153 +563,6 @@ function Get-DbmDataverseSingleRecord {
     }
 
     return $records[0]
-}
-
-function Resolve-DbmPublicOrigin {
-    param(
-        [Parameter(Mandatory = $true)]
-        [string]$PrimaryDomainName
-    )
-
-    $trimmed = $PrimaryDomainName.Trim()
-    if ([string]::IsNullOrWhiteSpace($trimmed)) {
-        throw 'Primary domain name is missing.'
-    }
-
-    if ($trimmed -match '^https?://') {
-        return $trimmed.TrimEnd('/')
-    }
-
-    return "https://$($trimmed.TrimEnd('/'))"
-}
-
-function Resolve-DbmPowerPagesSiteContext {
-    param(
-        [string]$RepoRoot = (Get-DbmPortalRuntimeRepoRoot),
-        [ValidateSet('Dev')]
-        [string]$TargetEnvironment = 'Dev',
-        [string]$AccessToken
-    )
-
-    $configRecord = Get-DbmPortalRuntimeConfig -RepoRoot $RepoRoot -TargetEnvironment $TargetEnvironment
-    $config = $configRecord.Value
-    $dataverseUrl = [string]$config.dataverseUrl
-    $powerPages = $config.powerPages
-    $websiteId = [string]$powerPages.websiteId
-    $websiteName = [string]$powerPages.websiteName
-
-    if ((Test-DbmPlaceholderValue -Value $websiteId) -or (Test-DbmPlaceholderValue -Value $websiteName)) {
-        throw "Environment config '$($configRecord.Path)' must declare real powerPages.websiteId and powerPages.websiteName values before Dev portal deployment can run."
-    }
-
-    $normalizedWebsiteId = try { ([guid]$websiteId).Guid } catch { throw "powerPages.websiteId '$websiteId' in '$($configRecord.Path)' is not a valid GUID." }
-    if ([string]::IsNullOrWhiteSpace($AccessToken)) {
-        $AccessToken = Get-DbmDataverseAccessToken -DataverseUrl $dataverseUrl
-    }
-
-    try {
-        $website = Invoke-DbmDataverseRequest -Method GET -Uri ("{0}/mspp_websites({1})?`$select=mspp_websiteid,mspp_name,mspp_primarydomainname,_mspp_defaultlanguage_value" -f (Get-DbmDataverseApiBaseUrl -DataverseUrl $dataverseUrl), $normalizedWebsiteId) -AccessToken $AccessToken
-    }
-    catch {
-        $message = [string]$_.Exception.Message
-        if ($message -match '\b404\b' -or $message -match 'Not Found') {
-            throw "Configured powerPages.websiteId '$normalizedWebsiteId' in '$($configRecord.Path)' does not resolve to a live mspp_website. Provision the Dev Power Pages site externally first."
-        }
-
-        throw
-    }
-
-    if ([string]$website.mspp_name -ne $websiteName) {
-        throw "Configured powerPages.websiteName '$websiteName' does not match website '$([string]$website.mspp_name)' for websiteId '$normalizedWebsiteId'."
-    }
-
-    if ([string]::IsNullOrWhiteSpace([string]$website.mspp_primarydomainname)) {
-        throw "Power Pages website '$websiteName' is missing mspp_primarydomainname."
-    }
-
-    $powerPageSite = Get-DbmDataverseSingleRecord `
-        -DataverseUrl $dataverseUrl `
-        -AccessToken $AccessToken `
-        -EntitySetName 'powerpagesites' `
-        -SelectFields @('powerpagesiteid', 'name', 'primarydomainname') `
-        -Filter ("name eq {0}" -f (ConvertTo-DbmODataStringLiteral -Value $websiteName)) `
-        -Description "Power Pages site '$websiteName'" `
-        -AllowMissing
-
-    if ($null -eq $powerPageSite) {
-        throw "Power Pages website '$websiteName' is missing the corresponding powerpagesite row. Provision or repair the site externally first."
-    }
-
-    $publishingStates = @(Invoke-DbmDataverseQuery `
-        -DataverseUrl $dataverseUrl `
-        -AccessToken $AccessToken `
-        -EntitySetName 'mspp_publishingstates' `
-        -SelectFields @('mspp_publishingstateid', 'mspp_name', 'mspp_isdefault') `
-        -Filter ("_mspp_websiteid_value eq {0}" -f $normalizedWebsiteId) `
-        -Top 10)
-
-    if ($publishingStates.Count -eq 0) {
-        throw "Power Pages website '$websiteName' does not have any publishing states."
-    }
-
-    $defaultPublishingStates = @($publishingStates | Where-Object { $_.mspp_isdefault -eq $true })
-    $publishingState = if ($defaultPublishingStates.Count -eq 1) {
-        $defaultPublishingStates[0]
-    }
-    elseif ($publishingStates.Count -eq 1) {
-        $publishingStates[0]
-    }
-    else {
-        throw "Power Pages website '$websiteName' does not resolve to a single default publishing state."
-    }
-
-    $websiteLanguageId = [string]$website.'_mspp_defaultlanguage_value'
-    if ([string]::IsNullOrWhiteSpace($websiteLanguageId)) {
-        throw "Power Pages website '$websiteName' is missing mspp_defaultlanguage."
-    }
-
-    $websiteLanguage = Invoke-DbmDataverseRequest `
-        -Method GET `
-        -Uri ("{0}/mspp_websitelanguages({1})?`$select=mspp_websitelanguageid,mspp_name,mspp_displayname,mspp_languagecode,mspp_lcid" -f (Get-DbmDataverseApiBaseUrl -DataverseUrl $dataverseUrl), ([guid]$websiteLanguageId).Guid) `
-        -AccessToken $AccessToken
-
-    $languageCandidates = @(Invoke-DbmDataverseQuery `
-        -DataverseUrl $dataverseUrl `
-        -AccessToken $AccessToken `
-        -EntitySetName 'powerpagesitelanguages' `
-        -SelectFields @('powerpagesitelanguageid', 'name', 'displayname', 'languagecode', 'lcid', '_powerpagesiteid_value') `
-        -Filter ("_powerpagesiteid_value eq {0}" -f ([guid][string]$powerPageSite.powerpagesiteid).Guid) `
-        -Top 10)
-
-    $matchingPowerPageLanguages = @(
-        $languageCandidates | Where-Object {
-            ([string]$_.languagecode -eq [string]$websiteLanguage.mspp_languagecode) -or
-            ([int]$_.lcid -eq [int]$websiteLanguage.mspp_lcid)
-        }
-    )
-
-    if ($matchingPowerPageLanguages.Count -ne 1) {
-        throw "Power Pages site '$websiteName' does not resolve to a single powerpagesitelanguage for '$([string]$websiteLanguage.mspp_languagecode)'."
-    }
-
-    return [pscustomobject]@{
-        Config = $config
-        ConfigPath = $configRecord.Path
-        DataverseUrl = $dataverseUrl
-        Website = $website
-        WebsiteId = $normalizedWebsiteId
-        WebsiteName = $websiteName
-        PrimaryDomainName = [string]$website.mspp_primarydomainname
-        SiteOrigin = Resolve-DbmPublicOrigin -PrimaryDomainName ([string]$website.mspp_primarydomainname)
-        PowerPageSite = $powerPageSite
-        PowerPageSiteId = ([guid][string]$powerPageSite.powerpagesiteid).Guid
-        WebsiteLanguage = $websiteLanguage
-        WebsiteLanguageId = ([guid][string]$websiteLanguage.mspp_websitelanguageid).Guid
-        PowerPageSiteLanguage = $matchingPowerPageLanguages[0]
-        PowerPageSiteLanguageId = ([guid][string]$matchingPowerPageLanguages[0].powerpagesitelanguageid).Guid
-        PublishingState = $publishingState
-        PublishingStateId = ([guid][string]$publishingState.mspp_publishingstateid).Guid
-    }
 }
 
 function Get-DbmPortalRuntimePluginStepDefinitions {
@@ -785,7 +657,11 @@ function New-DbmR3PortalRuntimeEvidenceManifest {
         [string]$EvidenceRoot,
 
         [Parameter(Mandatory = $true)]
-        [object[]]$Steps
+        [AllowEmptyCollection()]
+        [object[]]$Steps,
+
+        [AllowNull()]
+        [object]$Metadata
     )
 
     return [ordered]@{
@@ -794,5 +670,96 @@ function New-DbmR3PortalRuntimeEvidenceManifest {
         status = $Status
         evidenceRoot = $EvidenceRoot
         steps = @($Steps)
+        metadata = $Metadata
     }
+}
+
+function Write-DbmUtf8File {
+    param(
+        [Parameter(Mandatory = $true)]
+        [string]$Path,
+
+        [Parameter(Mandatory = $true)]
+        [AllowEmptyString()]
+        [string]$Content
+    )
+
+    [System.IO.File]::WriteAllText($Path, $Content, [System.Text.UTF8Encoding]::new($false))
+}
+
+function Find-DbmPortalRuntimeLocalProofProcesses {
+    param(
+        [string]$RepoRoot = (Get-DbmPortalRuntimeRepoRoot),
+
+        [int]$CurrentProcessId = $PID,
+
+        [AllowNull()]
+        [object[]]$Processes
+    )
+
+    $resolvedRepoRoot = (Get-DbmPortalRuntimeRepoRoot -RepoRoot $RepoRoot).ToLowerInvariant()
+    if ($null -eq $Processes) {
+        $Processes = @(Get-CimInstance Win32_Process -ErrorAction SilentlyContinue | Select-Object ProcessId, Name, CommandLine)
+    }
+
+    return @(
+        foreach ($process in @($Processes)) {
+            $processId = 0
+            try {
+                $processId = [int]$process.ProcessId
+            }
+            catch {
+                continue
+            }
+
+            if ($processId -eq $CurrentProcessId) {
+                continue
+            }
+
+            $commandLine = [string]$process.CommandLine
+            if ([string]::IsNullOrWhiteSpace($commandLine)) {
+                continue
+            }
+
+            $normalizedCommandLine = $commandLine.ToLowerInvariant()
+            if ($normalizedCommandLine -notlike "*$resolvedRepoRoot*") {
+                continue
+            }
+
+            if ($normalizedCommandLine -notlike '*server-entry.js*' -and $normalizedCommandLine -notlike '*invoke-r3portalruntimelocalproof.ps1*') {
+                continue
+            }
+
+            [pscustomobject]@{
+                processId = $processId
+                name = [string]$process.Name
+                commandLine = $commandLine
+            }
+        }
+    )
+}
+
+function Wait-DbmPortalRuntimeLocalProofHealth {
+    param(
+        [Parameter(Mandatory = $true)]
+        [string]$BaseUrl,
+
+        [int]$TimeoutSeconds = 60
+    )
+
+    $deadline = (Get-Date).ToUniversalTime().AddSeconds($TimeoutSeconds)
+    do {
+        try {
+            $response = Invoke-WebRequest -Uri ("{0}/api/runtime/health" -f $BaseUrl.TrimEnd('/')) -Method GET -UseBasicParsing -ErrorAction Stop
+            if ($response.StatusCode -eq 200) {
+                return ($response.Content | ConvertFrom-Json)
+            }
+        }
+        catch {
+        }
+
+        Start-Sleep -Seconds 2
+    } while ((Get-Date).ToUniversalTime() -lt $deadline)
+
+    throw "Timed out waiting for the local portal runtime proof host at '$BaseUrl'."
 }

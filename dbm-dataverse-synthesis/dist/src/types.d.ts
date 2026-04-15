@@ -255,8 +255,7 @@ export interface DataversePortalRuntimePlan {
     requestEntityId: string;
     requestEntityLogicalName: string;
     requestEntitySetName: string;
-    bundlePackageName: string;
-    solutionName: string;
+    hostPackageName: string;
 }
 export interface DataverseSynthesisPlanSummary {
     supportedEntities: number;

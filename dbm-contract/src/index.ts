@@ -6,9 +6,9 @@ export type DbmRuntimeRequestSchemaVersionV1 = 'dbm.runtime.request/v1';
 export type DbmRuntimeResultSchemaVersionV1 = 'dbm.runtime.result/v1';
 export type DbmPortalRuntimeBootstrapSchemaVersionV1 = 'dbm.portal-runtime.bootstrap/v1';
 
-export type DbmSupportedHostV1 = 'model-driven' | 'xrmtoolbox' | 'power-pages';
+export type DbmSupportedHostV1 = 'model-driven' | 'xrmtoolbox' | 'external-runtime';
 export type DbmRuntimeEngineV1 = 'pcf' | 'dataverse' | 'azure';
-export type DbmPortalIdentityModeV1 = 'anonymous-generic-profile';
+export type DbmPortalIdentityModeV1 = 'generic-profile';
 export type DbmPortalAllowedActionV1 = 'create-draft' | 'submit-request' | 'refresh-status';
 export type DbmPortalRuntimeEntryFieldDataTypeV1 =
   | 'string'
@@ -638,9 +638,9 @@ export interface DbmRuntimeResultV1 {
   correlationId: string;
 }
 
-export interface DbmPortalRuntimePageTargetV1 {
-  pageId: string;
-  routePath: string;
+export interface DbmPortalRuntimeRoutesV1 {
+  entryPath: string;
+  statusPath: string;
 }
 
 export interface DbmPortalRuntimeStateFieldLogicalNamesV1 {
@@ -675,8 +675,7 @@ export interface DbmPortalRuntimeBootstrapV1 {
   processId: string;
   identityMode: DbmPortalIdentityModeV1;
   genericProfileKey: string;
-  entryPage: DbmPortalRuntimePageTargetV1;
-  requestShellPage: DbmPortalRuntimePageTargetV1;
+  routes: DbmPortalRuntimeRoutesV1;
   requestEntityLogicalName: string;
   requestEntitySetName: string;
   startFormId: string;
@@ -685,7 +684,6 @@ export interface DbmPortalRuntimeBootstrapV1 {
   runtimeStateFieldLogicalNames: DbmPortalRuntimeStateFieldLogicalNamesV1;
   defaultState: DbmPortalRuntimeDefaultStateV1;
   allowedActions: DbmPortalAllowedActionV1[];
-  devAnonymousReadbackEnabled: boolean;
 }
 
 export interface DbmProcessExperienceActorRefV1 {

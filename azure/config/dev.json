@@ -8,10 +8,6 @@
   "azureTenantId": "b084031b-cdb1-422e-a76a-a6510cdb17f8",
   "resourceGroup": "rg-yagasoft-dbm-dev",
   "keyVaultName": "yagasoft-dbm-dev-kv",
-  "powerPages": {
-    "websiteId": "SET-POWER-PAGES-WEBSITE-ID",
-    "websiteName": "SET-POWER-PAGES-WEBSITE-NAME"
-  },
   "liveE2E": {
     "enabledModes": ["local-on-demand", "scheduled-dev"],
     "lock": {

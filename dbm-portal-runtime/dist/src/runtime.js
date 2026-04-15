@@ -6,7 +6,6 @@ function canSubmitRequest(bootstrap, record) {
 }
 function canRefreshStatus(bootstrap, record) {
     return bootstrap.allowedActions.includes('refresh-status')
-        && bootstrap.devAnonymousReadbackEnabled
         && Boolean(record);
 }
 function buildRequestReference(record) {

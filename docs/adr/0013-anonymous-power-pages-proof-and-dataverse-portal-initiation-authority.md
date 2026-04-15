@@ -1,8 +1,13 @@
 # ADR-0013: Anonymous Power Pages Proof And Dataverse Portal Initiation Authority
 
-- Status: Accepted
+- Status: Superseded
 - Date: 2026-04-15
 - Decision owners: Ahmed Elsawalhy, Yagasoft
+- Superseded by: [ADR-0014](0014-local-spa-proof-and-dataverse-runtime-authority.md)
+
+## Supersession note
+
+This ADR is retained for history only. The Power Pages proof direction was abandoned before it became the durable `R3.1` front-door strategy, and `R3.1` now uses a repo-owned local SPA proof with a local Node proxy and Dataverse-authoritative runtime progression instead.
 
 ## Context
 

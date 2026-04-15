@@ -25,8 +25,7 @@ export interface DbmPortalRuntimeRecordV1 {
 }
 
 export interface DbmPortalRuntimeFetchOptions {
-  bootstrap: DbmPortalRuntimeBootstrapV1;
-  siteOrigin?: string;
+  apiBasePath?: string;
   fetchImpl?: typeof fetch;
 }
 
@@ -56,7 +55,7 @@ export interface DbmPortalRuntimeAppProps {
   runtimeModel: DbmProcessExperienceRuntimeModelV1;
   initialDraftValues?: Record<string, unknown>;
   initialRecord?: DbmPortalRuntimeRecordV1 | null;
-  siteOrigin?: string;
+  apiBasePath?: string;
   fetchImpl?: typeof fetch;
   storage?: StorageLike | null;
 }

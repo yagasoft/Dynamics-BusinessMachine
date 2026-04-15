@@ -324,9 +324,12 @@ async function createRuntimeHarness(formId) {
     strict_1.default.equal(plan.portalRuntime?.bootstrap.runtimeStateFieldLogicalNames.portalProfileKey, 'dbm_portalprofilekey');
     strict_1.default.equal(plan.portalRuntime?.bootstrap.defaultState.stageId, 'draft-request');
     strict_1.default.equal(plan.portalRuntime?.bootstrap.defaultState.stepId, 'capture-request');
+    strict_1.default.equal(plan.portalRuntime?.bootstrap.identityMode, 'generic-profile');
+    strict_1.default.equal(plan.portalRuntime?.bootstrap.routes.entryPath, '/approval-request');
+    strict_1.default.equal(plan.portalRuntime?.bootstrap.routes.statusPath, '/approval-request/status');
     strict_1.default.deepEqual(plan.portalRuntime?.bootstrap.entryFields.map((field) => field.logicalName), ['dbm_title', 'dbm_amount', 'dbm_assignedapprover', 'dbm_supportingnotes']);
     strict_1.default.deepEqual(plan.portalRuntime?.bootstrap.allowedActions, ['create-draft', 'submit-request', 'refresh-status']);
-    strict_1.default.equal(plan.portalRuntime?.solutionName, 'DynamicsBusinessMachinePortalRuntime');
+    strict_1.default.equal(plan.portalRuntime?.hostPackageName, 'dbm-portal-runtime');
 });
 (0, node_test_1.default)('planDataverseSynthesis supports a non-reference existing-form model with explicit cross-entity handoff', () => {
     const plan = (0, index_1.planDataverseSynthesis)(generic_existing_form_v1_model_json_1.default);

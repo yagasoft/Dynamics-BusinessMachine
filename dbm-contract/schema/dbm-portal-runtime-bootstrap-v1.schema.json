@@ -24,20 +24,16 @@
         },
         "identityMode": {
           "type": "string",
-          "const": "anonymous-generic-profile",
+          "const": "generic-profile",
           "title": "identityMode"
         },
         "genericProfileKey": {
           "type": "string",
           "title": "genericProfileKey"
         },
-        "entryPage": {
-          "$ref": "#/definitions/DbmPortalRuntimePageTargetV1",
-          "title": "entryPage"
-        },
-        "requestShellPage": {
-          "$ref": "#/definitions/DbmPortalRuntimePageTargetV1",
-          "title": "requestShellPage"
+        "routes": {
+          "$ref": "#/definitions/DbmPortalRuntimeRoutesV1",
+          "title": "routes"
         },
         "requestEntityLogicalName": {
           "type": "string",
@@ -76,19 +72,13 @@
             "$ref": "#/definitions/DbmPortalAllowedActionV1"
           },
           "title": "allowedActions"
-        },
-        "devAnonymousReadbackEnabled": {
-          "type": "boolean",
-          "title": "devAnonymousReadbackEnabled"
         }
       },
       "additionalProperties": false,
       "required": [
         "allowedActions",
         "defaultState",
-        "devAnonymousReadbackEnabled",
         "entryFields",
-        "entryPage",
         "genericProfileKey",
         "identityMode",
         "packageId",
@@ -97,29 +87,29 @@
         "processId",
         "requestEntityLogicalName",
         "requestEntitySetName",
-        "requestShellPage",
+        "routes",
         "runtimeStateFieldLogicalNames",
         "schemaVersion",
         "startFormId"
       ]
     },
-    "DbmPortalRuntimePageTargetV1": {
-      "title": "DbmPortalRuntimePageTargetV1",
+    "DbmPortalRuntimeRoutesV1": {
+      "title": "DbmPortalRuntimeRoutesV1",
       "type": "object",
       "properties": {
-        "pageId": {
+        "entryPath": {
           "type": "string",
-          "title": "pageId"
+          "title": "entryPath"
         },
-        "routePath": {
+        "statusPath": {
           "type": "string",
-          "title": "routePath"
+          "title": "statusPath"
         }
       },
       "additionalProperties": false,
       "required": [
-        "pageId",
-        "routePath"
+        "entryPath",
+        "statusPath"
       ]
     },
     "DbmPortalRuntimeEntryFieldV1": {

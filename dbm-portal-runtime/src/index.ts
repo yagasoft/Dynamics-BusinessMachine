@@ -1,4 +1,6 @@
 export { parsePortalRuntimeBootstrap } from './bootstrap';
+export { portalRuntimeBootstrap, portalRuntimeModel } from './generated-plan';
+export { LocalProofShell } from './LocalProofShell';
 export { PortalRuntimeApp } from './PortalRuntimeApp';
 export {
   createPortalRuntimeDraft,
@@ -10,9 +12,9 @@ export {
   clearPortalRuntimeSessionState,
   getPortalRuntimeSessionStorageKey,
   loadPortalRuntimeSessionState,
+  PORTAL_RUNTIME_SESSION_EVENT,
   savePortalRuntimeSessionState
 } from './session';
-export { registerPortalRuntimeBrowserHost } from './browser-host';
 export type {
   DbmPortalRuntimeAppProps,
   DbmPortalRuntimeCreateDraftOptions,

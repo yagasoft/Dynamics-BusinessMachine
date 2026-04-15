@@ -161,12 +161,12 @@ test('ProcessExperienceSurface keeps hidden portal stages read-only and friendly
     expect(screen.getByText('No action is needed from this surface right now.')).toBeTruthy();
     expect(screen.queryByRole('button', { name: 'Approve' })).toBeNull();
 });
-test('ProcessExperienceSurface renders a Power Pages entry shell before a draft exists', async () => {
+test('ProcessExperienceSurface renders an external-runtime entry shell before a draft exists', async () => {
     const user = userEvent.setup();
     const events = [];
-    render(_jsx(ProcessExperienceSurface, { snapshot: null, mode: "power-pages-runtime", audience: "portal", portalShell: {
+    render(_jsx(ProcessExperienceSurface, { snapshot: null, mode: "external-runtime", audience: "portal", portalShell: {
             entryTitle: 'Start your request',
-            entrySummary: 'Create a draft request to begin the anonymous portal flow.',
+            entrySummary: 'Create a draft request to begin the local external entry flow.',
             requestStateLabel: 'Ready to start',
             sameSessionEnabled: true,
             actions: {
@@ -179,15 +179,15 @@ test('ProcessExperienceSurface renders a Power Pages entry shell before a draft 
             }
         }, onPortalAction: (actionId) => events.push(actionId) }));
     expect(screen.getByText('Start your request')).toBeTruthy();
-    expect(screen.getByText(/anonymous portal flow/i)).toBeTruthy();
+    expect(screen.getByText(/local external entry flow/i)).toBeTruthy();
     await user.click(screen.getByRole('button', { name: 'Create draft' }));
     expect(events).toEqual(['create-draft']);
 });
-test('ProcessExperienceSurface uses portal shell actions for the Power Pages runtime mode', async () => {
+test('ProcessExperienceSurface uses portal shell actions for the external runtime mode', async () => {
     const user = userEvent.setup();
     const events = [];
     const snapshot = buildApprovalRequestSnapshot('portal-runtime-draft');
-    render(_jsx(ProcessExperienceSurface, { snapshot: snapshot, mode: "power-pages-runtime", audience: "portal", portalShell: {
+    render(_jsx(ProcessExperienceSurface, { snapshot: snapshot, mode: "external-runtime", audience: "portal", portalShell: {
             entryTitle: 'Approval request portal',
             entrySummary: 'Continue the request from this browser session.',
             requestReference: 'Request draft',
@@ -203,7 +203,7 @@ test('ProcessExperienceSurface uses portal shell actions for the Power Pages run
                 }
             }
         }, onPortalAction: (actionId) => events.push(actionId), onInvokeOutcome: () => {
-            throw new Error('Power Pages runtime mode should use portal shell actions for submission.');
+            throw new Error('External runtime mode should use portal shell actions for submission.');
         } }));
     expect(screen.getByText('Approval request portal')).toBeTruthy();
     expect(screen.getByText('Request draft')).toBeTruthy();
