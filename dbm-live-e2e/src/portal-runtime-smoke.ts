@@ -1,0 +1,253 @@
+import { promises as fs } from 'node:fs';
+import path from 'node:path';
+
+import { chromium, type BrowserContext, type Page } from '@playwright/test';
+
+type SmokeConfig = {
+  entryUrl: string;
+  requestShellUrl: string;
+  dataverseUrl: string;
+  entityLogicalName: string;
+  requestTitle: string;
+  requestAmount: string;
+  assignedApprover: string;
+  expectedPortalStatus: string;
+  hiddenLabels: string[];
+  persistedSessionStatePath?: string | null;
+};
+
+type SmokeResult = {
+  generatedUtc: string;
+  anonymousScriptRefs: string[];
+  requestId: string;
+  requestTitle: string;
+  portalStatusLabel: string;
+  requestShellStatusLabel: string;
+  modelDriven: {
+    executed: boolean;
+    passed: boolean;
+  };
+};
+
+function parseArgs(argv: string[]): { configPath: string; outputPath: string } {
+  const args = new Map<string, string>();
+  for (let index = 0; index < argv.length; index += 1) {
+    const value = argv[index];
+    if (!value.startsWith('--')) {
+      continue;
+    }
+
+    const nextValue = argv[index + 1];
+    if (!nextValue || nextValue.startsWith('--')) {
+      throw new Error(`Missing value for argument '${value}'.`);
+    }
+
+    args.set(value.slice(2), nextValue);
+    index += 1;
+  }
+
+  const configPath = args.get('config');
+  const outputPath = args.get('output');
+  if (!configPath || !outputPath) {
+    throw new Error('Usage: tsx src/portal-runtime-smoke.ts --config <path> --output <path>');
+  }
+
+  return { configPath, outputPath };
+}
+
+function assertCondition(condition: unknown, message: string): asserts condition {
+  if (!condition) {
+    throw new Error(message);
+  }
+}
+
+function normalizeText(value: string): string {
+  return value.replace(/\s+/g, ' ').trim();
+}
+
+async function collectPageText(page: Page): Promise<string> {
+  const frameTexts = await Promise.all(
+    page.frames().map(async (frame) => {
+      try {
+        const text = await frame.locator('body').innerText({ timeout: 1000 });
+        return text ?? '';
+      } catch {
+        return '';
+      }
+    })
+  );
+
+  return normalizeText(frameTexts.join(' '));
+}
+
+async function waitForPageText(page: Page, expectedText: string, timeoutMs = 60000): Promise<void> {
+  const start = Date.now();
+  while ((Date.now() - start) < timeoutMs) {
+    const text = await collectPageText(page);
+    if (text.includes(expectedText)) {
+      return;
+    }
+
+    await page.waitForTimeout(500);
+  }
+
+  throw new Error(`Timed out waiting for page text '${expectedText}'.`);
+}
+
+async function assertPageTextExcludes(page: Page, unexpectedText: string): Promise<void> {
+  const text = await collectPageText(page);
+  if (text.includes(unexpectedText)) {
+    throw new Error(`Page text unexpectedly exposed '${unexpectedText}'.`);
+  }
+}
+
+async function readPortalSessionRequestId(page: Page): Promise<string> {
+  const sessionState = await page.evaluate(() => {
+    const entries: Record<string, string> = {};
+    for (let index = 0; index < sessionStorage.length; index += 1) {
+      const key = sessionStorage.key(index);
+      if (!key) {
+        continue;
+      }
+
+      const value = sessionStorage.getItem(key);
+      if (value != null) {
+        entries[key] = value;
+      }
+    }
+
+    return entries;
+  });
+
+  for (const [key, value] of Object.entries(sessionState)) {
+    if (!key.startsWith('dbm.portal-runtime.session:')) {
+      continue;
+    }
+
+    try {
+      const parsed = JSON.parse(value) as { requestId?: string };
+      if (parsed.requestId?.trim()) {
+        return parsed.requestId.trim();
+      }
+    } catch {
+    }
+  }
+
+  throw new Error('Portal smoke could not resolve a requestId from sessionStorage.');
+}
+
+async function runAnonymousPortalSmoke(page: Page, config: SmokeConfig): Promise<Omit<SmokeResult, 'generatedUtc' | 'modelDriven'>> {
+  await page.goto(config.entryUrl, { waitUntil: 'domcontentloaded' });
+  await page.waitForSelector('#dbm-portal-runtime-root', { timeout: 60000 });
+  await page.waitForSelector('script[src*="portal-runtime-context.js"]', { timeout: 60000 });
+  await page.waitForSelector('script[src*="portal-runtime.js"]', { timeout: 60000 });
+
+  const anonymousScriptRefs = await page.locator('script[src]').evaluateAll((elements) =>
+    elements.map((element) => element.getAttribute('src') ?? '').filter(Boolean)
+  );
+
+  await page.getByLabel('Request Title').fill(config.requestTitle);
+  await page.getByLabel('Request Amount').fill(config.requestAmount);
+  await page.getByLabel('Assigned Approver').fill(config.assignedApprover);
+  await page.getByRole('button', { name: 'Create draft' }).click();
+
+  await waitForPageText(page, config.requestTitle);
+  await waitForPageText(page, 'Draft');
+
+  await page.getByRole('button', { name: 'Submit request' }).click();
+  await waitForPageText(page, config.expectedPortalStatus);
+
+  for (const hiddenLabel of config.hiddenLabels) {
+    await assertPageTextExcludes(page, hiddenLabel);
+  }
+
+  const requestId = await readPortalSessionRequestId(page);
+
+  await page.goto(config.requestShellUrl, { waitUntil: 'domcontentloaded' });
+  await waitForPageText(page, config.requestTitle);
+  await waitForPageText(page, config.expectedPortalStatus);
+
+  for (const hiddenLabel of config.hiddenLabels) {
+    await assertPageTextExcludes(page, hiddenLabel);
+  }
+
+  return {
+    anonymousScriptRefs,
+    requestId,
+    requestTitle: config.requestTitle,
+    portalStatusLabel: config.expectedPortalStatus,
+    requestShellStatusLabel: config.expectedPortalStatus
+  };
+}
+
+async function runModelDrivenSmoke(config: SmokeConfig, requestId: string): Promise<{ executed: boolean; passed: boolean }> {
+  if (!config.persistedSessionStatePath) {
+    return {
+      executed: false,
+      passed: false
+    };
+  }
+
+  const storageStatePath = config.persistedSessionStatePath ?? undefined;
+  const context = await chromium.launch({ headless: true }).then((browser) =>
+    browser.newContext({
+      ignoreHTTPSErrors: true,
+      storageState: storageStatePath
+    }).then(async (browserContext) => {
+      const page = await browserContext.newPage();
+      const recordUrl = `${config.dataverseUrl.replace(/\/$/, '')}/main.aspx?forceUCI=1&pagetype=entityrecord&etn=${encodeURIComponent(config.entityLogicalName)}&id=${encodeURIComponent(requestId)}`;
+      await page.goto(recordUrl, { waitUntil: 'domcontentloaded' });
+      await waitForPageText(page, config.expectedPortalStatus, 90000);
+      for (const hiddenLabel of config.hiddenLabels) {
+        await assertPageTextExcludes(page, hiddenLabel);
+      }
+      await browserContext.close();
+      await browser.close();
+      return {
+        executed: true,
+        passed: true
+      };
+    })
+  );
+
+  return context;
+}
+
+async function main(): Promise<void> {
+  const { configPath, outputPath } = parseArgs(process.argv.slice(2));
+  const config = JSON.parse(await fs.readFile(configPath, 'utf8')) as SmokeConfig;
+
+  const browser = await chromium.launch({ headless: true });
+  let anonymousContext: BrowserContext | null = null;
+  try {
+    anonymousContext = await browser.newContext({ ignoreHTTPSErrors: true });
+    const page = await anonymousContext.newPage();
+    const anonymousResult = await runAnonymousPortalSmoke(page, config);
+
+    let modelDrivenResult: { executed: boolean; passed: boolean } = {
+      executed: false,
+      passed: false
+    };
+
+    if (config.persistedSessionStatePath) {
+      modelDrivenResult = await runModelDrivenSmoke(config, anonymousResult.requestId);
+    }
+
+    const result: SmokeResult = {
+      generatedUtc: new Date().toISOString(),
+      ...anonymousResult,
+      modelDriven: modelDrivenResult
+    };
+
+    await fs.mkdir(path.dirname(outputPath), { recursive: true });
+    await fs.writeFile(outputPath, `${JSON.stringify(result, null, 2)}\n`, 'utf8');
+  } finally {
+    await anonymousContext?.close().catch(() => undefined);
+    await browser.close().catch(() => undefined);
+  }
+}
+
+main().catch((error) => {
+  process.stderr.write(`${error instanceof Error ? error.stack ?? error.message : String(error)}\n`);
+  process.exitCode = 1;
+});

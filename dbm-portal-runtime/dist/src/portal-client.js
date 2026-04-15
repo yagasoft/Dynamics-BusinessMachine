@@ -17,13 +17,29 @@ function normalizeGuid(id) {
 function buildApiUrl(bootstrap, siteOrigin, suffix = '') {
     return `${siteOrigin}/_api/${bootstrap.requestEntitySetName}${suffix}`;
 }
-function buildHeaders() {
-    return {
+function getPowerPagesShell() {
+    const shell = globalThis.shell;
+    if (!shell || typeof shell.getTokenDeferred !== 'function') {
+        return null;
+    }
+    return shell;
+}
+async function buildHeaders() {
+    const headers = {
         Accept: 'application/json',
         'Content-Type': 'application/json',
         'OData-MaxVersion': '4.0',
         'OData-Version': '4.0'
     };
+    const shell = getPowerPagesShell();
+    if (!shell) {
+        return headers;
+    }
+    const requestVerificationToken = await shell.getTokenDeferred?.();
+    if (requestVerificationToken?.trim()) {
+        headers.__RequestVerificationToken = requestVerificationToken.trim();
+    }
+    return headers;
 }
 function resolveCreatedRecordId(response) {
     const entityId = response.headers.get('entityid')?.trim();
@@ -81,7 +97,8 @@ export async function refreshPortalRuntimeRecord(options) {
         .join(',');
     const response = await fetchImpl(`${buildApiUrl(options.bootstrap, normalizeOrigin(options.siteOrigin), `(${normalizeGuid(options.requestId)})`)}?$select=${encodeURIComponent(selectFields)}`, {
         method: 'GET',
-        headers: buildHeaders()
+        credentials: 'same-origin',
+        headers: await buildHeaders()
     });
     if (!response.ok) {
         throw new Error(`Portal runtime refresh failed with status ${response.status}.`);
@@ -91,9 +108,11 @@ export async function refreshPortalRuntimeRecord(options) {
 }
 export async function createPortalRuntimeDraft(options) {
     const fetchImpl = getFetchImpl(options);
+    const headers = await buildHeaders();
     const response = await fetchImpl(buildApiUrl(options.bootstrap, normalizeOrigin(options.siteOrigin)), {
         method: 'POST',
-        headers: buildHeaders(),
+        credentials: 'same-origin',
+        headers,
         body: JSON.stringify(options.values)
     });
     if (!response.ok) {
@@ -109,10 +128,12 @@ export async function createPortalRuntimeDraft(options) {
 }
 export async function submitPortalRuntimeRequest(options) {
     const fetchImpl = getFetchImpl(options);
+    const headers = await buildHeaders();
     const response = await fetchImpl(buildApiUrl(options.bootstrap, normalizeOrigin(options.siteOrigin), `(${normalizeGuid(options.requestId)})`), {
         method: 'PATCH',
+        credentials: 'same-origin',
         headers: {
-            ...buildHeaders(),
+            ...headers,
             'If-Match': '*'
         },
         body: JSON.stringify({

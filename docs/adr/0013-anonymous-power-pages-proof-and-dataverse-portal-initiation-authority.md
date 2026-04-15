@@ -29,7 +29,7 @@ Two earlier exploratory branches, `codex/r2.4-live-connected-e2e` and `codex/r2.
   - on submit, validate the start-form requirements, advance to the hidden internal screening stage, project `under-review`, and clear the command field
 - The shared `dbm-process-experience` renderer remains the only source of portal projection behavior. The portal shell may add entry/runtime chrome, but it must not invent hidden-stage or status semantics locally.
 - The `R3.1` start-form experience is driven by bootstrap entry-field configuration derived from the start-stage form states, so the portal runtime captures the same request business fields the Dataverse runtime expects before draft creation.
-- The repo establishes a tracked portal delivery seam through `power-platform/solutions/DynamicsBusinessMachinePortalRuntime` plus `.\eng\scripts\Export-PortalRuntimePackage.ps1`, rather than pretending that a full Power Pages packaging/import automation pipeline already exists.
+- The repo establishes a tracked portal delivery seam through `power-platform/solutions/DynamicsBusinessMachinePortalRuntime`, a generated `portal-runtime-context.js` asset sourced from the generated metadata plan, and Dev automation scripts that apply portal assets and plugin-step registrations through the Dataverse Web API.
 
 ## Consequences
 
@@ -40,7 +40,7 @@ Two earlier exploratory branches, `codex/r2.4-live-connected-e2e` and `codex/r2.
   - internal and portal status
   - generic profile key ownership assumption
 - Portal-visible status stays coherent with the model-driven host because both hosts read the same canonical Dataverse-backed runtime contract.
-- Operators must still perform manual portal asset import/configuration and manual plugin step registration in `Dev`, because those parts are not yet represented as a fully automated repo-managed deployment flow.
+- `Dev` deployment is now automation-first through `.\eng\scripts\Invoke-R3PortalRuntimeDevDeploy.ps1`, but it still depends on a pre-provisioned Power Pages website and a persisted model-driven session for the final smoke path.
 
 ## Alternatives considered
 

@@ -100,6 +100,20 @@
       "notes": "This package drives generated Dataverse metadata but is not staged directly as a Dataverse artifact."
     },
     {
+      "name": "DbmPortalRuntime",
+      "description": "Power Pages portal runtime bundle, tracked portal templates, and export seam.",
+      "sourcePatterns": [
+        "dbm-portal-runtime/*",
+        "power-platform/solutions/DynamicsBusinessMachinePortalRuntime/*",
+        "eng/scripts/Export-PortalRuntimePackage.ps1"
+      ],
+      "nodeProjects": [
+        "dbm-portal-runtime"
+      ],
+      "requiresDotNetBuild": false,
+      "deployable": true
+    },
+    {
       "name": "DbmLiveE2E",
       "description": "Connected live E2E harness, Playwright suite, and deterministic case catalog.",
       "sourcePatterns": [

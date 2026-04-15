@@ -16,7 +16,7 @@ Out of scope:
 - cross-device anonymous recovery
 - queueing, escalation, SLA, and timeline features
 - UAT or Prod-ready portal security posture
-- a fully automated Power Pages packaging/import pipeline
+- any non-Dev portal identity hardening
 
 ## Branch strategy
 
@@ -49,7 +49,15 @@ Out of scope:
 - `power-platform/solutions/DynamicsBusinessMachinePortalRuntime`
   - tracked bootstrap, templates, site settings, and permission payloads
 - `eng/scripts/Export-PortalRuntimePackage.ps1`
-  - export seam for the portal runtime bundle and tracked portal assets
+  - export seam for the portal runtime bundle, generated context asset, and tracked portal assets
+- `eng/scripts/Invoke-PortalRuntimeDeployment.ps1`
+  - Dev-only Power Pages apply via Dataverse Web API
+- `eng/scripts/Sync-DbmPortalRuntimePluginSteps.ps1`
+  - Dev plugin-step registration drift sync
+- `eng/scripts/Test-R3PortalRuntimeDevSmoke.ps1`
+  - portal/browser/model-driven acceptance smoke
+- `eng/scripts/Invoke-R3PortalRuntimeDevDeploy.ps1`
+  - one-command Dev deployment wrapper with evidence output
 
 ## Interface and config surface
 
@@ -132,6 +140,7 @@ Set-Location C:\Git\Dynamics-BusinessMachine
 Expected portal export output:
 
 - `artifacts/portal-runtime/DynamicsBusinessMachinePortalRuntime/web-files/dbm/portal-runtime/portal-runtime.js`
+- `artifacts/portal-runtime/DynamicsBusinessMachinePortalRuntime/web-files/dbm/portal-runtime/portal-runtime-context.js`
 - `artifacts/portal-runtime/DynamicsBusinessMachinePortalRuntime/bootstrap/*.json`
 - `artifacts/portal-runtime/DynamicsBusinessMachinePortalRuntime/web-templates/*.liquid`
 - `artifacts/portal-runtime/DynamicsBusinessMachinePortalRuntime/site-settings/*.json`
@@ -140,24 +149,33 @@ Expected portal export output:
 
 ## Dev deployment path
 
-1. Deploy the updated core and generated metadata Dataverse solutions into `Dev`.
-2. Confirm the plugin assembly contains `Yagasoft.Dbm.Plugins.PortalRuntime.DbmRequestPortalRuntime`.
-3. Register manual plugin steps in `Dev` because this repo does not yet automate step registration:
-   - `Create` on `dbm_request`
-     - mode: synchronous
-     - stage: PreOperation
-     - filtering attributes: none
-   - `Update` on `dbm_request`
-     - mode: synchronous
-     - stage: PreOperation
-     - filtering attributes: `dbm_portalcommand`
-4. Export the portal runtime seam with `.\eng\scripts\Export-PortalRuntimePackage.ps1`.
-5. In Power Pages `Dev`, import or update:
-   - the browser bundle as `dbm/portal-runtime/portal-runtime.js`
-   - the tracked web templates
-   - the tracked site settings
-   - the anonymous requester web role and table permission payload
-   - the tracked bootstrap JSON for the approval/request entry and request-shell pages
+Populate the Dev Power Pages target first:
+
+- set `azure/config/dev.json` `powerPages.websiteId`
+- set `azure/config/dev.json` `powerPages.websiteName`
+- ensure the configured website already exists in Dataverse/Power Pages
+- ensure a persisted model-driven live E2E session exists:
+  - `.\eng\scripts\Initialize-LiveDbmE2ESession.ps1 -TargetEnvironment Dev`
+
+Run the full Dev deployment wrapper:
+
+```powershell
+Set-Location C:\Git\Dynamics-BusinessMachine
+.\eng\scripts\Invoke-R3PortalRuntimeDevDeploy.ps1 -TargetEnvironment Dev
+```
+
+The wrapper performs the canonical sequence:
+
+1. package build/test/validate for `dbm-contract`, `dbm-process-experience`, `dbm-portal-runtime`, and `dbm-dataverse-synthesis`
+2. plugin restore/build
+3. Dataverse packaging and deployment
+4. Power Pages apply through `Invoke-PortalRuntimeDeployment.ps1`
+5. plugin-step sync through `Sync-DbmPortalRuntimePluginSteps.ps1`
+6. browser and model-driven smoke through `Test-R3PortalRuntimeDevSmoke.ps1`
+
+Evidence is written under:
+
+- `artifacts/r3-portal-runtime-dev-deploy/<timestamp>/`
 
 ## Dev proof steps
 
@@ -185,6 +203,7 @@ Expected portal export output:
 - local contract, renderer, synthesis, and portal runtime tests pass
 - the touched legacy plugin project builds on the upgraded package set
 - the portal runtime package export completes successfully
+- the one-command Dev deployment wrapper completes with evidence
 - the `Dev` proof shows anonymous draft create, portal submit, canonical Dataverse advance, and portal-safe `Under Review`
 - the portal never exposes hidden internal screening details
 - the model-driven host still renders the same request coherently after portal initiation
@@ -193,4 +212,4 @@ Expected portal export output:
 
 - `R3.1` intentionally stays on a `Dev` proof posture.
 - Treat anonymous readback and generic profile ownership as temporary proof assumptions, not pilot-ready production design.
-- If future slices automate portal packaging/import or plugin step registration, supersede this runbook rather than quietly broadening it.
+- This automated path fails fast when the configured Power Pages site is missing or ambiguous; it does not prompt operators to choose a site interactively.

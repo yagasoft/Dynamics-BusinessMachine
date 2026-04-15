@@ -1,29 +1,48 @@
 [CmdletBinding()]
 param(
-    [string]$RepoRoot = (Resolve-Path (Join-Path $PSScriptRoot '..\..')).Path,
-    [string]$ManifestPath = (Join-Path (Resolve-Path (Join-Path $PSScriptRoot '..\..')).Path 'power-platform\solutions\DynamicsBusinessMachinePortalRuntime\source\manifest.json'),
+    [string]$RepoRoot,
+    [string]$ManifestPath = 'power-platform/solutions/DynamicsBusinessMachinePortalRuntime/source/manifest.json',
     [string]$OutputRoot
 )
 
 $ErrorActionPreference = 'Stop'
 
-function Resolve-DbmAbsolutePath {
-    param(
-        [Parameter(Mandatory = $true)]
-        [string]$BasePath,
-
-        [Parameter(Mandatory = $true)]
-        [string]$CandidatePath
-    )
-
-    if ([System.IO.Path]::IsPathRooted($CandidatePath)) {
-        return [System.IO.Path]::GetFullPath($CandidatePath)
-    }
-
-    return [System.IO.Path]::GetFullPath((Join-Path $BasePath $CandidatePath))
+if ([string]::IsNullOrWhiteSpace($RepoRoot)) {
+    $RepoRoot = (Resolve-Path (Join-Path $PSScriptRoot '..\..')).Path
 }
 
-function Copy-DbmPortalAsset {
+. (Join-Path $PSScriptRoot 'PortalRuntimeDeployment.Common.ps1')
+
+function Copy-DbmPortalAssetContent {
+    param(
+        [Parameter(Mandatory = $true)]
+        [string]$DestinationPath,
+
+        [Parameter(Mandatory = $true)]
+        [string]$Content,
+
+        [Parameter(Mandatory = $true)]
+        [AllowEmptyCollection()]
+        [System.Collections.ArrayList]$ManifestEntries,
+
+        [Parameter(Mandatory = $true)]
+        [string]$SourceReference
+    )
+
+    $destinationDirectory = Split-Path -Path $DestinationPath -Parent
+    if (-not (Test-Path $destinationDirectory)) {
+        New-Item -ItemType Directory -Path $destinationDirectory -Force | Out-Null
+    }
+
+    [System.IO.File]::WriteAllText($DestinationPath, $Content, [System.Text.UTF8Encoding]::new($false))
+
+    $ManifestEntries.Add([pscustomobject]@{
+        source = $SourceReference
+        destination = $DestinationPath
+    }) | Out-Null
+}
+
+function Copy-DbmPortalAssetFile {
     param(
         [Parameter(Mandatory = $true)]
         [string]$SourcePath,
@@ -36,34 +55,24 @@ function Copy-DbmPortalAsset {
         [System.Collections.ArrayList]$ManifestEntries
     )
 
-    if (-not (Test-Path $SourcePath)) {
-        throw "Portal runtime asset is missing: $SourcePath"
-    }
-
     $destinationDirectory = Split-Path -Path $DestinationPath -Parent
     if (-not (Test-Path $destinationDirectory)) {
         New-Item -ItemType Directory -Path $destinationDirectory -Force | Out-Null
     }
 
     Copy-Item -Path $SourcePath -Destination $DestinationPath -Force
-
     $ManifestEntries.Add([pscustomobject]@{
         source = $SourcePath
         destination = $DestinationPath
     }) | Out-Null
 }
 
-$resolvedManifestPath = Resolve-DbmAbsolutePath -BasePath $RepoRoot -CandidatePath $ManifestPath
-if (-not (Test-Path $resolvedManifestPath)) {
-    throw "Portal runtime manifest is missing: $resolvedManifestPath"
-}
-
-$manifest = Get-Content -Path $resolvedManifestPath -Raw | ConvertFrom-Json
+$assets = Get-DbmPortalRuntimeDeployableAssets -RepoRoot $RepoRoot -ManifestPath $ManifestPath
 $resolvedOutputRoot = if ([string]::IsNullOrWhiteSpace($OutputRoot)) {
-    Join-Path $RepoRoot ("artifacts\portal-runtime\{0}" -f [string]$manifest.solutionName)
+    Join-Path $assets.manifest.RepoRoot ("artifacts\portal-runtime\{0}" -f $assets.manifest.solutionName)
 }
 else {
-    Resolve-DbmAbsolutePath -BasePath $RepoRoot -CandidatePath $OutputRoot
+    Resolve-DbmAbsolutePath -BasePath $assets.manifest.RepoRoot -CandidatePath $OutputRoot
 }
 
 if (Test-Path $resolvedOutputRoot) {
@@ -74,42 +83,52 @@ New-Item -ItemType Directory -Path $resolvedOutputRoot -Force | Out-Null
 
 $copiedFiles = New-Object System.Collections.ArrayList
 
-$bundleSourcePath = Resolve-DbmAbsolutePath -BasePath $RepoRoot -CandidatePath ([string]$manifest.bundleSourcePath)
-$bundleDestinationPath = Join-Path $resolvedOutputRoot 'web-files\dbm\portal-runtime\portal-runtime.js'
-Copy-DbmPortalAsset -SourcePath $bundleSourcePath -DestinationPath $bundleDestinationPath -ManifestEntries $copiedFiles
+foreach ($webFile in $assets.webFiles) {
+    $destinationPath = Join-Path $resolvedOutputRoot $webFile.outputRelativePath
+    Copy-DbmPortalAssetContent `
+        -DestinationPath $destinationPath `
+        -Content ([string]$webFile.content) `
+        -ManifestEntries $copiedFiles `
+        -SourceReference ([string]$webFile.sourcePath)
+}
 
-$bootstrapSourcePath = Resolve-DbmAbsolutePath -BasePath $RepoRoot -CandidatePath ([string]$manifest.bootstrapPath)
-$bootstrapDestinationPath = Join-Path $resolvedOutputRoot ("bootstrap\{0}" -f [System.IO.Path]::GetFileName($bootstrapSourcePath))
-Copy-DbmPortalAsset -SourcePath $bootstrapSourcePath -DestinationPath $bootstrapDestinationPath -ManifestEntries $copiedFiles
+$bootstrapDestinationPath = Join-Path $resolvedOutputRoot ("bootstrap\{0}" -f [System.IO.Path]::GetFileName($assets.bootstrapPath))
+Copy-DbmPortalAssetFile -SourcePath $assets.bootstrapPath -DestinationPath $bootstrapDestinationPath -ManifestEntries $copiedFiles
 
-$siteSettingsSourcePath = Resolve-DbmAbsolutePath -BasePath $RepoRoot -CandidatePath ([string]$manifest.siteSettingsPath)
-$siteSettingsDestinationPath = Join-Path $resolvedOutputRoot ("site-settings\{0}" -f [System.IO.Path]::GetFileName($siteSettingsSourcePath))
-Copy-DbmPortalAsset -SourcePath $siteSettingsSourcePath -DestinationPath $siteSettingsDestinationPath -ManifestEntries $copiedFiles
+$siteSettingsDestinationPath = Join-Path $resolvedOutputRoot ("site-settings\{0}" -f [System.IO.Path]::GetFileName($assets.siteSettingsPath))
+Copy-DbmPortalAssetFile -SourcePath $assets.siteSettingsPath -DestinationPath $siteSettingsDestinationPath -ManifestEntries $copiedFiles
 
-$permissionsSourcePath = Resolve-DbmAbsolutePath -BasePath $RepoRoot -CandidatePath ([string]$manifest.permissionsPath)
-$permissionsDestinationPath = Join-Path $resolvedOutputRoot ("permissions\{0}" -f [System.IO.Path]::GetFileName($permissionsSourcePath))
-Copy-DbmPortalAsset -SourcePath $permissionsSourcePath -DestinationPath $permissionsDestinationPath -ManifestEntries $copiedFiles
+$permissionsDestinationPath = Join-Path $resolvedOutputRoot ("permissions\{0}" -f [System.IO.Path]::GetFileName($assets.permissionsPath))
+Copy-DbmPortalAssetFile -SourcePath $assets.permissionsPath -DestinationPath $permissionsDestinationPath -ManifestEntries $copiedFiles
 
-foreach ($page in @($manifest.pages)) {
-    $templateSourcePath = Resolve-DbmAbsolutePath -BasePath $RepoRoot -CandidatePath ([string]$page.templatePath)
-    $templateDestinationPath = Join-Path $resolvedOutputRoot ("web-templates\{0}" -f [System.IO.Path]::GetFileName($templateSourcePath))
-    Copy-DbmPortalAsset -SourcePath $templateSourcePath -DestinationPath $templateDestinationPath -ManifestEntries $copiedFiles
+foreach ($template in $assets.webTemplates) {
+    $destinationPath = Join-Path $resolvedOutputRoot $template.outputRelativePath
+    Copy-DbmPortalAssetFile -SourcePath $template.templatePath -DestinationPath $destinationPath -ManifestEntries $copiedFiles
 }
 
 $manifestCopyPath = Join-Path $resolvedOutputRoot 'manifest.json'
-Copy-DbmPortalAsset -SourcePath $resolvedManifestPath -DestinationPath $manifestCopyPath -ManifestEntries $copiedFiles
+Copy-DbmPortalAssetFile -SourcePath $assets.manifest.Path -DestinationPath $manifestCopyPath -ManifestEntries $copiedFiles
 
 $exportManifest = [ordered]@{
     generatedUtc = (Get-Date).ToUniversalTime().ToString('o')
-    solutionName = [string]$manifest.solutionName
-    bundlePackageName = [string]$manifest.bundlePackageName
-    sourceManifest = $resolvedManifestPath
+    solutionName = $assets.manifest.solutionName
+    bundlePackageName = $assets.manifest.bundlePackageName
+    sourceManifest = $assets.manifest.Path
     outputRoot = $resolvedOutputRoot
+    webFiles = @(
+        $assets.webFiles | ForEach-Object {
+            [ordered]@{
+                webFilePath = $_.webFilePath
+                kind = $_.kind
+                source = $_.sourcePath
+            }
+        }
+    )
     files = @($copiedFiles)
 }
 
 $exportManifestPath = Join-Path $resolvedOutputRoot 'export-manifest.json'
-$exportManifest | ConvertTo-Json -Depth 6 | Set-Content -Path $exportManifestPath -Encoding UTF8
+$exportManifest | ConvertTo-Json -Depth 8 | Set-Content -Path $exportManifestPath -Encoding UTF8
 
 Write-Host "Portal runtime export root: $resolvedOutputRoot"
 Write-Host "Portal runtime export manifest: $exportManifestPath"

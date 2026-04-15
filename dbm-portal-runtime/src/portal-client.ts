@@ -32,13 +32,38 @@ function buildApiUrl(bootstrap: DbmPortalRuntimeBootstrapV1, siteOrigin: string,
   return `${siteOrigin}/_api/${bootstrap.requestEntitySetName}${suffix}`;
 }
 
-function buildHeaders(): Record<string, string> {
-  return {
+type PowerPagesShellLike = {
+  getTokenDeferred?: (() => Promise<string>) | (() => string);
+};
+
+function getPowerPagesShell(): PowerPagesShellLike | null {
+  const shell = (globalThis as typeof globalThis & { shell?: PowerPagesShellLike }).shell;
+  if (!shell || typeof shell.getTokenDeferred !== 'function') {
+    return null;
+  }
+
+  return shell;
+}
+
+async function buildHeaders(): Promise<Record<string, string>> {
+  const headers: Record<string, string> = {
     Accept: 'application/json',
     'Content-Type': 'application/json',
     'OData-MaxVersion': '4.0',
     'OData-Version': '4.0'
   };
+
+  const shell = getPowerPagesShell();
+  if (!shell) {
+    return headers;
+  }
+
+  const requestVerificationToken = await shell.getTokenDeferred?.();
+  if (requestVerificationToken?.trim()) {
+    headers.__RequestVerificationToken = requestVerificationToken.trim();
+  }
+
+  return headers;
 }
 
 function resolveCreatedRecordId(response: Response): string {
@@ -118,7 +143,8 @@ export async function refreshPortalRuntimeRecord(
     `${buildApiUrl(options.bootstrap, normalizeOrigin(options.siteOrigin), `(${normalizeGuid(options.requestId)})`)}?$select=${encodeURIComponent(selectFields)}`,
     {
       method: 'GET',
-      headers: buildHeaders()
+      credentials: 'same-origin',
+      headers: await buildHeaders()
     }
   );
 
@@ -134,9 +160,11 @@ export async function createPortalRuntimeDraft(
   options: DbmPortalRuntimeCreateDraftOptions
 ): Promise<DbmPortalRuntimeRecordV1> {
   const fetchImpl = getFetchImpl(options);
+  const headers = await buildHeaders();
   const response = await fetchImpl(buildApiUrl(options.bootstrap, normalizeOrigin(options.siteOrigin)), {
     method: 'POST',
-    headers: buildHeaders(),
+    credentials: 'same-origin',
+    headers,
     body: JSON.stringify(options.values)
   });
 
@@ -157,12 +185,14 @@ export async function submitPortalRuntimeRequest(
   options: DbmPortalRuntimeSubmitOptions
 ): Promise<void> {
   const fetchImpl = getFetchImpl(options);
+  const headers = await buildHeaders();
   const response = await fetchImpl(
     buildApiUrl(options.bootstrap, normalizeOrigin(options.siteOrigin), `(${normalizeGuid(options.requestId)})`),
     {
       method: 'PATCH',
+      credentials: 'same-origin',
       headers: {
-        ...buildHeaders(),
+        ...headers,
         'If-Match': '*'
       },
       body: JSON.stringify({

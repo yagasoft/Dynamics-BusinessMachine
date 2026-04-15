@@ -142,6 +142,7 @@ const runtimeModel = {
 };
 afterEach(() => {
     vi.restoreAllMocks();
+    delete globalThis.shell;
     window.sessionStorage.clear();
 });
 test('parsePortalRuntimeBootstrap accepts a JSON string payload', () => {
@@ -207,6 +208,47 @@ test('portal client creates, submits, and refreshes through the supported CRUD c
     });
     expect(refreshedRecord.runtimeState.stageId).toBe('internal-screening-stage');
     expect(refreshedRecord.runtimeState.portalStatusId).toBe('under-review');
+});
+test('portal client forwards the Power Pages verification token when the shell is available', async () => {
+    globalThis.shell = {
+        getTokenDeferred: vi.fn().mockResolvedValue('portal-token')
+    };
+    const fetchSpy = vi.fn()
+        .mockResolvedValueOnce(new Response(null, {
+        status: 204,
+        headers: {
+            entityid: 'request-token-test'
+        }
+    }))
+        .mockResolvedValueOnce(new Response(JSON.stringify({
+        dbm_requestid: 'request-token-test',
+        dbm_title: 'Portal Request',
+        dbm_currentstageid: 'draft-request',
+        dbm_currentstepid: 'capture-request',
+        dbm_currentformstateid: 'request-edit-state',
+        dbm_internalstatusid: 'draft',
+        dbm_portalstatusid: 'draft'
+    }), { status: 200, headers: { 'Content-Type': 'application/json' } }))
+        .mockResolvedValueOnce(new Response(null, { status: 204 }));
+    await createPortalRuntimeDraft({
+        bootstrap,
+        values: { dbm_title: 'Portal Request' },
+        fetchImpl: fetchSpy,
+        siteOrigin: 'https://example.test'
+    });
+    expect(fetchSpy.mock.calls[0]?.[1]?.headers).toMatchObject({
+        __RequestVerificationToken: 'portal-token'
+    });
+    await submitPortalRuntimeRequest({
+        bootstrap,
+        requestId: 'request-token-test',
+        fetchImpl: fetchSpy,
+        siteOrigin: 'https://example.test'
+    });
+    expect(fetchSpy.mock.calls[2]?.[1]?.headers).toMatchObject({
+        __RequestVerificationToken: 'portal-token',
+        'If-Match': '*'
+    });
 });
 test('PortalRuntimeApp captures entry fields before creating a draft', async () => {
     const fetchSpy = vi.fn()
