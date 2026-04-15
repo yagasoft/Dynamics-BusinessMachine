@@ -4,9 +4,19 @@ export type DbmDesignerGraphDocumentSchemaVersionV1 = 'dbm.designer.graph-docume
 export type DbmProcessExperienceSnapshotSchemaVersionV1 = 'dbm.process-experience.snapshot/v1';
 export type DbmRuntimeRequestSchemaVersionV1 = 'dbm.runtime.request/v1';
 export type DbmRuntimeResultSchemaVersionV1 = 'dbm.runtime.result/v1';
+export type DbmPortalRuntimeBootstrapSchemaVersionV1 = 'dbm.portal-runtime.bootstrap/v1';
 
-export type DbmSupportedHostV1 = 'model-driven' | 'xrmtoolbox';
+export type DbmSupportedHostV1 = 'model-driven' | 'xrmtoolbox' | 'power-pages';
 export type DbmRuntimeEngineV1 = 'pcf' | 'dataverse' | 'azure';
+export type DbmPortalIdentityModeV1 = 'anonymous-generic-profile';
+export type DbmPortalAllowedActionV1 = 'create-draft' | 'submit-request' | 'refresh-status';
+export type DbmPortalRuntimeEntryFieldDataTypeV1 =
+  | 'string'
+  | 'multiline-string'
+  | 'integer'
+  | 'decimal'
+  | 'currency'
+  | 'date';
 
 export type DbmActorTypeV1 = 'requester' | 'approver' | 'system';
 export type DbmActorSourceV1 = 'current-user' | 'field-binding' | 'rule-derived' | 'system';
@@ -626,6 +636,56 @@ export interface DbmRuntimeResultV1 {
   messages: DbmRuntimeMessageV1[];
   errors: DbmRuntimeErrorV1[];
   correlationId: string;
+}
+
+export interface DbmPortalRuntimePageTargetV1 {
+  pageId: string;
+  routePath: string;
+}
+
+export interface DbmPortalRuntimeStateFieldLogicalNamesV1 {
+  stageId: string;
+  stepId: string;
+  formStateId: string;
+  internalStatusId: string;
+  portalStatusId: string;
+  portalProfileKey: string;
+}
+
+export interface DbmPortalRuntimeEntryFieldV1 {
+  logicalName: string;
+  displayName: string;
+  dataType: DbmPortalRuntimeEntryFieldDataTypeV1;
+  required: boolean;
+  hint?: string | null;
+}
+
+export interface DbmPortalRuntimeDefaultStateV1 {
+  stageId: string;
+  stepId: string;
+  formStateId: string | null;
+  internalStatusId: string;
+  portalStatusId: string | null;
+}
+
+export interface DbmPortalRuntimeBootstrapV1 {
+  schemaVersion: DbmPortalRuntimeBootstrapSchemaVersionV1;
+  packageId: string;
+  packageVersion: string;
+  processId: string;
+  identityMode: DbmPortalIdentityModeV1;
+  genericProfileKey: string;
+  entryPage: DbmPortalRuntimePageTargetV1;
+  requestShellPage: DbmPortalRuntimePageTargetV1;
+  requestEntityLogicalName: string;
+  requestEntitySetName: string;
+  startFormId: string;
+  entryFields: DbmPortalRuntimeEntryFieldV1[];
+  portalCommandFieldLogicalName: string;
+  runtimeStateFieldLogicalNames: DbmPortalRuntimeStateFieldLogicalNamesV1;
+  defaultState: DbmPortalRuntimeDefaultStateV1;
+  allowedActions: DbmPortalAllowedActionV1[];
+  devAnonymousReadbackEnabled: boolean;
 }
 
 export interface DbmProcessExperienceActorRefV1 {

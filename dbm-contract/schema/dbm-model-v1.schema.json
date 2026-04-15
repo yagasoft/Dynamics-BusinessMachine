@@ -166,6 +166,7 @@
       "title": "DbmSupportedHostV1",
       "enum": [
         "model-driven",
+        "power-pages",
         "xrmtoolbox"
       ],
       "type": "string"

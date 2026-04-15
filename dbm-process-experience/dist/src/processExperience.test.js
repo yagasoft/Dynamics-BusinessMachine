@@ -4,7 +4,7 @@ import userEvent from '@testing-library/user-event';
 import { afterEach, expect, test, vi } from 'vitest';
 import { ProcessExperienceSurface } from './ProcessExperienceSurface';
 import { buildRuntimeProcessExperienceSnapshot } from './runtime-snapshot';
-import { approvalRequestRuntimeModel } from './test-fixtures/approvalRequestFixture';
+import { approvalRequestRuntimeModel, buildApprovalRequestSnapshot } from './test-fixtures/approvalRequestFixture';
 const genericTerminalRuntimeModel = {
     packageId: 'dbm-case-assignment',
     packageVersion: '1.0.0',
@@ -160,6 +160,57 @@ test('ProcessExperienceSurface keeps hidden portal stages read-only and friendly
     expect(screen.getByText('Under internal review')).toBeTruthy();
     expect(screen.getByText('No action is needed from this surface right now.')).toBeTruthy();
     expect(screen.queryByRole('button', { name: 'Approve' })).toBeNull();
+});
+test('ProcessExperienceSurface renders a Power Pages entry shell before a draft exists', async () => {
+    const user = userEvent.setup();
+    const events = [];
+    render(_jsx(ProcessExperienceSurface, { snapshot: null, mode: "power-pages-runtime", audience: "portal", portalShell: {
+            entryTitle: 'Start your request',
+            entrySummary: 'Create a draft request to begin the anonymous portal flow.',
+            requestStateLabel: 'Ready to start',
+            sameSessionEnabled: true,
+            actions: {
+                'create-draft': {
+                    enabled: true
+                },
+                'refresh-status': {
+                    enabled: false
+                }
+            }
+        }, onPortalAction: (actionId) => events.push(actionId) }));
+    expect(screen.getByText('Start your request')).toBeTruthy();
+    expect(screen.getByText(/anonymous portal flow/i)).toBeTruthy();
+    await user.click(screen.getByRole('button', { name: 'Create draft' }));
+    expect(events).toEqual(['create-draft']);
+});
+test('ProcessExperienceSurface uses portal shell actions for the Power Pages runtime mode', async () => {
+    const user = userEvent.setup();
+    const events = [];
+    const snapshot = buildApprovalRequestSnapshot('portal-runtime-draft');
+    render(_jsx(ProcessExperienceSurface, { snapshot: snapshot, mode: "power-pages-runtime", audience: "portal", portalShell: {
+            entryTitle: 'Approval request portal',
+            entrySummary: 'Continue the request from this browser session.',
+            requestReference: 'Request draft',
+            requestStateLabel: 'Draft',
+            sameSessionEnabled: true,
+            actions: {
+                'submit-request': {
+                    enabled: true,
+                    helperText: 'Move the request into internal screening.'
+                },
+                'refresh-status': {
+                    enabled: true
+                }
+            }
+        }, onPortalAction: (actionId) => events.push(actionId), onInvokeOutcome: () => {
+            throw new Error('Power Pages runtime mode should use portal shell actions for submission.');
+        } }));
+    expect(screen.getByText('Approval request portal')).toBeTruthy();
+    expect(screen.getByText('Request draft')).toBeTruthy();
+    expect(screen.getAllByRole('button', { name: 'Submit request' }).length).toBeGreaterThan(0);
+    await user.click(screen.getAllByRole('button', { name: 'Submit request' })[0]);
+    await user.click(screen.getAllByRole('button', { name: 'Refresh status' })[0]);
+    expect(events).toEqual(['submit-request', 'refresh-status']);
 });
 test('ProcessExperienceSurface keeps cross-form handoff navigation visible', async () => {
     const user = userEvent.setup();

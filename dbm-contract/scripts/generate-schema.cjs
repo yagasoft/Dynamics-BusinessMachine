@@ -13,7 +13,8 @@ const targets = [
   { typeName: 'DbmDesignerGraphDocumentV1', fileName: 'dbm-designer-graph-document-v1.schema.json' },
   { typeName: 'DbmProcessExperienceSnapshotV1', fileName: 'dbm-process-experience-snapshot-v1.schema.json' },
   { typeName: 'DbmRuntimeRequestV1', fileName: 'dbm-runtime-request-v1.schema.json' },
-  { typeName: 'DbmRuntimeResultV1', fileName: 'dbm-runtime-result-v1.schema.json' }
+  { typeName: 'DbmRuntimeResultV1', fileName: 'dbm-runtime-result-v1.schema.json' },
+  { typeName: 'DbmPortalRuntimeBootstrapV1', fileName: 'dbm-portal-runtime-bootstrap-v1.schema.json' }
 ];
 
 const compilerOptions = {

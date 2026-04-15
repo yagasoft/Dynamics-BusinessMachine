@@ -1,0 +1,20 @@
+{
+  "solutionName": "DynamicsBusinessMachinePortalRuntime",
+  "bundlePackageName": "dbm-portal-runtime",
+  "bundleSourcePath": "dbm-portal-runtime/dist/browser/portal-runtime.js",
+  "bootstrapPath": "power-platform/solutions/DynamicsBusinessMachinePortalRuntime/source/bootstrap/approval-request.portal-runtime.bootstrap.json",
+  "pages": [
+    {
+      "pageId": "approval-request-entry",
+      "routePath": "/approval-request",
+      "templatePath": "power-platform/solutions/DynamicsBusinessMachinePortalRuntime/source/web-templates/approval-request-entry.liquid"
+    },
+    {
+      "pageId": "approval-request-request-shell",
+      "routePath": "/approval-request/status",
+      "templatePath": "power-platform/solutions/DynamicsBusinessMachinePortalRuntime/source/web-templates/approval-request-request-shell.liquid"
+    }
+  ],
+  "siteSettingsPath": "power-platform/solutions/DynamicsBusinessMachinePortalRuntime/source/site-settings.dev.json",
+  "permissionsPath": "power-platform/solutions/DynamicsBusinessMachinePortalRuntime/source/permissions/anonymous-requester.json"
+}

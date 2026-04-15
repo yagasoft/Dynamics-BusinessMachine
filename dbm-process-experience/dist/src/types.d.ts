@@ -1,5 +1,21 @@
-import type { DbmActorTypeV1, DbmProcessExperienceAudienceV1, DbmProcessExperienceSnapshotV1, DbmStagePortalVisibilityV1, DbmStageTypeV1, DbmStatusAudienceV1, DbmStatusKindV1, DbmStepTypeV1 } from 'dbm-contract';
-export type DbmProcessExperienceModeV1 = 'designer-preview' | 'model-driven-section' | 'model-driven-overlay' | 'portal-fixture';
+import type { DbmActorTypeV1, DbmPortalAllowedActionV1, DbmProcessExperienceAudienceV1, DbmProcessExperienceSnapshotV1, DbmStagePortalVisibilityV1, DbmStageTypeV1, DbmStatusAudienceV1, DbmStatusKindV1, DbmStepTypeV1 } from 'dbm-contract';
+export type DbmProcessExperienceModeV1 = 'designer-preview' | 'model-driven-section' | 'model-driven-overlay' | 'portal-fixture' | 'power-pages-runtime';
+export type DbmProcessExperiencePortalShellActionIdV1 = DbmPortalAllowedActionV1;
+export interface DbmProcessExperiencePortalShellActionStateV1 {
+    enabled: boolean;
+    pending?: boolean;
+    label?: string | null;
+    helperText?: string | null;
+}
+export interface DbmProcessExperiencePortalShellStateV1 {
+    entryTitle?: string | null;
+    entrySummary?: string | null;
+    requestReference?: string | null;
+    requestStateLabel?: string | null;
+    sameSessionEnabled?: boolean;
+    sessionKey?: string | null;
+    actions: Partial<Record<DbmProcessExperiencePortalShellActionIdV1, DbmProcessExperiencePortalShellActionStateV1>>;
+}
 export interface DbmProcessExperienceNavigationTargetV1 {
     label: string;
     tabName: string | null;
@@ -12,8 +28,10 @@ export interface ProcessExperienceSurfaceProps {
     mode: DbmProcessExperienceModeV1;
     designerEntryUrl?: string | null;
     navigationTarget?: DbmProcessExperienceNavigationTargetV1 | null;
+    portalShell?: DbmProcessExperiencePortalShellStateV1 | null;
     onNavigateToFormRegion?(target: DbmProcessExperienceNavigationTargetV1): void;
     onInvokeOutcome?(outcomeId: string): void;
+    onPortalAction?(actionId: DbmProcessExperiencePortalShellActionIdV1): void;
     onRequestFocus?(targetId: string): void;
 }
 export interface DbmProcessExperienceRuntimeActorV1 {

@@ -1,0 +1,263 @@
+{
+  "$ref": "#/definitions/DbmPortalRuntimeBootstrapV1",
+  "definitions": {
+    "DbmPortalRuntimeBootstrapV1": {
+      "title": "DbmPortalRuntimeBootstrapV1",
+      "type": "object",
+      "properties": {
+        "schemaVersion": {
+          "type": "string",
+          "const": "dbm.portal-runtime.bootstrap/v1",
+          "title": "schemaVersion"
+        },
+        "packageId": {
+          "type": "string",
+          "title": "packageId"
+        },
+        "packageVersion": {
+          "type": "string",
+          "title": "packageVersion"
+        },
+        "processId": {
+          "type": "string",
+          "title": "processId"
+        },
+        "identityMode": {
+          "type": "string",
+          "const": "anonymous-generic-profile",
+          "title": "identityMode"
+        },
+        "genericProfileKey": {
+          "type": "string",
+          "title": "genericProfileKey"
+        },
+        "entryPage": {
+          "$ref": "#/definitions/DbmPortalRuntimePageTargetV1",
+          "title": "entryPage"
+        },
+        "requestShellPage": {
+          "$ref": "#/definitions/DbmPortalRuntimePageTargetV1",
+          "title": "requestShellPage"
+        },
+        "requestEntityLogicalName": {
+          "type": "string",
+          "title": "requestEntityLogicalName"
+        },
+        "requestEntitySetName": {
+          "type": "string",
+          "title": "requestEntitySetName"
+        },
+        "startFormId": {
+          "type": "string",
+          "title": "startFormId"
+        },
+        "entryFields": {
+          "type": "array",
+          "items": {
+            "$ref": "#/definitions/DbmPortalRuntimeEntryFieldV1"
+          },
+          "title": "entryFields"
+        },
+        "portalCommandFieldLogicalName": {
+          "type": "string",
+          "title": "portalCommandFieldLogicalName"
+        },
+        "runtimeStateFieldLogicalNames": {
+          "$ref": "#/definitions/DbmPortalRuntimeStateFieldLogicalNamesV1",
+          "title": "runtimeStateFieldLogicalNames"
+        },
+        "defaultState": {
+          "$ref": "#/definitions/DbmPortalRuntimeDefaultStateV1",
+          "title": "defaultState"
+        },
+        "allowedActions": {
+          "type": "array",
+          "items": {
+            "$ref": "#/definitions/DbmPortalAllowedActionV1"
+          },
+          "title": "allowedActions"
+        },
+        "devAnonymousReadbackEnabled": {
+          "type": "boolean",
+          "title": "devAnonymousReadbackEnabled"
+        }
+      },
+      "additionalProperties": false,
+      "required": [
+        "allowedActions",
+        "defaultState",
+        "devAnonymousReadbackEnabled",
+        "entryFields",
+        "entryPage",
+        "genericProfileKey",
+        "identityMode",
+        "packageId",
+        "packageVersion",
+        "portalCommandFieldLogicalName",
+        "processId",
+        "requestEntityLogicalName",
+        "requestEntitySetName",
+        "requestShellPage",
+        "runtimeStateFieldLogicalNames",
+        "schemaVersion",
+        "startFormId"
+      ]
+    },
+    "DbmPortalRuntimePageTargetV1": {
+      "title": "DbmPortalRuntimePageTargetV1",
+      "type": "object",
+      "properties": {
+        "pageId": {
+          "type": "string",
+          "title": "pageId"
+        },
+        "routePath": {
+          "type": "string",
+          "title": "routePath"
+        }
+      },
+      "additionalProperties": false,
+      "required": [
+        "pageId",
+        "routePath"
+      ]
+    },
+    "DbmPortalRuntimeEntryFieldV1": {
+      "title": "DbmPortalRuntimeEntryFieldV1",
+      "type": "object",
+      "properties": {
+        "logicalName": {
+          "type": "string",
+          "title": "logicalName"
+        },
+        "displayName": {
+          "type": "string",
+          "title": "displayName"
+        },
+        "dataType": {
+          "$ref": "#/definitions/DbmPortalRuntimeEntryFieldDataTypeV1",
+          "title": "dataType"
+        },
+        "required": {
+          "type": "boolean",
+          "title": "required"
+        },
+        "hint": {
+          "type": [
+            "null",
+            "string"
+          ],
+          "title": "hint"
+        }
+      },
+      "additionalProperties": false,
+      "required": [
+        "dataType",
+        "displayName",
+        "logicalName",
+        "required"
+      ]
+    },
+    "DbmPortalRuntimeEntryFieldDataTypeV1": {
+      "title": "DbmPortalRuntimeEntryFieldDataTypeV1",
+      "enum": [
+        "currency",
+        "date",
+        "decimal",
+        "integer",
+        "multiline-string",
+        "string"
+      ],
+      "type": "string"
+    },
+    "DbmPortalRuntimeStateFieldLogicalNamesV1": {
+      "title": "DbmPortalRuntimeStateFieldLogicalNamesV1",
+      "type": "object",
+      "properties": {
+        "stageId": {
+          "type": "string",
+          "title": "stageId"
+        },
+        "stepId": {
+          "type": "string",
+          "title": "stepId"
+        },
+        "formStateId": {
+          "type": "string",
+          "title": "formStateId"
+        },
+        "internalStatusId": {
+          "type": "string",
+          "title": "internalStatusId"
+        },
+        "portalStatusId": {
+          "type": "string",
+          "title": "portalStatusId"
+        },
+        "portalProfileKey": {
+          "type": "string",
+          "title": "portalProfileKey"
+        }
+      },
+      "additionalProperties": false,
+      "required": [
+        "formStateId",
+        "internalStatusId",
+        "portalProfileKey",
+        "portalStatusId",
+        "stageId",
+        "stepId"
+      ]
+    },
+    "DbmPortalRuntimeDefaultStateV1": {
+      "title": "DbmPortalRuntimeDefaultStateV1",
+      "type": "object",
+      "properties": {
+        "stageId": {
+          "type": "string",
+          "title": "stageId"
+        },
+        "stepId": {
+          "type": "string",
+          "title": "stepId"
+        },
+        "formStateId": {
+          "type": [
+            "null",
+            "string"
+          ],
+          "title": "formStateId"
+        },
+        "internalStatusId": {
+          "type": "string",
+          "title": "internalStatusId"
+        },
+        "portalStatusId": {
+          "type": [
+            "null",
+            "string"
+          ],
+          "title": "portalStatusId"
+        }
+      },
+      "additionalProperties": false,
+      "required": [
+        "formStateId",
+        "internalStatusId",
+        "portalStatusId",
+        "stageId",
+        "stepId"
+      ]
+    },
+    "DbmPortalAllowedActionV1": {
+      "title": "DbmPortalAllowedActionV1",
+      "enum": [
+        "create-draft",
+        "refresh-status",
+        "submit-request"
+      ],
+      "type": "string"
+    }
+  },
+  "$schema": "http://json-schema.org/draft-07/schema#"
+}

@@ -89,6 +89,18 @@ export function buildApprovalRequestSnapshot(scenario) {
                 audience: 'internal',
                 currentFormId: 'request-form'
             });
+        case 'portal-runtime-under-review':
+            return buildRuntimeProcessExperienceSnapshot(approvalRequestRuntimeModel, {
+                stageId: 'manager-review',
+                stepId: 'review-request',
+                formStateId: 'review-state',
+                internalStatusId: 'under-review',
+                portalStatusId: 'under-review'
+            }, {
+                audience: 'portal',
+                currentFormId: 'request-form'
+            });
+        case 'portal-runtime-draft':
         case 'designer-preview-current-stage':
         default:
             return buildRuntimeProcessExperienceSnapshot(approvalRequestRuntimeModel, {
@@ -98,7 +110,7 @@ export function buildApprovalRequestSnapshot(scenario) {
                 internalStatusId: 'draft',
                 portalStatusId: 'draft'
             }, {
-                audience: 'internal',
+                audience: scenario === 'portal-runtime-draft' ? 'portal' : 'internal',
                 currentFormId: 'request-form'
             });
     }

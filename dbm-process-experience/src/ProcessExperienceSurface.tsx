@@ -1,7 +1,7 @@
 import { useEffect, useMemo, useRef, useState } from 'react';
 import type { DbmProcessExperienceSnapshotV1 } from 'dbm-contract';
 import { buildGuidedWorkspaceViewModel, type GuidedWorkspaceTone } from './guidedWorkspace';
-import type { ProcessExperienceSurfaceProps } from './types';
+import type { DbmProcessExperiencePortalShellActionIdV1, ProcessExperienceSurfaceProps } from './types';
 
 const DESIGNER_APP_UNIQUE_NAME = 'ys_YSCommon';
 const DESIGNER_WEB_RESOURCE_NAME = 'ys_/dbm/apps/editor/index.html';
@@ -82,8 +82,41 @@ function renderProjectionCallToAction(
   );
 }
 
+const portalActionOrder: DbmProcessExperiencePortalShellActionIdV1[] = [
+  'create-draft',
+  'submit-request',
+  'refresh-status'
+];
+
+function portalActionLabel(actionId: typeof portalActionOrder[number]): string {
+  switch (actionId) {
+    case 'create-draft':
+      return 'Create draft';
+    case 'submit-request':
+      return 'Submit request';
+    case 'refresh-status':
+      return 'Refresh status';
+    default:
+      return actionId;
+  }
+}
+
+function portalActionHelper(actionId: typeof portalActionOrder[number]): string | null {
+  switch (actionId) {
+    case 'create-draft':
+      return 'Start a new request in this browser session.';
+    case 'submit-request':
+      return 'Send the request into the internal screening step.';
+    case 'refresh-status':
+      return 'Reload the latest portal-safe process status.';
+    default:
+      return null;
+  }
+}
+
 export function ProcessExperienceSurface(props: ProcessExperienceSurfaceProps) {
   const snapshot = props.snapshot;
+  const portalShell = props.portalShell ?? null;
   const [isFlowOpen, setFlowOpen] = useState(false);
   const lastAutoOpenKeyRef = useRef<string | null>(null);
   const resolvedDesignerEntryUrlRef = useRef<{ source: string; value: string } | null>(null);
@@ -92,7 +125,8 @@ export function ProcessExperienceSurface(props: ProcessExperienceSurfaceProps) {
     () => (snapshot ? buildGuidedWorkspaceViewModel(snapshot, props.audience ?? snapshot.audience) : null),
     [props.audience, snapshot]
   );
-  const resolvedAudience = props.audience ?? snapshot?.audience;
+  const resolvedAudience = props.audience ?? snapshot?.audience ?? (props.mode === 'power-pages-runtime' ? 'portal' : undefined);
+  const isPowerPagesRuntime = props.mode === 'power-pages-runtime';
   const isModelDriven = props.mode === 'model-driven-section' || props.mode === 'model-driven-overlay';
   const currentStageOutgoingTransitions = snapshot
     ? snapshot.transitions.filter((transition) => transition.fromStageId === snapshot.currentStageId)
@@ -139,6 +173,34 @@ export function ProcessExperienceSurface(props: ProcessExperienceSurfaceProps) {
   const resolvedFlowStageCardStyle = isModelDriven ? compactFlowStageCardStyle : flowStageCardStyle;
   const resolvedFlowStageHelperStyle = isModelDriven ? compactFlowStageHelperStyle : flowStageHelperStyle;
   const resolvedFlowDestinationStyle = isModelDriven ? compactFlowDestinationStyle : flowDestinationStyle;
+  const portalActionEntries = portalActionOrder
+    .map((actionId) => {
+      const actionState = portalShell?.actions[actionId];
+      if (!actionState) {
+        return null;
+      }
+
+      return {
+        id: actionId,
+        label: actionState.label ?? portalActionLabel(actionId),
+        helperText: actionState.helperText ?? portalActionHelper(actionId),
+        emphasis: actionId === 'submit-request' || actionId === 'create-draft' ? 'primary' : 'secondary',
+        enabled: actionState.enabled,
+        pending: actionState.pending ?? false
+      };
+    })
+    .filter(
+      (
+        entry
+      ): entry is {
+        id: typeof portalActionOrder[number];
+        label: string;
+        helperText: string | null;
+        emphasis: 'primary' | 'secondary';
+        enabled: boolean;
+        pending: boolean;
+      } => Boolean(entry)
+    );
 
   useEffect(() => {
     if (lastAutoOpenKeyRef.current === autoOpenKey) {
@@ -150,6 +212,51 @@ export function ProcessExperienceSurface(props: ProcessExperienceSurfaceProps) {
   }, [autoOpenKey, shouldAutoOpenFlow]);
 
   if (!snapshot || !viewModel || !resolvedAudience) {
+    if (isPowerPagesRuntime && portalShell) {
+      return (
+        <div style={surfaceShellStyle}>
+          <div style={headerShellStyle}>
+            <div>
+              <div style={eyebrowStyle}>DBM Portal Runtime</div>
+              <h2 style={headingStyle}>{portalShell.entryTitle ?? 'Start your request'}</h2>
+              <p style={introCopyStyle}>
+                {portalShell.entrySummary ?? 'Create a draft request to begin the external entry flow.'}
+              </p>
+            </div>
+            <div style={statusClusterStyle}>
+              {portalShell.requestStateLabel ? <span style={statusPillStyle}>{portalShell.requestStateLabel}</span> : null}
+              {portalShell.sameSessionEnabled ? <span style={statusPillStyle}>Same browser session</span> : null}
+            </div>
+          </div>
+
+          <div style={supportCardStyle}>
+            <div style={supportCardLabelStyle}>Portal entry</div>
+            <p style={supportParagraphStyle}>
+              The portal shell keeps request initiation and status refresh in one place while Dataverse remains the
+              authority for runtime state changes.
+            </p>
+            {portalActionEntries.length > 0 ? (
+              <div style={actionGroupStyle}>
+                {portalActionEntries.map((action) => (
+                  <button
+                    key={action.id}
+                    type="button"
+                    style={action.emphasis === 'primary' ? primaryActionButtonStyle : secondaryActionButtonStyle}
+                    onClick={() => props.onPortalAction?.(action.id)}
+                    disabled={!props.onPortalAction || !action.enabled || action.pending}
+                  >
+                    {action.pending ? `${action.label}...` : action.label}
+                  </button>
+                ))}
+              </div>
+            ) : (
+              <div style={readOnlyNoticeStyle}>Portal actions will appear here when the runtime is ready.</div>
+            )}
+          </div>
+        </div>
+      );
+    }
+
     return <div style={emptyStateStyle}>Process experience becomes available once the model and workspace parse cleanly.</div>;
   }
 
@@ -242,12 +349,20 @@ export function ProcessExperienceSurface(props: ProcessExperienceSurfaceProps) {
         <div>
           <div style={eyebrowStyle}>DBM Process</div>
           <h2 style={resolvedHeadingStyle}>{viewModel.processTitle}</h2>
-          <p style={resolvedIntroCopyStyle}>{viewModel.introCopy}</p>
+          <p style={resolvedIntroCopyStyle}>
+            {isPowerPagesRuntime && portalShell?.entrySummary ? portalShell.entrySummary : viewModel.introCopy}
+          </p>
         </div>
         <div style={statusClusterStyle}>
           <span style={{ ...resolvedStatusPillStyle, color: currentTone.text, borderColor: currentTone.border, background: currentTone.chip }}>
             {viewModel.currentTask.statusLabel}
           </span>
+          {isPowerPagesRuntime && portalShell?.requestReference ? (
+            <span style={resolvedStatusPillStyle}>{portalShell.requestReference}</span>
+          ) : null}
+          {isPowerPagesRuntime && portalShell?.sameSessionEnabled ? (
+            <span style={resolvedStatusPillStyle}>Same browser session</span>
+          ) : null}
           {isModelDriven && props.designerEntryUrl ? (
             <button
               type="button"
@@ -269,6 +384,32 @@ export function ProcessExperienceSurface(props: ProcessExperienceSurfaceProps) {
           </button>
         </div>
       </div>
+
+      {isPowerPagesRuntime && portalShell ? (
+        <div style={resolvedSupportCardStyle}>
+          <div style={supportCardLabelStyle}>{portalShell.entryTitle ?? 'Portal session'}</div>
+          <p style={resolvedSupportParagraphStyle}>
+            {portalShell.requestStateLabel
+              ? `Current portal state: ${portalShell.requestStateLabel}.`
+              : 'The portal shell is reading the canonical Dataverse runtime state for this request.'}
+          </p>
+          {portalActionEntries.length > 0 ? (
+            <div style={resolvedActionGroupStyle}>
+              {portalActionEntries.map((action) => (
+                <button
+                  key={action.id}
+                  type="button"
+                  style={action.emphasis === 'primary' ? resolvedPrimaryActionButtonStyle : resolvedSecondaryActionButtonStyle}
+                  onClick={() => props.onPortalAction?.(action.id)}
+                  disabled={!props.onPortalAction || !action.enabled || action.pending}
+                >
+                  {action.pending ? `${action.label}...` : action.label}
+                </button>
+              ))}
+            </div>
+          ) : null}
+        </div>
+      ) : null}
 
       {snapshot.projection.message ? <div style={resolvedProjectionNoticeStyle}>{renderProjectionCallToAction(snapshot, props)}</div> : null}
 
@@ -327,7 +468,21 @@ export function ProcessExperienceSurface(props: ProcessExperienceSurfaceProps) {
                 <p style={resolvedCurrentStepSummaryStyle}>{viewModel.currentTask.stepSummary}</p>
                 <p style={resolvedCurrentStepHelperStyle}>{viewModel.currentTask.helperCopy}</p>
 
-                {viewModel.currentTask.actions.length > 0 ? (
+                {isPowerPagesRuntime && portalActionEntries.length > 0 ? (
+                  <div style={resolvedActionGroupStyle}>
+                    {portalActionEntries.map((action) => (
+                      <button
+                        key={action.id}
+                        type="button"
+                        style={action.emphasis === 'primary' ? resolvedPrimaryActionButtonStyle : resolvedSecondaryActionButtonStyle}
+                        onClick={() => props.onPortalAction?.(action.id)}
+                        disabled={!props.onPortalAction || !action.enabled || action.pending}
+                      >
+                        {action.pending ? `${action.label}...` : action.label}
+                      </button>
+                    ))}
+                  </div>
+                ) : viewModel.currentTask.actions.length > 0 ? (
                   <div style={resolvedActionGroupStyle}>
                     {viewModel.currentTask.actions.map((action) => (
                       <button
@@ -345,7 +500,17 @@ export function ProcessExperienceSurface(props: ProcessExperienceSurfaceProps) {
                   <div style={readOnlyNoticeStyle}>No action is needed from this surface right now.</div>
                 )}
 
-                {viewModel.currentTask.actions.some((action) => action.nextCopy) ? (
+                {isPowerPagesRuntime && portalActionEntries.some((action) => action.helperText) ? (
+                  <div style={nextActionHintsStyle}>
+                    {portalActionEntries.map((action) =>
+                      action.helperText ? (
+                        <div key={action.id} style={nextActionHintStyle}>
+                          <strong>{action.label}:</strong> {action.helperText}
+                        </div>
+                      ) : null
+                    )}
+                  </div>
+                ) : viewModel.currentTask.actions.some((action) => action.nextCopy) ? (
                   <div style={nextActionHintsStyle}>
                     {viewModel.currentTask.actions.map((action) =>
                       action.nextCopy ? (

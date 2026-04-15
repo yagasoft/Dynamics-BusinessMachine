@@ -1,0 +1,25 @@
+{
+  "environment": "Dev",
+  "siteSettings": [
+    {
+      "name": "Authentication/Registration/Enabled",
+      "value": "false",
+      "purpose": "Keep the R3.1 proof anonymous rather than user-registered."
+    },
+    {
+      "name": "Webapi/dbm_request/enabled",
+      "value": "true",
+      "purpose": "Allow the portal proof shell to create, update, and refresh request rows."
+    },
+    {
+      "name": "Webapi/dbm_request/fields",
+      "value": "dbm_title,dbm_amount,dbm_assignedapprover,dbm_supportingnotes,dbm_portalcommand,dbm_portalprofilekey,dbm_currentstageid,dbm_currentstepid,dbm_currentformstateid,dbm_internalstatusid,dbm_portalstatusid",
+      "purpose": "Limit the anonymous proof path to the request capture and runtime fields needed by R3.1."
+    },
+    {
+      "name": "dbm/portal-runtime/anonymous-readback-enabled",
+      "value": "true",
+      "purpose": "Make the Dev-only anonymous status refresh posture explicit."
+    }
+  ]
+}
