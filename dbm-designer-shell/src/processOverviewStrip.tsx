@@ -41,7 +41,7 @@ export function ProcessOverviewStrip({ snapshot, selectedStageId, onSelectStage 
   }
 
   return (
-    <div style={stripStyle}>
+    <div data-testid="process-overview-strip" style={stripStyle}>
       <div style={eyebrowStyle}>Process Flow Overview</div>
       <div style={itemsRowStyle}>
         {snapshot.stages.map((stage) => {
@@ -74,13 +74,17 @@ export function ProcessOverviewStrip({ snapshot, selectedStageId, onSelectStage 
 }
 
 const stripStyle = {
+  width: '100%',
+  minWidth: 0,
+  boxSizing: 'border-box',
   display: 'grid',
   gap: '0.75rem',
   padding: '0.95rem 1rem',
   borderRadius: '1rem',
   border: '1px solid rgba(214, 211, 209, 0.92)',
   background: 'rgba(255,255,255,0.84)',
-  backdropFilter: 'blur(12px)'
+  backdropFilter: 'blur(12px)',
+  overflow: 'hidden'
 } as const;
 
 const eyebrowStyle = {
@@ -96,24 +100,29 @@ const itemsRowStyle = {
   gridAutoColumns: 'minmax(180px, 220px)',
   gap: '0.75rem',
   overflowX: 'auto',
-  paddingBottom: '0.25rem'
+  paddingBottom: '0.25rem',
+  minWidth: 0
 } as const;
 
 const stageChipStyle = {
+  minWidth: 0,
   display: 'grid',
   gap: '0.2rem',
   textAlign: 'left',
   padding: '0.82rem 0.95rem',
   borderRadius: '0.95rem',
   border: '1px solid #cbd5e1',
-  cursor: 'pointer'
+  cursor: 'pointer',
+  overflow: 'hidden'
 } as const;
 
 const stageNameStyle = {
-  fontWeight: 700
+  fontWeight: 700,
+  overflowWrap: 'anywhere'
 } as const;
 
 const stageMetaStyle = {
   fontSize: '0.78rem',
-  opacity: 0.9
+  opacity: 0.9,
+  overflowWrap: 'anywhere'
 } as const;

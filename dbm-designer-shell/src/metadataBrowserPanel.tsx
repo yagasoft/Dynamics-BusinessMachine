@@ -28,7 +28,7 @@ export function MetadataBrowserPanel({
   onImportSelected
 }: MetadataBrowserPanelProps) {
   return (
-    <div style={panelStyle}>
+    <div data-testid="metadata-browser-panel" style={panelStyle}>
       <div style={eyebrowStyle}>Dataverse Metadata</div>
       {!available ? (
         <div style={mutedStyle}>
@@ -105,12 +105,16 @@ export function MetadataBrowserPanel({
 }
 
 const panelStyle = {
+  width: '100%',
+  minWidth: 0,
+  boxSizing: 'border-box',
   padding: '1rem',
   borderRadius: '1rem',
   border: '1px solid #d6d3d1',
   background: 'rgba(255,255,255,0.9)',
   display: 'grid',
-  gap: '0.8rem'
+  gap: '0.8rem',
+  overflow: 'hidden'
 } as const;
 
 const eyebrowStyle = {
@@ -124,7 +128,8 @@ const fieldStyle = {
   display: 'grid',
   gap: '0.32rem',
   color: '#334155',
-  fontSize: '0.88rem'
+  fontSize: '0.88rem',
+  minWidth: 0
 } as const;
 
 const inputStyle = {
@@ -149,23 +154,28 @@ const summaryCardStyle = {
   padding: '0.85rem',
   borderRadius: '0.9rem',
   border: '1px solid #e2e8f0',
-  background: '#f8fbff'
+  background: '#f8fbff',
+  minWidth: 0,
+  overflow: 'hidden'
 } as const;
 
 const summaryTitleStyle = {
   fontWeight: 700,
-  color: '#0f172a'
+  color: '#0f172a',
+  overflowWrap: 'anywhere'
 } as const;
 
 const metaRowStyle = {
   fontSize: '0.86rem',
-  color: '#475569'
+  color: '#475569',
+  overflowWrap: 'anywhere'
 } as const;
 
 const chipWrapStyle = {
   display: 'flex',
   gap: '0.45rem',
-  flexWrap: 'wrap'
+  flexWrap: 'wrap',
+  minWidth: 0
 } as const;
 
 const chipStyle = {
@@ -179,7 +189,8 @@ const chipStyle = {
 
 const listStyle = {
   display: 'grid',
-  gap: '0.45rem'
+  gap: '0.45rem',
+  minWidth: 0
 } as const;
 
 const listItemStyle = {
@@ -190,7 +201,9 @@ const listItemStyle = {
   border: '1px solid #e2e8f0',
   background: '#fff',
   fontSize: '0.82rem',
-  color: '#334155'
+  color: '#334155',
+  minWidth: 0,
+  overflowWrap: 'anywhere'
 } as const;
 
 const mutedStyle = {

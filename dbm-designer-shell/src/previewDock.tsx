@@ -20,7 +20,7 @@ export function PreviewDock({
   const workspace = document?.workspace;
 
   return (
-    <div style={dockStyle}>
+    <div data-testid="preview-dock-panel" style={dockStyle}>
       <div style={eyebrowStyle}>Live Preview</div>
       {workspace && document ? (
         <div style={controlsStyle}>
@@ -80,6 +80,8 @@ export function PreviewDock({
 const dockStyle = {
   width: '100%',
   maxWidth: '100%',
+  minWidth: 0,
+  boxSizing: 'border-box',
   display: 'grid',
   gap: '0.8rem',
   padding: '1rem',
@@ -88,7 +90,8 @@ const dockStyle = {
   border: '1px solid rgba(214, 211, 209, 0.96)',
   boxShadow: '0 24px 54px rgba(15, 23, 42, 0.16)',
   backdropFilter: 'blur(14px)',
-  pointerEvents: 'auto'
+  pointerEvents: 'auto',
+  overflow: 'hidden'
 } as const;
 
 const eyebrowStyle = {
@@ -101,14 +104,16 @@ const eyebrowStyle = {
 const controlsStyle = {
   display: 'grid',
   gap: '0.75rem',
-  gridTemplateColumns: 'repeat(auto-fit, minmax(120px, 1fr))'
+  gridTemplateColumns: 'repeat(auto-fit, minmax(120px, 1fr))',
+  minWidth: 0
 } as const;
 
 const fieldStyle = {
   display: 'grid',
   gap: '0.3rem',
   fontSize: '0.84rem',
-  color: '#334155'
+  color: '#334155',
+  minWidth: 0
 } as const;
 
 const inputStyle = {
@@ -121,5 +126,6 @@ const inputStyle = {
 const previewShellStyle = {
   maxHeight: '360px',
   overflow: 'auto',
-  paddingRight: '0.25rem'
+  paddingRight: '0.25rem',
+  minWidth: 0
 } as const;

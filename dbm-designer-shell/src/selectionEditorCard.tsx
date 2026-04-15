@@ -10,6 +10,7 @@ interface SelectionEditorCardProps {
   onIntent(intent: DesignerGraphIntent): void;
   onToggleStageCollapse(stageId: string): void;
   isStageCollapsed(stageId: string): boolean;
+  compact?: boolean;
 }
 
 const stageTypeOptions = ['start', 'task', 'approval', 'system', 'end'] as const;
@@ -271,7 +272,8 @@ export function SelectionEditorCard({
   focusToken,
   onIntent,
   onToggleStageCollapse,
-  isStageCollapsed
+  isStageCollapsed,
+  compact
 }: SelectionEditorCardProps) {
   const renameInputRef = useRef<HTMLInputElement | null>(null);
   const [draftLabel, setDraftLabel] = useState('');
@@ -321,7 +323,7 @@ export function SelectionEditorCard({
       : null;
 
     return (
-      <div style={cardStyle}>
+      <div style={compact ? compactCardStyle : cardStyle}>
         <div style={sectionLabelStyle}>Stage</div>
         <div style={titleStyle}>{selection.stage.displayName}</div>
         <form
@@ -581,7 +583,7 @@ export function SelectionEditorCard({
     const portalStatuses = document.model.process.statuses.filter((status) => status.audience !== 'internal');
 
     return (
-      <div style={cardStyle}>
+      <div style={compact ? compactCardStyle : cardStyle}>
         <div style={sectionLabelStyle}>Step</div>
         <div style={titleStyle}>{selection.step.displayName}</div>
         <form
@@ -820,7 +822,7 @@ export function SelectionEditorCard({
 
   if (selection.kind === 'outcome') {
     return (
-      <div style={cardStyle}>
+      <div style={compact ? compactCardStyle : cardStyle}>
         <div style={sectionLabelStyle}>Outcome</div>
         <form
           style={formGridStyle}
@@ -874,7 +876,7 @@ export function SelectionEditorCard({
     const outcome = document.model.process.outcomes.find((entry) => entry.id === selection.transition.outcomeId);
 
     return (
-      <div style={cardStyle}>
+      <div style={compact ? compactCardStyle : cardStyle}>
         <div style={sectionLabelStyle}>Stage Connection</div>
         <div style={metaStyle}>
           {sourceStage?.displayName ?? selection.transition.fromStageId}
@@ -926,7 +928,7 @@ export function SelectionEditorCard({
         : document.model.process.outcomes.find((outcome) => outcome.id === selection.transition.target.outcomeId)?.displayName ?? selection.transition.target.outcomeId;
 
   return (
-    <div style={cardStyle}>
+    <div style={compact ? compactCardStyle : cardStyle}>
       <div style={sectionLabelStyle}>Step Connection</div>
       <div style={metaStyle}>From: {sourceStep?.displayName ?? selection.transition.fromStepId}</div>
       <div style={metaStyle}>
@@ -976,6 +978,13 @@ const cardStyle = {
   boxShadow: '0 24px 54px rgba(15, 23, 42, 0.16)',
   backdropFilter: 'blur(14px)',
   pointerEvents: 'auto'
+} as const;
+
+const compactCardStyle = {
+  ...cardStyle,
+  width: '300px',
+  maxWidth: 'min(300px, calc(100vw - 4rem))',
+  boxShadow: '0 18px 42px rgba(15, 23, 42, 0.14)'
 } as const;
 
 const sectionLabelStyle = {

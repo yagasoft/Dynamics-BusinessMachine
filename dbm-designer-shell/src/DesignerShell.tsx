@@ -332,6 +332,7 @@ function PaletteButton({
 }
 
 export function DesignerShell({ repository }: DesignerShellProps) {
+  const isHostedDesigner = repository.kind === 'model-driven';
   const requestedPackageRequest = resolveRequestedPackageNameFromLocation();
   const requestedPackageNameRef = useRef<string | null>(requestedPackageRequest.packageName);
   const pendingRequestedPackageStatusRef = useRef<string | null>(requestedPackageRequest.statusMessage);
@@ -346,10 +347,12 @@ export function DesignerShell({ repository }: DesignerShellProps) {
   const [diagnosticsOpen, setDiagnosticsOpen] = useState(false);
   const [activeDragLabel, setActiveDragLabel] = useState<string | null>(null);
   const [focusToken, setFocusToken] = useState(0);
-  const [palettePosition, setPalettePosition] = useState({ x: 24, y: 24 });
+  const [palettePosition, setPalettePosition] = useState(() => (isHostedDesigner ? { x: 360, y: 32 } : { x: 24, y: 24 }));
   const [focusTargetId, setFocusTargetId] = useState<string | null>(null);
   const [focusRequestToken, setFocusRequestToken] = useState(0);
   const [starterOpen, setStarterOpen] = useState(false);
+  const [previewPanelOpen, setPreviewPanelOpen] = useState(!isHostedDesigner);
+  const [metadataPanelOpen, setMetadataPanelOpen] = useState(false);
   const [dataverseEntities, setDataverseEntities] = useState<DataverseEntitySummary[]>([]);
   const [dataverseForms, setDataverseForms] = useState<DataverseFormSummary[]>([]);
   const [selectedMetadataEntityLogicalName, setSelectedMetadataEntityLogicalName] = useState('');
@@ -927,6 +930,11 @@ export function DesignerShell({ repository }: DesignerShellProps) {
       : selection?.kind === 'step'
         ? selection.stage.id
         : editorState.document?.workspace.preview.stageId ?? null;
+  const resolvedShellStyle = isHostedDesigner ? hostedShellStyle : shellStyle;
+  const resolvedSidebarStyle = isHostedDesigner ? hostedSidebarStyle : sidebarStyle;
+  const resolvedMainStyle = isHostedDesigner ? hostedMainStyle : mainStyle;
+  const resolvedWorkspaceTitleStyle = isHostedDesigner ? hostedWorkspaceTitleStyle : workspaceTitleStyle;
+  const resolvedFloatingPanelStyle = isHostedDesigner ? hostedFloatingPanelStyle : floatingPanelStyle;
 
   return (
     <DndContext
@@ -955,8 +963,8 @@ export function DesignerShell({ repository }: DesignerShellProps) {
       }}
       onDragCancel={() => setActiveDragLabel(null)}
     >
-      <div style={shellStyle}>
-        <aside style={sidebarStyle}>
+      <div data-testid="designer-shell" style={resolvedShellStyle}>
+        <aside data-testid="designer-sidebar" style={resolvedSidebarStyle}>
           <div style={sectionHeaderStyle}>
             <div>
               <div style={eyebrowStyle}>R2 Designer</div>
@@ -968,7 +976,7 @@ export function DesignerShell({ repository }: DesignerShellProps) {
             <button type="button" style={primaryButtonStyle} onClick={() => void handleCreatePackage()}>New Package</button>
             <button type="button" style={secondaryButtonStyle} onClick={() => void refreshPackages(selectedPackageName)}>Refresh</button>
           </div>
-          <div style={packageListStyle}>
+          <div data-testid="designer-package-list" style={packageListStyle}>
             {packages.map((entry) => (
               <button
                 key={entry.packageName}
@@ -982,7 +990,7 @@ export function DesignerShell({ repository }: DesignerShellProps) {
               </button>
             ))}
           </div>
-          <div style={panelCardStyle}>
+          <div data-testid="designer-validation-panel" style={panelCardStyle}>
             <div style={eyebrowStyle}>Validation</div>
             <div style={validationSummaryStyle}><span>{validationIssues.length} issue(s)</span><span>{errorIssues.length} blocking</span></div>
             {validationIssues.length > 0 ? (
@@ -996,32 +1004,56 @@ export function DesignerShell({ repository }: DesignerShellProps) {
               </div>
             ) : <div style={mutedCopyStyle}>The current model passes designer-core validation.</div>}
           </div>
-          <PreviewDock document={editorState.document} snapshot={editorState.snapshot} onPreviewStageChange={handlePreviewStageChange} onPreviewStepChange={handlePreviewStepChange} onPreviewModeChange={handlePreviewModeChange} />
-          <MetadataBrowserPanel
-            available={metadataAvailable}
-            entities={dataverseEntities}
-            forms={dataverseForms}
-            selectedEntityLogicalName={selectedMetadataEntityLogicalName}
-            selectedFormId={selectedMetadataFormId}
-            bundle={selectedMetadataBundle}
-            loading={metadataBusy}
-            error={metadataError}
-            onSelectEntity={setSelectedMetadataEntityLogicalName}
-            onSelectForm={setSelectedMetadataFormId}
-            onImportSelected={handleImportSelectedMetadata}
-          />
+          {!isHostedDesigner ? (
+            <>
+              <PreviewDock document={editorState.document} snapshot={editorState.snapshot} onPreviewStageChange={handlePreviewStageChange} onPreviewStepChange={handlePreviewStepChange} onPreviewModeChange={handlePreviewModeChange} />
+              <MetadataBrowserPanel
+                available={metadataAvailable}
+                entities={dataverseEntities}
+                forms={dataverseForms}
+                selectedEntityLogicalName={selectedMetadataEntityLogicalName}
+                selectedFormId={selectedMetadataFormId}
+                bundle={selectedMetadataBundle}
+                loading={metadataBusy}
+                error={metadataError}
+                onSelectEntity={setSelectedMetadataEntityLogicalName}
+                onSelectForm={setSelectedMetadataFormId}
+                onImportSelected={handleImportSelectedMetadata}
+              />
+            </>
+          ) : null}
         </aside>
-        <main style={mainStyle}>
+        <main data-testid="designer-main" style={resolvedMainStyle}>
           <header style={workspaceHeaderStyle}>
-            <div>
+            <div style={workspaceHeaderCopyStyle}>
               <div style={eyebrowStyle}>Package Workspace</div>
-              <h2 style={workspaceTitleStyle}>
+              <h2 style={resolvedWorkspaceTitleStyle}>
                 {currentRecord?.displayName ?? 'Select or create a package'}
                 {editorState.document?.dirty ? <span style={dirtyBadgeStyle}>Unsaved</span> : null}
               </h2>
               <div style={workspaceMetaStyle}>{currentRecord ? `${currentRecord.modelName} + ${currentRecord.workspaceName}` : 'No package selected'}</div>
             </div>
             <div style={workspaceActionsStyle}>
+              {isHostedDesigner ? (
+                <>
+                  <button
+                    type="button"
+                    style={{ ...secondaryButtonStyle, ...(previewPanelOpen ? secondaryButtonActiveStyle : {}) }}
+                    aria-pressed={previewPanelOpen}
+                    onClick={() => setPreviewPanelOpen((current) => !current)}
+                  >
+                    Preview
+                  </button>
+                  <button
+                    type="button"
+                    style={{ ...secondaryButtonStyle, ...(metadataPanelOpen ? secondaryButtonActiveStyle : {}) }}
+                    aria-pressed={metadataPanelOpen}
+                    onClick={() => setMetadataPanelOpen((current) => !current)}
+                  >
+                    Metadata
+                  </button>
+                </>
+              ) : null}
               <button type="button" style={secondaryButtonStyle} onClick={handleUndo} disabled={history.past.length === 0}>Undo</button>
               <button type="button" style={secondaryButtonStyle} onClick={handleRedo} disabled={history.future.length === 0}>Redo</button>
               <button type="button" style={secondaryButtonStyle} onClick={() => setDiagnosticsOpen(true)} disabled={!editorState.document}>Diagnostics</button>
@@ -1032,14 +1064,36 @@ export function DesignerShell({ repository }: DesignerShellProps) {
           {statusMessage ? <div style={statusBannerStyle}>{statusMessage}</div> : null}
           {editorState.parseError ? <div style={errorBannerStyle}>Editor parse error: {editorState.parseError}</div> : null}
           {isBusy ? <div style={statusBannerStyle}>Working...</div> : null}
+          {isHostedDesigner && (previewPanelOpen || metadataPanelOpen) ? (
+            <div data-testid="designer-secondary-panels" style={hostedSecondaryPanelsStyle}>
+              {previewPanelOpen ? (
+                <PreviewDock document={editorState.document} snapshot={editorState.snapshot} onPreviewStageChange={handlePreviewStageChange} onPreviewStepChange={handlePreviewStepChange} onPreviewModeChange={handlePreviewModeChange} />
+              ) : null}
+              {metadataPanelOpen ? (
+                <MetadataBrowserPanel
+                  available={metadataAvailable}
+                  entities={dataverseEntities}
+                  forms={dataverseForms}
+                  selectedEntityLogicalName={selectedMetadataEntityLogicalName}
+                  selectedFormId={selectedMetadataFormId}
+                  bundle={selectedMetadataBundle}
+                  loading={metadataBusy}
+                  error={metadataError}
+                  onSelectEntity={setSelectedMetadataEntityLogicalName}
+                  onSelectForm={setSelectedMetadataFormId}
+                  onImportSelected={handleImportSelectedMetadata}
+                />
+              ) : null}
+            </div>
+          ) : null}
           <ProcessOverviewStrip snapshot={editorState.snapshot} selectedStageId={selectedStageId} onSelectStage={(stageId) => handleSelectionChange(`stage:${stageId}`)} />
           <section style={graphWorkspaceStyle}>
             <GraphCanvas document={editorState.document} onSelectionChange={handleSelectionChange} onGraphIntent={handleGraphIntent} onNodePositionCommit={handleNodePositionCommit} onToggleStageCollapse={handleToggleStageCollapse} focusTargetId={focusTargetId} focusRequestToken={focusRequestToken} />
             <div style={topLeftOverlayStyle}>
-              <SelectionEditorCard document={editorState.document} selection={selection} focusToken={focusToken} onIntent={handleGraphIntent} onToggleStageCollapse={handleToggleStageCollapse} isStageCollapsed={(stageId) => !!editorState.document?.workspace.collapsedNodeIds.includes(toStageNodeId(stageId))} />
+              <SelectionEditorCard document={editorState.document} selection={selection} focusToken={focusToken} onIntent={handleGraphIntent} onToggleStageCollapse={handleToggleStageCollapse} isStageCollapsed={(stageId) => !!editorState.document?.workspace.collapsedNodeIds.includes(toStageNodeId(stageId))} compact={isHostedDesigner} />
             </div>
             <div style={{ ...paletteOverlayStyle, left: `${palettePosition.x}px`, top: `${palettePosition.y}px` }}>
-              <div style={floatingPanelStyle}>
+              <div style={resolvedFloatingPanelStyle}>
                 <div
                   style={paletteHeaderStyle}
                   onPointerDown={(event) => {
@@ -1082,41 +1136,49 @@ export function DesignerShell({ repository }: DesignerShellProps) {
   );
 }
 
-const shellStyle = { minHeight: '100vh', display: 'grid', gridTemplateColumns: '272px minmax(0, 1fr)', background: 'linear-gradient(180deg, #f7f4ed 0%, #eef2f7 100%)', color: '#111827', fontFamily: '"Segoe UI", "Helvetica Neue", sans-serif' } as const;
-const sidebarStyle = { padding: '1.15rem', borderRight: '1px solid #d6d3d1', background: 'rgba(255,255,255,0.84)', backdropFilter: 'blur(12px)', display: 'grid', gap: '0.95rem', alignContent: 'start' } as const;
-const mainStyle = { display: 'grid', gap: '1rem', padding: '1.25rem' } as const;
+const shellStyle = { minHeight: '100vh', minWidth: 0, display: 'grid', gridTemplateColumns: '272px minmax(0, 1fr)', background: 'linear-gradient(180deg, #f7f4ed 0%, #eef2f7 100%)', color: '#111827', fontFamily: '"Segoe UI", "Helvetica Neue", sans-serif' } as const;
+const hostedShellStyle = { ...shellStyle, gridTemplateColumns: '272px minmax(0, 1fr)' } as const;
+const sidebarStyle = { minWidth: 0, padding: '1.15rem', borderRight: '1px solid #d6d3d1', background: 'rgba(255,255,255,0.84)', backdropFilter: 'blur(12px)', display: 'grid', gap: '0.95rem', alignContent: 'start' } as const;
+const hostedSidebarStyle = { ...sidebarStyle, overflow: 'hidden' } as const;
+const mainStyle = { minWidth: 0, display: 'grid', gap: '1rem', padding: '1.25rem' } as const;
+const hostedMainStyle = { ...mainStyle, alignContent: 'start' } as const;
 const graphWorkspaceStyle = { position: 'relative', minWidth: 0 } as const;
 const topLeftOverlayStyle = { position: 'absolute', top: '1rem', left: '1rem', zIndex: 12, pointerEvents: 'none' } as const;
 const paletteOverlayStyle = { position: 'absolute', zIndex: 12, pointerEvents: 'none' } as const;
 const floatingPanelStyle = { width: '260px', maxWidth: 'calc(100vw - 4rem)', padding: '1rem', borderRadius: '1rem', border: '1px solid rgba(214, 211, 209, 0.94)', background: 'rgba(255,255,255,0.94)', display: 'grid', gap: '0.8rem', boxShadow: '0 24px 54px rgba(15, 23, 42, 0.16)', backdropFilter: 'blur(14px)', pointerEvents: 'auto' } as const;
+const hostedFloatingPanelStyle = { ...floatingPanelStyle, width: '236px', maxWidth: 'min(236px, calc(100vw - 4rem))', boxShadow: '0 18px 42px rgba(15, 23, 42, 0.14)' } as const;
 const paletteHeaderStyle = { display: 'flex', justifyContent: 'space-between', alignItems: 'center', gap: '0.75rem', cursor: 'grab', userSelect: 'none' } as const;
 const dragHandleStyle = { fontSize: '0.78rem', color: '#64748b' } as const;
-const sectionHeaderStyle = { display: 'flex', justifyContent: 'space-between', gap: '0.75rem', alignItems: 'flex-start' } as const;
+const sectionHeaderStyle = { minWidth: 0, display: 'flex', justifyContent: 'space-between', gap: '0.75rem', alignItems: 'flex-start' } as const;
 const titleStyle = { margin: '0.35rem 0 0', fontSize: '1.35rem' } as const;
-const workspaceHeaderStyle = { display: 'flex', justifyContent: 'space-between', gap: '1rem', alignItems: 'flex-start', flexWrap: 'wrap' } as const;
-const workspaceTitleStyle = { margin: '0.35rem 0 0', fontSize: '1.7rem', display: 'flex', gap: '0.75rem', alignItems: 'center', flexWrap: 'wrap' } as const;
-const workspaceMetaStyle = { marginTop: '0.45rem', color: '#6b7280' } as const;
-const workspaceActionsStyle = { display: 'flex', gap: '0.65rem', flexWrap: 'wrap' } as const;
-const packageListStyle = { display: 'grid', gap: '0.7rem', maxHeight: 'calc(100vh - 21rem)', overflow: 'auto', paddingRight: '0.3rem' } as const;
-const packageButtonStyle = { padding: '0.9rem 0.95rem', borderRadius: '1rem', border: '1px solid #d6d3d1', background: '#ffffff', display: 'grid', gap: '0.22rem', textAlign: 'left', cursor: 'pointer' } as const;
+const workspaceHeaderStyle = { minWidth: 0, display: 'flex', justifyContent: 'space-between', gap: '1rem', alignItems: 'flex-start', flexWrap: 'wrap' } as const;
+const workspaceHeaderCopyStyle = { minWidth: 0, overflow: 'hidden' } as const;
+const workspaceTitleStyle = { margin: '0.35rem 0 0', fontSize: '1.7rem', display: 'flex', gap: '0.75rem', alignItems: 'center', flexWrap: 'wrap', minWidth: 0, overflowWrap: 'anywhere' } as const;
+const hostedWorkspaceTitleStyle = { ...workspaceTitleStyle, fontSize: '1.55rem' } as const;
+const workspaceMetaStyle = { marginTop: '0.45rem', color: '#6b7280', minWidth: 0, overflowWrap: 'anywhere' } as const;
+const workspaceActionsStyle = { minWidth: 0, display: 'flex', gap: '0.65rem', flexWrap: 'wrap', justifyContent: 'flex-end' } as const;
+const hostedSecondaryPanelsStyle = { minWidth: 0, display: 'grid', gap: '1rem', gridTemplateColumns: 'repeat(auto-fit, minmax(320px, 1fr))', alignItems: 'start' } as const;
+const packageListStyle = { minWidth: 0, display: 'grid', gap: '0.7rem', maxHeight: 'calc(100vh - 21rem)', overflow: 'auto', paddingRight: '0.3rem' } as const;
+const packageButtonStyle = { width: '100%', maxWidth: '100%', minWidth: 0, boxSizing: 'border-box', padding: '0.9rem 0.95rem', borderRadius: '1rem', border: '1px solid #d6d3d1', background: '#ffffff', display: 'grid', gap: '0.22rem', textAlign: 'left', cursor: 'pointer', overflow: 'hidden' } as const;
 const packageButtonActiveStyle = { borderColor: '#b45309', boxShadow: '0 16px 30px rgba(180, 83, 9, 0.12)', transform: 'translateY(-1px)' } as const;
-const packageButtonTitleStyle = { fontWeight: 700 } as const;
-const packageButtonMetaStyle = { fontSize: '0.8rem', color: '#6b7280' } as const;
-const panelCardStyle = { padding: '1rem', borderRadius: '1rem', border: '1px solid #d6d3d1', background: 'rgba(255,255,255,0.9)', display: 'grid', gap: '0.8rem' } as const;
+const packageButtonTitleStyle = { fontWeight: 700, minWidth: 0, overflowWrap: 'anywhere' } as const;
+const packageButtonMetaStyle = { fontSize: '0.8rem', color: '#6b7280', minWidth: 0, overflowWrap: 'anywhere' } as const;
+const panelCardStyle = { width: '100%', minWidth: 0, boxSizing: 'border-box', padding: '1rem', borderRadius: '1rem', border: '1px solid #d6d3d1', background: 'rgba(255,255,255,0.9)', display: 'grid', gap: '0.8rem', overflow: 'hidden' } as const;
 const eyebrowStyle = { fontSize: '0.78rem', textTransform: 'uppercase', letterSpacing: '0.12em', color: '#6b7280' } as const;
 const hostBadgeStyle = { padding: '0.4rem 0.7rem', borderRadius: '999px', border: '1px solid #d4d4d8', background: '#fff' } as const;
-const buttonRowStyle = { display: 'flex', gap: '0.65rem', flexWrap: 'wrap' } as const;
+const buttonRowStyle = { minWidth: 0, display: 'flex', gap: '0.65rem', flexWrap: 'wrap' } as const;
 const primaryButtonStyle = { padding: '0.72rem 1rem', borderRadius: '0.9rem', border: '1px solid #8b5e34', background: '#b45309', color: '#fff', cursor: 'pointer' } as const;
 const secondaryButtonStyle = { padding: '0.72rem 1rem', borderRadius: '0.9rem', border: '1px solid #cbd5e1', background: '#fff', color: '#111827', cursor: 'pointer' } as const;
+const secondaryButtonActiveStyle = { borderColor: '#b45309', background: '#fff7ed', color: '#9a3412' } as const;
 const paletteButtonStyle = { padding: '0.85rem 0.95rem', borderRadius: '0.95rem', border: '1px solid #d6d3d1', background: '#fff', display: 'grid', gap: '0.25rem', textAlign: 'left', cursor: 'grab' } as const;
 const disabledPaletteButtonStyle = { opacity: 0.55, cursor: 'not-allowed' } as const;
 const paletteButtonTitleStyle = { fontWeight: 700 } as const;
 const paletteButtonMetaStyle = { fontSize: '0.82rem', color: '#6b7280' } as const;
-const statusBannerStyle = { padding: '0.85rem 1rem', borderRadius: '0.85rem', border: '1px solid #cbd5e1', background: 'rgba(255,255,255,0.88)' } as const;
-const errorBannerStyle = { padding: '0.85rem 1rem', borderRadius: '0.85rem', border: '1px solid #fca5a5', background: '#fef2f2', color: '#991b1b' } as const;
-const validationSummaryStyle = { display: 'flex', gap: '0.9rem', fontSize: '0.92rem' } as const;
-const issueListStyle = { display: 'grid', gap: '0.45rem', maxHeight: '220px', overflow: 'auto' } as const;
-const issueButtonStyle = { display: 'grid', gap: '0.25rem', padding: '0.7rem 0.8rem', borderRadius: '0.85rem', border: '1px solid #e7e5e4', background: '#f8fafc', textAlign: 'left', cursor: 'pointer' } as const;
+const statusBannerStyle = { minWidth: 0, padding: '0.85rem 1rem', borderRadius: '0.85rem', border: '1px solid #cbd5e1', background: 'rgba(255,255,255,0.88)', overflowWrap: 'anywhere' } as const;
+const errorBannerStyle = { minWidth: 0, padding: '0.85rem 1rem', borderRadius: '0.85rem', border: '1px solid #fca5a5', background: '#fef2f2', color: '#991b1b', overflowWrap: 'anywhere' } as const;
+const validationSummaryStyle = { minWidth: 0, display: 'flex', gap: '0.9rem', fontSize: '0.92rem', flexWrap: 'wrap' } as const;
+const issueListStyle = { minWidth: 0, display: 'grid', gap: '0.45rem', maxHeight: '220px', overflow: 'auto' } as const;
+const issueButtonStyle = { width: '100%', maxWidth: '100%', minWidth: 0, boxSizing: 'border-box', display: 'grid', gap: '0.25rem', padding: '0.7rem 0.8rem', borderRadius: '0.85rem', border: '1px solid #e7e5e4', background: '#f8fafc', textAlign: 'left', cursor: 'pointer', overflow: 'hidden' } as const;
 const issuePathStyle = { fontSize: '0.76rem', color: '#64748b' } as const;
 const mutedCopyStyle = { color: '#6b7280', fontSize: '0.9rem' } as const;
 const dirtyBadgeStyle = { padding: '0.28rem 0.58rem', borderRadius: '999px', background: '#fff7ed', border: '1px solid #fdba74', color: '#9a3412', fontSize: '0.78rem' } as const;

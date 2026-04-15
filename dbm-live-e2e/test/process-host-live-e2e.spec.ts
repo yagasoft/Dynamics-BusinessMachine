@@ -47,6 +47,50 @@ async function waitForEditorFrame(hostPage: Page, timeoutMs = 60_000) {
   return frame;
 }
 
+async function measureHostedDesignerLayout(frame: Awaited<ReturnType<typeof waitForEditorFrame>>) {
+  return frame.evaluate(() => {
+    const shell = document.querySelector<HTMLElement>('[data-testid="designer-shell"]');
+    const sidebar = document.querySelector<HTMLElement>('[data-testid="designer-sidebar"]');
+    const main = document.querySelector<HTMLElement>('[data-testid="designer-main"]');
+    const packageList = document.querySelector<HTMLElement>('[data-testid="designer-package-list"]');
+    const validation = document.querySelector<HTMLElement>('[data-testid="designer-validation-panel"]');
+    const preview = document.querySelector<HTMLElement>('[data-testid="preview-dock-panel"]');
+    const metadata = document.querySelector<HTMLElement>('[data-testid="metadata-browser-panel"]');
+
+    if (!shell || !sidebar || !main || !packageList || !validation) {
+      return null;
+    }
+
+    const shellRect = shell.getBoundingClientRect();
+    const sidebarRect = sidebar.getBoundingClientRect();
+    const mainRect = main.getBoundingClientRect();
+    const measuredChildren = Array.from(sidebar.children).map((child, index) => {
+      const element = child as HTMLElement;
+      const rect = element.getBoundingClientRect();
+      return {
+        index,
+        width: Math.ceil(rect.width),
+        rightDelta: Math.ceil(rect.right - sidebarRect.right),
+        overlapsMain: rect.right > mainRect.left + 1
+      };
+    });
+
+    return {
+      shellWidth: Math.ceil(shellRect.width),
+      sidebarWidth: Math.ceil(sidebarRect.width),
+      mainWidth: Math.ceil(mainRect.width),
+      packageListWidth: Math.ceil(packageList.getBoundingClientRect().width),
+      validationWidth: Math.ceil(validation.getBoundingClientRect().width),
+      previewWidth: preview ? Math.ceil(preview.getBoundingClientRect().width) : null,
+      metadataWidth: metadata ? Math.ceil(metadata.getBoundingClientRect().width) : null,
+      sidebarOverlapsMain: sidebarRect.right > mainRect.left + 1,
+      childOverlapCount: measuredChildren.filter((entry) => entry.overlapsMain).length,
+      childOverflowCount: measuredChildren.filter((entry) => entry.rightDelta > 1).length,
+      measuredChildren
+    };
+  });
+}
+
 test('model-driven process host fits the form and reopens the hosted designer', async ({ browser, request }) => {
   const entityConfig = resolveEntityConfig(runContext.environmentConfig, 'testTableOne');
   const cleanupName = `${runContext.environmentConfig.liveE2E.cleanup.namePrefix}-HOST-${Date.now()}`;
@@ -115,7 +159,7 @@ test('model-driven process host fits the form and reopens the hosted designer', 
     const hostFrame = page.frames().find((entry) => entry.url().includes('ys_/dbm/process-experience/host.html'));
     expect(hostFrame).toBeTruthy();
 
-    const popupPromise = context.waitForEvent('page');
+    const popupPromise = page.waitForEvent('popup');
     await hostFrame!.getByRole('button', { name: 'Edit process' }).click();
     designerPage = await popupPromise;
     await designerPage.waitForLoadState('domcontentloaded');
@@ -132,6 +176,30 @@ test('model-driven process host fits the form and reopens the hosted designer', 
     const designerFrame = await waitForEditorFrame(designerPage);
     await expect(designerFrame.getByText('DBM Packages')).toBeVisible({ timeout: 60_000 });
     await expect(designerFrame.getByRole('heading', { name: /^DBM TestTableOne To TestTableTwo$/i })).toBeVisible({ timeout: 60_000 });
+
+    const initialLayout = await measureHostedDesignerLayout(designerFrame);
+    expect(initialLayout).not.toBeNull();
+    expect(initialLayout?.sidebarOverlapsMain).toBe(false);
+    expect(initialLayout?.childOverlapCount).toBe(0);
+    expect(initialLayout?.childOverflowCount).toBe(0);
+    expect(initialLayout?.packageListWidth ?? 0).toBeLessThanOrEqual((initialLayout?.sidebarWidth ?? 0) + 1);
+    expect(initialLayout?.validationWidth ?? 0).toBeLessThanOrEqual((initialLayout?.sidebarWidth ?? 0) + 1);
+    expect(initialLayout?.previewWidth).toBeNull();
+    expect(initialLayout?.metadataWidth).toBeNull();
+    expect(initialLayout?.mainWidth ?? 0).toBeGreaterThan(600);
+
+    await designerFrame.getByRole('button', { name: 'Preview' }).click();
+    await expect(designerFrame.getByTestId('preview-dock-panel')).toBeVisible({ timeout: 30_000 });
+    await designerFrame.getByRole('button', { name: 'Metadata' }).click();
+    await expect(designerFrame.getByTestId('metadata-browser-panel')).toBeVisible({ timeout: 30_000 });
+
+    const expandedLayout = await measureHostedDesignerLayout(designerFrame);
+    expect(expandedLayout).not.toBeNull();
+    expect(expandedLayout?.sidebarOverlapsMain).toBe(false);
+    expect(expandedLayout?.childOverlapCount).toBe(0);
+    expect(expandedLayout?.childOverflowCount).toBe(0);
+    expect(expandedLayout?.previewWidth ?? 0).toBeGreaterThan(320);
+    expect(expandedLayout?.metadataWidth ?? 0).toBeGreaterThan(320);
 
     await designerPage.screenshot({
       path: path.join(evidenceRoot, 'designer-reopen.png'),

@@ -1,5 +1,5 @@
 import React from 'react';
-import { cleanup, render, screen, waitFor } from '@testing-library/react';
+import { cleanup, render, screen, waitFor, within } from '@testing-library/react';
 import userEvent from '@testing-library/user-event';
 import { afterEach, describe, expect, it, vi } from 'vitest';
 import { createApprovalRequestTemplate } from 'dbm-designer-core';
@@ -77,16 +77,20 @@ vi.mock('./previewDock', () => ({
   PreviewDock: () => React.createElement('div', { 'data-testid': 'preview-dock' }, 'preview')
 }));
 
+vi.mock('./metadataBrowserPanel', () => ({
+  MetadataBrowserPanel: () => React.createElement('div', { 'data-testid': 'metadata-browser-panel' }, 'metadata')
+}));
+
 afterEach(() => {
   cleanup();
   window.history.replaceState({}, '', '/');
 });
 
-function createRepositoryHarness(model = createApprovalRequestTemplate()) {
+function createRepositoryHarness(model = createApprovalRequestTemplate(), kind: DbmPackageRepository['kind'] = 'browser') {
   let currentRecord = createNormalizedModelPackage(model);
 
   const repository: DbmPackageRepository = {
-    kind: 'browser',
+    kind,
     listPackages: vi.fn(async () => [
       {
         modelId: currentRecord.modelId,
@@ -291,5 +295,28 @@ describe('DesignerShell', () => {
 
     await screen.findByRole('heading', { name: 'DBM Approval Request' });
     expect(await screen.findByText('The requested designer deep link could not be parsed. Showing the available package list instead.')).toBeTruthy();
+  });
+
+  it('keeps the hosted designer graph-first by moving preview and metadata into secondary workspace panels', async () => {
+    const { repository } = createRepositoryHarness(createApprovalRequestTemplate(), 'model-driven');
+    const user = userEvent.setup();
+
+    render(React.createElement(DesignerShell, { repository }));
+
+    await screen.findByRole('heading', { name: 'DBM Approval Request' });
+
+    const sidebar = screen.getByTestId('designer-sidebar');
+    expect(within(sidebar).queryByTestId('preview-dock')).toBeNull();
+    expect(within(sidebar).queryByTestId('metadata-browser-panel')).toBeNull();
+    expect(screen.queryByTestId('designer-secondary-panels')).toBeNull();
+
+    await user.click(screen.getByRole('button', { name: 'Preview' }));
+    expect(await screen.findByTestId('designer-secondary-panels')).toBeTruthy();
+    expect(screen.getByTestId('preview-dock')).toBeTruthy();
+    expect(within(sidebar).queryByTestId('preview-dock')).toBeNull();
+
+    await user.click(screen.getByRole('button', { name: 'Metadata' }));
+    expect(screen.getByTestId('metadata-browser-panel')).toBeTruthy();
+    expect(within(sidebar).queryByTestId('metadata-browser-panel')).toBeNull();
   });
 });
