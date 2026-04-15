@@ -1,4 +1,4 @@
-import { useEffect, useMemo, useRef, useState } from 'react';
+import { useEffect, useMemo, useRef, useState, type KeyboardEvent as ReactKeyboardEvent } from 'react';
 import { DndContext, DragOverlay, useDraggable } from '@dnd-kit/core';
 import type { DbmDesignerWorkspaceV1, DbmModelV1, DbmProcessExperienceSnapshotV1, DbmRuntimeStateV1 } from 'dbm-contract';
 import {
@@ -155,12 +155,18 @@ function syncSelectionPreview(document: DesignerDocument, selectionId: string | 
   if (selectionId?.startsWith('stage:')) {
     const stageId = selectionId.slice('stage:'.length);
     const stage = document.model.process.stages.find((entry) => entry.id === stageId);
-    nextWorkspace.preview.stageId = stageId;
-    nextWorkspace.preview.stepId =
+    const previewStepId =
       stage?.defaultStepId
       ?? stage?.stepIds[0]
       ?? document.model.process.steps.find((step) => step.stageId === stageId)?.id
       ?? null;
+
+    // New stages can exist briefly without any steps. Keep selection on the stage,
+    // but preserve the previous preview target until the stage is previewable.
+    if (previewStepId) {
+      nextWorkspace.preview.stageId = stageId;
+      nextWorkspace.preview.stepId = previewStepId;
+    }
   } else if (selectionId?.startsWith('step:')) {
     const stepId = selectionId.slice('step:'.length);
     const step = document.model.process.steps.find((entry) => entry.id === stepId);
@@ -315,13 +321,51 @@ function PaletteButton({
   onClick(): void;
 }) {
   const { attributes, listeners, setNodeRef, transform, isDragging } = useDraggable({ id, disabled });
+  const draggedSincePointerDownRef = useRef(false);
+  const lastActivationAtRef = useRef(0);
+
+  useEffect(() => {
+    if (isDragging) {
+      draggedSincePointerDownRef.current = true;
+    }
+  }, [isDragging]);
+
+  function handlePressEnd() {
+    if (disabled) {
+      return;
+    }
+    if (draggedSincePointerDownRef.current) {
+      draggedSincePointerDownRef.current = false;
+      lastActivationAtRef.current = Date.now();
+      return;
+    }
+    const now = Date.now();
+    if (now - lastActivationAtRef.current < 32) {
+      return;
+    }
+    lastActivationAtRef.current = now;
+    onClick();
+  }
+
+  function handleKeyDown(event: ReactKeyboardEvent<HTMLButtonElement>) {
+    if (disabled) {
+      return;
+    }
+    if (event.key === 'Enter' || event.key === ' ') {
+      event.preventDefault();
+      onClick();
+    }
+  }
 
   return (
     <button
       ref={setNodeRef}
+      data-testid={`palette-button-${id}`}
       type="button"
       style={{ ...paletteButtonStyle, ...(disabled ? disabledPaletteButtonStyle : {}), transform: transform ? `translate3d(${transform.x}px, ${transform.y}px, 0)` : undefined, opacity: isDragging ? 0.72 : 1 }}
-      onClick={onClick}
+      onPointerUp={handlePressEnd}
+      onMouseUp={handlePressEnd}
+      onKeyDown={handleKeyDown}
       {...attributes}
       {...listeners}
     >
@@ -688,7 +732,22 @@ export function DesignerShell({ repository }: DesignerShellProps) {
       return;
     }
     const result = applyGraphIntent(editorState.document, intent);
-    applyDocumentWithHistory(syncSelectionPreview(result.document, result.affectedNodeId ?? result.document.selectionId, true), editorState.document, true);
+    const isStageCreation = intent.kind === 'add-stage' && !!result.affectedNodeId?.startsWith('stage:');
+    let nextDocument = result.document;
+
+    if (isStageCreation && intent.preferredPosition && result.affectedNodeId) {
+      nextDocument = mutateWorkspace(nextDocument, (workspace) => {
+        workspace.nodePositions[result.affectedNodeId!] = intent.preferredPosition!;
+      }, true);
+    }
+
+    nextDocument = syncSelectionPreview(nextDocument, result.affectedNodeId ?? nextDocument.selectionId, true);
+    applyDocumentWithHistory(nextDocument, editorState.document, true);
+
+    if (isStageCreation && result.affectedNodeId) {
+      setFocusTargetId(result.affectedNodeId);
+      setFocusRequestToken((value) => value + 1);
+    }
   }
 
   function handleToggleStageCollapse(stageId: string) {
@@ -953,9 +1012,7 @@ export function DesignerShell({ repository }: DesignerShellProps) {
         if (!event.over || event.over.id !== 'graph-canvas') {
           return;
         }
-        if (event.active.id === 'palette-stage') {
-          handleAddPaletteItem('stage');
-        } else if (event.active.id === 'palette-step') {
+        if (event.active.id === 'palette-step') {
           handleAddPaletteItem('step');
         } else if (event.active.id === 'palette-outcome') {
           handleAddPaletteItem('outcome');
@@ -1088,7 +1145,7 @@ export function DesignerShell({ repository }: DesignerShellProps) {
           ) : null}
           <ProcessOverviewStrip snapshot={editorState.snapshot} selectedStageId={selectedStageId} onSelectStage={(stageId) => handleSelectionChange(`stage:${stageId}`)} />
           <section style={graphWorkspaceStyle}>
-            <GraphCanvas document={editorState.document} onSelectionChange={handleSelectionChange} onGraphIntent={handleGraphIntent} onNodePositionCommit={handleNodePositionCommit} onToggleStageCollapse={handleToggleStageCollapse} focusTargetId={focusTargetId} focusRequestToken={focusRequestToken} />
+            <GraphCanvas document={editorState.document} onSelectionChange={handleSelectionChange} onGraphIntent={handleGraphIntent} onNodePositionCommit={handleNodePositionCommit} onToggleStageCollapse={handleToggleStageCollapse} onPaletteStageDrop={(position) => handleGraphIntent({ kind: 'add-stage', actorId: editorState.document?.model.process.actors[0]?.id, preferredPosition: position })} focusTargetId={focusTargetId} focusRequestToken={focusRequestToken} />
             <div style={topLeftOverlayStyle}>
               <SelectionEditorCard document={editorState.document} selection={selection} focusToken={focusToken} onIntent={handleGraphIntent} onToggleStageCollapse={handleToggleStageCollapse} isStageCollapsed={(stageId) => !!editorState.document?.workspace.collapsedNodeIds.includes(toStageNodeId(stageId))} compact={isHostedDesigner} />
             </div>

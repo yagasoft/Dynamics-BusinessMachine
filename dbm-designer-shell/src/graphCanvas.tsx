@@ -1,4 +1,4 @@
-import { memo, useEffect, useMemo } from 'react';
+import { memo, useEffect, useMemo, useRef } from 'react';
 import {
   Background,
   BaseEdge,
@@ -14,7 +14,7 @@ import {
   type EdgeProps,
   type NodeProps
 } from '@xyflow/react';
-import { useDroppable } from '@dnd-kit/core';
+import { useDndMonitor, useDroppable, type DragEndEvent } from '@dnd-kit/core';
 import type { DesignerDocument, DesignerGraphIntent } from 'dbm-designer-core';
 import { isStableDesignerGraphNodeId } from 'dbm-designer-core';
 import flowStyles from '@xyflow/react/dist/style.css?inline';
@@ -27,6 +27,7 @@ interface GraphCanvasProps {
   onGraphIntent(intent: DesignerGraphIntent): void;
   onNodePositionCommit(nodeId: string, position: { x: number; y: number }): void;
   onToggleStageCollapse(stageId: string): void;
+  onPaletteStageDrop(position: { x: number; y: number }): void;
   focusTargetId: string | null;
   focusRequestToken: number;
 }
@@ -290,11 +291,45 @@ const edgeTypes = {
   'dbm-edge': memo(SelectableEdge)
 };
 
-function GraphCanvasInner({ document, onSelectionChange, onGraphIntent, onNodePositionCommit, onToggleStageCollapse, focusTargetId, focusRequestToken }: GraphCanvasProps) {
+function resolveDragEndClientPosition(event: DragEndEvent): { x: number; y: number } | null {
+  const translated = event.active.rect.current.translated;
+  if (translated) {
+    return {
+      x: translated.left + translated.width / 2,
+      y: translated.top + translated.height / 2
+    };
+  }
+
+  const initial = event.active.rect.current.initial;
+  if (!initial) {
+    return null;
+  }
+
+  return {
+    x: initial.left + initial.width / 2 + event.delta.x,
+    y: initial.top + initial.height / 2 + event.delta.y
+  };
+}
+
+function isPointInsideRect(
+  point: { x: number; y: number },
+  rect: Pick<DOMRect, 'left' | 'right' | 'top' | 'bottom'>
+) {
+  return point.x >= rect.left && point.x <= rect.right && point.y >= rect.top && point.y <= rect.bottom;
+}
+
+function GraphCanvasInner({ document, onSelectionChange, onGraphIntent, onNodePositionCommit, onToggleStageCollapse, onPaletteStageDrop, focusTargetId, focusRequestToken }: GraphCanvasProps) {
   const { setNodeRef, isOver } = useDroppable({
     id: 'graph-canvas'
   });
+  const canvasHostRef = useRef<HTMLDivElement | null>(null);
+  const lastPointerClientRef = useRef<{ x: number; y: number } | null>(null);
   const reactFlow = useReactFlow();
+
+  function setCanvasHostRef(element: HTMLDivElement | null) {
+    canvasHostRef.current = element;
+    setNodeRef(element);
+  }
 
   const flowDocument = useMemo(() => {
     if (!document) {
@@ -317,6 +352,34 @@ function GraphCanvasInner({ document, onSelectionChange, onGraphIntent, onNodePo
       edges: baseGraph.edges
     };
   }, [document, onToggleStageCollapse]);
+
+  useDndMonitor({
+    onDragEnd(event) {
+      if (event.active.id !== 'palette-stage' || !document) {
+        return;
+      }
+
+      const clientPosition = resolveDragEndClientPosition(event) ?? lastPointerClientRef.current;
+      const canvasRect = canvasHostRef.current?.getBoundingClientRect();
+      if (!clientPosition || !canvasRect || !isPointInsideRect(clientPosition, canvasRect)) {
+        return;
+      }
+
+      onPaletteStageDrop(reactFlow.screenToFlowPosition(clientPosition));
+    }
+  });
+
+  useEffect(() => {
+    function handlePointerMove(event: PointerEvent) {
+      lastPointerClientRef.current = {
+        x: event.clientX,
+        y: event.clientY
+      };
+    }
+
+    window.addEventListener('pointermove', handlePointerMove, { passive: true });
+    return () => window.removeEventListener('pointermove', handlePointerMove);
+  }, []);
 
   useEffect(() => {
     if (!focusTargetId || !document) {
@@ -369,7 +432,7 @@ function GraphCanvasInner({ document, onSelectionChange, onGraphIntent, onNodePo
   if (flowDocument.nodes.length === 0) {
     return (
       <div
-        ref={setNodeRef}
+        ref={setCanvasHostRef}
         style={{
           ...emptyCanvasStyle,
           borderStyle: 'solid',
@@ -401,7 +464,7 @@ function GraphCanvasInner({ document, onSelectionChange, onGraphIntent, onNodePo
 
   return (
     <div
-      ref={setNodeRef}
+      ref={setCanvasHostRef}
       style={{
         ...canvasShellStyle,
         borderColor: isOver ? '#b45309' : '#d6d3d1',

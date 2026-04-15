@@ -4,6 +4,20 @@ import { afterAll, afterEach, beforeAll, describe, expect, it, vi } from 'vitest
 import { createApprovalRequestTemplate, createDefaultWorkspace, loadModelPackage } from 'dbm-designer-core';
 import { GraphCanvas } from './graphCanvas';
 
+const { dndMonitorHandlers } = vi.hoisted(() => ({
+  dndMonitorHandlers: {} as { onDragEnd?: (event: any) => void }
+}));
+
+vi.mock('@dnd-kit/core', async () => {
+  const actual = await vi.importActual<typeof import('@dnd-kit/core')>('@dnd-kit/core');
+  return {
+    ...actual,
+    useDndMonitor(monitor: { onDragEnd?: (event: any) => void }) {
+      dndMonitorHandlers.onDragEnd = monitor.onDragEnd;
+    }
+  };
+});
+
 const originalResizeObserver = globalThis.ResizeObserver;
 const originalGetBoundingClientRect = HTMLElement.prototype.getBoundingClientRect;
 const originalOffsetWidth = Object.getOwnPropertyDescriptor(HTMLElement.prototype, 'offsetWidth');
@@ -96,6 +110,7 @@ afterAll(() => {
 
 afterEach(() => {
   cleanup();
+  dndMonitorHandlers.onDragEnd = undefined;
 });
 
 describe('GraphCanvas', () => {
@@ -119,6 +134,7 @@ describe('GraphCanvas', () => {
           onGraphIntent,
           onNodePositionCommit,
           onToggleStageCollapse,
+          onPaletteStageDrop: vi.fn(),
           focusTargetId: null,
           focusRequestToken: 0
         })
@@ -153,6 +169,7 @@ describe('GraphCanvas', () => {
           onGraphIntent: vi.fn(),
           onNodePositionCommit: vi.fn(),
           onToggleStageCollapse: vi.fn(),
+          onPaletteStageDrop: vi.fn(),
           focusTargetId: null,
           focusRequestToken: 0
         })
@@ -162,5 +179,60 @@ describe('GraphCanvas', () => {
     await waitFor(() => {
       expect(container.querySelector('[title*=\"references missing outcome\"]')).toBeTruthy();
     });
+  });
+
+  it('translates a dropped palette stage into a graph-space stage placement request', async () => {
+    const template = createApprovalRequestTemplate();
+    const workspace = createDefaultWorkspace(template);
+    const document = loadModelPackage(template, workspace);
+    const onPaletteStageDrop = vi.fn();
+
+    render(
+      React.createElement(
+        'div',
+        { style: { width: '1200px', height: '720px' } },
+        React.createElement(GraphCanvas, {
+          document,
+          onSelectionChange: vi.fn(),
+          onGraphIntent: vi.fn(),
+          onNodePositionCommit: vi.fn(),
+          onToggleStageCollapse: vi.fn(),
+          onPaletteStageDrop,
+          focusTargetId: null,
+          focusRequestToken: 0
+        })
+      )
+    );
+
+    await waitFor(() => {
+      expect(dndMonitorHandlers.onDragEnd).toBeTypeOf('function');
+    });
+
+    dndMonitorHandlers.onDragEnd?.({
+      active: {
+        id: 'palette-stage',
+        rect: {
+          current: {
+            translated: {
+              left: 420,
+              top: 260,
+              width: 120,
+              height: 40
+            },
+            initial: null
+          }
+        }
+      },
+      over: null,
+      delta: { x: 0, y: 0 }
+    });
+
+    await waitFor(() => {
+      expect(onPaletteStageDrop).toHaveBeenCalledTimes(1);
+    });
+
+    const [position] = onPaletteStageDrop.mock.calls[0];
+    expect(Number.isFinite(position.x)).toBe(true);
+    expect(Number.isFinite(position.y)).toBe(true);
   });
 });

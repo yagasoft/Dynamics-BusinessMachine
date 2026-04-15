@@ -157,6 +157,7 @@ export type DesignerGraphIntent =
       kind: 'add-stage';
       targetIndex?: number;
       actorId?: string;
+      preferredPosition?: { x: number; y: number };
     }
   | {
       kind: 'add-outcome';

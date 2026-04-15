@@ -1,5 +1,5 @@
 import React from 'react';
-import { cleanup, render, screen, waitFor, within } from '@testing-library/react';
+import { cleanup, fireEvent, render, screen, waitFor, within } from '@testing-library/react';
 import userEvent from '@testing-library/user-event';
 import { afterEach, describe, expect, it, vi } from 'vitest';
 import { createApprovalRequestTemplate } from 'dbm-designer-core';
@@ -15,6 +15,7 @@ vi.mock('./graphCanvas', () => ({
     onSelectionChange,
     onGraphIntent,
     onNodePositionCommit,
+    onPaletteStageDrop,
     focusTargetId,
     focusRequestToken
   }: {
@@ -22,6 +23,7 @@ vi.mock('./graphCanvas', () => ({
     onSelectionChange(selectionId: string | null): void;
     onGraphIntent(intent: unknown): void;
     onNodePositionCommit(nodeId: string, position: { x: number; y: number }): void;
+    onPaletteStageDrop(position: { x: number; y: number }): void;
     focusTargetId: string | null;
     focusRequestToken: number;
   }) => React.createElement(
@@ -65,6 +67,14 @@ vi.mock('./graphCanvas', () => ({
         onClick: () => onGraphIntent({ kind: 'add-outcome' })
       },
       'Add Outcome Intent'
+    ),
+    React.createElement(
+      'button',
+      {
+        type: 'button',
+        onClick: () => onPaletteStageDrop({ x: 420, y: 260 })
+      },
+      'Drop Stage At 420,260'
     )
   )
 }));
@@ -213,6 +223,39 @@ describe('DesignerShell', () => {
 
     expect(addedOutcome).toBeTruthy();
     expect(savedModel.process.stages.find((stage: { id: string }) => stage.id === 'draft-request')?.allowedOutcomeIds).toContain(addedOutcome.id);
+  });
+
+  it('focuses a newly added stage when the stage palette item is activated', async () => {
+    const { repository } = createRepositoryHarness();
+
+    render(React.createElement(DesignerShell, { repository }));
+
+    await screen.findByRole('heading', { name: 'DBM Approval Request' });
+    fireEvent.mouseUp(screen.getByTestId('palette-button-palette-stage'));
+
+    expect(await screen.findByText(/focus:stage:stage:\d+/)).toBeTruthy();
+  });
+
+  it('persists dropped stage positions into the workspace sidecar and focuses the new stage', async () => {
+    const { repository, getCurrentRecord } = createRepositoryHarness();
+    const user = userEvent.setup();
+
+    render(React.createElement(DesignerShell, { repository }));
+
+    await screen.findByRole('heading', { name: 'DBM Approval Request' });
+    await user.click(screen.getByRole('button', { name: 'Drop Stage At 420,260' }));
+
+    expect(await screen.findByText(/focus:stage:stage:\d+/)).toBeTruthy();
+    await user.click(screen.getByRole('button', { name: 'Add Step' }));
+
+    await user.click(screen.getByRole('button', { name: 'Save Package' }));
+
+    await waitFor(() => {
+      expect(repository.savePackage).toHaveBeenCalledTimes(1);
+    });
+
+    const savedWorkspace = JSON.parse(getCurrentRecord().workspaceContent ?? '{}');
+    expect(savedWorkspace.nodePositions['stage:stage']).toEqual({ x: 420, y: 260 });
   });
 
   it('shows direct form-state effect inspection when a step is selected', async () => {
