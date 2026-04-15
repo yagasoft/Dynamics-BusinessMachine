@@ -326,6 +326,9 @@ function GraphCanvasInner({ document, onSelectionChange, onGraphIntent, onNodePo
   const lastPointerClientRef = useRef<{ x: number; y: number } | null>(null);
   const reactFlow = useReactFlow();
 
+  void focusTargetId;
+  void focusRequestToken;
+
   function setCanvasHostRef(element: HTMLDivElement | null) {
     canvasHostRef.current = element;
     setNodeRef(element);
@@ -380,50 +383,6 @@ function GraphCanvasInner({ document, onSelectionChange, onGraphIntent, onNodePo
     window.addEventListener('pointermove', handlePointerMove, { passive: true });
     return () => window.removeEventListener('pointermove', handlePointerMove);
   }, []);
-
-  useEffect(() => {
-    if (!focusTargetId || !document) {
-      return;
-    }
-
-    const frame = window.requestAnimationFrame(() => {
-      if (
-        focusTargetId.startsWith('stage:')
-        || focusTargetId.startsWith('step:')
-        || focusTargetId.startsWith('outcome:')
-      ) {
-        const node = reactFlow.getNode(focusTargetId);
-        if (node) {
-          void reactFlow.fitView({
-            nodes: [node],
-            duration: 220,
-            padding: 0.38
-          });
-        }
-        return;
-      }
-
-      if (focusTargetId.startsWith('transition:') || focusTargetId.startsWith('step-transition:')) {
-        const edge = reactFlow.getEdge(focusTargetId);
-        if (!edge) {
-          return;
-        }
-
-        const sourceNode = reactFlow.getNode(edge.source);
-        const targetNode = reactFlow.getNode(edge.target);
-        const nodes = [sourceNode, targetNode].filter((entry): entry is NonNullable<typeof entry> => !!entry);
-        if (nodes.length > 0) {
-          void reactFlow.fitView({
-            nodes,
-            duration: 220,
-            padding: 0.42
-          });
-        }
-      }
-    });
-
-    return () => window.cancelAnimationFrame(frame);
-  }, [document, focusRequestToken, focusTargetId, reactFlow]);
 
   if (!document || !flowDocument) {
     return <div style={emptyCanvasStyle}>Load or create a package to start graph authoring.</div>;
