@@ -151,9 +151,17 @@ Expected portal export output:
 
 Populate the Dev Power Pages target first:
 
+- provision the Dev Power Pages site outside this repo before running any `R3.1` deployment script
 - set `azure/config/dev.json` `powerPages.websiteId`
 - set `azure/config/dev.json` `powerPages.websiteName`
 - ensure the configured website already exists in Dataverse/Power Pages
+- do not use arbitrary or placeholder values; the deployment scripts validate the configured id and name against a live `mspp_website`
+- ensure the provisioned site already has:
+  - a primary domain name
+  - one default publishing state
+  - a default language
+  - one matching `powerpagesite` row
+  - one matching `powerpagesitelanguage` row
 - ensure a persisted model-driven live E2E session exists:
   - `.\eng\scripts\Initialize-LiveDbmE2ESession.ps1 -TargetEnvironment Dev`
 
@@ -212,4 +220,5 @@ Evidence is written under:
 
 - `R3.1` intentionally stays on a `Dev` proof posture.
 - Treat anonymous readback and generic profile ownership as temporary proof assumptions, not pilot-ready production design.
+- Power Pages site provisioning is an external prerequisite for this slice; the repo only configures an already provisioned site.
 - This automated path fails fast when the configured Power Pages site is missing or ambiguous; it does not prompt operators to choose a site interactively.

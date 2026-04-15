@@ -588,9 +588,24 @@ function Resolve-DbmPowerPagesSiteContext {
         $AccessToken = Get-DbmDataverseAccessToken -DataverseUrl $dataverseUrl
     }
 
-    $website = Invoke-DbmDataverseRequest -Method GET -Uri ("{0}/mspp_websites({1})?`$select=mspp_websiteid,mspp_name,mspp_primarydomainname,_mspp_defaultlanguage_value" -f (Get-DbmDataverseApiBaseUrl -DataverseUrl $dataverseUrl), $normalizedWebsiteId) -AccessToken $AccessToken
+    try {
+        $website = Invoke-DbmDataverseRequest -Method GET -Uri ("{0}/mspp_websites({1})?`$select=mspp_websiteid,mspp_name,mspp_primarydomainname,_mspp_defaultlanguage_value" -f (Get-DbmDataverseApiBaseUrl -DataverseUrl $dataverseUrl), $normalizedWebsiteId) -AccessToken $AccessToken
+    }
+    catch {
+        $message = [string]$_.Exception.Message
+        if ($message -match '\b404\b' -or $message -match 'Not Found') {
+            throw "Configured powerPages.websiteId '$normalizedWebsiteId' in '$($configRecord.Path)' does not resolve to a live mspp_website. Provision the Dev Power Pages site externally first."
+        }
+
+        throw
+    }
+
     if ([string]$website.mspp_name -ne $websiteName) {
         throw "Configured powerPages.websiteName '$websiteName' does not match website '$([string]$website.mspp_name)' for websiteId '$normalizedWebsiteId'."
+    }
+
+    if ([string]::IsNullOrWhiteSpace([string]$website.mspp_primarydomainname)) {
+        throw "Power Pages website '$websiteName' is missing mspp_primarydomainname."
     }
 
     $powerPageSite = Get-DbmDataverseSingleRecord `
@@ -599,15 +614,20 @@ function Resolve-DbmPowerPagesSiteContext {
         -EntitySetName 'powerpagesites' `
         -SelectFields @('powerpagesiteid', 'name', 'primarydomainname') `
         -Filter ("name eq {0}" -f (ConvertTo-DbmODataStringLiteral -Value $websiteName)) `
-        -Description "Power Pages site '$websiteName'"
+        -Description "Power Pages site '$websiteName'" `
+        -AllowMissing
 
-    $publishingStates = Invoke-DbmDataverseQuery `
+    if ($null -eq $powerPageSite) {
+        throw "Power Pages website '$websiteName' is missing the corresponding powerpagesite row. Provision or repair the site externally first."
+    }
+
+    $publishingStates = @(Invoke-DbmDataverseQuery `
         -DataverseUrl $dataverseUrl `
         -AccessToken $AccessToken `
         -EntitySetName 'mspp_publishingstates' `
         -SelectFields @('mspp_publishingstateid', 'mspp_name', 'mspp_isdefault') `
         -Filter ("_mspp_websiteid_value eq {0}" -f $normalizedWebsiteId) `
-        -Top 10
+        -Top 10)
 
     if ($publishingStates.Count -eq 0) {
         throw "Power Pages website '$websiteName' does not have any publishing states."
@@ -634,13 +654,13 @@ function Resolve-DbmPowerPagesSiteContext {
         -Uri ("{0}/mspp_websitelanguages({1})?`$select=mspp_websitelanguageid,mspp_name,mspp_displayname,mspp_languagecode,mspp_lcid" -f (Get-DbmDataverseApiBaseUrl -DataverseUrl $dataverseUrl), ([guid]$websiteLanguageId).Guid) `
         -AccessToken $AccessToken
 
-    $languageCandidates = Invoke-DbmDataverseQuery `
+    $languageCandidates = @(Invoke-DbmDataverseQuery `
         -DataverseUrl $dataverseUrl `
         -AccessToken $AccessToken `
         -EntitySetName 'powerpagesitelanguages' `
         -SelectFields @('powerpagesitelanguageid', 'name', 'displayname', 'languagecode', 'lcid', '_powerpagesiteid_value') `
         -Filter ("_powerpagesiteid_value eq {0}" -f ([guid][string]$powerPageSite.powerpagesiteid).Guid) `
-        -Top 10
+        -Top 10)
 
     $matchingPowerPageLanguages = @(
         $languageCandidates | Where-Object {

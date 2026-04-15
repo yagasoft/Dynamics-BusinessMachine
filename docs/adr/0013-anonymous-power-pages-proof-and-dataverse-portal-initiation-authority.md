@@ -30,6 +30,7 @@ Two earlier exploratory branches, `codex/r2.4-live-connected-e2e` and `codex/r2.
 - The shared `dbm-process-experience` renderer remains the only source of portal projection behavior. The portal shell may add entry/runtime chrome, but it must not invent hidden-stage or status semantics locally.
 - The `R3.1` start-form experience is driven by bootstrap entry-field configuration derived from the start-stage form states, so the portal runtime captures the same request business fields the Dataverse runtime expects before draft creation.
 - The repo establishes a tracked portal delivery seam through `power-platform/solutions/DynamicsBusinessMachinePortalRuntime`, a generated `portal-runtime-context.js` asset sourced from the generated metadata plan, and Dev automation scripts that apply portal assets and plugin-step registrations through the Dataverse Web API.
+- The repo does not provision Power Pages websites for `R3.1`; site creation remains an external prerequisite, and deployment only proceeds after `azure/config/dev.json` points to a real pre-provisioned site name/id pair.
 
 ## Consequences
 
@@ -41,6 +42,7 @@ Two earlier exploratory branches, `codex/r2.4-live-connected-e2e` and `codex/r2.
   - generic profile key ownership assumption
 - Portal-visible status stays coherent with the model-driven host because both hosts read the same canonical Dataverse-backed runtime contract.
 - `Dev` deployment is now automation-first through `.\eng\scripts\Invoke-R3PortalRuntimeDevDeploy.ps1`, but it still depends on a pre-provisioned Power Pages website and a persisted model-driven session for the final smoke path.
+- Arbitrary placeholder Power Pages values are intentionally rejected so operators cannot accidentally apply portal assets against a nonexistent or mismatched site.
 
 ## Alternatives considered
 
