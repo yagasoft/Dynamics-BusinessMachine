@@ -279,7 +279,7 @@ try {
     )
 
     Invoke-DbmStepCommands -StepNumber 8 -StepName 'dataverse-deployment' -EvidenceRoot $evidenceRoot -StepResults $stepResults -Commands @(
-        @{ filePath = $powerShellExe; arguments = @('-NoProfile', '-ExecutionPolicy', 'Bypass', '-File', (Join-Path $resolvedRepoRoot 'eng\scripts\Invoke-DataverseDeployment.ps1'), '-TargetEnvironment', $TargetEnvironment, '-PackageRoot', $packageRoot, '-DataverseUrl', $dataverseUrl, '-EvidenceRoot', (Join-Path $evidenceRoot 'dataverse-deployment')); workingDirectory = $resolvedRepoRoot }
+        @{ filePath = $powerShellExe; arguments = @('-NoProfile', '-ExecutionPolicy', 'Bypass', '-File', (Join-Path $resolvedRepoRoot 'eng\scripts\Invoke-DataverseDeployment.ps1'), '-TargetEnvironment', $TargetEnvironment, '-PackageRoot', $packageRoot, '-DataverseUrl', $dataverseUrl, '-EvidenceRoot', (Join-Path $evidenceRoot 'dataverse-deployment'), '-AllowSameVersionImport', '-AllowSolutionReplaceOnPluginIdentityChange'); workingDirectory = $resolvedRepoRoot }
     )
 
     Invoke-DbmStepCommands -StepNumber 9 -StepName 'portal-runtime-plugin-steps' -EvidenceRoot $evidenceRoot -StepResults $stepResults -Commands @(

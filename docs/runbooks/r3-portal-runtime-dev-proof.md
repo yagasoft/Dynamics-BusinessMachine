@@ -172,6 +172,9 @@ The wrapper performs the canonical sequence:
 1. package build, validate, and test for `dbm-contract`, `dbm-process-experience`, `dbm-portal-runtime`, and `dbm-dataverse-synthesis`
 2. plugin restore and build
 3. Dataverse packaging and deployment
+   The local proof wrapper forces same-version imports in `Dev` so iterative `R3.1` solution changes are reapplied even when the tracked solution version has not been incremented yet.
+   The deployment path also retries transient Dataverse customization-lock failures when an import, publish, or remediation delete is briefly blocked by another Dataverse customization operation.
+   In `Dev`, the wrapper also allows the existing deployment remediation path to replace a stale plugin assembly registration when Dataverse still holds an older `Yagasoft.Dbm.Plugins` identity.
 4. plugin-step sync through `Sync-DbmPortalRuntimePluginSteps.ps1`
 5. local proof host start on `http://127.0.0.1:4173`
 6. local browser and optional model-driven smoke through `Test-R3PortalRuntimeLocalSmoke.ps1`

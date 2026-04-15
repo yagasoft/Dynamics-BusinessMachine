@@ -130,6 +130,98 @@ function Invoke-DbmPacCommand {
     }
 }
 
+function Test-DbmPacOutputIsSolutionConcurrencyFailure {
+    param(
+        [string]$OutputText
+    )
+
+    if ([string]::IsNullOrWhiteSpace($OutputText)) {
+        return $false
+    }
+
+    return (
+        $OutputText -like '*another [Import] running*' -or
+        $OutputText -like '*another [PublishAll] running*' -or
+        $OutputText -like '*another [EntityCustomization] running*' -or
+        $OutputText -like '*Cannot start the requested operation [Import] because there is another [PublishAll] running*' -or
+        $OutputText -like '*Cannot start the requested operation [PublishAll] because there is another [Import] running*' -or
+        $OutputText -like '*Cannot start the requested operation [Uninstall] because there is another [EntityCustomization] running*' -or
+        $OutputText -like '*Use Solution History for more details*' -or
+        $OutputText -like '*solution installation or removal failed due to the installation or removal of another solution at the same time*' -or
+        $OutputText -like '*SolutionConcurrencyFailure*'
+    )
+}
+
+function Invoke-DbmPacImportWithRetry {
+    param(
+        [Parameter(Mandatory = $true)]
+        [string]$PacPath,
+
+        [Parameter(Mandatory = $true)]
+        [string[]]$Arguments,
+
+        [Parameter(Mandatory = $true)]
+        [string]$SolutionName,
+
+        [int]$MaxAttempts = 6,
+
+        [int]$RetryDelaySeconds = 10
+    )
+
+    $lastResult = $null
+    for ($attempt = 1; $attempt -le $MaxAttempts; $attempt++) {
+        $lastResult = Invoke-DbmPacCommand -PacPath $PacPath -Arguments $Arguments
+        if ($lastResult.ExitCode -eq 0) {
+            return $lastResult
+        }
+
+        $isConcurrencyFailure = Test-DbmPacOutputIsSolutionConcurrencyFailure -OutputText $lastResult.OutputText
+        if (-not $isConcurrencyFailure -or $attempt -eq $MaxAttempts) {
+            return $lastResult
+        }
+
+        Write-Warning "Solution import for '$SolutionName' is blocked by an active Dataverse customization operation. Waiting $RetryDelaySeconds second(s) before retry $($attempt + 1) of $MaxAttempts."
+        Start-Sleep -Seconds $RetryDelaySeconds
+    }
+
+    return $lastResult
+}
+
+function Invoke-DbmPacDeleteWithRetry {
+    param(
+        [Parameter(Mandatory = $true)]
+        [string]$PacPath,
+
+        [Parameter(Mandatory = $true)]
+        [string[]]$Arguments,
+
+        [Parameter(Mandatory = $true)]
+        [string]$SolutionName,
+
+        [int]$MaxAttempts = 6,
+
+        [int]$RetryDelaySeconds = 10
+    )
+
+    $lastResult = $null
+    for ($attempt = 1; $attempt -le $MaxAttempts; $attempt++) {
+        $lastResult = Invoke-DbmPacCommand -PacPath $PacPath -Arguments $Arguments
+        if ($lastResult.ExitCode -eq 0) {
+            return $lastResult
+        }
+
+        $isConcurrencyFailure = Test-DbmPacOutputIsSolutionConcurrencyFailure -OutputText $lastResult.OutputText
+        if (-not $isConcurrencyFailure -or $attempt -eq $MaxAttempts) {
+            return $lastResult
+        }
+
+        Write-Warning "Solution delete for '$SolutionName' is blocked by an active Dataverse customization operation. Waiting $RetryDelaySeconds second(s) before retry $($attempt + 1) of $MaxAttempts."
+        Start-Sleep -Seconds $RetryDelaySeconds
+    }
+
+    return $lastResult
+}
+
 function Invoke-DbmPacPublishWithRetry {
     param(
         [Parameter(Mandatory = $true)]
@@ -150,10 +242,7 @@ function Invoke-DbmPacPublishWithRetry {
             return
         }
 
-        $isImportConcurrencyFailure = -not [string]::IsNullOrWhiteSpace($lastResult.OutputText) -and (
-            $lastResult.OutputText -like '*another [Import] running*' -or
-            $lastResult.OutputText -like '*SolutionConcurrencyFailure*'
-        )
+        $isImportConcurrencyFailure = Test-DbmPacOutputIsSolutionConcurrencyFailure -OutputText $lastResult.OutputText
 
         if (-not $isImportConcurrencyFailure -or $attempt -eq $MaxAttempts) {
             break
@@ -616,7 +705,7 @@ function Import-DbmSolutionPackage {
     }
 
     try {
-        $importResult = Invoke-DbmPacCommand -PacPath $pacPath -Arguments $importArguments
+        $importResult = Invoke-DbmPacImportWithRetry -PacPath $pacPath -Arguments $importArguments -SolutionName $SolutionName
         if ($importResult.ExitCode -ne 0) {
             $message = if ([string]::IsNullOrWhiteSpace($importResult.OutputText)) {
                 "pac solution import failed for '$($package.FullName)'."
@@ -648,9 +737,15 @@ function Import-DbmSolutionPackage {
         if ($existingSolution) {
             $remediation.deleteAttemptedUtc = (Get-Date).ToUniversalTime().ToString('o')
 
-            & $pacPath --log-to-console solution delete --environment $DataverseUrl --solution-name $SolutionName
-            if ($LASTEXITCODE -ne 0) {
+            $deleteResult = Invoke-DbmPacDeleteWithRetry `
+                -PacPath $pacPath `
+                -Arguments @('--log-to-console', 'solution', 'delete', '--environment', $DataverseUrl, '--solution-name', $SolutionName) `
+                -SolutionName $SolutionName
+            if ($deleteResult.ExitCode -ne 0) {
                 $remediation.deleteSucceeded = $false
+                if (-not [string]::IsNullOrWhiteSpace($deleteResult.OutputText)) {
+                    $remediation.deleteFailure = $deleteResult.OutputText
+                }
                 $remediation | ConvertTo-Json -Depth 6 | Set-Content -Path $remediationEvidencePath -Encoding UTF8
                 throw "pac solution delete failed while remediating plugin assembly identity drift for '$SolutionName'."
             }
@@ -717,7 +812,7 @@ function Import-DbmSolutionPackage {
         $remediation.pluginAssemblyCleanupSucceeded = $true
 
         $retryImportArguments = @($importArguments | Where-Object { $_ -ne '--stage-and-upgrade' })
-        $retryImportResult = Invoke-DbmPacCommand -PacPath $pacPath -Arguments $retryImportArguments
+        $retryImportResult = Invoke-DbmPacImportWithRetry -PacPath $pacPath -Arguments $retryImportArguments -SolutionName $SolutionName
         if ($retryImportResult.ExitCode -ne 0) {
             $remediation.retrySucceeded = $false
             if (-not [string]::IsNullOrWhiteSpace($retryImportResult.OutputText)) {

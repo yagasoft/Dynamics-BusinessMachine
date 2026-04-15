@@ -183,12 +183,19 @@ Assert-DbmCondition -Condition ($commonScriptSource -match 'System\.Net\.Http\.H
 Assert-DbmCondition -Condition ($commonScriptSource -match 'SendAsync\(') -Message 'Portal runtime helper should issue Dataverse requests through HttpClient.SendAsync.'
 Assert-DbmCondition -Condition ($commonScriptSource -match 'function Find-DbmPortalRuntimeLocalProofProcesses') -Message 'Portal runtime helper should expose local proof process detection.'
 
+$dataverseDeploymentSource = Get-Content -Path (Join-Path $resolvedRepoRoot 'eng\scripts\Invoke-DataverseDeployment.ps1') -Raw
+Assert-DbmCondition -Condition ($dataverseDeploymentSource -match 'function Invoke-DbmPacImportWithRetry') -Message 'Dataverse deployment should retry transient solution import lock failures.'
+Assert-DbmCondition -Condition ($dataverseDeploymentSource -match 'function Invoke-DbmPacDeleteWithRetry') -Message 'Dataverse deployment should retry transient solution delete lock failures.'
+Assert-DbmCondition -Condition ($dataverseDeploymentSource -match "blocked by an active Dataverse customization operation") -Message 'Dataverse deployment should surface a clear retry warning for transient import locks.'
+
 $wrapperScriptSource = Get-Content -Path (Join-Path $resolvedRepoRoot 'eng\scripts\Invoke-R3PortalRuntimeLocalProof.ps1') -Raw
 Assert-DbmCondition -Condition ($wrapperScriptSource -notmatch 'ReadToEnd\(') -Message 'Local proof wrapper should not buffer child output with ReadToEnd().'
 Assert-DbmCondition -Condition ($wrapperScriptSource -match '-RedirectStandardOutput') -Message 'Local proof wrapper should redirect child stdout to a log file.'
 Assert-DbmCondition -Condition ($wrapperScriptSource -match '-RedirectStandardError') -Message 'Local proof wrapper should redirect child stderr to a log file.'
 Assert-DbmCondition -Condition ($wrapperScriptSource -match 'Resolve-DbmAssemblyKeyFile\.ps1') -Message 'Local proof wrapper should preflight the approved DBM signing key.'
 Assert-DbmCondition -Condition ($wrapperScriptSource -match 'Build-DotNet\.ps1') -Message 'Local proof wrapper should use the signed legacy packaging build path.'
+Assert-DbmCondition -Condition ($wrapperScriptSource -match 'Invoke-DataverseDeployment\.ps1.*-AllowSameVersionImport') -Message 'Local proof wrapper should force same-version Dataverse imports so Dev proof changes are not skipped.'
+Assert-DbmCondition -Condition ($wrapperScriptSource -match 'Invoke-DataverseDeployment\.ps1.*-AllowSolutionReplaceOnPluginIdentityChange') -Message 'Local proof wrapper should allow Dev remediation of stale plugin assembly identities.'
 Assert-DbmCondition -Condition ($wrapperScriptSource -match 'server-entry\.js') -Message 'Local proof wrapper should start the Node local proof host.'
 Assert-DbmCondition -Condition ($wrapperScriptSource -match 'Test-R3PortalRuntimeLocalSmoke\.ps1') -Message 'Local proof wrapper should execute the local smoke script.'
 
