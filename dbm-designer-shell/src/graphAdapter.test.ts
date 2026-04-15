@@ -32,6 +32,14 @@ describe('designer graph adapters', () => {
       caption: 'Draft Request',
       category: 'stage'
     });
+    expect(flowGraph.nodes.find((node) => node.id === 'group:actor:requester')).toMatchObject({
+      type: 'lane',
+      selectable: false,
+      focusable: false,
+      style: {
+        pointerEvents: 'none'
+      }
+    });
     expect(flowGraph.edges).not.toHaveLength(0);
     expect(flowGraph.edges[0]).toMatchObject({
       selectable: true,

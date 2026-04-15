@@ -1,7 +1,7 @@
 import { mkdirSync } from 'node:fs';
 import path from 'node:path';
 
-import { expect, test, type Page } from '@playwright/test';
+import { expect, test, type Frame, type Page } from '@playwright/test';
 
 import { loadRunContext } from '../src/case-loader.js';
 import { createRecord, deleteRecord, resolveEntityConfig } from '../src/dataverse.js';
@@ -89,6 +89,12 @@ async function measureHostedDesignerLayout(frame: Awaited<ReturnType<typeof wait
       measuredChildren
     };
   });
+}
+
+async function clickVisibleDesignerEdge(frame: Frame, selector: string) {
+  const edge = frame.locator(selector).first();
+  await expect(edge).toBeVisible({ timeout: 30_000 });
+  await edge.click({ force: true });
 }
 
 test('model-driven process host fits the form and reopens the hosted designer', async ({ browser, request }) => {
@@ -200,6 +206,18 @@ test('model-driven process host fits the form and reopens the hosted designer', 
     expect(expandedLayout?.childOverflowCount).toBe(0);
     expect(expandedLayout?.previewWidth ?? 0).toBeGreaterThan(320);
     expect(expandedLayout?.metadataWidth ?? 0).toBeGreaterThan(320);
+
+    await clickVisibleDesignerEdge(designerFrame, '.react-flow__edge[data-id^="transition:"]');
+    await expect(designerFrame.getByText('Stage Connection')).toBeVisible({ timeout: 30_000 });
+    await expect(designerFrame.getByRole('button', { name: 'Delete Connection' })).toBeVisible({ timeout: 30_000 });
+    await expect(designerFrame.getByText(/Capture TestTableOne\s*->\s*Create TestTableTwo/i)).toBeVisible({ timeout: 30_000 });
+
+    const stageConnectionLabels = designerFrame.locator('[data-testid^="graph-edge-label-transition:"]');
+    await expect(stageConnectionLabels).toHaveCount(2, { timeout: 30_000 });
+    await expect(stageConnectionLabels.nth(1)).toBeVisible({ timeout: 30_000 });
+    await stageConnectionLabels.nth(1).click();
+    await expect(designerFrame.getByText('Stage Connection')).toBeVisible({ timeout: 30_000 });
+    await expect(designerFrame.getByText(/Create TestTableTwo\s*->\s*Complete/i)).toBeVisible({ timeout: 30_000 });
 
     await designerPage.screenshot({
       path: path.join(evidenceRoot, 'designer-reopen.png'),

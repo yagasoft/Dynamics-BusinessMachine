@@ -391,7 +391,7 @@ export function DesignerShell({ repository }: DesignerShellProps) {
   const [diagnosticsOpen, setDiagnosticsOpen] = useState(false);
   const [activeDragLabel, setActiveDragLabel] = useState<string | null>(null);
   const [focusToken, setFocusToken] = useState(0);
-  const [palettePosition, setPalettePosition] = useState(() => (isHostedDesigner ? { x: 360, y: 32 } : { x: 24, y: 24 }));
+  const [palettePosition, setPalettePosition] = useState(() => ({ x: 24, y: 24 }));
   const [focusTargetId, setFocusTargetId] = useState<string | null>(null);
   const [focusRequestToken, setFocusRequestToken] = useState(0);
   const [starterOpen, setStarterOpen] = useState(false);
@@ -404,6 +404,9 @@ export function DesignerShell({ repository }: DesignerShellProps) {
   const [selectedMetadataBundle, setSelectedMetadataBundle] = useState<DataverseImportedFormBundle | null>(null);
   const [metadataBusy, setMetadataBusy] = useState(false);
   const [metadataError, setMetadataError] = useState<string | null>(null);
+  const graphWorkspaceRef = useRef<HTMLElement | null>(null);
+  const palettePanelRef = useRef<HTMLDivElement | null>(null);
+  const paletteAutoPlacementEnabledRef = useRef(isHostedDesigner);
   const paletteDragRef = useRef<{
     pointerId: number;
     startX: number;
@@ -949,12 +952,68 @@ export function DesignerShell({ repository }: DesignerShellProps) {
   }, [clipboardPayload, editorState.document, history.future, history.past]);
 
   useEffect(() => {
+    if (!isHostedDesigner) {
+      return;
+    }
+
+    function applyHostedPalettePosition() {
+      if (!paletteAutoPlacementEnabledRef.current) {
+        return;
+      }
+
+      const graphWorkspace = graphWorkspaceRef.current;
+      const palettePanel = palettePanelRef.current;
+      if (!graphWorkspace || !palettePanel) {
+        return;
+      }
+
+      const padding = 24;
+      const graphWidth = graphWorkspace.clientWidth;
+      const graphHeight = graphWorkspace.clientHeight;
+      const panelWidth = palettePanel.offsetWidth || 236;
+      const panelHeight = palettePanel.offsetHeight || 340;
+
+      if (graphWidth <= 0 || graphHeight <= 0) {
+        return;
+      }
+
+      setPalettePosition({
+        x: Math.max(padding, graphWidth - panelWidth - padding),
+        y: Math.max(padding, graphHeight - panelHeight - padding)
+      });
+    }
+
+    applyHostedPalettePosition();
+
+    if (typeof ResizeObserver === 'undefined') {
+      return;
+    }
+
+    const resizeObserver = new ResizeObserver(() => {
+      applyHostedPalettePosition();
+    });
+
+    if (graphWorkspaceRef.current) {
+      resizeObserver.observe(graphWorkspaceRef.current);
+    }
+
+    if (palettePanelRef.current) {
+      resizeObserver.observe(palettePanelRef.current);
+    }
+
+    return () => {
+      resizeObserver.disconnect();
+    };
+  }, [isHostedDesigner, currentRecord?.packageName, previewPanelOpen, metadataPanelOpen, editorState.document?.graph.nodes.length]);
+
+  useEffect(() => {
     function onPointerMove(event: PointerEvent) {
       const activeDrag = paletteDragRef.current;
       if (!activeDrag) {
         return;
       }
 
+      paletteAutoPlacementEnabledRef.current = false;
       setPalettePosition({
         x: Math.max(16, activeDrag.originX + event.clientX - activeDrag.startX),
         y: Math.max(16, activeDrag.originY + event.clientY - activeDrag.startY)
@@ -1144,13 +1203,13 @@ export function DesignerShell({ repository }: DesignerShellProps) {
             </div>
           ) : null}
           <ProcessOverviewStrip snapshot={editorState.snapshot} selectedStageId={selectedStageId} onSelectStage={(stageId) => handleSelectionChange(`stage:${stageId}`)} />
-          <section style={graphWorkspaceStyle}>
+          <section ref={graphWorkspaceRef} style={graphWorkspaceStyle}>
             <GraphCanvas document={editorState.document} onSelectionChange={handleSelectionChange} onGraphIntent={handleGraphIntent} onNodePositionCommit={handleNodePositionCommit} onToggleStageCollapse={handleToggleStageCollapse} onPaletteStageDrop={(position) => handleGraphIntent({ kind: 'add-stage', actorId: editorState.document?.model.process.actors[0]?.id, preferredPosition: position })} focusTargetId={focusTargetId} focusRequestToken={focusRequestToken} />
             <div style={topLeftOverlayStyle}>
               <SelectionEditorCard document={editorState.document} selection={selection} focusToken={focusToken} onIntent={handleGraphIntent} onToggleStageCollapse={handleToggleStageCollapse} isStageCollapsed={(stageId) => !!editorState.document?.workspace.collapsedNodeIds.includes(toStageNodeId(stageId))} compact={isHostedDesigner} />
             </div>
             <div style={{ ...paletteOverlayStyle, left: `${palettePosition.x}px`, top: `${palettePosition.y}px` }}>
-              <div style={resolvedFloatingPanelStyle}>
+              <div ref={palettePanelRef} style={resolvedFloatingPanelStyle}>
                 <div
                   style={paletteHeaderStyle}
                   onPointerDown={(event) => {

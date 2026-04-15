@@ -54,6 +54,7 @@ export interface DesignerFlowEdgeData {
   mode: 'overview' | 'detail';
   emphasis: 'normal' | 'muted';
   issueSummary: IssueDecorationSummary | null;
+  onSelectEdge?: (edgeId: string) => void;
 }
 
 export type DesignerFlowNodeData = FlowLaneData | FlowStageData | FlowStepData | FlowOutcomeData;
@@ -216,7 +217,8 @@ function buildFlowGraph(document: DesignerDocument): DesignerFlowGraphDocument {
     style: {
       width: stageNodesWidth,
       height: laneHeight,
-      zIndex: 0
+      zIndex: 0,
+      pointerEvents: 'none'
     }
   }));
 

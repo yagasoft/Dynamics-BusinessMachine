@@ -231,6 +231,12 @@ function SelectableEdge({
   const opacity = data?.emphasis === 'muted' ? 0.22 : 1;
   const issueToneValue = issueTone(data?.issueSummary);
 
+  function handleSelect(event: { preventDefault(): void; stopPropagation(): void }) {
+    event.preventDefault();
+    event.stopPropagation();
+    data?.onSelectEdge?.(id);
+  }
+
   return (
     <>
       <BaseEdge id={`${id}-hit`} path={edgePath} style={{ stroke: 'transparent', strokeWidth: 24 }} interactionWidth={32} />
@@ -254,8 +260,13 @@ function SelectableEdge({
               transform: `translate(-50%, -50%) translate(${labelX}px, ${labelY}px)`,
               borderColor: stroke,
               color: stroke,
-              opacity
+              opacity,
+              pointerEvents: 'all',
+              cursor: 'pointer'
             }}
+            data-testid={`graph-edge-label-${id}`}
+            onClick={handleSelect}
+            onMouseDown={handleSelect}
           >
             {label ? <span>{label}</span> : null}
             {data?.issueSummary ? (
@@ -352,9 +363,15 @@ function GraphCanvasInner({ document, onSelectionChange, onGraphIntent, onNodePo
             }
           : node
       )),
-      edges: baseGraph.edges
+      edges: baseGraph.edges.map((edge) => ({
+        ...edge,
+        data: {
+          ...edge.data,
+          onSelectEdge: onSelectionChange
+        }
+      }))
     };
-  }, [document, onToggleStageCollapse]);
+  }, [document, onSelectionChange, onToggleStageCollapse]);
 
   useDndMonitor({
     onDragEnd(event) {
