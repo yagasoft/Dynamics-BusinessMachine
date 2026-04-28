@@ -5,16 +5,119 @@
   <meta name="viewport" content="width=device-width, initial-scale=1" />
   <title>DBM Process Experience</title>
   <style>
-    html, body, #dbm-process-host-root { height: 100%; margin: 0; }
+    html, body { margin: 0; padding: 0; }
     body { overflow: hidden; background: transparent; font-family: Segoe UI, Arial, sans-serif; }
+    #dbm-process-host-root { width: 100%; }
   </style>
 </head>
 <body>
   <div id="dbm-process-host-root"></div>
   <script>
     (function () {
+      let resizeObserver = null;
+      let measureScheduled = false;
+      function getHostData() {
+        try {
+          const raw = new URLSearchParams(window.location.search).get('data');
+          return raw ? JSON.parse(raw) : null;
+        } catch (error) {
+          return null;
+        }
+      }
       function getClientUrl() {
         return window.parent?.Xrm?.Utility?.getGlobalContext?.()?.getClientUrl?.() || '';
+      }
+      function getMinimumHeight(hostData) {
+        const raw = Number(hostData?.minHeightPx);
+        return Number.isFinite(raw) && raw > 0 ? Math.round(raw) : 0;
+      }
+      function applyMeasuredHeight(heightPx) {
+        const nextHeight = Math.max(0, Math.round(heightPx));
+        if (!nextHeight) {
+          return;
+        }
+        const frame = window.frameElement;
+        if (!frame || typeof frame !== 'object' || !('style' in frame) || typeof frame.setAttribute !== 'function') {
+          return;
+        }
+        const normalized = `${nextHeight}px`;
+        frame.setAttribute('height', String(nextHeight));
+        frame.style.display = 'block';
+        frame.style.height = normalized;
+        frame.style.minHeight = normalized;
+        frame.style.width = '100%';
+        frame.style.overflow = 'hidden';
+        let current = frame.parentElement;
+        let depth = 0;
+        while (current && depth < 4) {
+          current.style.minHeight = normalized;
+          current.style.overflow = 'visible';
+          if (depth < 2) {
+            current.style.height = normalized;
+          }
+          current = current.parentElement;
+          depth += 1;
+        }
+      }
+      function measureAndApplyHeight(root, hostData) {
+        if (!root) {
+          return;
+        }
+        root.style.minHeight = `${getMinimumHeight(hostData)}px`;
+        const measurements = [
+          root.scrollHeight,
+          root.offsetHeight,
+          root.getBoundingClientRect().height,
+          document.body?.scrollHeight || 0,
+          document.documentElement?.scrollHeight || 0
+        ].filter((value) => Number.isFinite(value) && value > 0);
+        const contentHeight = measurements.length > 0 ? Math.max.apply(Math, measurements) : 0;
+        const nextHeight = Math.max(getMinimumHeight(hostData), Math.ceil(contentHeight));
+        if (!nextHeight) {
+          return;
+        }
+        applyMeasuredHeight(nextHeight);
+      }
+      function scheduleMeasure(root, hostData) {
+        if (measureScheduled) {
+          return;
+        }
+        measureScheduled = true;
+        window.requestAnimationFrame(function () {
+          window.requestAnimationFrame(function () {
+            measureScheduled = false;
+            measureAndApplyHeight(root, hostData);
+          });
+        });
+      }
+      function bindAutoSizing(root, hostData) {
+        if (!root) {
+          return;
+        }
+        scheduleMeasure(root, hostData);
+        if (typeof ResizeObserver === 'function') {
+          resizeObserver = new ResizeObserver(function () {
+            scheduleMeasure(root, hostData);
+          });
+          resizeObserver.observe(root);
+        }
+        window.addEventListener('resize', function () {
+          scheduleMeasure(root, hostData);
+        });
+        window.setTimeout(function () {
+          scheduleMeasure(root, hostData);
+        }, 0);
+        window.setTimeout(function () {
+          scheduleMeasure(root, hostData);
+        }, 150);
+        window.setTimeout(function () {
+          scheduleMeasure(root, hostData);
+        }, 500);
+        if (document.fonts?.ready && typeof document.fonts.ready.then === 'function') {
+          document.fonts.ready.then(function () {
+            scheduleMeasure(root, hostData);
+          }).catch(function () {});
+        }
       }
       function bootFrameBridge() {
         if (!window.DBM || !window.DBM.ProcessExperienceHost) {
@@ -22,18 +125,30 @@
           return;
         }
         const root = document.getElementById('dbm-process-host-root');
+        const hostData = getHostData();
+        bindAutoSizing(root, hostData);
         window.DBM = window.DBM || {};
         window.DBM.ProcessExperienceSectionFrame = {
           render: function (props) {
             window.DBM.ProcessExperienceHost.render(root, props);
+            scheduleMeasure(root, hostData);
           },
           unmount: function () {
             window.DBM.ProcessExperienceHost.unmount(root);
+            if (resizeObserver) {
+              resizeObserver.disconnect();
+              resizeObserver = null;
+            }
           }
         };
+        scheduleMeasure(root, hostData);
       }
       function loadRenderer() {
-        const scriptUrl = getClientUrl().replace(/\/$/, '') + '/WebResources/ys_/dbm/process-experience/renderer.js';
+        const hostData = getHostData();
+        let scriptUrl = getClientUrl().replace(/\/$/, '') + '/WebResources/ys_/dbm/process-experience/renderer.js';
+        if (hostData?.rendererVersion) {
+          scriptUrl += '?v=' + encodeURIComponent(hostData.rendererVersion);
+        }
         const script = document.createElement('script');
         script.src = scriptUrl;
         script.onload = bootFrameBridge;

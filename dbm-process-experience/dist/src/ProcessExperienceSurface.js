@@ -56,13 +56,44 @@ function renderProjectionCallToAction(snapshot, props) {
     }
     return (_jsxs(_Fragment, { children: [_jsxs("div", { style: projectionCopyStyle, children: [_jsx("span", { style: projectionLabelStyle, children: "Heads up" }), _jsx("div", { children: snapshot.projection.message })] }), props.navigationTarget && props.onNavigateToFormRegion ? (_jsxs("button", { type: "button", style: secondaryActionButtonStyle, onClick: () => props.onNavigateToFormRegion?.(props.navigationTarget), children: ["Open ", props.navigationTarget.label] })) : null] }));
 }
+const portalActionOrder = [
+    'create-draft',
+    'submit-request',
+    'refresh-status'
+];
+function portalActionLabel(actionId) {
+    switch (actionId) {
+        case 'create-draft':
+            return 'Create draft';
+        case 'submit-request':
+            return 'Submit request';
+        case 'refresh-status':
+            return 'Refresh status';
+        default:
+            return actionId;
+    }
+}
+function portalActionHelper(actionId) {
+    switch (actionId) {
+        case 'create-draft':
+            return 'Start a new request in this browser session.';
+        case 'submit-request':
+            return 'Send the request into the next internal review step.';
+        case 'refresh-status':
+            return 'Reload the latest portal-safe process status.';
+        default:
+            return null;
+    }
+}
 export function ProcessExperienceSurface(props) {
     const snapshot = props.snapshot;
+    const portalShell = props.portalShell ?? null;
     const [isFlowOpen, setFlowOpen] = useState(false);
     const lastAutoOpenKeyRef = useRef(null);
     const resolvedDesignerEntryUrlRef = useRef(null);
     const viewModel = useMemo(() => (snapshot ? buildGuidedWorkspaceViewModel(snapshot, props.audience ?? snapshot.audience) : null), [props.audience, snapshot]);
-    const resolvedAudience = props.audience ?? snapshot?.audience;
+    const resolvedAudience = props.audience ?? snapshot?.audience ?? (props.mode === 'external-runtime' ? 'portal' : undefined);
+    const isExternalRuntime = props.mode === 'external-runtime';
     const isModelDriven = props.mode === 'model-driven-section' || props.mode === 'model-driven-overlay';
     const currentStageOutgoingTransitions = snapshot
         ? snapshot.transitions.filter((transition) => transition.fromStageId === snapshot.currentStageId)
@@ -107,6 +138,22 @@ export function ProcessExperienceSurface(props) {
     const resolvedFlowStageCardStyle = isModelDriven ? compactFlowStageCardStyle : flowStageCardStyle;
     const resolvedFlowStageHelperStyle = isModelDriven ? compactFlowStageHelperStyle : flowStageHelperStyle;
     const resolvedFlowDestinationStyle = isModelDriven ? compactFlowDestinationStyle : flowDestinationStyle;
+    const portalActionEntries = portalActionOrder
+        .map((actionId) => {
+        const actionState = portalShell?.actions[actionId];
+        if (!actionState) {
+            return null;
+        }
+        return {
+            id: actionId,
+            label: actionState.label ?? portalActionLabel(actionId),
+            helperText: actionState.helperText ?? portalActionHelper(actionId),
+            emphasis: actionId === 'submit-request' || actionId === 'create-draft' ? 'primary' : 'secondary',
+            enabled: actionState.enabled,
+            pending: actionState.pending ?? false
+        };
+    })
+        .filter((entry) => Boolean(entry));
     useEffect(() => {
         if (lastAutoOpenKeyRef.current === autoOpenKey) {
             return;
@@ -115,6 +162,9 @@ export function ProcessExperienceSurface(props) {
         setFlowOpen(shouldAutoOpenFlow);
     }, [autoOpenKey, shouldAutoOpenFlow]);
     if (!snapshot || !viewModel || !resolvedAudience) {
+        if (isExternalRuntime && portalShell) {
+            return (_jsxs("div", { style: surfaceShellStyle, children: [_jsxs("div", { style: headerShellStyle, children: [_jsxs("div", { children: [_jsx("div", { style: eyebrowStyle, children: "DBM External Runtime" }), _jsx("h2", { style: headingStyle, children: portalShell.entryTitle ?? 'Start your request' }), _jsx("p", { style: introCopyStyle, children: portalShell.entrySummary ?? 'Create a draft request to begin the external entry flow.' })] }), _jsxs("div", { style: statusClusterStyle, children: [portalShell.requestStateLabel ? _jsx("span", { style: statusPillStyle, children: portalShell.requestStateLabel }) : null, portalShell.sameSessionEnabled ? _jsx("span", { style: statusPillStyle, children: "Same browser session" }) : null] })] }), _jsxs("div", { style: supportCardStyle, children: [_jsx("div", { style: supportCardLabelStyle, children: "Portal entry" }), _jsx("p", { style: supportParagraphStyle, children: "The portal shell keeps request initiation and status refresh in one place while Dataverse remains the authority for runtime state changes." }), portalActionEntries.length > 0 ? (_jsx("div", { style: actionGroupStyle, children: portalActionEntries.map((action) => (_jsx("button", { type: "button", style: action.emphasis === 'primary' ? primaryActionButtonStyle : secondaryActionButtonStyle, onClick: () => props.onPortalAction?.(action.id), disabled: !props.onPortalAction || !action.enabled || action.pending, children: action.pending ? `${action.label}...` : action.label }, action.id))) })) : (_jsx("div", { style: readOnlyNoticeStyle, children: "Portal actions will appear here when the runtime is ready." }))] })] }));
+        }
         return _jsx("div", { style: emptyStateStyle, children: "Process experience becomes available once the model and workspace parse cleanly." });
     }
     async function handleOpenDesigner() {
@@ -187,9 +237,11 @@ export function ProcessExperienceSurface(props) {
         };
         window.open(resolvedUrl, '_blank', 'noopener');
     }
-    return (_jsxs("div", { style: resolvedSurfaceShellStyle, children: [_jsxs("div", { style: headerShellStyle, children: [_jsxs("div", { children: [_jsx("div", { style: eyebrowStyle, children: "DBM Process" }), _jsx("h2", { style: resolvedHeadingStyle, children: viewModel.processTitle }), _jsx("p", { style: resolvedIntroCopyStyle, children: viewModel.introCopy })] }), _jsxs("div", { style: statusClusterStyle, children: [_jsx("span", { style: { ...resolvedStatusPillStyle, color: currentTone.text, borderColor: currentTone.border, background: currentTone.chip }, children: viewModel.currentTask.statusLabel }), isModelDriven && props.designerEntryUrl ? (_jsx("button", { type: "button", style: resolvedSecondaryActionButtonStyle, onClick: () => {
+    return (_jsxs("div", { style: resolvedSurfaceShellStyle, children: [_jsxs("div", { style: headerShellStyle, children: [_jsxs("div", { children: [_jsx("div", { style: eyebrowStyle, children: "DBM Process" }), _jsx("h2", { style: resolvedHeadingStyle, children: viewModel.processTitle }), _jsx("p", { style: resolvedIntroCopyStyle, children: isExternalRuntime && portalShell?.entrySummary ? portalShell.entrySummary : viewModel.introCopy })] }), _jsxs("div", { style: statusClusterStyle, children: [_jsx("span", { style: { ...resolvedStatusPillStyle, color: currentTone.text, borderColor: currentTone.border, background: currentTone.chip }, children: viewModel.currentTask.statusLabel }), isExternalRuntime && portalShell?.requestReference ? (_jsx("span", { style: resolvedStatusPillStyle, children: portalShell.requestReference })) : null, isExternalRuntime && portalShell?.sameSessionEnabled ? (_jsx("span", { style: resolvedStatusPillStyle, children: "Same browser session" })) : null, isModelDriven && props.designerEntryUrl ? (_jsx("button", { type: "button", style: resolvedSecondaryActionButtonStyle, onClick: () => {
                                     void handleOpenDesigner();
-                                }, children: "Edit process" })) : null, _jsx("button", { type: "button", style: resolvedFlowToggleButtonStyle, "aria-expanded": isFlowOpen, onClick: () => setFlowOpen((current) => !current), children: isFlowOpen ? 'Hide flow' : 'View flow' })] })] }), snapshot.projection.message ? _jsx("div", { style: resolvedProjectionNoticeStyle, children: renderProjectionCallToAction(snapshot, props) }) : null, _jsx("div", { style: resolvedJourneyTrackerShellStyle, children: viewModel.trackerItems.map((item) => {
+                                }, children: "Edit process" })) : null, _jsx("button", { type: "button", style: resolvedFlowToggleButtonStyle, "aria-expanded": isFlowOpen, onClick: () => setFlowOpen((current) => !current), children: isFlowOpen ? 'Hide flow' : 'View flow' })] })] }), isExternalRuntime && portalShell ? (_jsxs("div", { style: resolvedSupportCardStyle, children: [_jsx("div", { style: supportCardLabelStyle, children: portalShell.entryTitle ?? 'Portal session' }), _jsx("p", { style: resolvedSupportParagraphStyle, children: portalShell.requestStateLabel
+                            ? `Current portal state: ${portalShell.requestStateLabel}.`
+                            : 'The portal shell is reading the canonical Dataverse runtime state for this request.' }), portalActionEntries.length > 0 ? (_jsx("div", { style: resolvedActionGroupStyle, children: portalActionEntries.map((action) => (_jsx("button", { type: "button", style: action.emphasis === 'primary' ? resolvedPrimaryActionButtonStyle : resolvedSecondaryActionButtonStyle, onClick: () => props.onPortalAction?.(action.id), disabled: !props.onPortalAction || !action.enabled || action.pending, children: action.pending ? `${action.label}...` : action.label }, action.id))) })) : null] })) : null, snapshot.projection.message ? _jsx("div", { style: resolvedProjectionNoticeStyle, children: renderProjectionCallToAction(snapshot, props) }) : null, _jsx("div", { style: resolvedJourneyTrackerShellStyle, children: viewModel.trackerItems.map((item) => {
                     const palette = tonePalette(item.tone);
                     return (_jsxs("button", { type: "button", style: {
                             ...resolvedTrackerItemStyle,
@@ -204,7 +256,7 @@ export function ProcessExperienceSurface(props) {
                             background: currentTone.background,
                             borderColor: currentTone.border,
                             boxShadow: isModelDriven ? `0 10px 24px ${currentTone.shadow}` : `0 22px 44px ${currentTone.shadow}`
-                        }, children: [_jsxs("div", { style: currentTaskHeaderStyle, children: [_jsxs("div", { children: [_jsx("div", { style: currentTaskLabelStyle, children: viewModel.currentTask.stageLabel }), _jsx("h3", { style: resolvedCurrentStageTitleStyle, children: viewModel.currentTask.stageTitle })] }), viewModel.currentTask.actorLabel ? (_jsx("div", { style: resolvedActorBadgeStyle, children: viewModel.currentTask.actorLabel })) : null] }), _jsxs("div", { style: resolvedCurrentTaskBodyStyle, children: [_jsx("div", { style: currentTaskMainColumnStyle, children: _jsxs("div", { style: resolvedCurrentStepCardStyle, children: [_jsx("div", { style: currentStepEyebrowStyle, children: "What to do now" }), _jsx("div", { style: resolvedCurrentStepTitleStyle, children: viewModel.currentTask.stepTitle }), _jsx("p", { style: resolvedCurrentStepSummaryStyle, children: viewModel.currentTask.stepSummary }), _jsx("p", { style: resolvedCurrentStepHelperStyle, children: viewModel.currentTask.helperCopy }), viewModel.currentTask.actions.length > 0 ? (_jsx("div", { style: resolvedActionGroupStyle, children: viewModel.currentTask.actions.map((action) => (_jsx("button", { type: "button", style: action.emphasis === 'primary' ? resolvedPrimaryActionButtonStyle : resolvedSecondaryActionButtonStyle, onClick: () => props.onInvokeOutcome?.(action.id), disabled: !props.onInvokeOutcome, children: action.label }, action.id))) })) : (_jsx("div", { style: readOnlyNoticeStyle, children: "No action is needed from this surface right now." })), viewModel.currentTask.actions.some((action) => action.nextCopy) ? (_jsx("div", { style: nextActionHintsStyle, children: viewModel.currentTask.actions.map((action) => action.nextCopy ? (_jsxs("div", { style: nextActionHintStyle, children: [_jsxs("strong", { children: [action.label, ":"] }), " ", action.nextCopy] }, action.id)) : null) })) : null] }) }), _jsxs("aside", { style: resolvedSupportingColumnStyle, children: [viewModel.currentTask.siblingSteps.length > 0 ? (_jsxs("div", { style: resolvedSupportCardStyle, children: [_jsx("div", { style: supportCardLabelStyle, children: "Step sequence" }), _jsx("div", { style: stepChecklistStyle, children: viewModel.currentTask.siblingSteps.map((step) => {
+                        }, children: [_jsxs("div", { style: currentTaskHeaderStyle, children: [_jsxs("div", { children: [_jsx("div", { style: currentTaskLabelStyle, children: viewModel.currentTask.stageLabel }), _jsx("h3", { style: resolvedCurrentStageTitleStyle, children: viewModel.currentTask.stageTitle })] }), viewModel.currentTask.actorLabel ? (_jsx("div", { style: resolvedActorBadgeStyle, children: viewModel.currentTask.actorLabel })) : null] }), _jsxs("div", { style: resolvedCurrentTaskBodyStyle, children: [_jsx("div", { style: currentTaskMainColumnStyle, children: _jsxs("div", { style: resolvedCurrentStepCardStyle, children: [_jsx("div", { style: currentStepEyebrowStyle, children: "What to do now" }), _jsx("div", { style: resolvedCurrentStepTitleStyle, children: viewModel.currentTask.stepTitle }), _jsx("p", { style: resolvedCurrentStepSummaryStyle, children: viewModel.currentTask.stepSummary }), _jsx("p", { style: resolvedCurrentStepHelperStyle, children: viewModel.currentTask.helperCopy }), isExternalRuntime && portalActionEntries.length > 0 ? (_jsx("div", { style: resolvedActionGroupStyle, children: portalActionEntries.map((action) => (_jsx("button", { type: "button", style: action.emphasis === 'primary' ? resolvedPrimaryActionButtonStyle : resolvedSecondaryActionButtonStyle, onClick: () => props.onPortalAction?.(action.id), disabled: !props.onPortalAction || !action.enabled || action.pending, children: action.pending ? `${action.label}...` : action.label }, action.id))) })) : viewModel.currentTask.actions.length > 0 ? (_jsx("div", { style: resolvedActionGroupStyle, children: viewModel.currentTask.actions.map((action) => (_jsx("button", { type: "button", style: action.emphasis === 'primary' ? resolvedPrimaryActionButtonStyle : resolvedSecondaryActionButtonStyle, onClick: () => props.onInvokeOutcome?.(action.id), disabled: !props.onInvokeOutcome, children: action.label }, action.id))) })) : (_jsx("div", { style: readOnlyNoticeStyle, children: "No action is needed from this surface right now." })), isExternalRuntime && portalActionEntries.some((action) => action.helperText) ? (_jsx("div", { style: nextActionHintsStyle, children: portalActionEntries.map((action) => action.helperText ? (_jsxs("div", { style: nextActionHintStyle, children: [_jsxs("strong", { children: [action.label, ":"] }), " ", action.helperText] }, action.id)) : null) })) : viewModel.currentTask.actions.some((action) => action.nextCopy) ? (_jsx("div", { style: nextActionHintsStyle, children: viewModel.currentTask.actions.map((action) => action.nextCopy ? (_jsxs("div", { style: nextActionHintStyle, children: [_jsxs("strong", { children: [action.label, ":"] }), " ", action.nextCopy] }, action.id)) : null) })) : null] }) }), _jsxs("aside", { style: resolvedSupportingColumnStyle, children: [viewModel.currentTask.siblingSteps.length > 0 ? (_jsxs("div", { style: resolvedSupportCardStyle, children: [_jsx("div", { style: supportCardLabelStyle, children: "Step sequence" }), _jsx("div", { style: stepChecklistStyle, children: viewModel.currentTask.siblingSteps.map((step) => {
                                                             const palette = tonePalette(step.tone);
                                                             return (_jsxs("button", { type: "button", style: {
                                                                     ...resolvedStepChecklistItemStyle,

@@ -9,7 +9,8 @@
 Post-`R1` roadmap note:
 
 - this ADR remains in force for process-UI ownership, portal projection, and Dataverse authoring boundaries
-- the later roadmap sequencing changed after `R1`; the live Power Pages runtime now lands in `R3` under [ADR-0011](0011-post-r1-roadmap-reset-and-designer-process-experience-platform.md)
+- the later roadmap sequencing changed after `R1`; the live external runtime now lands in `R3` under [ADR-0011](0011-post-r1-roadmap-reset-and-designer-process-experience-platform.md)
+- the original Power Pages proof direction was later abandoned before it became durable, and `R3.1` now uses the local SPA proof defined in [ADR-0014](0014-local-spa-proof-and-dataverse-runtime-authority.md)
 
 The revived DBM direction needs a business process that stays coherent from portal to backend to portal. The existing roadmap and contract baseline were still framed around a simpler stage-only process and a model-driven-first runtime without explicit portal state projection, step-level semantics, or generated Dataverse authoring as a first-class product boundary.
 
@@ -44,7 +45,7 @@ The product now needs to lock:
 - `R1.2.3a` must own generated Dataverse tables, columns, relationships, and synthesis layering.
 - `R1.2.3b` must own binding canonical forms to existing Dataverse forms and attaching DBM-managed supported JS behavior.
 - `R1.3` must deliver the first DBM-owned model-driven runtime experience rather than delegating the business-process experience to native BPF.
-- `R2` delivers the live Power Pages runtime on top of the portal projection semantics defined in `R1`.
+- `R2` delivers the shared process-experience system and fixture-validated portal projection foundation that later `R3` external-runtime work builds on.
 
 ## Alternatives considered
 

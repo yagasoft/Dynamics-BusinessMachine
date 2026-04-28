@@ -9,7 +9,7 @@ This runbook is the release-shaped operator guide for the `R2` DBM-owned process
 - Preferred bridge: above-tabs overlay rendered from the same snapshot and host config
 - Release-hardening checks: synthesis/runtime tests, visual baselines, and Dataverse smoke validation
 
-This runbook does not cover live Power Pages integration. Portal continuity in `R2` is fixture-validated only and becomes a live runtime concern in `R3`.
+This runbook does not cover live external-runtime integration. Portal continuity in `R2` is fixture-validated only and becomes a live runtime concern in `R3`.
 
 ## Host Modes
 

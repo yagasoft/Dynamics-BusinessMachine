@@ -80,22 +80,44 @@
     }
   ],
   "runtime": {
-    "requestEntityLogicalName": "dbm_request",
-    "requestEntityPrimaryIdLogicalName": "dbm_requestid",
-    "currentFormEntityLogicalName": "dbm_requestdecision",
-    "relatedRequestLookupFieldLogicalName": "dbm_requestid",
-    "reviewEntityLogicalName": "dbm_requestdecision",
-    "reviewEntityRequestLookupFieldLogicalName": "dbm_requestid",
-    "runtimeStateFieldLogicalNames": {
-      "stageId": "dbm_currentstageid",
-      "stepId": "dbm_currentstepid",
-      "formStateId": "dbm_currentformstateid",
-      "internalStatusId": "dbm_internalstatusid",
-      "portalStatusId": "dbm_portalstatusid"
+    "processOwner": {
+      "entityId": "request",
+      "entityLogicalName": "dbm_request",
+      "primaryIdLogicalName": "dbm_requestid",
+      "runtimeStateFieldLogicalNames": {
+        "stageId": "dbm_currentstageid",
+        "stepId": "dbm_currentstepid",
+        "formStateId": "dbm_currentformstateid",
+        "internalStatusId": "dbm_internalstatusid",
+        "portalStatusId": "dbm_portalstatusid",
+        "portalCommand": "dbm_portalcommand",
+        "portalProfileKey": "dbm_portalprofilekey"
+      }
     },
-    "decisionOutcomeFieldLogicalName": "dbm_decisionoutcome",
-    "decisionSummaryFieldLogicalName": "dbm_decisionsummary",
-    "decisionCommentFieldLogicalName": "dbm_decisioncomment",
+    "currentForm": {
+      "entityId": "request-decision",
+      "entityLogicalName": "dbm_requestdecision",
+      "primaryIdLogicalName": "dbm_requestdecisionid",
+      "relatedProcessOwnerLookupFieldLogicalName": "dbm_requestid"
+    },
+    "stageHandoffsByStageId": {
+      "manager-review": {
+        "sourceStageId": "internal-screening-stage",
+        "targetStageId": "manager-review",
+        "sourceEntityLogicalName": "dbm_request",
+        "targetEntityLogicalName": "dbm_requestdecision",
+        "targetFormId": "review-form",
+        "targetSystemFormId": "{4e37e2e6-61cb-544d-848a-9f870ec4cf4d}",
+        "targetPrimaryIdLogicalName": "dbm_requestdecisionid",
+        "targetPrimaryNameLogicalName": "dbm_name",
+        "strategy": "create-related",
+        "relationshipId": "request-to-decision",
+        "relationshipLogicalName": "dbm_request_dbm_requestdecision",
+        "referencingEntityLogicalName": "dbm_requestdecision",
+        "referencingAttributeLogicalName": "dbm_requestid",
+        "referencingNavigationPropertyName": "dbm_requestid"
+      }
+    },
     "defaultStageId": "draft-request",
     "defaultStepId": "capture-request",
     "defaultFormStateId": "request-edit-state",
@@ -131,6 +153,8 @@
         "displayName": "Draft Request",
         "stageType": "start",
         "formId": "request-form",
+        "entityLogicalName": "dbm_request",
+        "systemFormId": "{8d65fa31-b54d-5d9b-84e0-07d87e113130}",
         "defaultStepId": "capture-request"
       },
       {
@@ -138,6 +162,8 @@
         "displayName": "Internal Screening",
         "stageType": "system",
         "formId": "request-form",
+        "entityLogicalName": "dbm_request",
+        "systemFormId": "{8d65fa31-b54d-5d9b-84e0-07d87e113130}",
         "defaultStepId": "screen-request"
       },
       {
@@ -145,6 +171,8 @@
         "displayName": "Manager Review",
         "stageType": "approval",
         "formId": "review-form",
+        "entityLogicalName": "dbm_requestdecision",
+        "systemFormId": "{4e37e2e6-61cb-544d-848a-9f870ec4cf4d}",
         "defaultStepId": "choose-decision"
       },
       {
@@ -152,6 +180,8 @@
         "displayName": "Approved",
         "stageType": "end",
         "formId": null,
+        "entityLogicalName": null,
+        "systemFormId": null,
         "defaultStepId": null
       },
       {
@@ -159,6 +189,8 @@
         "displayName": "Rejected",
         "stageType": "end",
         "formId": null,
+        "entityLogicalName": null,
+        "systemFormId": null,
         "defaultStepId": null
       }
     ],
@@ -238,6 +270,36 @@
         "exitRuleIds": [
           "rejection-step-complete"
         ]
+      }
+    ],
+    "transitions": [
+      {
+        "id": "submit-request",
+        "fromStageId": "draft-request",
+        "toStageId": "internal-screening-stage",
+        "outcomeId": "submit",
+        "guardRuleId": "request-ready-for-screening"
+      },
+      {
+        "id": "screening-complete-transition",
+        "fromStageId": "internal-screening-stage",
+        "toStageId": "manager-review",
+        "outcomeId": "screen-complete",
+        "guardRuleId": "screening-complete"
+      },
+      {
+        "id": "approve-request",
+        "fromStageId": "manager-review",
+        "toStageId": "approved",
+        "outcomeId": "approve",
+        "guardRuleId": "approval-step-complete"
+      },
+      {
+        "id": "reject-request",
+        "fromStageId": "manager-review",
+        "toStageId": "rejected",
+        "outcomeId": "reject",
+        "guardRuleId": "rejection-step-complete"
       }
     ],
     "stepTransitions": [
@@ -392,22 +454,8 @@
         "entityLogicalName": "dbm_requestdecision",
         "fieldLogicalName": "dbm_decisioncomment",
         "fieldType": "multiline-string"
-      },
-      {
-        "token": "requestedOutcomeId",
-        "entityLogicalName": "dbm_requestdecision",
-        "fieldLogicalName": "dbm_decisionoutcome",
-        "fieldType": "choice",
-        "choiceMap": {
-          "100000000": "approve",
-          "100000001": "reject"
-        }
       }
     ],
-    "decisionOutcomeOptionValuesByOutcomeId": {
-      "approve": 100000000,
-      "reject": 100000001
-    },
     "processExperienceRuntime": {
       "packageId": "dbm-approval-request",
       "packageVersion": "1.2.1",
@@ -666,6 +714,7 @@
     "packageId": "dbm-approval-request",
     "processId": "approval-request-process",
     "currentFormId": "review-form",
+    "designerEntryUrl": "/main.aspx?pagetype=webresource&webresourceName=ys_%2Fdbm%2Fapps%2Feditor%2Findex.html&data=%7B%22packageName%22%3A%22dbm-approval-request%22%7D",
     "supported": {
       "placementMode": "section",
       "label": "DBM Process",
@@ -677,7 +726,8 @@
       "webResourceName": "ys_/dbm/process-experience/host.html",
       "webResourceId": "{df0e9bb8-596f-5294-9398-7db0010a0948}",
       "frameBridgeName": "ProcessExperienceSectionFrame",
-      "data": "{\"formId\":\"review-form\",\"displayName\":\"Review Form\",\"placement\":\"section\"}"
+      "minHeightPx": 320,
+      "data": "{\"formId\":\"review-form\",\"displayName\":\"Review Form\",\"placement\":\"section\",\"minHeightPx\":320,\"rendererVersion\":\"9590ad75ed375fefa3e3bde75fce401e\",\"hostVersion\":\"c4c07da7432650e3b35a9295207ce98a\"}"
     },
     "overlay": {
       "placementMode": "overlay",

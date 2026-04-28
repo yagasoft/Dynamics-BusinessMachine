@@ -185,6 +185,9 @@
           <FriendlyName>9f6c8c60-a4ec-4b6b-8e42-57547e84724b</FriendlyName>
           <WorkflowActivityGroupName>Yagasoft.Dbm.Plugins (1.0.9088.31941)</WorkflowActivityGroupName>
         </PluginType>
+        <PluginType AssemblyQualifiedName="Yagasoft.Dbm.Plugins.PortalRuntime.DbmRequestPortalRuntime, Yagasoft.Dbm.Plugins, Version=1.0.9088.31941, Culture=neutral, PublicKeyToken=bcdf1e34c5296dde" PluginTypeId="ab4f3f92-96cb-4e94-9441-0ad9f0f5a1d5" Name="Yagasoft.Dbm.Plugins.PortalRuntime.DbmRequestPortalRuntime">
+          <FriendlyName>DBM Request Portal Runtime</FriendlyName>
+        </PluginType>
       </PluginTypes>
     </PluginAssembly>
   </SolutionPluginAssemblies>

@@ -121,6 +121,7 @@
     "DbmSupportedHostV1": {
       "title": "DbmSupportedHostV1",
       "enum": [
+        "external-runtime",
         "model-driven",
         "xrmtoolbox"
       ],

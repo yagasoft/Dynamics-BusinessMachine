@@ -14,6 +14,14 @@ async function renderSnapshot(
     snapshot: DbmProcessExperienceSnapshotV1;
     mode: DbmProcessExperienceModeV1;
     audience?: DbmProcessExperienceAudienceV1;
+    portalShell?: {
+      entryTitle?: string | null;
+      entrySummary?: string | null;
+      requestReference?: string | null;
+      requestStateLabel?: string | null;
+      sameSessionEnabled?: boolean;
+      actions: Record<string, { enabled: boolean; helperText?: string | null }>;
+    };
   }
 ) {
   await page.setContent(`
@@ -71,13 +79,24 @@ async function expectScenarioScreenshot(
   page: Page,
   scenario: ApprovalRequestFixtureScenario,
   mode: DbmProcessExperienceModeV1,
-  fileName: string
+  fileName: string,
+  options?: {
+    portalShell?: {
+      entryTitle?: string | null;
+      entrySummary?: string | null;
+      requestReference?: string | null;
+      requestStateLabel?: string | null;
+      sameSessionEnabled?: boolean;
+      actions: Record<string, { enabled: boolean; helperText?: string | null }>;
+    };
+  }
 ) {
   const snapshot = buildApprovalRequestSnapshot(scenario);
   await renderSnapshot(page, {
     snapshot,
     mode,
-    audience: snapshot.audience
+    audience: snapshot.audience,
+    portalShell: options?.portalShell
   });
 
   await expect(page.locator('#root')).toContainText('Approval Request');
@@ -110,5 +129,32 @@ test('designer-preview cross-form handoff visual baseline', async ({ page }) => 
     'designer-cross-form-handoff',
     'designer-preview',
     'designer-preview-cross-form-handoff.png'
+  );
+});
+
+test('external-runtime draft visual baseline', async ({ page }) => {
+  await expectScenarioScreenshot(
+    page,
+    'portal-runtime-draft',
+    'external-runtime',
+    'external-runtime-draft.png',
+    {
+      portalShell: {
+        entryTitle: 'Approval request portal',
+        entrySummary: 'Continue the request from this browser session.',
+        requestReference: 'Request draft',
+        requestStateLabel: 'Draft',
+        sameSessionEnabled: true,
+        actions: {
+          'submit-request': {
+            enabled: true,
+            helperText: 'Move the request into internal screening.'
+          },
+          'refresh-status': {
+            enabled: true
+          }
+        }
+      }
+    }
   );
 });

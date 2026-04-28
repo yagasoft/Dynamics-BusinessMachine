@@ -10,6 +10,7 @@ This section holds operational runbooks that support delivery, promotion, rollba
 - [designer-hosted-validation.md](designer-hosted-validation.md)
 - [r2-process-experience-hosting.md](r2-process-experience-hosting.md)
 - [r2-generic-existing-form-dev-proof.md](r2-generic-existing-form-dev-proof.md)
+- [r3-portal-runtime-dev-proof.md](r3-portal-runtime-dev-proof.md)
 - [live-connected-e2e.md](live-connected-e2e.md)
 - [uat-promotion-runbook.md](uat-promotion-runbook.md)
 - [prod-promotion-runbook.md](prod-promotion-runbook.md)
@@ -27,6 +28,7 @@ This section holds operational runbooks that support delivery, promotion, rollba
 - Use [dev-rapid-deploy.md](dev-rapid-deploy.md) only for local `Dev` inner-loop validation.
 - Use [r2-process-experience-hosting.md](r2-process-experience-hosting.md) for `R2` shared renderer, supported host, overlay fallback, and release-hardening checks.
 - Use [r2-generic-existing-form-dev-proof.md](r2-generic-existing-form-dev-proof.md) to close `R2` with a non-reference existing-form authoring, synthesis, and live Dev proof.
+- Use [r3-portal-runtime-dev-proof.md](r3-portal-runtime-dev-proof.md) for the `R3.1` local SPA external-entry proof, local Node host, and Dev validation path.
 - Use [live-connected-e2e.md](live-connected-e2e.md) for connected browser-driven validation in `Dev` and promotion-gate validation in `UAT`.
 - Treat `azure/config/*.json` as the non-secret source of truth for environment target metadata.
 - Keep templates only for future runbook patterns that do not yet have an operational version.

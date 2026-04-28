@@ -27,6 +27,15 @@ function stateLabel(state) {
 function toneForStage(stage, audience) {
     return audience === 'portal' && stage.visibility === 'collapsed-hidden' ? 'hidden' : stage.state;
 }
+function hiddenStageLabel(stage) {
+    return stage.stageType === 'end' ? 'Internal completion' : 'Internal review';
+}
+function stageDisplayLabel(stage, audience) {
+    return toneForStage(stage, audience) === 'hidden' ? hiddenStageLabel(stage) : stage.displayName;
+}
+function stageActorLabel(stage, audience) {
+    return toneForStage(stage, audience) === 'hidden' ? null : stage.actor?.displayName ?? null;
+}
 function primaryStatusLabel(snapshot, audience) {
     const preferred = audience === 'portal' ? snapshot.portalStatus : snapshot.internalStatus;
     return preferred?.displayName ?? snapshot.internalStatus?.displayName ?? snapshot.portalStatus?.displayName ?? 'In progress';
@@ -63,7 +72,7 @@ function stageHelper(stage, step) {
     }
     return 'This milestone will become available later.';
 }
-function buildNextCopy(transitions, stagesById, actions, isHidden) {
+function buildNextCopy(transitions, stagesById, actions, isHidden, audience) {
     if (isHidden) {
         return 'No action is needed from the requester right now. The next visible step will appear here when it is ready.';
     }
@@ -72,19 +81,19 @@ function buildNextCopy(transitions, stagesById, actions, isHidden) {
     }
     if (actions.length === 1 && transitions.length === 1) {
         const target = stagesById.get(transitions[0].toStageId);
-        return `Next, this moves to ${target?.displayName ?? titleCaseIdentifier(transitions[0].toStageId)}.`;
+        return `Next, this moves to ${target ? stageDisplayLabel(target, audience) : titleCaseIdentifier(transitions[0].toStageId)}.`;
     }
     if (actions.length > 1) {
         return 'Your next choice decides where the request goes from here.';
     }
     return 'Complete the highlighted action to keep the request moving.';
 }
-function actionNextCopy(transition, stagesById) {
+function actionNextCopy(transition, stagesById, audience) {
     if (!transition) {
         return null;
     }
     const destination = stagesById.get(transition.toStageId);
-    return `Moves to ${destination?.displayName ?? titleCaseIdentifier(transition.toStageId)}.`;
+    return `Moves to ${destination ? stageDisplayLabel(destination, audience) : titleCaseIdentifier(transition.toStageId)}.`;
 }
 export function buildGuidedWorkspaceViewModel(snapshot, audience = snapshot.audience) {
     const stagesById = new Map(snapshot.stages.map((stage) => [stage.id, stage]));
@@ -112,7 +121,7 @@ export function buildGuidedWorkspaceViewModel(snapshot, audience = snapshot.audi
             id: outcome.id,
             label: outcome.displayName,
             emphasis: index === 0 ? 'primary' : 'secondary',
-            nextCopy: actionNextCopy(currentStageTransitions.find((transition) => transition.outcome?.id === outcome.id), stagesById)
+            nextCopy: actionNextCopy(currentStageTransitions.find((transition) => transition.outcome?.id === outcome.id), stagesById, audience)
         }));
     const siblingSteps = (isHiddenCurrentStage || isTerminalCurrentStage)
         ? []
@@ -128,7 +137,7 @@ export function buildGuidedWorkspaceViewModel(snapshot, audience = snapshot.audi
         processTitle: titleCaseIdentifier(snapshot.processId),
         introCopy: 'Follow the highlighted step to keep this request moving.',
         currentTask: {
-            stageTitle: currentStage.displayName,
+            stageTitle: isHiddenCurrentStage ? hiddenStageLabel(currentStage) : currentStage.displayName,
             stageLabel: currentStage.state === 'current' ? 'Current milestone' : 'Current focus',
             stepTitle: isHiddenCurrentStage
                 ? 'Under internal review'
@@ -140,14 +149,14 @@ export function buildGuidedWorkspaceViewModel(snapshot, audience = snapshot.audi
                 : isTerminalCurrentStage
                     ? terminalStepSummary(currentStage)
                     : stepSummary(currentStep?.stepType ?? 'system'),
-            helperCopy: buildNextCopy(currentStageTransitions, stagesById, actions, isHiddenCurrentStage),
+            helperCopy: buildNextCopy(currentStageTransitions, stagesById, actions, isHiddenCurrentStage, audience),
             nextCopy: isHiddenCurrentStage
                 ? 'We will surface the next requester-facing step here as soon as it becomes available.'
                 : isTerminalCurrentStage
                     ? 'This workflow has finished. No further action is required from this surface.'
-                    : buildNextCopy(currentStageTransitions, stagesById, actions, false),
+                    : buildNextCopy(currentStageTransitions, stagesById, actions, false, audience),
             statusLabel: primaryStatusLabel(snapshot, audience),
-            actorLabel: currentStage.actor?.displayName ?? currentStep?.owner?.displayName ?? null,
+            actorLabel: isHiddenCurrentStage ? null : currentStage.actor?.displayName ?? currentStep?.owner?.displayName ?? null,
             tone: currentStageTone,
             isHidden: isHiddenCurrentStage,
             supportingLabel: isHiddenCurrentStage
@@ -168,18 +177,18 @@ export function buildGuidedWorkspaceViewModel(snapshot, audience = snapshot.audi
             const tone = toneForStage(stage, audience);
             return {
                 id: stage.id,
-                label: compactLabel(stage.displayName),
+                label: compactLabel(stageDisplayLabel(stage, audience)),
                 helperCopy: stageHelper(stage, activeStep),
                 stateLabel: tone === 'hidden' ? 'Internal' : stateLabel(stage.state),
                 tone,
                 isCurrent: stage.id === currentStage.id,
                 isHidden: tone === 'hidden',
-                actorLabel: stage.actor?.displayName ?? null
+                actorLabel: stageActorLabel(stage, audience)
             };
         }),
         flowStages: snapshot.stages.map((stage) => ({
             id: stage.id,
-            label: stage.displayName,
+            label: stageDisplayLabel(stage, audience),
             helperCopy: stageHelper(stage, stage.currentStepId ? stepsById.get(stage.currentStepId) : undefined),
             stateLabel: toneForStage(stage, audience) === 'hidden' ? 'Internal' : stateLabel(stage.state),
             tone: toneForStage(stage, audience),
@@ -187,12 +196,17 @@ export function buildGuidedWorkspaceViewModel(snapshot, audience = snapshot.audi
             isHidden: toneForStage(stage, audience) === 'hidden',
             transitions: snapshot.transitions
                 .filter((transition) => transition.fromStageId === stage.id)
-                .map((transition) => ({
-                id: transition.id,
-                label: transition.outcome?.displayName ?? 'Continue',
-                destinationLabel: stagesById.get(transition.toStageId)?.displayName ?? titleCaseIdentifier(transition.toStageId),
-                tone: transition.state
-            }))
+                .map((transition) => {
+                const destinationStage = stagesById.get(transition.toStageId);
+                return {
+                    id: transition.id,
+                    label: transition.outcome?.displayName ?? 'Continue',
+                    destinationLabel: destinationStage
+                        ? stageDisplayLabel(destinationStage, audience)
+                        : titleCaseIdentifier(transition.toStageId),
+                    tone: transition.state
+                };
+            })
         }))
     };
 }

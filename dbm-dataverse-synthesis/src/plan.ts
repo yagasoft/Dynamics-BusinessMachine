@@ -1,4 +1,11 @@
-import type { DbmEntityV1, DbmFieldV1, DbmModelV1, DbmRelationshipV1 } from 'dbm-contract';
+import type {
+  DbmEntityV1,
+  DbmFieldV1,
+  DbmModelV1,
+  DbmPortalRuntimeEntryFieldV1,
+  DbmRelationshipV1
+} from 'dbm-contract';
+import type { DbmProcessExperienceRuntimeModelV1 } from 'dbm-process-experience' with { "resolution-mode": "import" };
 import {
   createDiagnostic,
   DEFAULT_GENERATED_METADATA_SOLUTION_NAME,
@@ -15,6 +22,7 @@ import type {
   DataverseChoiceOptionPlan,
   DataverseColumnPlan,
   DataverseEntityPlan,
+  DataversePortalRuntimePlan,
   DataverseRelationshipPlan,
   DataverseSynthesisDiagnostic,
   DataverseSynthesisPlan
@@ -89,12 +97,14 @@ function getRuntimeOwnerEntityId(model: DbmModelV1): string | null {
 
 function createSyntheticRuntimeStateColumns(entityId: string, entityLogicalName: string): DataverseColumnPlan[] {
   const prefix = getPublisherPrefix(entityLogicalName);
-  const fieldDefinitions: Array<{ id: string; logicalName: string; displayName: string }> = [
-    { id: 'runtime-current-stage-id', logicalName: `${prefix}_currentstageid`, displayName: 'Current Stage Id' },
-    { id: 'runtime-current-step-id', logicalName: `${prefix}_currentstepid`, displayName: 'Current Step Id' },
-    { id: 'runtime-current-form-state-id', logicalName: `${prefix}_currentformstateid`, displayName: 'Current Form State Id' },
-    { id: 'runtime-internal-status-id', logicalName: `${prefix}_internalstatusid`, displayName: 'Internal Status Id' },
-    { id: 'runtime-portal-status-id', logicalName: `${prefix}_portalstatusid`, displayName: 'Portal Status Id' }
+  const fieldDefinitions: Array<{ id: string; logicalName: string; displayName: string; readOnly: boolean }> = [
+    { id: 'runtime-current-stage-id', logicalName: `${prefix}_currentstageid`, displayName: 'Current Stage Id', readOnly: true },
+    { id: 'runtime-current-step-id', logicalName: `${prefix}_currentstepid`, displayName: 'Current Step Id', readOnly: true },
+    { id: 'runtime-current-form-state-id', logicalName: `${prefix}_currentformstateid`, displayName: 'Current Form State Id', readOnly: true },
+    { id: 'runtime-internal-status-id', logicalName: `${prefix}_internalstatusid`, displayName: 'Internal Status Id', readOnly: true },
+    { id: 'runtime-portal-status-id', logicalName: `${prefix}_portalstatusid`, displayName: 'Portal Status Id', readOnly: true },
+    { id: 'runtime-portal-command', logicalName: `${prefix}_portalcommand`, displayName: 'Portal Command', readOnly: false },
+    { id: 'runtime-portal-profile-key', logicalName: `${prefix}_portalprofilekey`, displayName: 'Portal Profile Key', readOnly: true }
   ];
 
   return fieldDefinitions.map((definition) => ({
@@ -107,13 +117,268 @@ function createSyntheticRuntimeStateColumns(entityId: string, entityLogicalName:
     dataType: 'string',
     attributeType: 'String',
     required: false,
-    readOnly: true,
+    readOnly: definition.readOnly,
     supported: true,
     unsupportedReason: null,
     source: 'synthetic',
     isPrimaryNameAttribute: false,
     maxLength: 200
   }));
+}
+
+function buildProcessExperienceRuntimeModel(model: DbmModelV1): DbmProcessExperienceRuntimeModelV1 {
+  return {
+    packageId: model.package.id,
+    packageVersion: model.package.version,
+    processId: model.process.id,
+    actors: model.process.actors.map((actor) => ({
+      id: actor.id,
+      displayName: actor.displayName,
+      actorType: actor.actorType
+    })),
+    statuses: model.process.statuses.map((status) => ({
+      id: status.id,
+      displayName: status.displayName,
+      audience: status.audience,
+      kind: status.kind
+    })),
+    outcomes: model.process.outcomes.map((outcome) => ({
+      id: outcome.id,
+      displayName: outcome.displayName
+    })),
+    stages: model.process.stages.map((stage) => ({
+      id: stage.id,
+      displayName: stage.displayName,
+      stageType: stage.stageType,
+      actorId: stage.actorId,
+      formId: stage.formId,
+      portalVisibility: stage.portalVisibility,
+      stepIds: [...stage.stepIds],
+      defaultStepId: stage.defaultStepId,
+      allowedOutcomeIds: [...stage.allowedOutcomeIds]
+    })),
+    steps: model.process.steps.map((step) => ({
+      id: step.id,
+      stageId: step.stageId,
+      displayName: step.displayName,
+      stepType: step.stepType,
+      ownerActorId: step.ownerActorId,
+      internalStatusId: step.internalStatusId,
+      portalStatusId: step.portalStatusId,
+      formStateId: step.formStateId
+    })),
+    transitions: model.process.transitions.map((transition) => ({
+      id: transition.id,
+      fromStageId: transition.fromStageId,
+      toStageId: transition.toStageId,
+      outcomeId: transition.outcomeId
+    }))
+  };
+}
+
+function toPortalRouteSegment(packageId: string): string {
+  const normalized = packageId
+    .toLowerCase()
+    .replace(/^dbm-/, '')
+    .replace(/[^a-z0-9]+/g, '-')
+    .replace(/^-+|-+$/g, '');
+
+  return normalized || 'request';
+}
+
+function isSupportedPortalEntryField(
+  field: DbmFieldV1
+): field is DbmFieldV1 & { dataType: DbmPortalRuntimeEntryFieldV1['dataType'] } {
+  return (
+    field.dataType === 'string'
+    || field.dataType === 'multiline-string'
+    || field.dataType === 'integer'
+    || field.dataType === 'decimal'
+    || field.dataType === 'currency'
+    || field.dataType === 'date'
+  );
+}
+
+function buildPortalRuntimeEntryFields(
+  model: DbmModelV1,
+  runtimeOwnerEntityId: string,
+  startStageId: string,
+  startFormId: string,
+  diagnostics: DataverseSynthesisDiagnostic[]
+): DbmPortalRuntimeEntryFieldV1[] {
+  const runtimeOwnerEntity = getEntityById(model, runtimeOwnerEntityId);
+  const startForm = model.forms.find((form) => form.id === startFormId);
+  if (!runtimeOwnerEntity || !startForm) {
+    diagnostics.push(
+      createDiagnostic(
+        'portal-runtime-entry-fields-incomplete',
+        'warning',
+        'Portal runtime entry fields could not be derived from the start-form configuration.',
+        'forms'
+      )
+    );
+    return [];
+  }
+
+  const startFormStateIds = new Set(
+    model.process.steps
+      .filter((step) => step.stageId === startStageId && step.formStateId)
+      .map((step) => step.formStateId as string)
+  );
+  if (startFormStateIds.size === 0) {
+    diagnostics.push(
+      createDiagnostic(
+        'portal-runtime-entry-fields-missing-form-states',
+        'warning',
+        'Portal runtime entry fields could not be derived because the start-stage steps do not declare form states.',
+        'process.steps'
+      )
+    );
+    return [];
+  }
+
+  const visibleElementIds = new Set<string>();
+  const hintsByElementId = new Map<string, string>();
+  for (const formState of startForm.formStates) {
+    if (!startFormStateIds.has(formState.id)) {
+      continue;
+    }
+
+    for (const elementBehavior of formState.elementBehaviors) {
+      visibleElementIds.add(elementBehavior.elementId);
+      if (!hintsByElementId.has(elementBehavior.elementId) && elementBehavior.hint?.trim()) {
+        hintsByElementId.set(elementBehavior.elementId, elementBehavior.hint.trim());
+      }
+    }
+  }
+
+  const entryFields: DbmPortalRuntimeEntryFieldV1[] = [];
+  const emittedLogicalNames = new Set<string>();
+  for (const element of startForm.elements) {
+    if (
+      !visibleElementIds.has(element.id)
+      || !('entityBindingId' in element.binding)
+      || !('fieldId' in element.binding)
+      || element.binding.entityBindingId !== startForm.primaryEntityBindingId
+    ) {
+      continue;
+    }
+
+    const field = getFieldById(runtimeOwnerEntity, element.binding.fieldId);
+    if (!field || !isSupportedPortalEntryField(field)) {
+      continue;
+    }
+
+    const logicalName = tryGetLogicalName(
+      field,
+      `field '${field.id}'`,
+      diagnostics,
+      `metadata.entities.${runtimeOwnerEntity.id}.fields.${field.id}`
+    );
+    if (!logicalName || emittedLogicalNames.has(logicalName)) {
+      continue;
+    }
+
+    emittedLogicalNames.add(logicalName);
+    entryFields.push({
+      logicalName,
+      displayName: element.displayName,
+      dataType: field.dataType,
+      required: field.isRequired,
+      hint: hintsByElementId.get(element.id) ?? null
+    });
+  }
+
+  return entryFields;
+}
+
+function buildPortalRuntimePlan(
+  model: DbmModelV1,
+  entityPlans: Map<string, DataverseEntityPlan>,
+  runtimeOwnerEntityId: string | null,
+  diagnostics: DataverseSynthesisDiagnostic[]
+): DataversePortalRuntimePlan | null {
+  if (!runtimeOwnerEntityId) {
+    diagnostics.push(
+      createDiagnostic(
+        'portal-runtime-missing-owner-entity',
+        'warning',
+        'Portal runtime bootstrap was skipped because the process owner entity could not be resolved.',
+        'process.stages'
+      )
+    );
+    return null;
+  }
+
+  const runtimeOwnerEntity = entityPlans.get(runtimeOwnerEntityId);
+  const startStage = model.process.stages.find((stage) => stage.stageType === 'start') ?? model.process.stages[0];
+  const defaultStep = startStage
+    ? model.process.steps.find((step) => step.id === startStage.defaultStepId)
+      ?? model.process.steps.find((step) => step.stageId === startStage.id)
+    : null;
+
+  if (!runtimeOwnerEntity || !startStage || !defaultStep || !startStage.formId) {
+    diagnostics.push(
+      createDiagnostic(
+        'portal-runtime-bootstrap-incomplete',
+        'warning',
+        'Portal runtime bootstrap was skipped because the start-stage runtime contract is incomplete.',
+        'process.stages'
+      )
+    );
+    return null;
+  }
+
+  const prefix = getPublisherPrefix(runtimeOwnerEntity.logicalName);
+  const routeSegment = toPortalRouteSegment(model.package.id);
+  const entryFields = buildPortalRuntimeEntryFields(
+    model,
+    runtimeOwnerEntityId,
+    startStage.id,
+    startStage.formId,
+    diagnostics
+  );
+
+  return {
+    bootstrap: {
+      schemaVersion: 'dbm.portal-runtime.bootstrap/v1',
+      packageId: model.package.id,
+      packageVersion: model.package.version,
+      processId: model.process.id,
+      identityMode: 'generic-profile',
+      genericProfileKey: 'dev-anonymous-requester',
+      routes: {
+        entryPath: `/${routeSegment}`,
+        statusPath: `/${routeSegment}/status`
+      },
+      requestEntityLogicalName: runtimeOwnerEntity.logicalName,
+      requestEntitySetName: runtimeOwnerEntity.logicalCollectionName,
+      startFormId: startStage.formId,
+      entryFields,
+      portalCommandFieldLogicalName: `${prefix}_portalcommand`,
+      runtimeStateFieldLogicalNames: {
+        stageId: `${prefix}_currentstageid`,
+        stepId: `${prefix}_currentstepid`,
+        formStateId: `${prefix}_currentformstateid`,
+        internalStatusId: `${prefix}_internalstatusid`,
+        portalStatusId: `${prefix}_portalstatusid`,
+        portalProfileKey: `${prefix}_portalprofilekey`
+      },
+      defaultState: {
+        stageId: startStage.id,
+        stepId: defaultStep.id,
+        formStateId: defaultStep.formStateId,
+        internalStatusId: defaultStep.internalStatusId,
+        portalStatusId: defaultStep.portalStatusId
+      },
+      allowedActions: ['create-draft', 'submit-request', 'refresh-status']
+    },
+    processExperienceRuntime: buildProcessExperienceRuntimeModel(model),
+    requestEntityId: runtimeOwnerEntityId,
+    requestEntityLogicalName: runtimeOwnerEntity.logicalName,
+    requestEntitySetName: runtimeOwnerEntity.logicalCollectionName,
+    hostPackageName: 'dbm-portal-runtime'
+  };
 }
 
 function appendUniqueColumns(columns: DataverseColumnPlan[], additionalColumns: DataverseColumnPlan[]): DataverseColumnPlan[] {
@@ -493,6 +758,7 @@ export function planDataverseSynthesis(model: DbmModelV1): DataverseSynthesisPla
   }
 
   const existingFormArtifacts = planExistingDataverseForms(model, entityPlans, diagnostics);
+  const portalRuntime = buildPortalRuntimePlan(model, entityPlans, runtimeOwnerEntityId, diagnostics);
 
   return {
     generatedUtc: new Date().toISOString(),
@@ -505,6 +771,7 @@ export function planDataverseSynthesis(model: DbmModelV1): DataverseSynthesisPla
     relationships,
     forms: existingFormArtifacts.forms,
     behaviors: existingFormArtifacts.behaviors,
+    portalRuntime,
     diagnostics,
     summary: {
       supportedEntities: entities.length,

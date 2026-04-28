@@ -1,4 +1,5 @@
 import type {
+  DbmPortalRuntimeBootstrapV1,
   DbmElementTypeV1,
   DbmFieldDataTypeV1,
   DbmModelV1,
@@ -146,6 +147,8 @@ export interface DataverseRuntimeStateFieldPlan {
   formStateId: string;
   internalStatusId: string;
   portalStatusId: string;
+  portalCommand: string;
+  portalProfileKey: string;
 }
 
 export interface DataverseRuntimeValueBindingPlan {
@@ -291,6 +294,15 @@ export interface DataverseBehaviorPlan {
   attachedFormIds: string[];
 }
 
+export interface DataversePortalRuntimePlan {
+  bootstrap: DbmPortalRuntimeBootstrapV1;
+  processExperienceRuntime: DbmProcessExperienceRuntimeModelV1;
+  requestEntityId: string;
+  requestEntityLogicalName: string;
+  requestEntitySetName: string;
+  hostPackageName: string;
+}
+
 export interface DataverseSynthesisPlanSummary {
   supportedEntities: number;
   supportedColumns: number;
@@ -311,6 +323,7 @@ export interface DataverseSynthesisPlan {
   relationships: DataverseRelationshipPlan[];
   forms: DataverseFormPlan[];
   behaviors: DataverseBehaviorPlan[];
+  portalRuntime: DataversePortalRuntimePlan | null;
   diagnostics: DataverseSynthesisDiagnostic[];
   summary: DataverseSynthesisPlanSummary;
 }

@@ -27,7 +27,7 @@
                         <control id="WebResource_dbmProcessHost_request_form" classid="{9FDF5F91-88B1-47f4-AD53-C11EFC01A01D}">
                           <parameters>
                             <Url>ys_/dbm/process-experience/host.html</Url>
-                            <Data>%7B%22formId%22%3A%22request-form%22%2C%22displayName%22%3A%22Request%20Form%22%2C%22placement%22%3A%22section%22%7D</Data>
+                            <Data>%7B%22formId%22%3A%22request-form%22%2C%22displayName%22%3A%22Request%20Form%22%2C%22placement%22%3A%22section%22%2C%22minHeightPx%22%3A320%2C%22rendererVersion%22%3A%229590ad75ed375fefa3e3bde75fce401e%22%2C%22hostVersion%22%3A%22c4c07da7432650e3b35a9295207ce98a%22%7D</Data>
                             <PassParameters>false</PassParameters>
                             <ShowOnMobileClient>false</ShowOnMobileClient>
                             <Security>false</Security>

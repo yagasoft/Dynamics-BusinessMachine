@@ -57,12 +57,14 @@ const graphDocumentSchema = loadJson(path.join(schemaRoot, 'dbm-designer-graph-d
 const snapshotSchema = loadJson(path.join(schemaRoot, 'dbm-process-experience-snapshot-v1.schema.json'));
 const requestSchema = loadJson(path.join(schemaRoot, 'dbm-runtime-request-v1.schema.json'));
 const resultSchema = loadJson(path.join(schemaRoot, 'dbm-runtime-result-v1.schema.json'));
+const portalBootstrapSchema = loadJson(path.join(schemaRoot, 'dbm-portal-runtime-bootstrap-v1.schema.json'));
 
 const validateWorkspace = ajv.compile(workspaceSchema);
 const validateGraphDocument = ajv.compile(graphDocumentSchema);
 const validateSnapshot = ajv.compile(snapshotSchema);
 const validateRequest = ajv.compile(requestSchema);
 const validateResult = ajv.compile(resultSchema);
+const validatePortalBootstrap = ajv.compile(portalBootstrapSchema);
 const validateModel = ajv.compile(modelSchema);
 
 runPositiveValidation(
@@ -99,6 +101,12 @@ runPositiveValidation(
   validateResult,
   'valid runtime result fixture',
   path.join(projectRoot, 'fixtures', 'valid', 'runtime-result-v1.json')
+);
+
+runPositiveValidation(
+  validatePortalBootstrap,
+  'valid portal runtime bootstrap fixture',
+  path.join(projectRoot, 'fixtures', 'valid', 'portal-runtime-bootstrap-v1.json')
 );
 
 runExpectedFailureValidation(

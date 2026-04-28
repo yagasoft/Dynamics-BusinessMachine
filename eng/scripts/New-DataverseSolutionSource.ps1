@@ -70,7 +70,6 @@ foreach ($entry in $manifest.files) {
 
     $assemblyName = [System.Reflection.AssemblyName]::GetAssemblyName($destinationPath)
     $fullName = $assemblyName.FullName
-    $assemblyQualifiedName = "{0}, {1}" -f $entry.pluginTypeName, $fullName
     $workflowActivityGroupName = "{0} ({1})" -f $assemblyName.Name, $assemblyName.Version
 
     foreach ($rootComponent in $solutionXml.ImportExportXml.SolutionManifest.RootComponents.RootComponent) {
@@ -82,9 +81,16 @@ foreach ($entry in $manifest.files) {
     foreach ($pluginAssembly in $customizationsXml.ImportExportXml.SolutionPluginAssemblies.PluginAssembly) {
         $pluginAssembly.SetAttribute('FullName', $fullName)
         foreach ($pluginTypeNode in $pluginAssembly.PluginTypes.PluginType) {
+            $pluginTypeName = [string]$pluginTypeNode.GetAttribute('Name')
+            if ([string]::IsNullOrWhiteSpace($pluginTypeName)) {
+                throw "Plugin type metadata in '$customizationsXmlPath' is missing a Name attribute for plugin assembly '$($entry.name)'."
+            }
+
+            $assemblyQualifiedName = "{0}, {1}" -f $pluginTypeName, $fullName
             $pluginTypeNode.SetAttribute('AssemblyQualifiedName', $assemblyQualifiedName)
-            $pluginTypeNode.SetAttribute('Name', $entry.pluginTypeName)
-            $pluginTypeNode.WorkflowActivityGroupName = $workflowActivityGroupName
+            if ($pluginTypeNode.WorkflowActivityGroupName) {
+                $pluginTypeNode.WorkflowActivityGroupName = $workflowActivityGroupName
+            }
         }
     }
 }

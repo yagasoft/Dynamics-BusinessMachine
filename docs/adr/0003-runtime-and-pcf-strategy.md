@@ -7,7 +7,7 @@
 
 ## Context
 
-The current PoC shows a resource-centric editor and form integration pattern, but the future product requires a true DBM-owned process runtime on model-driven forms and consistent execution contracts across model-driven UI, portal projection, Dataverse, and Azure.
+The current PoC shows a resource-centric editor and form integration pattern, but the future product requires a true DBM-owned process runtime on model-driven forms and consistent execution contracts across model-driven UI, portal projection, external runtime, Dataverse, and Azure.
 
 ## Decision
 
@@ -15,7 +15,7 @@ The current PoC shows a resource-centric editor and form integration pattern, bu
 - Release 1 must ship a real DBM-owned runtime on model-driven forms.
 - Release 1 must not rely on a temporary web-resource fallback for the in-form process experience.
 - PCF remains the preferred supported implementation path for the model-driven runtime where it can satisfy the product requirement, but PCF is not the business-process definition itself.
-- Portal-visible state projection belongs in the shared runtime contract, even though the live Power Pages runtime is delivered in `R2`.
+- Portal-visible state projection belongs in the shared runtime contract, even though the live external runtime was originally planned for `R2` and now lands in `R3`, beginning with the local SPA proof defined in ADR-0014.
 - The first production-worthy runtime proof is a real approval/request scenario.
 
 ## Consequences

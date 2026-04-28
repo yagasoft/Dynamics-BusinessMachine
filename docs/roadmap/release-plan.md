@@ -18,7 +18,7 @@ This document defines the approved high-level release ladder for DBM and the sta
 | `R0` | Engineering Foundation And Product Baseline | make the repo, environments, docs, and delivery posture production-grade enough to support later feature work |
 | `R1` | Builder Platform MVP | let architects and developers define and run one real approval/request process through a DBM-owned designer-first experience with portal-compatible state projection |
 | `R2` | Designer And Process Experience Platform | turn the `R1` bridges into product-grade designer and process-experience foundations before pilot-readiness work resumes |
-| `R3` | Pilot-Ready End-To-End Platform | complete the live portal-to-Dataverse-to-Azure-to-portal loop and harden to pilot-ready `v1.0.0` on top of the new `R2` foundation |
+| `R3` | Pilot-Ready End-To-End Platform | complete the live external-runtime-to-Dataverse-to-Azure-to-front-door loop and harden to pilot-ready `v1.0.0` on top of the new `R2` foundation |
 | `R4` | AI-Assisted Platform | add trustworthy AI assistance only after the core platform, designer surfaces, and operations are stable |
 | `R5` | Enterprise Sophistication And Optimization | deepen the platform with simulation, reuse, synthesis governance, advanced observability, and optimization beyond the pilot-ready baseline |
 
@@ -30,7 +30,7 @@ This document defines the approved high-level release ladder for DBM and the sta
 - The designer remains the primary product surface.
 - Release 1 must include a real DBM-owned model-driven runtime.
 - The first post-`R1` release must productize the designer and DBM-owned process experience before pilot-readiness work resumes.
-- Portal projection semantics are defined in Release 1 before the live Power Pages runtime arrives in Release 3.
+- Portal projection semantics are defined in Release 1 before the live external runtime arrives in Release 3.
 - AI is out of scope until after `v1.0.0`.
 
 ## Shared release gates
@@ -126,21 +126,21 @@ Details: [release-2-designer-and-process-experience-platform.md](release-2-desig
 ### Release 3
 
 Goal:
-- turn the `R2` designer and process-experience foundation into a pilot-ready platform where the same approval/request process uses the shared DBM process experience, starts in Power Pages, runs through Dataverse and Azure, returns to the front door, and is supportable in `UAT` and `Prod`
+- turn the `R2` designer and process-experience foundation into a pilot-ready platform where the same approval/request process uses the shared DBM process experience, starts in a DBM-owned external runtime, runs through Dataverse and Azure, returns to the front door, and is supportable in `UAT` and `Prod`
 
 Feature set and deliverables:
-- Power Pages runtime built on the `R1` portal projection contract and the shared process-experience system delivered in `R2`
+- DBM-owned external runtime built on the `R1` portal projection contract and the shared process-experience system delivered in `R2`, beginning with a local SPA proof in `R3.1`
 - work-management core with inboxes, queues, reassignment, delegation, escalation, and SLA timers
 - timeline and audit trail as first-class runtime output
 - support and administration surfaces
 - runtime observability baseline
 - Azure orchestration and integration services
-- end-to-end state return to the portal
+- end-to-end state return to the external front door
 - browser- or Azure-hosted administration surfaces where needed for pilot operation
 - observability, supportability, rollback, and pilot runbooks
 
 Stages:
-- `R3.1` Portal runtime and external entry
+- `R3.1` Local SPA runtime proof and external entry
 - `R3.2` Azure orchestration and service plane
 - `R3.3` End-to-end lifecycle completion
 - `R3.4` Pilot readiness and operational hardening
@@ -194,7 +194,7 @@ Details: [release-5-enterprise-sophistication.md](release-5-enterprise-sophistic
 - `R0`: the current PoC can be rebuilt, packaged, deployed to `Dev`, promoted to `UAT`, and rolled back without manual secret handling
 - `R1`: one approval/request flow can be authored in the designer, synthesized into the required Dataverse schema, bound to existing Dataverse forms with DBM-managed supported behavior, edited from both model-driven and XrmToolBox hosts, rendered through the DBM-owned model-driven process experience, projected to portal-visible status, and executed through the backend runtime
 - `R2`: the approval/request reference and at least one non-reference custom existing-form process can be authored through a graph-first designer, rendered through a shared DBM-owned process-experience system, hosted in model-driven through both supported and preferred bridge placements, and proven on `Dev` without changing the canonical model boundary
-- `R3`: the same approval/request flow can start in Power Pages, traverse Dataverse and Azure, return state to the portal, pass `UAT`, and be supported with documented rollback and operational diagnostics
+- `R3`: the same approval/request flow can start in the DBM-owned external runtime, traverse Dataverse and Azure, return state to the external front door, pass `UAT`, and be supported with documented rollback and operational diagnostics
 - `R4`: AI can generate drafts and recommendations with full traceability, mandatory human review, and no direct unreviewed production mutation
 - `R5`: the platform can simulate, explain, govern, and optimize complex process portfolios at enterprise scale without losing portability or operational control
 
@@ -203,7 +203,7 @@ Details: [release-5-enterprise-sophistication.md](release-5-enterprise-sophistic
 - `main` remains the integration branch.
 - Official docs and roadmap are tracked in `docs/`; `_codex/` remains local-only.
 - The first portable designer host is XrmToolBox.
-- Power Pages is the first front-door technology.
+- The first `R3` front-door proof is a DBM-owned local SPA served from the developer machine.
 - Azure should be used early when it provides clear value.
-- The first post-`R1` release is the designer and process-experience productization release rather than the pilot-ready portal release.
+- The first post-`R1` release is the designer and process-experience productization release rather than the pilot-ready external-runtime release.
 - Branding should consistently use Ahmed Elsawalhy and Yagasoft where appropriate without becoming noisy.

@@ -18,6 +18,7 @@ export type {
   DataverseFormPlan,
   DataverseFormSectionPlan,
   DataverseFormStatePlan,
+  DataversePortalRuntimePlan,
   DataverseReadbackColumn,
   DataverseReadbackEntity,
   DataverseReadbackForm,

@@ -300,6 +300,8 @@ async function createRuntimeHarness(formId) {
         behavior.kind === 'process-renderer'), true);
     strict_1.default.ok(requestEntity);
     strict_1.default.equal(requestEntity?.columns.some((column) => column.logicalName === 'dbm_currentstageid' && column.source === 'synthetic'), true);
+    strict_1.default.equal(requestEntity?.columns.some((column) => column.logicalName === 'dbm_portalcommand' && column.source === 'synthetic' && column.readOnly === false), true);
+    strict_1.default.equal(requestEntity?.columns.some((column) => column.logicalName === 'dbm_portalprofilekey' && column.source === 'synthetic' && column.readOnly === true), true);
     strict_1.default.ok(reviewForm?.runtime);
     strict_1.default.equal(reviewForm?.runtime?.processOwner.entityLogicalName, 'dbm_request');
     strict_1.default.equal(reviewForm?.runtime?.currentForm.entityLogicalName, 'dbm_requestdecision');
@@ -315,6 +317,19 @@ async function createRuntimeHarness(formId) {
     strict_1.default.equal(reviewForm?.processHost?.supported?.minHeightPx, 320);
     strict_1.default.match(hostPageBehavior?.content ?? '', /ResizeObserver/);
     strict_1.default.equal(reviewForm?.processHost?.designerEntryUrl, '/main.aspx?pagetype=webresource&webresourceName=ys_%2Fdbm%2Fapps%2Feditor%2Findex.html&data=%7B%22packageName%22%3A%22dbm-approval-request%22%7D');
+    strict_1.default.ok(plan.portalRuntime);
+    strict_1.default.equal(plan.portalRuntime?.bootstrap.requestEntityLogicalName, 'dbm_request');
+    strict_1.default.equal(plan.portalRuntime?.bootstrap.requestEntitySetName, 'dbm_requests');
+    strict_1.default.equal(plan.portalRuntime?.bootstrap.portalCommandFieldLogicalName, 'dbm_portalcommand');
+    strict_1.default.equal(plan.portalRuntime?.bootstrap.runtimeStateFieldLogicalNames.portalProfileKey, 'dbm_portalprofilekey');
+    strict_1.default.equal(plan.portalRuntime?.bootstrap.defaultState.stageId, 'draft-request');
+    strict_1.default.equal(plan.portalRuntime?.bootstrap.defaultState.stepId, 'capture-request');
+    strict_1.default.equal(plan.portalRuntime?.bootstrap.identityMode, 'generic-profile');
+    strict_1.default.equal(plan.portalRuntime?.bootstrap.routes.entryPath, '/approval-request');
+    strict_1.default.equal(plan.portalRuntime?.bootstrap.routes.statusPath, '/approval-request/status');
+    strict_1.default.deepEqual(plan.portalRuntime?.bootstrap.entryFields.map((field) => field.logicalName), ['dbm_title', 'dbm_amount', 'dbm_assignedapprover', 'dbm_supportingnotes']);
+    strict_1.default.deepEqual(plan.portalRuntime?.bootstrap.allowedActions, ['create-draft', 'submit-request', 'refresh-status']);
+    strict_1.default.equal(plan.portalRuntime?.hostPackageName, 'dbm-portal-runtime');
 });
 (0, node_test_1.default)('planDataverseSynthesis supports a non-reference existing-form model with explicit cross-entity handoff', () => {
     const plan = (0, index_1.planDataverseSynthesis)(generic_existing_form_v1_model_json_1.default);

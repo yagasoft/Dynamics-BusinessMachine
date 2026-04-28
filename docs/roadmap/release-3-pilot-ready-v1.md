@@ -2,33 +2,33 @@
 
 ## Goal
 
-Turn the `R2` designer and process-experience foundation into a pilot-ready platform where a real approval/request process uses the shared DBM process experience, starts in Power Pages, runs through Dataverse and Azure where needed, returns to the front door, and is supportable in `UAT` and `Prod`.
+Turn the `R2` designer and process-experience foundation into a pilot-ready platform where a real approval/request process uses the shared DBM process experience, starts in a DBM-owned external runtime, runs through Dataverse and Azure where needed, returns to the front door, and is supportable in `UAT` and `Prod`.
 
 ## Feature set and deliverables
 
-- Power Pages runtime built on the `R1` portal projection contract and the shared process-experience system delivered in `R2`
+- DBM-owned external runtime built on the `R1` portal projection contract and the shared process-experience system delivered in `R2`, beginning with a local SPA proof in `R3.1`
 - work-management core with inboxes, queues, reassignment, delegation, escalation, and SLA timers
 - timeline and audit trail as first-class runtime output
 - support and administration surfaces
 - runtime observability baseline
 - Azure orchestration and integration services
-- end-to-end state return to the portal
+- end-to-end state return to the external front door
 - browser- or Azure-hosted administration surfaces where needed for pilot operation
 - observability, supportability, rollback, and pilot runbooks
 
 ## Stages
 
-### R3.1 Portal runtime and external entry
+### R3.1 Local SPA runtime proof and external entry
 
 Output:
-- real portal entry and coherent process experience for the approval/request scenario
+- real external entry and coherent process experience for the approval/request scenario, proven through a local SPA against live Dev Dataverse
 
 Must define and implement:
-- Power Pages authentication and identity assumptions
-- context handoff into the DBM runtime
+- local proof identity assumptions
+- local Node proxy handoff into the DBM runtime
 - process initiation contract
-- use of the shared process-experience renderer and the portal-visible status projection defined in `R1`
-- coherent portal-facing status and stage communication without leaking hidden internal steps
+- use of the shared process-experience renderer and the external-visible status projection defined in `R1`
+- coherent external-facing status and stage communication without leaking hidden internal steps
 
 ### R3.2 Azure orchestration and service plane
 
@@ -49,11 +49,11 @@ Output:
 - one coherent, pilot-ready reference solution with first-class operational diagnostics
 
 Must connect:
-- Power Pages runtime
+- DBM-owned external runtime
 - model-driven DBM process runtime
 - Dataverse backend execution
 - Azure orchestration and supporting services
-- state return to the portal
+- state return to the external front door
 
 Must include:
 - process timeline and audit trail
@@ -76,8 +76,8 @@ Must include:
 
 ## Exit criteria
 
-- the reference approval/request solution works end-to-end from portal to completion and back
-- portal-facing status remains coherent with the internal process model without exposing hidden internal stages or steps
+- the reference approval/request solution works end-to-end from external entry to completion and back
+- external-facing status remains coherent with the internal process model without exposing hidden internal stages or steps
 - work management, audit, and support diagnostics are usable by real operators
 - the solution is supportable in `UAT` and `Prod`
 - rollback, diagnostics, and operational documentation are ready for pilot use

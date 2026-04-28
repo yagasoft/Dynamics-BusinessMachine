@@ -1,0 +1,66 @@
+{
+  "schemaVersion": "dbm.portal-runtime.bootstrap/v1",
+  "packageId": "dbm-approval-request",
+  "packageVersion": "1.2.1",
+  "processId": "approval-request-process",
+  "identityMode": "generic-profile",
+  "genericProfileKey": "dev-anonymous-requester",
+  "routes": {
+    "entryPath": "/request",
+    "statusPath": "/request/status"
+  },
+  "requestEntityLogicalName": "dbm_request",
+  "requestEntitySetName": "dbm_requests",
+  "startFormId": "request-form",
+  "entryFields": [
+    {
+      "logicalName": "dbm_title",
+      "displayName": "Request Title",
+      "dataType": "string",
+      "required": true,
+      "hint": "Enter the request title."
+    },
+    {
+      "logicalName": "dbm_amount",
+      "displayName": "Request Amount",
+      "dataType": "currency",
+      "required": true,
+      "hint": "Enter the amount requested."
+    },
+    {
+      "logicalName": "dbm_assignedapprover",
+      "displayName": "Assigned Approver",
+      "dataType": "string",
+      "required": true,
+      "hint": "Capture the assigned approver name."
+    },
+    {
+      "logicalName": "dbm_supportingnotes",
+      "displayName": "Supporting Notes",
+      "dataType": "multiline-string",
+      "required": false,
+      "hint": "Explain why more detail is needed."
+    }
+  ],
+  "portalCommandFieldLogicalName": "dbm_portalcommand",
+  "runtimeStateFieldLogicalNames": {
+    "stageId": "dbm_currentstageid",
+    "stepId": "dbm_currentstepid",
+    "formStateId": "dbm_currentformstateid",
+    "internalStatusId": "dbm_internalstatusid",
+    "portalStatusId": "dbm_portalstatusid",
+    "portalProfileKey": "dbm_portalprofilekey"
+  },
+  "defaultState": {
+    "stageId": "draft-request",
+    "stepId": "capture-request",
+    "formStateId": "request-edit-state",
+    "internalStatusId": "draft",
+    "portalStatusId": "draft"
+  },
+  "allowedActions": [
+    "create-draft",
+    "submit-request",
+    "refresh-status"
+  ]
+}

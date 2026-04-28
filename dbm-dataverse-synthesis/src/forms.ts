@@ -177,7 +177,9 @@ function getRuntimeStateFieldLogicalNames(entityPlan: DataverseEntityPlan): Data
     stepId: `${prefix}_currentstepid`,
     formStateId: `${prefix}_currentformstateid`,
     internalStatusId: `${prefix}_internalstatusid`,
-    portalStatusId: `${prefix}_portalstatusid`
+    portalStatusId: `${prefix}_portalstatusid`,
+    portalCommand: `${prefix}_portalcommand`,
+    portalProfileKey: `${prefix}_portalprofilekey`
   };
 }
 
