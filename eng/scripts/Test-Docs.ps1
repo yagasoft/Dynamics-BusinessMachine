@@ -40,7 +40,9 @@ if ($missing) {
 
 $requiredScripts = @(
     'eng\scripts\Test-CompletedRoadmapTddMatrix.ps1',
+    'eng\scripts\Test-CompletedRoadmapEnvironmentProofReadiness.ps1',
     'eng\scripts\Test-DbmProcessExperience.ps1',
+    'eng\scripts\Test-DbmProcessExperienceVisual.ps1',
     'eng\scripts\Test-DbmPortalRuntime.ps1',
     'eng\scripts\Test-DbmDesignerShell.ps1'
 )
@@ -76,6 +78,21 @@ $contentChecks = @(
         Path = 'docs\roadmap\completed-roadmap-tdd-matrix.md'
         Pattern = 'R3.1 local SPA runtime proof and external entry'
         Description = 'Completed roadmap TDD matrix must trace R3.1 at the capability level.'
+    },
+    @{
+        Path = 'docs\roadmap\completed-roadmap-tdd-matrix.md'
+        Pattern = 'Environment-bound proof ledger'
+        Description = 'Completed roadmap TDD matrix must include an environment-bound proof ledger.'
+    },
+    @{
+        Path = 'docs\roadmap\completed-roadmap-tdd-matrix.md'
+        Pattern = 'Test-CompletedRoadmapEnvironmentProofReadiness.ps1'
+        Description = 'Completed roadmap TDD matrix must reference the environment proof readiness check.'
+    },
+    @{
+        Path = 'docs\roadmap\completed-roadmap-tdd-matrix.md'
+        Pattern = 'Test-DbmProcessExperienceVisual.ps1'
+        Description = 'Completed roadmap TDD matrix must reference the optional process-experience visual proof wrapper.'
     },
     @{
         Path = '.github\workflows\validate.yml'
@@ -114,6 +131,23 @@ $contentFailures = foreach ($check in $contentChecks) {
 
 if ($contentFailures) {
     throw "Documentation content checks failed: $($contentFailures -join ' ')"
+}
+
+$validateWorkflowPath = Join-Path $RepoRoot '.github\workflows\validate.yml'
+$validateWorkflowContent = [System.IO.File]::ReadAllText($validateWorkflowPath)
+$environmentBoundWorkflowScripts = @(
+    'Test-CompletedRoadmapEnvironmentProofReadiness.ps1',
+    'Test-DbmProcessExperienceVisual.ps1'
+)
+
+$environmentBoundWorkflowFailures = foreach ($scriptName in $environmentBoundWorkflowScripts) {
+    if ($validateWorkflowContent -match [regex]::Escape($scriptName)) {
+        "Validate workflow must not run optional environment-bound proof command $scriptName."
+    }
+}
+
+if ($environmentBoundWorkflowFailures) {
+    throw "Environment-bound workflow checks failed: $($environmentBoundWorkflowFailures -join ' ')"
 }
 
 Write-Host 'Documentation checks passed.'
