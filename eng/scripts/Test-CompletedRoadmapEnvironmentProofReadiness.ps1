@@ -6,21 +6,94 @@ param(
 
 $ErrorActionPreference = 'Stop'
 
-$repoOwnedProofAssets = @(
-    'docs\roadmap\completed-roadmap-tdd-matrix.md',
-    'docs\runbooks\designer-hosted-validation.md',
-    'docs\runbooks\live-connected-e2e.md',
-    'docs\runbooks\uat-promotion-runbook.md',
-    'docs\runbooks\r2-generic-existing-form-dev-proof.md',
-    'eng\scripts\Test-DataverseSmoke.ps1',
-    'eng\scripts\Test-DbmProcessExperienceVisual.ps1',
-    'eng\scripts\Test-R3PortalRuntimeLocalSmoke.ps1',
-    'eng\scripts\Invoke-R3PortalRuntimeLocalProof.ps1',
-    'dbm-process-experience\package.json',
-    'dbm-live-e2e\package.json'
-)
+function Get-MarkdownTableRows {
+    param(
+        [string[]]$Lines,
+        [string]$Heading,
+        [int]$ExpectedCellCount
+    )
 
-$missingRepoAssets = foreach ($relativePath in $repoOwnedProofAssets) {
+    $rows = @()
+    $inSection = $false
+    $foundHeading = $false
+
+    foreach ($line in $Lines) {
+        if ($line -eq $Heading) {
+            $inSection = $true
+            $foundHeading = $true
+            continue
+        }
+
+        if ($inSection -and $line -like '## *') {
+            break
+        }
+
+        if (-not $inSection -or -not $line.TrimStart().StartsWith('|')) {
+            continue
+        }
+
+        $cells = @($line.Trim().Trim('|').Split('|') | ForEach-Object { $_.Trim() })
+        if ($cells.Count -ne $ExpectedCellCount) {
+            throw "$Heading contains a table row with $($cells.Count) cells; expected $ExpectedCellCount cells: $line"
+        }
+
+        if ($cells[0] -eq 'Capability' -or $cells[0] -match '^-+$') {
+            continue
+        }
+
+        $rows += ,$cells
+    }
+
+    if (-not $foundHeading) {
+        throw "Completed roadmap TDD matrix is missing required section: $Heading"
+    }
+
+    return $rows
+}
+
+function Get-EnvironmentProofAssetReferences {
+    param([string]$RepoRoot)
+
+    $matrixPath = Join-Path $RepoRoot 'docs\roadmap\completed-roadmap-tdd-matrix.md'
+    if (-not (Test-Path $matrixPath)) {
+        throw "Completed roadmap TDD matrix is missing: $matrixPath"
+    }
+
+    $lines = (Get-Content -Path $matrixPath -Raw) -split "`r?`n"
+    $proofReferences = [System.Collections.Generic.List[string]]::new()
+    $proofReferences.Add('docs\roadmap\completed-roadmap-tdd-matrix.md')
+
+    $ledgerRows = Get-MarkdownTableRows -Lines $lines -Heading '## Environment-bound proof ledger' -ExpectedCellCount 7
+    foreach ($row in $ledgerRows) {
+        $commandOrRunbook = [string]$row[2]
+        $references = @([regex]::Matches($commandOrRunbook, '`([^`]+)`') | ForEach-Object { $_.Groups[1].Value })
+        foreach ($reference in $references) {
+            if ($reference -notmatch '\.(ps1|md|json|yml|yaml|ts|tsx)$') {
+                continue
+            }
+
+            $proofReferences.Add(($reference -replace '/', '\'))
+        }
+    }
+
+    if ($proofReferences -contains 'eng\scripts\Test-DbmProcessExperienceVisual.ps1') {
+        $proofReferences.Add('dbm-process-experience\package.json')
+    }
+
+    if (
+        $proofReferences -contains 'docs\runbooks\live-connected-e2e.md' -or
+        $proofReferences -contains 'eng\scripts\Test-R3PortalRuntimeLocalSmoke.ps1' -or
+        $proofReferences -contains 'eng\scripts\Invoke-R3PortalRuntimeLocalProof.ps1'
+    ) {
+        $proofReferences.Add('dbm-live-e2e\package.json')
+    }
+
+    return @($proofReferences | Select-Object -Unique)
+}
+
+$proofAssets = @(Get-EnvironmentProofAssetReferences -RepoRoot $RepoRoot)
+
+$missingRepoAssets = foreach ($relativePath in $proofAssets) {
     $fullPath = Join-Path $RepoRoot $relativePath
     if (-not (Test-Path $fullPath)) {
         $relativePath

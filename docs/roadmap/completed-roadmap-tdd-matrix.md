@@ -56,11 +56,22 @@ Environment-bound proof remains outside normal CI unless it has stable local aut
 | `R3.1` plugin authority | Environment-bound | `eng/scripts/Test-R3PortalRuntimeLocalSmoke.ps1` | Local proof host, Dev Dataverse environment, Azure token, built portal/runtime packages, and live smoke target. | Local smoke evidence root, browser proof output, and Dataverse request state transcript. | Requires live Dataverse authority and local browser/API orchestration. | Do not move authority into the browser client. |
 | `R3.1` proof automation | Environment-bound | `eng/scripts/Invoke-R3PortalRuntimeLocalProof.ps1`, `eng/scripts/Test-CompletedRoadmapEnvironmentProofReadiness.ps1` | Local proof prerequisites, package dependencies, optional browser tooling, PAC/Azure availability, and writable evidence root. | Local proof evidence root plus readiness warning output for unavailable external prerequisites. | Full proof depends on live environment and local tooling; readiness is static and local. | Do not reintroduce Power Pages deployment seams. |
 
+## Verification warning ledger
+
+Known warnings must remain explicit so validation output is not mistaken for new completed scope or a hidden failure.
+
+| Warning source | Classification | Warning | Expected handling | Future-scope boundary |
+| --- | --- | --- | --- | --- |
+| `Test-CompletedRoadmapEnvironmentProofReadiness.ps1` | Environment-bound | Missing `az`, `pac`, Playwright CLI, browser cache, or local package install warnings. | Warn by default; fail only with `-Strict` or missing repo-owned proof assets. | Do not claim live Dataverse, Azure, or browser proof from readiness warnings. |
+| Node package validation wrappers | Non-blocking | `npm ci` may print audit, funding, engine, or deprecation warnings while tests and builds pass. | Treat the process exit code as the wrapper gate; record package upgrade or security work separately. | Do not upgrade package families as part of this traceability-only retrofit. |
+| `Test-DbmProcessExperienceVisual.ps1` | Environment-bound | Missing Playwright browser binaries or visual snapshot prerequisites can prevent optional visual proof. | Use `-InstallBrowsers` when the local visual proof is intentionally run; otherwise keep it environment-bound. | Do not wire optional visual proof into normal CI. |
+| Required validation scripts | Actionable | Non-zero exit from required docs, matrix, wrapper, build, or contract gates. | Stop closeout and fix the in-scope validation failure before merge. | Do not cover future roadmap features to make a completed-roadmap gate pass. |
+
 ## Retrofit issue log
 
 | Exposed by | Capability route | Issue | Resolution |
 | --- | --- | --- | --- |
 | `dbm-contract` fixture test | `R3.1` contract | Portal runtime bootstrap fixture still used the generic `/request` and `/request/status` proof routes while the runtime and runbook had standardised on `/approval-request` and `/approval-request/status`. | Updated the valid bootstrap fixture and protected it with a package-level contract test. |
 | `Invoke-NodeBuild.ps1` | `R3.1` proof automation | Local builds through the `D:\Git` junction mixed the junction path with the real `D:\Drive\Git` path, causing the portal SPA Vite build to treat `index.html` as outside the project root. | Added a shared Vite launcher that runs package tools from the real package root and kept the portal HTML input relative to that root. |
-| Vite package tests from `D:\Git` | `R2.3` renderer and `R3.1` SPA client | Vitest discovered tests through the junction path but loaded transformed modules through the real path, failing with `/@fs/D:/Drive/...` module paths. | Added a shared Vitest launcher that runs with the package root resolved to the real path. |
-| `Test-DbmProcessExperienceVisual.ps1` | `R2.3` renderer and `R3.1` renderer | Visual snapshots still exposed the hidden `Manager Review` stage label even though the source tests require external and portal projections to mask hidden-stage labels as `Internal review`. | Rebaselined the two visual snapshots after confirming the existing source tests protect hidden-stage masking. |
+| Vite package tests from `D:\Git` | `R2.3` shared process experience and model-driven host strategy<br>`R3.1` SPA client | Vitest discovered tests through the junction path but loaded transformed modules through the real path, failing with `/@fs/D:/Drive/...` module paths. | Added a shared Vitest launcher that runs with the package root resolved to the real path. |
+| `Test-DbmProcessExperienceVisual.ps1` | `R2.3` shared process experience and model-driven host strategy<br>`R3.1` renderer | Visual snapshots still exposed the hidden `Manager Review` stage label even though the source tests require external and portal projections to mask hidden-stage labels as `Internal review`. | Rebaselined the two visual snapshots after confirming the existing source tests protect hidden-stage masking. |
