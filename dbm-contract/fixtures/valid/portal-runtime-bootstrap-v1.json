@@ -6,8 +6,8 @@
   "identityMode": "generic-profile",
   "genericProfileKey": "dev-anonymous-requester",
   "routes": {
-    "entryPath": "/request",
-    "statusPath": "/request/status"
+    "entryPath": "/approval-request",
+    "statusPath": "/approval-request/status"
   },
   "requestEntityLogicalName": "dbm_request",
   "requestEntitySetName": "dbm_requests",

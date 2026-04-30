@@ -10,8 +10,13 @@
 
 ## Validation
 
+- Failing-test evidence:
+  - What test or executable check failed before the implementation?
+  - What failure message proved the intended missing or broken behaviour?
 - What did you run locally or in CI?
 - What evidence should reviewers look for?
+- Which completed-roadmap matrix row does this protect or improve?
+- Does the change avoid future roadmap scope?
 
 ## Docs Impact
 

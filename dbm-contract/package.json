@@ -7,6 +7,7 @@
   "scripts": {
     "schema": "node ./scripts/generate-schema.cjs",
     "build": "npm run schema && tsc -p tsconfig.json",
+    "test": "npm run schema && node --test test/contract-fixtures.test.cjs",
     "validate": "node ./scripts/validate-contracts.cjs"
   },
   "devDependencies": {

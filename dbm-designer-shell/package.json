@@ -4,8 +4,8 @@
   "private": true,
   "type": "module",
   "scripts": {
-    "vite": "npx -p node@20.19.0 node ./node_modules/vite/bin/vite.js",
-    "vitest": "npx -p node@20.19.0 node ./node_modules/vitest/vitest.mjs",
+    "vite": "npx -p node@20.19.0 node ../eng/scripts/run-node-tool-with-real-root.mjs node_modules/vite/bin/vite.js",
+    "vitest": "npx -p node@20.19.0 node ../eng/scripts/run-vitest-with-real-root.mjs",
     "build": "npm --prefix ../dbm-contract run build && npm --prefix ../dbm-designer-core run build && npm --prefix ../dbm-process-experience run build && npm run vite -- build && node ./scripts/assert-browser-bundle.mjs && node ./scripts/write-bundle-html.mjs && node ./scripts/copy-primeicons.mjs",
     "test": "npm --prefix ../dbm-contract run build && npm --prefix ../dbm-designer-core run build && npm --prefix ../dbm-process-experience run build && npm run vitest -- run"
   },

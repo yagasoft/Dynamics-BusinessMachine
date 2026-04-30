@@ -25,3 +25,33 @@ These instructions are durable workspace rules for Codex and similar AI helpers 
 - If multiple candidate branches exist for the same line of work, stop and ask the user which branch is the canonical continuation branch before making further changes.
 - When ending a thread that changed branch context, explicitly state the canonical continuation branch in the final response.
 
+## TDD branch lifecycle policy
+
+When a task is completed through a successful TDD cycle, treat passing verification as permission to complete the local Git workflow automatically for the AI-created task branch or worktree.
+
+After tests pass:
+
+- confirm the changed files are only within the intended task scope
+- confirm there are no unrelated user changes mixed into the task branch
+- commit the completed work with a clear message
+- switch back to the stable base branch, usually `main` or `master`
+- merge the task branch
+- push the updated base branch
+- delete the completed task branch locally
+- delete the completed task branch remotely if it was pushed
+- remove the bound worktree once it is no longer needed
+- prune stale worktree metadata if required
+
+This behaviour applies only to the current task branch or worktree created for the AI's work.
+
+Do not auto-merge or clean up if:
+
+- tests fail
+- verification was skipped
+- there are unrelated user changes
+- the branch contains work outside the requested scope
+- merge conflicts occur
+- the user explicitly says not to deploy, push, merge, or clean up
+- the target branch is not clearly known
+
+A successful TDD round means complete the branch lifecycle, not merely report readiness, unless the user gives a narrower instruction. Never overwrite, revert, reset, or delete user changes. Automatic cleanup only applies to AI-created task branches and their matching worktrees after successful verification.

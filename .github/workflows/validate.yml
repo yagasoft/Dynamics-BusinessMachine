@@ -89,6 +89,10 @@ jobs:
         shell: pwsh
         run: .\eng\scripts\Build-DotNet.ps1
 
+      - name: Validate DBM plugin runtime
+        shell: pwsh
+        run: .\eng\scripts\Test-DbmPluginRuntime.ps1
+
       - name: Smoke-stage Dataverse solution source
         shell: pwsh
         run: |

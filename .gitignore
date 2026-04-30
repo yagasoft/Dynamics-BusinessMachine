@@ -445,6 +445,7 @@ packages*/
 /dist
 /dbm-contract/dist/
 /dbm-designer-core/dist/
+/dbm-live-e2e/dist/
 /tmp
 /out-tsc
 

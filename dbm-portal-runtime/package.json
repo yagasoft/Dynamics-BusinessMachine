@@ -4,8 +4,8 @@
   "private": true,
   "type": "module",
   "scripts": {
-    "vite": "npx -p node@20.19.0 node ./node_modules/vite/bin/vite.js",
-    "vitest": "npx -p node@20.19.0 node ./node_modules/vitest/vitest.mjs",
+    "vite": "npx -p node@20.19.0 node ../eng/scripts/run-node-tool-with-real-root.mjs node_modules/vite/bin/vite.js",
+    "vitest": "npx -p node@20.19.0 node ../eng/scripts/run-vitest-with-real-root.mjs",
     "prepare-local-deps": "npm --prefix ../dbm-contract run build && npm --prefix ../dbm-process-experience run build",
     "build": "npm run prepare-local-deps && tsc -p tsconfig.json && npm run vite -- build",
     "test": "npm run prepare-local-deps && npm run vitest -- run",

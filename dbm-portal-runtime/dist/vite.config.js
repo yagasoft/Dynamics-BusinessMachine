@@ -25,7 +25,7 @@ export default defineConfig(({ command }) => ({
         emptyOutDir: false,
         outDir: path.resolve(__dirname, 'dist/spa'),
         rollupOptions: {
-            input: path.resolve(__dirname, 'index.html')
+            input: 'index.html'
         }
     },
     test: {

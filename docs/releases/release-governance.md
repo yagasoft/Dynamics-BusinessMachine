@@ -62,6 +62,7 @@ Every PR into a protected branch must include:
 
 - clear scope and risk statement
 - validation evidence
+- TDD evidence for every behaviour change
 - documentation impact statement
 - ADR impact statement
 - rollout impact statement
@@ -74,6 +75,21 @@ Review minimums:
 - successful required checks on the current HEAD commit
 
 Architecture or delivery changes are not complete until the relevant tracked docs in `docs/` are updated in the same PR.
+
+## TDD evidence policy
+
+Completed-roadmap revamp work must use TDD as the default implementation model. The accepted scope is the current completed baseline through `R3.1`; it must not pull in future `R3.2` or later roadmap capabilities.
+
+Every behaviour change must provide:
+
+- failing-test evidence captured before the implementation change
+- green verification after the smallest implementation change that satisfies the test
+- a trace to the completed roadmap capability being protected or improved
+- a scope statement confirming that future roadmap items were not introduced
+
+Documentation-only changes may use an executable documentation check, such as `eng/scripts/Test-Docs.ps1`, as the failing test. Refactors are treated as behaviour-risking work unless the PR explains why no executable test can observe the change.
+
+The completed-roadmap trace source is [Completed Roadmap TDD Matrix](../roadmap/completed-roadmap-tdd-matrix.md).
 
 ## Versioning policy
 
@@ -116,6 +132,7 @@ Required repository workflows:
   - Node asset builds
   - DBM Dataverse synthesis validation
   - legacy .NET restore and build
+  - DBM plugin runtime tests
   - core and generated Dataverse source staging smoke tests
   - Azure delivery-contract validation
 - `security`

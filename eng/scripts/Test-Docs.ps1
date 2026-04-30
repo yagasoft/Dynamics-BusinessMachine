@@ -23,7 +23,8 @@ $requiredDocs = @(
     'docs\runbooks\designer-hosted-validation.md',
     'docs\runbooks\r2-generic-existing-form-dev-proof.md',
     'docs\runbooks\live-connected-e2e.md',
-    'docs\runbooks\codex-dataverse-metadata-synthesis-skill-handoff.md'
+    'docs\runbooks\codex-dataverse-metadata-synthesis-skill-handoff.md',
+    'docs\roadmap\completed-roadmap-tdd-matrix.md'
 )
 
 $missing = foreach ($relativePath in $requiredDocs) {
@@ -35,6 +36,46 @@ $missing = foreach ($relativePath in $requiredDocs) {
 
 if ($missing) {
     throw "Missing required documentation files: $($missing -join ', ')"
+}
+
+$contentChecks = @(
+    @{
+        Path = 'AGENTS.md'
+        Pattern = 'TDD branch lifecycle policy'
+        Description = 'AGENTS.md must define the TDD branch lifecycle policy.'
+    },
+    @{
+        Path = 'docs\releases\release-governance.md'
+        Pattern = 'TDD evidence policy'
+        Description = 'Release governance must define the TDD evidence policy.'
+    },
+    @{
+        Path = '.github\PULL_REQUEST_TEMPLATE.md'
+        Pattern = 'Failing-test evidence'
+        Description = 'Pull request template must ask for failing-test evidence.'
+    },
+    @{
+        Path = 'docs\roadmap\completed-roadmap-tdd-matrix.md'
+        Pattern = 'R3.1 local SPA runtime proof and external entry'
+        Description = 'Completed roadmap TDD matrix must trace R3.1 at the capability level.'
+    },
+    @{
+        Path = '.github\workflows\validate.yml'
+        Pattern = 'Test-DbmPluginRuntime.ps1'
+        Description = 'Validate workflow must run the DBM plugin runtime tests.'
+    }
+)
+
+$contentFailures = foreach ($check in $contentChecks) {
+    $fullPath = Join-Path $RepoRoot $check.Path
+    $content = [System.IO.File]::ReadAllText($fullPath)
+    if ($content -notmatch [regex]::Escape($check.Pattern)) {
+        $check.Description
+    }
+}
+
+if ($contentFailures) {
+    throw "Documentation content checks failed: $($contentFailures -join ' ')"
 }
 
 Write-Host 'Documentation checks passed.'
