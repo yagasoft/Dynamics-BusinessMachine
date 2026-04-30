@@ -253,6 +253,27 @@ if ($manualWithoutLedger.Count -gt 0) {
     throw "Manual proof rows must have explicit Manual ledger entries: $($manualWithoutLedger -join ', ')"
 }
 
+$ledgerConsistencyFailures = foreach ($row in $ledgerRows) {
+    $matrixRow = @($matrixRows | Where-Object { $_.Capability -eq $row.Capability })[0]
+    $matrixProofTypes = @(
+        [regex]::Matches([string]$matrixRow.VerificationSurface, '(Automated|Environment-bound|Manual):') |
+            ForEach-Object { $_.Groups[1].Value } |
+            Select-Object -Unique
+    )
+
+    if ($row.ProofType -notin $matrixProofTypes) {
+        "$($row.Capability) ledger proof type '$($row.ProofType)' is not present in matrix proof types '$($matrixProofTypes -join ', ')'"
+    }
+
+    if ($row.FutureBoundary -ne $matrixRow.FutureBoundary) {
+        "$($row.Capability) ledger future boundary '$($row.FutureBoundary)' does not match matrix boundary '$($matrixRow.FutureBoundary)'"
+    }
+}
+
+if ($ledgerConsistencyFailures) {
+    throw "Environment-bound proof ledger must stay consistent with matrix rows: $($ledgerConsistencyFailures -join '; ')"
+}
+
 $emptyLedgerFailures = foreach ($row in $ledgerRows) {
     foreach ($propertyName in @('Capability', 'ProofType', 'CommandOrRunbook', 'Prerequisites', 'EvidenceOutput', 'WhyNotCi', 'FutureBoundary')) {
         if ([string]::IsNullOrWhiteSpace([string]$row.$propertyName)) {
@@ -292,6 +313,94 @@ $missingProofReferences = foreach ($row in $ledgerRows) {
 
 if ($missingProofReferences) {
     throw "Environment-bound proof ledger references missing proof assets: $($missingProofReferences -join '; ')"
+}
+
+$issueRows = @(
+    Get-MarkdownTableRows -Lines $lines -Heading '## Retrofit issue log' -ExpectedCellCount 4 |
+        Where-Object { $_[0] -ne 'Exposed by' -and $_[0] -notmatch '^-+$' } |
+        ForEach-Object {
+            [pscustomobject]@{
+                ExposedBy = $_[0]
+                CapabilityRoute = $_[1]
+                Issue = $_[2]
+                Resolution = $_[3]
+            }
+        }
+)
+
+if ($issueRows.Count -eq 0) {
+    throw 'Retrofit issue log does not contain any issue rows.'
+}
+
+$issueRouteFailures = foreach ($row in $issueRows) {
+    $routes = @(
+        ([string]$row.CapabilityRoute -replace '<br\s*/?>', ';') -split ';' |
+            ForEach-Object { $_.Trim() } |
+            Where-Object { -not [string]::IsNullOrWhiteSpace($_) }
+    )
+
+    if ($routes.Count -eq 0) {
+        "$($row.ExposedBy) has no completed capability route"
+        continue
+    }
+
+    foreach ($route in $routes) {
+        if ($route -notin $actualCapabilities) {
+            "$($row.ExposedBy) references unknown capability route '$route'"
+        }
+    }
+}
+
+if ($issueRouteFailures) {
+    throw "Retrofit issue log routes must match completed matrix capability rows: $($issueRouteFailures -join '; ')"
+}
+
+$warningRows = @(
+    Get-MarkdownTableRows -Lines $lines -Heading '## Verification warning ledger' -ExpectedCellCount 5 |
+        Where-Object { $_[0] -ne 'Warning source' -and $_[0] -notmatch '^-+$' } |
+        ForEach-Object {
+            [pscustomobject]@{
+                WarningSource = $_[0]
+                Classification = $_[1]
+                Warning = $_[2]
+                ExpectedHandling = $_[3]
+                FutureBoundary = $_[4]
+            }
+        }
+)
+
+if ($warningRows.Count -eq 0) {
+    throw 'Verification warning ledger does not contain any warning rows.'
+}
+
+$warningLedgerFailures = foreach ($row in $warningRows) {
+    foreach ($propertyName in @('WarningSource', 'Classification', 'Warning', 'ExpectedHandling', 'FutureBoundary')) {
+        if ([string]::IsNullOrWhiteSpace([string]$row.$propertyName)) {
+            "$($row.WarningSource) has an empty $propertyName warning ledger cell"
+        }
+    }
+
+    if ($row.Classification -notin @('Non-blocking', 'Environment-bound', 'Actionable')) {
+        "$($row.WarningSource) uses unsupported warning classification '$($row.Classification)'"
+    }
+}
+
+if ($warningLedgerFailures) {
+    throw "Verification warning ledger entries must be classified and complete: $($warningLedgerFailures -join '; ')"
+}
+
+$readinessScriptPath = Join-Path $RepoRoot 'eng\scripts\Test-CompletedRoadmapEnvironmentProofReadiness.ps1'
+if (-not (Test-Path $readinessScriptPath)) {
+    throw "Completed-roadmap environment proof readiness script is missing: $readinessScriptPath"
+}
+
+$readinessScript = Get-Content -Path $readinessScriptPath -Raw
+if ($readinessScript -match '(?m)^\$repoOwnedProofAssets\s*=\s*@\(') {
+    throw 'Completed-roadmap environment proof readiness must derive repo-owned proof assets from the proof ledger instead of maintaining $repoOwnedProofAssets.'
+}
+
+if ($readinessScript -notmatch 'Get-EnvironmentProofAssetReferences') {
+    throw 'Completed-roadmap environment proof readiness must expose Get-EnvironmentProofAssetReferences for ledger-driven proof asset parsing.'
 }
 
 Write-Host 'Completed roadmap TDD matrix checks passed.'
