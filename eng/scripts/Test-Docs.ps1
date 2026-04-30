@@ -38,6 +38,24 @@ if ($missing) {
     throw "Missing required documentation files: $($missing -join ', ')"
 }
 
+$requiredScripts = @(
+    'eng\scripts\Test-CompletedRoadmapTddMatrix.ps1',
+    'eng\scripts\Test-DbmProcessExperience.ps1',
+    'eng\scripts\Test-DbmPortalRuntime.ps1',
+    'eng\scripts\Test-DbmDesignerShell.ps1'
+)
+
+$missingScripts = foreach ($relativePath in $requiredScripts) {
+    $fullPath = Join-Path $RepoRoot $relativePath
+    if (-not (Test-Path $fullPath)) {
+        $relativePath
+    }
+}
+
+if ($missingScripts) {
+    throw "Missing required validation scripts: $($missingScripts -join ', ')"
+}
+
 $contentChecks = @(
     @{
         Path = 'AGENTS.md'
@@ -63,6 +81,26 @@ $contentChecks = @(
         Path = '.github\workflows\validate.yml'
         Pattern = 'Test-DbmPluginRuntime.ps1'
         Description = 'Validate workflow must run the DBM plugin runtime tests.'
+    },
+    @{
+        Path = '.github\workflows\validate.yml'
+        Pattern = 'Test-CompletedRoadmapTddMatrix.ps1'
+        Description = 'Validate workflow must run the completed-roadmap TDD matrix checks.'
+    },
+    @{
+        Path = '.github\workflows\validate.yml'
+        Pattern = 'Test-DbmProcessExperience.ps1'
+        Description = 'Validate workflow must run process-experience package tests.'
+    },
+    @{
+        Path = '.github\workflows\validate.yml'
+        Pattern = 'Test-DbmPortalRuntime.ps1'
+        Description = 'Validate workflow must run portal-runtime package tests.'
+    },
+    @{
+        Path = '.github\workflows\validate.yml'
+        Pattern = 'Test-DbmDesignerShell.ps1'
+        Description = 'Validate workflow must run designer-shell package tests.'
     }
 )
 

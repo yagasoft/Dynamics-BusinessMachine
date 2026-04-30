@@ -30,6 +30,12 @@ try {
         throw "dbm-contract build failed with exit code $LASTEXITCODE."
     }
 
+    Write-Host "Testing dbm-contract"
+    npm run test
+    if ($LASTEXITCODE -ne 0) {
+        throw "dbm-contract tests failed with exit code $LASTEXITCODE."
+    }
+
     Write-Host "Validating dbm-contract fixtures"
     npm run validate
     if ($LASTEXITCODE -ne 0) {

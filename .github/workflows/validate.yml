@@ -61,6 +61,10 @@ jobs:
         shell: pwsh
         run: .\eng\scripts\Test-Docs.ps1
 
+      - name: Validate completed-roadmap TDD matrix
+        shell: pwsh
+        run: .\eng\scripts\Test-CompletedRoadmapTddMatrix.ps1
+
       - name: Validate tracked environment baseline
         shell: pwsh
         run: .\eng\scripts\Test-EnvironmentBaseline.ps1 -OutputPath (Join-Path $PWD 'artifacts\validate\environment-baseline.json') | Out-Host
@@ -76,6 +80,18 @@ jobs:
       - name: Validate DBM designer core
         shell: pwsh
         run: .\eng\scripts\Test-DbmDesignerCore.ps1
+
+      - name: Validate DBM process experience
+        shell: pwsh
+        run: .\eng\scripts\Test-DbmProcessExperience.ps1
+
+      - name: Validate DBM portal runtime
+        shell: pwsh
+        run: .\eng\scripts\Test-DbmPortalRuntime.ps1
+
+      - name: Validate DBM designer shell
+        shell: pwsh
+        run: .\eng\scripts\Test-DbmDesignerShell.ps1
 
       - name: Validate DBM Dataverse synthesis
         shell: pwsh
