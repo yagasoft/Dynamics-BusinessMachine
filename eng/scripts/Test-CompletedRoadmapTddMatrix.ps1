@@ -324,8 +324,36 @@ $validationWrapperRequirements = @(
         Description = 'capture untracked non-ignored files before and after validation'
     },
     @{
+        Pattern = 'git\s+status\s+--porcelain'
+        Description = 'capture status-level content drift before and after validation'
+    },
+    @{
+        Pattern = 'statusOnlyNormalised'
+        Description = 'record status-only validation churn normalised by the clean-worktree guard'
+    },
+    @{
+        Pattern = 'git\s+restore\s+--worktree'
+        Description = 'normalise status-only generated validation churn without committing it'
+    },
+    @{
         Pattern = 'clean-worktree guard'
         Description = 'fail clearly when validation generates content drift'
+    },
+    @{
+        Pattern = 'closeoutAttestation'
+        Description = 'write a closeout attestation manifest section'
+    },
+    @{
+        Pattern = 'targetBranch'
+        Description = 'record the intended stable target branch'
+    },
+    @{
+        Pattern = 'pushedTargetBranch'
+        Description = 'record target branch push status for TDD closeout'
+    },
+    @{
+        Pattern = 'cleanupActions'
+        Description = 'record required TDD branch lifecycle cleanup actions'
     }
 )
 
@@ -392,11 +420,13 @@ if (-not (Test-Path $commonParserPath)) {
 }
 
 $commonParser = Get-Content -Path $commonParserPath -Raw
-foreach ($requiredFunction in @('Get-CompletedRoadmapMarkdownTableRows', 'Get-EnvironmentProofAssetReferences')) {
+foreach ($requiredFunction in @('Get-CompletedRoadmapMarkdownTableRows', 'Get-EnvironmentProofAssetReferences', 'Get-CompletedRoadmapValidationGateScripts', 'Get-ValidateWorkflowGateScripts', 'Test-CompletedRoadmapCiParity')) {
     if ($commonParser -notmatch "function\s+$([regex]::Escape($requiredFunction))\b") {
         throw "Completed roadmap matrix common parser must define $requiredFunction."
     }
 }
+
+Test-CompletedRoadmapCiParity -RepoRoot $RepoRoot
 
 $sharedParserConsumers = @(
     'eng\scripts\Test-CompletedRoadmapTddMatrix.ps1',

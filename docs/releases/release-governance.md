@@ -103,6 +103,14 @@ The wrapper must write a completed-roadmap validation manifest under the ignored
 
 If an emergency admin action or direct push creates a branch-protection bypass, the closeout evidence must say so explicitly, identify the bypassed review or workflow path, and record the sequential local validation that was used to compensate. When the completed-roadmap wrapper is used, that evidence must include the completed-roadmap validation manifest path. The bypass does not change the normal PR-only rule for protected branches.
 
+### CI parity and closeout attestation
+
+Completed-roadmap validation must keep local sequential gates and the protected-branch `validate` workflow aligned. The local wrapper may include evidence capture and readiness checks that are local-only, but every deterministic gate used as completed-roadmap coverage must also be present in `.github/workflows/validate.yml`.
+
+When a successful verified TDD round is completed on an AI-created branch or worktree, closeout evidence must include a closeout attestation section in the completed-roadmap validation manifest or an equivalent attached manifest. The attestation must record the task branch, source commit, target branch, gate list, final verification status, pushed target branch, and lifecycle cleanup actions.
+
+After green verification, the default closeout action is automatic merge, push, branch purge, worktree removal, and stale metadata prune. This automatic lifecycle applies only to the current AI-created task branch or worktree, and only when scope checks, unrelated-change checks, and merge checks are clean.
+
 ## Versioning policy
 
 Formal release numbering resets from legacy PoC numbering to SemVer starting with `v0.2.0`.

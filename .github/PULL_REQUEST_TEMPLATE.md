@@ -23,6 +23,10 @@
   - If this touches completed-roadmap validation, did you run `eng/scripts/Test-CompletedRoadmapValidation.ps1` or explain why a narrower gate was enough?
   - If the full wrapper was run, what is the completed-roadmap validation manifest path?
   - Did the clean-worktree guard finish without new tracked diffs or untracked non-ignored files?
+- CI parity and closeout attestation:
+  - If this touches completed-roadmap validation gates, does `.github/workflows/validate.yml` still run every deterministic gate used by the local wrapper, excluding local-only evidence/readiness checks?
+  - What closeout attestation or manifest evidence records the branch, commit, gate list, status, pushed target branch, and cleanup actions?
+  - After successful verified TDD, was automatic merge, push, branch purge, worktree removal, and stale metadata prune completed or intentionally blocked by a documented policy condition?
 - Protected-branch bypass:
   - Was any direct push, emergency admin action, or branch-protection bypass used?
   - If yes, what review, workflow, sequential local validation, and completed-roadmap validation manifest evidence covers that bypass?

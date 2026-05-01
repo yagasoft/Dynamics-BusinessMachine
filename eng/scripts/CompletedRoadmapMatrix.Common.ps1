@@ -153,3 +153,68 @@ function Get-EnvironmentProofAssetReferences {
 
     return @($proofReferences | Select-Object -Unique)
 }
+
+function Get-CompletedRoadmapValidationGateScripts {
+    param([string]$RepoRoot)
+
+    $validationWrapperPath = Join-Path $RepoRoot 'eng\scripts\Test-CompletedRoadmapValidation.ps1'
+    if (-not (Test-Path $validationWrapperPath)) {
+        throw "Completed-roadmap sequential validation wrapper is missing: $validationWrapperPath"
+    }
+
+    $validationWrapper = Get-Content -Path $validationWrapperPath -Raw
+    return @(
+        [regex]::Matches($validationWrapper, "New-CompletedRoadmapGate[^\r\n]+-Script\s+'([^']+)'") |
+            ForEach-Object { $_.Groups[1].Value -replace '/', '\' } |
+            Select-Object -Unique
+    )
+}
+
+function Get-ValidateWorkflowGateScripts {
+    param([string]$RepoRoot)
+
+    $workflowPath = Join-Path $RepoRoot '.github\workflows\validate.yml'
+    if (-not (Test-Path $workflowPath)) {
+        throw "Validate workflow is missing: $workflowPath"
+    }
+
+    $workflowContent = Get-Content -Path $workflowPath -Raw
+    return @(
+        [regex]::Matches($workflowContent, '(?m)^\s*run:\s*\.\\(eng\\scripts\\(?:Test|Invoke)-[A-Za-z0-9-]+\.ps1)\b') |
+            ForEach-Object { $_.Groups[1].Value -replace '/', '\' } |
+            Select-Object -Unique
+    )
+}
+
+function Test-CompletedRoadmapCiParity {
+    param([string]$RepoRoot)
+
+    $localOnlyGateScripts = @(
+        'eng\scripts\Test-CompletedRoadmapEnvironmentProofReadiness.ps1'
+    )
+
+    $wrapperGateScripts = @(
+        Get-CompletedRoadmapValidationGateScripts -RepoRoot $RepoRoot |
+            Where-Object { $_ -notin $localOnlyGateScripts }
+    )
+
+    $workflowGateScripts = @(Get-ValidateWorkflowGateScripts -RepoRoot $RepoRoot)
+
+    $missingWorkflowGates = @(
+        $wrapperGateScripts |
+            Where-Object { $_ -notin $workflowGateScripts }
+    )
+
+    if ($missingWorkflowGates.Count -gt 0) {
+        throw "Validate workflow is missing deterministic completed-roadmap gates from the local wrapper: $($missingWorkflowGates -join ', ')"
+    }
+
+    $unexpectedLocalOnlyWorkflowGates = @(
+        $localOnlyGateScripts |
+            Where-Object { $_ -in $workflowGateScripts }
+    )
+
+    if ($unexpectedLocalOnlyWorkflowGates.Count -gt 0) {
+        throw "Validate workflow must not run local-only completed-roadmap gates: $($unexpectedLocalOnlyWorkflowGates -join ', ')"
+    }
+}

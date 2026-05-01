@@ -71,9 +71,24 @@ $contentChecks = @(
         Description = 'AGENTS.md must define the TDD branch lifecycle policy.'
     },
     @{
+        Path = 'AGENTS.md'
+        Pattern = 'automatic merge, push, branch purge, worktree removal, and stale metadata prune'
+        Description = 'AGENTS.md must require automatic successful-TDD branch lifecycle cleanup.'
+    },
+    @{
         Path = 'docs\releases\release-governance.md'
         Pattern = 'TDD evidence policy'
         Description = 'Release governance must define the TDD evidence policy.'
+    },
+    @{
+        Path = 'docs\releases\release-governance.md'
+        Pattern = 'CI parity and closeout attestation'
+        Description = 'Release governance must define completed-roadmap CI parity and closeout attestation expectations.'
+    },
+    @{
+        Path = 'docs\releases\release-governance.md'
+        Pattern = 'automatic merge, push, branch purge, worktree removal, and stale metadata prune'
+        Description = 'Release governance must require automatic successful-TDD branch lifecycle cleanup.'
     },
     @{
         Path = 'docs\releases\release-governance.md'
@@ -114,6 +129,16 @@ $contentChecks = @(
         Path = '.github\PULL_REQUEST_TEMPLATE.md'
         Pattern = 'Sequential completed-roadmap validation'
         Description = 'Pull request template must ask for sequential completed-roadmap validation evidence.'
+    },
+    @{
+        Path = '.github\PULL_REQUEST_TEMPLATE.md'
+        Pattern = 'CI parity and closeout attestation'
+        Description = 'Pull request template must ask for CI parity and closeout attestation evidence.'
+    },
+    @{
+        Path = '.github\PULL_REQUEST_TEMPLATE.md'
+        Pattern = 'automatic merge, push, branch purge, worktree removal, and stale metadata prune'
+        Description = 'Pull request template must ask for automatic successful-TDD branch lifecycle cleanup evidence.'
     },
     @{
         Path = '.github\PULL_REQUEST_TEMPLATE.md'
@@ -189,6 +214,11 @@ $contentChecks = @(
         Path = 'docs\roadmap\completed-roadmap-tdd-matrix.md'
         Pattern = 'completed-roadmap-validation-manifest.json'
         Description = 'Completed roadmap TDD matrix must reference the validation evidence manifest.'
+    },
+    @{
+        Path = 'docs\roadmap\completed-roadmap-tdd-matrix.md'
+        Pattern = 'CI parity and closeout attestation'
+        Description = 'Completed roadmap TDD matrix must record CI parity and closeout attestation governance.'
     },
     @{
         Path = 'docs\roadmap\completed-roadmap-tdd-matrix.md'

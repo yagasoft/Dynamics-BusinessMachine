@@ -29,6 +29,8 @@ These instructions are durable workspace rules for Codex and similar AI helpers 
 
 When a task is completed through a successful TDD cycle, treat passing verification as permission to complete the local Git workflow automatically for the AI-created task branch or worktree.
 
+Successful verified TDD closeout requires automatic merge, push, branch purge, worktree removal, and stale metadata prune without asking again when the target branch is known and the checks below pass.
+
 After tests pass:
 
 - confirm the changed files are only within the intended task scope

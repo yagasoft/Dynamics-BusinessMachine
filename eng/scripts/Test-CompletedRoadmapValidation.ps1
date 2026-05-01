@@ -3,7 +3,8 @@ param(
     [string]$RepoRoot = (Resolve-Path (Join-Path $PSScriptRoot '..\..')).Path,
     [switch]$ListOnly,
     [switch]$IncludeVisual,
-    [string]$EvidenceRoot
+    [string]$EvidenceRoot,
+    [string]$TargetBranch = 'main'
 )
 
 $ErrorActionPreference = 'Stop'
@@ -62,6 +63,16 @@ function Get-UntrackedNonIgnoredFiles {
     }
 }
 
+function Get-WorktreeStatus {
+    Push-Location $resolvedRepoRoot
+    try {
+        return @(git status --porcelain=v1 --untracked-files=all | Where-Object { -not [string]::IsNullOrWhiteSpace($_) })
+    }
+    finally {
+        Pop-Location
+    }
+}
+
 function Get-NewGitItems {
     param(
         [string[]]$Before,
@@ -69,6 +80,49 @@ function Get-NewGitItems {
     )
 
     return @($After | Where-Object { $_ -notin $Before })
+}
+
+function Get-GitStatusPath {
+    param([string]$StatusLine)
+
+    if ($StatusLine.Length -lt 4) {
+        return $null
+    }
+
+    $path = $StatusLine.Substring(3)
+    if ($path.StartsWith('"') -and $path.EndsWith('"')) {
+        $path = $path.Trim('"')
+    }
+
+    return $path
+}
+
+function Restore-StatusOnlyGeneratedChanges {
+    param([string[]]$StatusLines)
+
+    $restored = [System.Collections.Generic.List[string]]::new()
+
+    foreach ($statusLine in $StatusLines) {
+        $path = Get-GitStatusPath -StatusLine $statusLine
+        if ([string]::IsNullOrWhiteSpace($path)) {
+            continue
+        }
+
+        Push-Location $resolvedRepoRoot
+        try {
+            git restore --worktree -- $path
+            if ($LASTEXITCODE -ne 0) {
+                throw "Failed to restore status-only generated validation churn: $path"
+            }
+        }
+        finally {
+            Pop-Location
+        }
+
+        $restored.Add($statusLine)
+    }
+
+    return @($restored)
 }
 
 function Write-CompletedRoadmapValidationManifest {
@@ -119,6 +173,35 @@ $manifestPath = Join-Path $resolvedEvidenceRoot 'completed-roadmap-validation-ma
 
 $preTrackedDiff = @(Get-TrackedContentDiff)
 $preUntrackedFiles = @(Get-UntrackedNonIgnoredFiles)
+$preWorktreeStatus = @(Get-WorktreeStatus)
+$currentBranch = (Invoke-RepoGit -Arguments @('rev-parse', '--abbrev-ref', 'HEAD') | Select-Object -First 1)
+$currentCommit = (Invoke-RepoGit -Arguments @('rev-parse', 'HEAD') | Select-Object -First 1)
+$gateList = @(
+    $gates | ForEach-Object {
+        [ordered]@{
+            name = $_.Name
+            script = $_.Script
+            arguments = @($_.Arguments)
+        }
+    }
+)
+$cleanupActions = @(
+    'confirm-intended-scope',
+    'confirm-no-unrelated-user-changes',
+    'commit-completed-work',
+    'switch-to-target-branch',
+    'merge-task-branch',
+    'push-target-branch',
+    'delete-local-task-branch',
+    'delete-remote-task-branch-if-pushed',
+    'remove-bound-worktree',
+    'prune-stale-worktree-metadata'
+) | ForEach-Object {
+    [ordered]@{
+        action = $_
+        status = 'required-after-successful-verification'
+    }
+}
 
 $gateResults = @(
     $gates | ForEach-Object {
@@ -140,21 +223,34 @@ $manifest = [ordered]@{
     startedAtUtc = Get-UtcTimestamp
     endedAtUtc = $null
     repoRoot = $resolvedRepoRoot
-    branch = (Invoke-RepoGit -Arguments @('rev-parse', '--abbrev-ref', 'HEAD') | Select-Object -First 1)
-    commit = (Invoke-RepoGit -Arguments @('rev-parse', 'HEAD') | Select-Object -First 1)
+    branch = $currentBranch
+    commit = $currentCommit
     includeVisual = $true
     evidenceRoot = $resolvedEvidenceRoot
     preRun = [ordered]@{
         trackedDiff = @($preTrackedDiff)
         untrackedNonIgnoredFiles = @($preUntrackedFiles)
+        status = @($preWorktreeStatus)
     }
     postRun = $null
     generatedChanges = $null
     gates = $gateResults
+    closeoutAttestation = [ordered]@{
+        schemaVersion = 'completed-roadmap-closeout-attestation.v1'
+        taskBranch = $currentBranch
+        taskCommit = $currentCommit
+        targetBranch = $TargetBranch
+        gateList = $gateList
+        verificationStatus = 'running'
+        pushedTargetBranch = 'pending-post-verification'
+        cleanupActions = @($cleanupActions)
+    }
     error = $null
 }
 
 Write-CompletedRoadmapValidationManifest -Manifest $manifest -ManifestPath $manifestPath
+
+$statusOnlyNormalised = @()
 
 try {
     for ($index = 0; $index -lt $gates.Count; $index++) {
@@ -196,19 +292,34 @@ try {
 
     $postTrackedDiff = @(Get-TrackedContentDiff)
     $postUntrackedFiles = @(Get-UntrackedNonIgnoredFiles)
+    $postWorktreeStatus = @(Get-WorktreeStatus)
     $newTrackedDiff = @(Get-NewGitItems -Before $preTrackedDiff -After $postTrackedDiff)
     $newUntrackedFiles = @(Get-NewGitItems -Before $preUntrackedFiles -After $postUntrackedFiles)
+    $newWorktreeStatus = @(Get-NewGitItems -Before $preWorktreeStatus -After $postWorktreeStatus)
+
+    if ($newWorktreeStatus.Count -gt 0 -and $newTrackedDiff.Count -eq 0 -and $newUntrackedFiles.Count -eq 0) {
+        $statusOnlyNormalised = @(Restore-StatusOnlyGeneratedChanges -StatusLines $newWorktreeStatus)
+        $postTrackedDiff = @(Get-TrackedContentDiff)
+        $postUntrackedFiles = @(Get-UntrackedNonIgnoredFiles)
+        $postWorktreeStatus = @(Get-WorktreeStatus)
+        $newTrackedDiff = @(Get-NewGitItems -Before $preTrackedDiff -After $postTrackedDiff)
+        $newUntrackedFiles = @(Get-NewGitItems -Before $preUntrackedFiles -After $postUntrackedFiles)
+        $newWorktreeStatus = @(Get-NewGitItems -Before $preWorktreeStatus -After $postWorktreeStatus)
+    }
 
     $manifest.postRun = [ordered]@{
         trackedDiff = @($postTrackedDiff)
         untrackedNonIgnoredFiles = @($postUntrackedFiles)
+        status = @($postWorktreeStatus)
     }
     $manifest.generatedChanges = [ordered]@{
         trackedDiff = @($newTrackedDiff)
         untrackedNonIgnoredFiles = @($newUntrackedFiles)
+        status = @($newWorktreeStatus)
+        statusOnlyNormalised = @($statusOnlyNormalised)
     }
 
-    if ($newTrackedDiff.Count -gt 0 -or $newUntrackedFiles.Count -gt 0) {
+    if ($newTrackedDiff.Count -gt 0 -or $newUntrackedFiles.Count -gt 0 -or $newWorktreeStatus.Count -gt 0) {
         $manifest.status = 'failed'
         $manifest.endedAtUtc = Get-UtcTimestamp
         $manifest.error = 'Completed-roadmap validation clean-worktree guard detected generated content drift.'
@@ -223,28 +334,38 @@ try {
             $driftSummary += "new untracked non-ignored files: $($newUntrackedFiles -join ', ')"
         }
 
+        if ($newWorktreeStatus.Count -gt 0) {
+            $driftSummary += "new status entries: $($newWorktreeStatus -join ', ')"
+        }
+
         throw "Completed-roadmap validation clean-worktree guard failed; $($driftSummary -join '; '). Evidence manifest: $manifestPath"
     }
 
     $manifest.status = 'passed'
+    $manifest.closeoutAttestation.verificationStatus = 'passed'
     $manifest.endedAtUtc = Get-UtcTimestamp
     Write-CompletedRoadmapValidationManifest -Manifest $manifest -ManifestPath $manifestPath
 }
 catch {
     $manifest.status = 'failed'
+    $manifest.closeoutAttestation.verificationStatus = 'failed'
     $manifest.endedAtUtc = Get-UtcTimestamp
     $manifest.error = $_.Exception.Message
 
     if ($null -eq $manifest.postRun) {
         $postTrackedDiff = @(Get-TrackedContentDiff)
         $postUntrackedFiles = @(Get-UntrackedNonIgnoredFiles)
+        $postWorktreeStatus = @(Get-WorktreeStatus)
         $manifest.postRun = [ordered]@{
             trackedDiff = @($postTrackedDiff)
             untrackedNonIgnoredFiles = @($postUntrackedFiles)
+            status = @($postWorktreeStatus)
         }
         $manifest.generatedChanges = [ordered]@{
             trackedDiff = @(Get-NewGitItems -Before $preTrackedDiff -After $postTrackedDiff)
             untrackedNonIgnoredFiles = @(Get-NewGitItems -Before $preUntrackedFiles -After $postUntrackedFiles)
+            status = @(Get-NewGitItems -Before $preWorktreeStatus -After $postWorktreeStatus)
+            statusOnlyNormalised = @($statusOnlyNormalised)
         }
     }
 
