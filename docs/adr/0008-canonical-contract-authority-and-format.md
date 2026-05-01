@@ -37,6 +37,6 @@ R1.1 needs a single canonical DBM contract before host adapters, runtime work, o
 ## Related docs
 
 - [Canonical Model And Runtime Contract v1](../architecture/canonical-model-runtime-contract-v1.md)
-- [Release 1: Builder Platform MVP](../roadmap/release-1-builder-platform-mvp.md)
+- [Release 1: Process/stage designer and actual form render](../roadmap/release-1-process-stage-designer-and-form-render.md)
 - [Release Plan](../roadmap/release-plan.md)
 - [DBM Documentation Index](../README.md)

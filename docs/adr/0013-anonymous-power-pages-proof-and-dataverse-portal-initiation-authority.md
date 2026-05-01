@@ -63,6 +63,6 @@ Two earlier exploratory branches, `codex/r2.4-live-connected-e2e` and `codex/r2.
 ## Related docs
 
 - [Release Plan](../roadmap/release-plan.md)
-- [Release 3 Pilot Ready v1](../roadmap/release-3-pilot-ready-v1.md)
+- [Superseded old release 3 plan](../roadmap/release-3-pilot-ready-v1.md)
 - [R2 Process Experience Hosting](../runbooks/r2-process-experience-hosting.md)
 - [R3 Portal Runtime Dev Proof](../runbooks/r3-portal-runtime-dev-proof.md)

@@ -1,265 +1,103 @@
-# Target Platform Architecture
+# Target platform architecture
 
-This document defines the intended high-level architecture for DBM. It describes the enduring platform shape that the release plan is designed to deliver incrementally.
+This document defines the target architecture for DBM after the process-first roadmap reset.
 
 ## Architectural intent
 
-DBM should let a solution architect or developer define, deploy, run, and support one business process that spans the external front door to backend and back again from a single designer-led experience.
+DBM should let a user design a complete business cycle from portal to back office and back to the portal again.
 
-The platform must support:
+The product is centred on a process portfolio:
 
-- stage, step, and form-state definition
-- graph-first designer authoring and preview
-- coherent process UI across model-driven and external surfaces
-- metadata, columns, and generated Dataverse form authoring
-- reusable conditions, branching, and status projection
-- execution across external runtime, client, and Dataverse, with Azure deferred for exceptional non-Dataverse needs
-- pipeline-driven deployment and promotion
-- future AI-assisted design and validation
+- one main process that drives the full lifecycle
+- any number of stacked sub-processes
+- stage spans that align to the main-process timeline, including fractional spans
+- a rendered form experience for business users
+- a portal-safe projection for portal users
+- JavaScript-first action logic through DBMScript
+- Dataverse/model-driven back-office runtime before portal runtime
 
-## Core platform boundaries
+## Core boundaries
 
-### 1. Canonical DBM model
+### 1. Process portfolio
 
-The product needs one authoritative model that describes:
+The process portfolio is the authoritative product model. It owns `mainProcessId`, `processes[]`, `subProcessVisibility`, stage spans, stage feature hooks, status, portal status, and process-to-form rendering semantics.
 
-- process stages, steps, branching, and convergence
-- form definitions and form-state variations
-- portal-visible state projection versus internal runtime state
-- metadata, schema-related definitions, and generated Dataverse artifacts
-- reusable conditions, validation, and executable logic contracts
-- deployment packaging metadata
+### 2. Designer core
 
-This model is the heart of portability and runtime consistency.
+The designer core owns validation, editing behaviour, serialization, and model composition. It must stay host-agnostic and must not depend on a specific graph library save format.
 
-### 2. Designer workspace sidecar
+### 3. Rendered form experience
 
-The long-term designer also needs a non-authoritative UI-state sidecar so the product can be graph-first without polluting the canonical model.
+The rendered form is the business-user surface. It is distinct from the designer. In `R1`, DBM must prove actual model-driven form render of the main process and visible sub-processes.
 
-That sidecar owns:
+### 4. Portal projection
 
-- canvas node positioning
-- viewport and zoom state
-- collapsed groups and panel state
-- preview-mode preferences
-- other UI-only authoring state that must not become canonical business semantics
+Portal projection is a view of canonical process state. `R1` defines the contract only. Actual portal rendering and runtime continuity arrive in `R5`.
 
-### 3. Designer graph interchange boundary
+### 5. DBMScript/action runtime
 
-Graph-capable shells also need one DBM-owned graph/interchange contract that is independent of any chosen renderer or authoring library.
+DBMScript is the JavaScript-first action substrate. It owns scripts, actions, templates, dependencies, output handling, trace behaviour, and execution planning across browser, model-driven, and Dataverse/Jint contexts.
 
-That contract owns:
+### 6. Back-office runtime
 
-- stable DBM graph node, edge, group, and port identifiers
-- semantic references back to canonical stage, step, outcome, and transition identifiers
-- a portable graph shape that can be mapped to multiple designer libraries without changing package persistence
+The back-office runtime owns process instances, stage transitions, status persistence, form behaviour, owner/user/role scope, and action trigger execution in model-driven/Dataverse contexts.
 
-That contract does not own:
+### 7. Operations layer
 
-- canonical process semantics
-- library-native renderer state
-- persisted authoring state that is required to recover business behavior
+The operations layer owns routing, tasks, notifications, SLA/KPI, validations, history, jobs, custom messages, and support surfaces.
 
-The chosen graph library must sit behind adapters that consume this DBM-owned graph contract rather than becoming the save/load format.
+### 8. Reuse and artefacts
 
-### 4. Designer core
+Reusable templates, sub-processes, table row templates, artefacts, documents, cloning, service definitions, and numbering deepen the product after runtime basics are stable.
 
-The designer core owns editing behavior, validation, model composition, semantic checks, serialization, and synthesis planning. It should remain host-agnostic.
+### 9. Platform tooling and ALM
 
-### 5. Process experience layer
+DBM Manager, source sync, XrmToolBox playground, DBM Solution packaging, versioning, DBM Tree, enhanced jobs, post-deploy scripts, and automation make DBM manageable as a platform.
 
-DBM owns the business-process experience itself. That experience must remain coherent across model-driven and external surfaces even when some internal stages or steps are intentionally hidden from external users.
+### 10. Enterprise maturity and AI
 
-The process experience should be driven through one derived UI read model built from canonical model plus runtime state. That keeps renderers consistent without making the renderer contract the system of record.
-
-For model-driven forms:
-
-- the preferred target is a process experience rendered at the top of the form, above tabs
-- supported platform placement should be preferred whenever it can satisfy the UX goal
-- if no supported placement can achieve the required UX in the near term, a simplified unsupported placement method may be used with explicit documentation and explicit fallback to the supported host
-
-Native Dataverse business process flow is not the source of truth. It may be generated later as an optional integration artifact where it adds value.
-
-### 6. Host adapters
-
-The designer is hosted through adapters, not duplicated implementations.
-
-- first proof host: model-driven experience
-- first portable host: XrmToolBox
-- later hosts: browser-hosted administration and management surfaces
-
-The host shell is replaceable. The canonical model, designer graph interchange contract, and designer core are the enduring seams.
-
-### 7. Execution runtimes
-
-The same platform contract should support several execution contexts:
-
-- DBM-owned model-driven runtime
-- DBM-owned external runtime and state projection
-- Dataverse backend execution
-- deferred Azure execution only for `R5` responsibilities that Dataverse cannot reasonably own
-
-### 8. Delivery and operations layer
-
-The platform must include:
-
-- GitHub Actions pipelines
-- GitHub Environments
-- Dataverse-owned operational configuration and platform-owned secret posture where feasible
-- Dataverse solution promotion
-- deferred Azure artifact promotion only for approved `R5` Azure components
-- release evidence, smoke tests, and rollback procedures
-
-### 9. Dataverse synthesis layer
-
-DBM needs a dedicated Dataverse synthesis layer between the canonical model and Dataverse delivery artifacts.
-
-That layer owns:
-
-- direct metadata apply and readback in `Dev`
-- tracked emitted source for the layered generated-metadata solution
-- drift detection between the canonical model, emitted artifacts, and live Dataverse metadata
-- later generated FormXML and same-table behavior artifacts
-
-Raw solution XML remains an emitted artifact family, not the primary authoring surface.
-
-## Capability layers
-
-Beyond the core `R1` synthesis boundary, DBM can grow through explicit capability layers that deepen the platform without changing the canonical model's role as source of truth.
-
-### Simulation and replay
-
-- process simulation before deployment
-- replay and branch debugging for runtime instances
-- support-facing inspection of what happened and why
-
-### Explainability
-
-- why a condition matched
-- why a status, assignment, or visibility rule resolved the way it did
-- why a synthesis change was proposed
-
-### Synthesis and drift control
-
-- preview-before-apply synthesis plans
-- diffs for generated Dataverse forms and columns
-- drift detection between designer intent, tracked artifacts, and environment state
-
-### Work management and operational control
-
-- inboxes, queues, reassignment, delegation, escalation, and SLA timers
-- support and administration surfaces
-- operational controls tied back to canonical process semantics
-
-### Audit timeline and runtime observability
-
-- timeline of process decisions and transitions
-- audit trail of status, assignment, notification, and mutation events
-- runtime telemetry, diagnostics, and performance insight
-
-### Reuse and policy
-
-- reusable conditions
-- reusable step groups, subflows, templates, and policy packs
-- organization-level consistency without copy-paste modeling
-
-### AI assistance
-
-- requirement-to-process drafting
-- logic and condition suggestion
-- missing-step and missing-data analysis
-- test-scenario generation
-- optimization guidance
-
-AI is layered on top of the stable platform. It does not replace the canonical model, runtime, or governance boundaries.
+Simulation, replay, explainability, governance, drift control, observability, and optimisation arrive before AI. AI is layered on top only after DBM works well without AI.
 
 ## Target platform view
 
 ```mermaid
 flowchart TB
-    subgraph Authoring["Authoring"]
-        A["Canonical DBM Model"]
-        B["Designer Core"]
-        C["Model-Driven Host"]
-        D["XrmToolBox Host"]
-        E["Future Browser Host"]
-    end
-
-    subgraph Experience["Process Experience"]
-        F["DBM Process UI"]
-        G["Portal State Projection"]
-    end
-
-    subgraph Runtime["Execution"]
-        H["Model-Driven Runtime"]
-        I["Dataverse Runtime"]
-        J["Deferred Azure Services (R5)"]
-        K["DBM External Runtime"]
-    end
-
-    subgraph Delivery["Delivery and Operations"]
-        L["GitHub Actions"]
-        M["GitHub Environments"]
-        N["Dataverse-Owned Config / External Secret Store"]
-        O["Release Notes / Runbooks / Rollback"]
-    end
-
-    subgraph Synthesis["Dataverse Synthesis"]
-        P["Direct Dev Apply / Readback"]
-        Q["Generated Metadata Solution"]
-        R["Drift / Diff"]
-    end
-
-    A --> B
-    B --> C
-    B --> D
-    B --> E
-    A --> F
-    A --> G
-    A --> H
-    A --> I
-    A --> J
-    A --> K
-    C --> F
-    K --> G
-    F --> H
-    G --> K
-    H --> I
-    I --> J
-    A --> P
-    A --> Q
-    A --> R
-    B --> P
-    B --> Q
-    Q --> I
-    P --> I
-    R --> I
-    L --> M
-    M --> N
-    L --> O
-    L --> C
-    L --> I
-    L --> J
-    L --> Q
+    A["User"] --> B["Designer"]
+    B --> C["Process portfolio"]
+    C --> D["Rendered model-driven form"]
+    C --> E["Portal projection contract"]
+    C --> F["DBMScript/action definitions"]
+    F --> G["Back-office runtime"]
+    D --> G
+    G --> H["Operations"]
+    H --> I["Reuse/templates/artefacts/documents"]
+    I --> J["Platform tooling and ALM"]
+    J --> K["Enterprise maturity"]
+    K --> L["AI assistance"]
+    E --> M["Portal runtime and return path"]
+    G --> M
 ```
 
 ## Release mapping
 
-- Release 0 establishes delivery, governance, environments, and baseline recovery.
-- Release 1 locks the canonical process semantics, designer core, Dataverse synthesis layer, host adapters, and the first DBM-owned model-driven runtime for one approval/request scenario.
-- Release 1 also defines the portal-facing process projection contract, but it does not deliver the live external runtime.
-- Release 2 productizes the designer shell, the shared process-experience system, the model-driven placement strategy, and the portal-continuity UX foundation without yet delivering the live external runtime.
-- Release 3 delivers the real DBM-owned external runtime, beginning with the local SPA proof, plus Dataverse-first external continuity, work-management, timeline, observability baselines, and pilot-ready hardening.
-- Release 4 adds AI drafting, review, gap detection, and optimization only after platform contracts and operations are reliable.
-- Release 5 adds Azure-backed services only where Dataverse cannot reasonably own the required runtime, integration, telemetry, or operational responsibility.
-- Release 6 deepens enterprise sophistication through simulation, replay, reusable building blocks, synthesis governance, and advanced analytics and optimization.
+- `R0` keeps engineering and governance foundations.
+- `R1` proves the process portfolio designer and actual model-driven rendered form.
+- `R2` proves DBMScript and JavaScript-first actions.
+- `R3` proves back-office runtime.
+- `R4` adds operations.
+- `R5` adds portal runtime and return path.
+- `R6` adds reuse, templates, artefacts, and documents.
+- `R7` adds platform tooling and ALM.
+- `R8` adds enterprise maturity.
+- `R9` adds AI assistance.
 
 ## Architecture constraints
 
-- The designer must remain the primary interaction surface.
-- DBM owns the process UI. Native BPF is optional integration, not the product boundary.
-- Preview-before-mutate applies to generated artifacts and other authoritative platform mutations.
-- No secret may live in source control.
-- No release may bypass Dev and UAT promotion.
-- Release 1 must not use a temporary web-resource substitute as the final process runtime boundary.
-- Azure is deferred to R5 for capabilities that Dataverse cannot reasonably own.
+- The designer remains the primary authoring surface.
+- The rendered form is not the designer.
+- The main process is always visible on rendered form and portal projection surfaces.
+- Sub-processes render below the main process and can be conditional.
+- Stage spans are semantic, not merely visual.
+- DBMScript starts with JavaScript first.
+- Actual portal runtime starts after back-office runtime.
+- Current implementation is reference material unless it fits the reset architecture and passes current tests.

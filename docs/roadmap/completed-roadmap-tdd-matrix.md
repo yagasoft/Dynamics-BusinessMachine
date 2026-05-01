@@ -1,6 +1,8 @@
 # Completed roadmap TDD matrix
 
-This matrix traces TDD retrofit work to completed DBM capabilities only. It exists to make issues exposed by failing tests easy to route without expanding the roadmap scope.
+This matrix traces TDD retrofit work to completed prototype/reference DBM capabilities only. It exists to make issues exposed by failing tests easy to route without expanding the reset roadmap scope.
+
+After [ADR-0016](../adr/0016-product-roadmap-reset-process-first.md), the rows below are historical prototype/reference evidence. They are not the active product release ladder.
 
 The current completed baseline is `main` through `R3.1`. `R3.1 local SPA runtime proof and external entry` is split below into contract, renderer, local host, SPA client, synthesis, plugin authority, and proof automation so failures can be routed to the right completed seam. Future work remains out of scope here, including `R3.2` queues, reassignment, delegation, escalation, SLA timers, Azure orchestration, `R3.3` timeline and audit trail, `R3.4` pilot hardening, AI, simulation, and governance-at-scale.
 

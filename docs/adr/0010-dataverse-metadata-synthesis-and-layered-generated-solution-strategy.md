@@ -54,5 +54,5 @@ DBM already has a formal PAC-based delivery spine for the current core solution,
 
 - [ADR-0006: Dataverse ALM Source And Packaging Model](0006-dataverse-alm-source-and-packaging-model.md)
 - [Target Platform Architecture](../architecture/target-platform-architecture.md)
-- [Release 1: Builder Platform MVP](../roadmap/release-1-builder-platform-mvp.md)
+- [Release 1: Process/stage designer and actual form render](../roadmap/release-1-process-stage-designer-and-form-render.md)
 - [Power Platform README](../../power-platform/README.md)

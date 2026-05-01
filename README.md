@@ -4,9 +4,9 @@
 
 ---
 
-The Dynamics Business Machine represents an innovative solution to modernise how business logic and flows are created and maintained in Microsoft Power Platform.
+The Dynamics Business Machine represents an innovative solution to modernise how business processes, logic, and flows are created and maintained in Microsoft Power Platform.
 
-By unifying logic and providing a more intuitive development interface, DBM aims to help developers increase efficiency, reduce redundancy, and deliver more advanced business processes.
+DBM is being reset around its original product vision: a designer that lets users define complete business cycles from portal to back office and back to portal again, with processes, sub-processes, stages, rendered forms, and JavaScript-first action logic.
 
 Start your journey with DBM and make your business flows as agile and efficient as they should be.
 
@@ -14,21 +14,34 @@ You can read a quick overview of the solution and its functionality [here](https
 
 ## Features
 
-DBM is equipped with a user-friendly interface for managing code, creating new resources, and visually defining JSON trees to easily build or update record hierarchies. Here are some core features:
+DBM currently contains prototype/reference implementation assets. The active roadmap restarts product delivery at a new `R1` while preserving useful existing code paths as reference material.
 
--   Unified SDK: Use a standardised API for Dataverse services that works across the front end and backend environments.
--   Modernised editor: Edit JavaScript code through an intuitive visual editor that integrates with Dynamics solutions as Web Resources.
--   JSON tree editor: Easily create and manage record hierarchies through a JSON tree structure, enabling a simplified, visual approach to managing data.
--   Enhanced business flow management: Design and manage business flows directly from the editor, with more advanced options to control stages, subprocesses, and handle intricate conditions.
--   DV schema hierarchy: Define a table tree structure that supports inheritance.
--   Integrated data: Include data in solution deployments for faster and more consistent deployments.
+The reset product direction includes:
 
-Below is the high-level roadmap planned for DBM.
+-   Process portfolio designer: Define a main process and any number of sub-processes.
+-   Stage spans: Align sub-process stages to full or fractional spans of the main-process timeline.
+-   Rendered form experience: Show the process to business users on actual model-driven forms.
+-   DBMScript actions: Define JavaScript-first actions for stage, form, field, backend, and button triggers.
+-   Back-office runtime: Execute stage transitions, statuses, form behaviour, actions, routing, tasks, SLA/KPI, and support operations.
+-   Portal continuity: Add actual portal rendering and return-path behaviour after the back-office runtime is stable.
+-   Platform tooling: Manage source sync, solution packaging, versioning, tree/schema tooling, jobs, and ALM.
+
+Below is the active high-level roadmap planned for DBM.
 
 ## Roadmap
 
-(click to enlarge)
-[<img src="https://blog.yagasoft.com/wp-content/uploads/dbm-roadmap.jpg" height="500">](https://blog.yagasoft.com/wp-content/uploads/dbm-roadmap.jpg)
+- `R0`: Engineering foundation and governance
+- `R1`: Process/stage designer and actual form render
+- `R2`: DBMScript and action foundation
+- `R3`: Back-office runtime
+- `R4`: Back-office operations
+- `R5`: Portal runtime and return path
+- `R6`: Reuse, templates, artefacts, and documents
+- `R7`: Platform tooling and ALM
+- `R8`: Enterprise maturity
+- `R9`: AI-assisted platform
+
+The tracked release plan is the source of truth: [docs/roadmap/release-plan.md](docs/roadmap/release-plan.md).
 
 ## Documentation
 

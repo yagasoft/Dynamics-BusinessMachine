@@ -1,230 +1,137 @@
-# DBM Release Plan
+# DBM release plan
 
-This document defines the approved high-level release ladder for DBM and the stage structure inside each release.
+This document defines the active DBM release ladder after the process-first product reset.
 
 ## Planning frame
 
-- integration baseline: `main`
-- delivery model: GitHub Flow plus release and hotfix branches
-- permanent environments: `Dev`, `UAT`, `Prod`
-- official docs: tracked in `docs/`
-- local planning and execution notes: `_codex/dbm-revival/`
-- `v1.0.0`: pilot-ready end-to-end platform, not full product maturity
+- Integration baseline: `main`.
+- Delivery model: short-lived feature branches, release branches when needed, and TDD evidence for every implementation slice.
+- Permanent environments: `Dev`, `UAT`, and `Prod`.
+- Official docs: tracked in `docs/`.
+- Local planning and execution notes: `_codex/dbm-revival/`.
+- Current implementation status: current implementation is prototype/reference material, not a shipped product baseline.
+- Product reset authority: [ADR-0016](../adr/0016-product-roadmap-reset-process-first.md).
 
 ## Release ladder
 
 | Release | Name | Goal |
 | --- | --- | --- |
-| `R0` | Engineering Foundation And Product Baseline | make the repo, environments, docs, and delivery posture production-grade enough to support later feature work |
-| `R1` | Builder Platform MVP | let architects and developers define and run one real approval/request process through a DBM-owned designer-first experience with portal-compatible state projection |
-| `R2` | Designer And Process Experience Platform | turn the `R1` bridges into product-grade designer and process-experience foundations before pilot-readiness work resumes |
-| `R3` | Pilot-Ready End-To-End Platform | complete the live external-runtime-to-Dataverse-to-front-door loop and harden to pilot-ready `v1.0.0` on top of the new `R2` foundation |
-| `R4` | AI-Assisted Platform | add trustworthy AI assistance only after the core platform, designer surfaces, and operations are stable |
-| `R5` | Azure Deferred Extension | add Azure-backed services only where Dataverse cannot reasonably own the required runtime, integration, telemetry, or operational responsibility |
-| `R6` | Enterprise Sophistication And Optimization | deepen the platform with simulation, reuse, synthesis governance, advanced observability, and optimization beyond the pilot-ready baseline |
+| `R0` | Engineering foundation and governance | Keep the repo, delivery rules, branch policy, documentation discipline, and verification harness strong enough to support the reset. |
+| `R1` | Process/stage designer and actual form render | Define process portfolios, main process timelines, sub-process lanes, stage spans, and actual model-driven form rendering for business users. |
+| `R2` | DBMScript and action foundation | Rebuild the JavaScript-first action and DBMScript foundation that later stages, templates, buttons, notifications, and backend execution will use. |
+| `R3` | Back-office runtime | Execute processes inside Dataverse and model-driven forms, including transitions, statuses, process instances, form behaviour, and action triggers. |
+| `R4` | Back-office operations | Add routing, tasks, notifications, SLA/KPI, validations, history, jobs, custom messages, and operator/support surfaces. |
+| `R5` | Portal runtime and return path | Add actual portal rendering and runtime continuity once back-office execution is stable. |
+| `R6` | Reuse, templates, artefacts, and documents | Add process templates, sub-process reuse, table row templates, cloning, generated artefacts, service definitions, string generation, and document management. |
+| `R7` | Platform tooling and ALM | Add DBM Manager, source sync, XrmToolBox playground, DBM Solution packaging, post-deploy scripts, versioning, DBM Tree, enhanced jobs, auto-integration, and on-premise automation. |
+| `R8` | Enterprise maturity | Add simulation, replay/debugging, explainability, governance, drift control, observability, policy packs, and portfolio-scale optimisation. |
+| `R9` | AI-assisted platform | Add AI only after the basic product is stable, reviewable, testable, and useful without AI. |
 
 ## Cross-release rules
 
+- The old `R1` through `R3.1` work is prototype/reference evidence. It can be mined for code, tests, concepts, and lessons, but it no longer defines the active product release ladder.
+- The designer remains the primary product surface.
+- Every release must leave a demonstrable, testable product increment.
+- AI is out of scope until `R9`.
+- Actual portal runtime is out of scope until `R5`; `R1` defines only the portal projection contract.
+- DBM owns the rendered process experience. Native Dataverse BPF may be generated later as an optional downstream integration, never as the source of truth.
 - No secrets in Git.
 - No release bypasses `Dev` and `UAT`.
-- Every stage must end with testable output and clear exit criteria.
-- The designer remains the primary product surface.
-- Release 1 must include a real DBM-owned model-driven runtime.
-- The first post-`R1` release must productize the designer and DBM-owned process experience before pilot-readiness work resumes.
-- Portal projection semantics are defined in Release 1 before the live external runtime arrives in Release 3.
-- AI is out of scope until after `v1.0.0`.
+- TDD applies to implementation slices. After a successful verified TDD round, the task branch lifecycle follows the workspace policy for merge, push, branch purge, worktree removal, and stale metadata prune.
 
-## Shared release gates
+## Key model and interface reset
 
-Every release must pass these base gates before promotion:
+The new product model is a process portfolio rather than a single-process-only contract.
 
-- build, package, and static validation for .NET, TypeScript, docs, Dataverse artifacts, and any approved Azure artifacts
-- secret scanning, dependency scanning, and release-blocking configuration checks
-- promotion through `Dev` and `UAT` before `Prod`
-- release-note generation, rollback plan, and smoke tests
+Minimum reset concepts:
+
+- `mainProcessId`: identifies the main process that anchors the full business cycle and is always visible on the rendered form.
+- `processes[]`: contains the main process and any number of sub-processes.
+- `subProcessVisibility`: defines when a sub-process appears for the rendered form or portal projection, such as status, owner, role, or audience conditions.
+- `stageSpan`: defines where each stage appears on the main-process timeline. A span may cover a full main stage, several main stages, or fractional main-stage spans.
+- Stage feature hooks: entry/exit conditions, branching, previous-stage transitions, notifications, routing, SLA/KPI, tasks, validations, actions, status, and portal status.
+- Notifications: modelled as table row templates plus send actions, not as a separate hard-coded notification subsystem.
+- DBMScript/action vNext: JavaScript first, with TypeScript, richer transpilation, and richer editor modes deferred until the JS foundation is proven.
 
 ## Release summaries
 
 ### Release 0
 
-Goal:
-- make the repo, environments, docs, security posture, and delivery system production-grade enough that every later feature release can be built without debt
-
-Feature set and deliverables:
-- tracked docs baseline in `docs/`
-- release governance and acceptance criteria
-- branching and versioning model
-- CI/CD for code, Dataverse, docs, and Azure
-- secret management and environment promotion
-- current PoC recovery and deploy validation
-
-Stages:
-- `R0.1` Product governance and tracked docs
-- `R0.2` Repo and branching foundation
-- `R0.3` Delivery and secret-management foundation
-- `R0.4` Environment and recovery baseline
+`R0` keeps the engineering foundation alive. It covers branch policy, docs, delivery, verification, release governance, environment rules, and secret posture. Existing `R0` material remains useful.
 
 Details: [release-0-engineering-foundation.md](release-0-engineering-foundation.md)
 
 ### Release 1
 
-Goal:
-- give architects and developers a real designer-first platform that can define and run one approval/request process through a DBM-owned model-driven experience, supported Dataverse synthesis, existing Dataverse forms plus DBM-managed behavior, a shared runtime, and portal-compatible state projection
+`R1` starts the product again around process and stage design. It proves the main process, stacked sub-processes, stage spans, conditional visibility, collapsed main-process display, and an actual model-driven rendered form experience.
 
-Feature set and deliverables:
-- canonical DBM process model v1
-- stage + step + form-state semantics
-- reusable condition component
-- advanced designer core and host adapters
-- hybrid Dataverse synthesis pipeline for direct `Dev` proof plus packaged promotion
-- Dataverse schema synthesis foundation for tables, columns, and relationships
-- existing Dataverse forms plus supported JS behavior
-- first real DBM-owned model-driven process runtime
-- backend execution engine v1
-- one approval/request reference solution
-- deferred non-Dataverse support services only where Dataverse cannot reasonably own the responsibility
-
-Stages:
-- `R1.1` Canonical model and runtime contract
-- `R1.2.1` Process semantics and contract alignment
-- `R1.2.2` Advanced designer UX foundation
-- `R1.2.3a` Dataverse synthesis foundation
-- `R1.2.3b` Existing forms and behavior synthesis
-- `R1.2.4` Host adapters and portability completion
-- `R1.3` Execution engine and model-driven runtime
-- `R1.4` Reference solution and release hardening
-
-Details: [release-1-builder-platform-mvp.md](release-1-builder-platform-mvp.md)
-
-Closeout: [r1-close-out-0.3.0.md](../releases/r1-close-out-0.3.0.md)
+Details: [release-1-process-stage-designer-and-form-render.md](release-1-process-stage-designer-and-form-render.md)
 
 ### Release 2
 
-Goal:
-- turn the shipped `R1` builder-platform MVP into a product-grade authoring and runtime-foundation release by replacing the bridge-quality designer host and notification-based process runtime with a long-term designer shell, a shared DBM-owned process experience system, and a model-driven placement strategy that is ready to carry forward into portal continuity
+`R2` rebuilds the action foundation around DBMScript and JavaScript-first execution. It makes action definitions, trigger hooks, table row templates, WYSIWYG notification templates, dependency loading, output handling, and safe execution planning ready for later runtime work.
 
-Feature set and deliverables:
-- long-term designer shell built around a graph-first authoring experience
-- framework and library reset for the designer UX
-- `DbmDesignerWorkspaceV1` sidecar for visual authoring state
-- shared process-experience renderer driven by `DbmProcessExperienceSnapshotV1`
-- supported model-driven process host plus preferred above-tabs bridge overlay
-- synthesis support for process-host artifacts and placement patches on existing forms
-- form-state authoring and preview that remain mapping-first on existing Dataverse forms
-- portal-facing continuity fixtures and responsive design system for the shared process experience
-- generic existing-form authoring proof on `Dev` for non-reference custom processes
-- release documentation and validation for the new designer and process UX foundation
-
-Stages:
-- `R2.1` Long-term designer shell and workspace contract
-- `R2.2` Graph-first authoring and preview-first designer
-- `R2.3` Shared process experience system and model-driven host strategy
-- `R2.4` Synthesis expansion, portal continuity fixtures, and release hardening
-- `R2.5` Generic existing-form authoring and Dev proof
-
-Details: [release-2-designer-and-process-experience-platform.md](release-2-designer-and-process-experience-platform.md)
+Details: [release-2-dbmscript-and-action-foundation.md](release-2-dbmscript-and-action-foundation.md)
 
 ### Release 3
 
-Goal:
-- turn the `R2` designer and process-experience foundation into a pilot-ready platform where the same approval/request process uses the shared DBM process experience, starts in a DBM-owned external runtime, runs through Dataverse, returns to the front door, and is supportable in `UAT` and `Prod`
+`R3` turns the designed process into a back-office runtime in Dataverse/model-driven forms. It owns process instances, transition evaluation, status persistence, form behaviour, action triggers, and scoped execution.
 
-Feature set and deliverables:
-- DBM-owned external runtime built on the `R1` portal projection contract and the shared process-experience system delivered in `R2`, beginning with a local SPA proof in `R3.1`
-- Dataverse-owned work-management core with inboxes, queues, reassignment, delegation, escalation, and SLA timers
-- timeline and audit trail as first-class runtime output
-- support and administration surfaces
-- runtime observability baseline
-- Dataverse-owned operational configuration, runtime authority, support diagnostics, and service-plane behaviour where feasible
-- end-to-end state return to the external front door
-- browser- or model-driven administration surfaces where needed for pilot operation
-- observability, supportability, rollback, and pilot runbooks
-
-Stages:
-- `R3.1` Local SPA runtime proof and external entry
-- `R3.2` Dataverse work management and service plane
-- `R3.3` End-to-end lifecycle completion
-- `R3.4` Pilot readiness and operational hardening
-
-Details: [release-3-pilot-ready-v1.md](release-3-pilot-ready-v1.md)
+Details: [release-3-back-office-runtime.md](release-3-back-office-runtime.md)
 
 ### Release 4
 
-Goal:
-- add trustworthy AI assistance only after the platform contracts, portability, and operations are stable enough that generated output is useful, reviewable, and auditable
+`R4` adds operational depth for back-office users and support teams: routing, tasks, notifications, SLA/KPI, validations, history, jobs, custom messages, and support views.
 
-Feature set and deliverables:
-- requirement-to-process draft generation
-- logic and metadata assistance inside the designer
-- AI-assisted validation and optimization suggestions
-- logic and condition suggestion, missing-step analysis, missing-data analysis, and test-scenario generation from the canonical model
-- optimization recommendations for forms, statuses, branching, performance, and cost
-- traceable, reviewable AI outputs only
-
-Stages:
-- `R4.1` AI guardrails and contract
-- `R4.2` Requirement analysis and draft generation
-- `R4.3` Validation and optimization assistance
-- `R4.4` Adoption and feedback loop
-
-Details: [release-4-ai-assisted-platform.md](release-4-ai-assisted-platform.md)
+Details: [release-4-back-office-operations.md](release-4-back-office-operations.md)
 
 ### Release 5
 
-Goal:
-- add Azure-backed services only where Dataverse cannot reasonably own the required runtime, integration, telemetry, or operational responsibility
+`R5` adds actual portal rendering and the portal return path after the back-office runtime is reliable. It covers portal user initiation, portal-visible projection, hidden internal stage handling, status return, and portal-safe actions.
 
-Feature set and deliverables:
-- explicit Dataverse-first fit assessment for every Azure capability
-- Azure-hosted runtime or service components only when Dataverse-native implementation is insufficient
-- external integration services that need durable cloud execution outside Dataverse
-- Azure telemetry or analytics only when Dataverse and Power Platform evidence surfaces cannot meet the need
-- Azure delivery, rollback, and support evidence for any approved Azure component
-
-Stages:
-- `R5.1` Azure need assessment and boundary
-- `R5.2` Azure service implementation
-- `R5.3` Azure observability and operations
-
-Details: [release-5-azure-deferred-extension.md](release-5-azure-deferred-extension.md)
+Details: [release-5-portal-runtime-and-return-path.md](release-5-portal-runtime-and-return-path.md)
 
 ### Release 6
 
-Goal:
-- extend the pilot-ready platform into an enterprise-grade design, governance, simulation, and optimization platform
+`R6` expands reuse and generated business artefacts: templates, base flows, sub-process reuse, table row templates, cloning, transforms, generated artefacts, service definitions, auto-numbering, and document management.
 
-Feature set and deliverables:
-- process simulator and replay debugger
-- enterprise-grade explainability across authoring and runtime
-- synthesis governance and drift management at scale
-- reusable process building blocks, subflows, templates, and policy packs
-- advanced observability, analytics, and optimization
-- richer multi-table modeling and operational control-plane depth
+Details: [release-6-reuse-templates-artefacts-and-documents.md](release-6-reuse-templates-artefacts-and-documents.md)
 
-Stages:
-- `R6.1` Simulation and replay debugger
-- `R6.2` Reuse, templates, and policy packs
-- `R6.3` Synthesis governance and drift control
-- `R6.4` Advanced observability and optimization
+### Release 7
 
-Details: [release-6-enterprise-sophistication.md](release-6-enterprise-sophistication.md)
+`R7` adds platform tooling and ALM depth: DBM Manager, source sync, XrmToolBox script playground, DBM Solution packaging, solution-aware versioning, DBM Tree, enhanced jobs, auto-integration, and on-premise automation where still relevant.
+
+Details: [release-7-platform-tooling-and-alm.md](release-7-platform-tooling-and-alm.md)
+
+### Release 8
+
+`R8` deepens DBM into an enterprise-grade platform through simulation, replay, explainability, governance, drift control, observability, policy packs, and portfolio-scale optimisation.
+
+Details: [release-8-enterprise-maturity.md](release-8-enterprise-maturity.md)
+
+### Release 9
+
+`R9` adds AI-assisted authoring and analysis after the core product works well without AI.
+
+Details: [release-9-ai-assisted-platform.md](release-9-ai-assisted-platform.md)
 
 ## Release-specific acceptance scenarios
 
-- `R0`: the current PoC can be rebuilt, packaged, deployed to `Dev`, promoted to `UAT`, and rolled back without manual secret handling
-- `R1`: one approval/request flow can be authored in the designer, synthesized into the required Dataverse schema, bound to existing Dataverse forms with DBM-managed supported behavior, edited from both model-driven and XrmToolBox hosts, rendered through the DBM-owned model-driven process experience, projected to portal-visible status, and executed through the backend runtime
-- `R2`: the approval/request reference and at least one non-reference custom existing-form process can be authored through a graph-first designer, rendered through a shared DBM-owned process-experience system, hosted in model-driven through both supported and preferred bridge placements, and proven on `Dev` without changing the canonical model boundary
-- `R3`: the same approval/request flow can start in the DBM-owned external runtime, traverse Dataverse, return state to the external front door, pass `UAT`, and be supported with documented rollback and operational diagnostics
-- `R4`: AI can generate drafts and recommendations with full traceability, mandatory human review, and no direct unreviewed production mutation
-- `R5`: Azure-backed extensions are introduced only after a Dataverse-first exception rationale proves Dataverse cannot reasonably own the required responsibility
-- `R6`: the platform can simulate, explain, govern, and optimize complex process portfolios at enterprise scale without losing portability or operational control
+- `R0`: repo governance, docs, branch policy, delivery posture, and verification remain enforceable.
+- `R1`: a user can define a process portfolio with a visible main process, conditional sub-processes, fractional stage spans, collapsed main-process display, and actual model-driven form rendering. Portal behaviour is defined only as a projection contract.
+- `R2`: a user can define JavaScript-first DBMScript actions, trigger hooks, templates, dependencies, and outputs that can be tested without relying on the later runtime.
+- `R3`: a business user can move through a back-office process on model-driven forms, with process state, stage transitions, statuses, form behaviour, and action triggers persisted by DBM.
+- `R4`: operators can route work, manage tasks, use notifications, track SLA/KPI behaviour, inspect history, and support running instances.
+- `R5`: a portal user can start or continue the portal leg, see a portal-safe process projection, and receive the correct return-path status without internal leakage.
+- `R6`: reusable templates, artefacts, generated rows/documents, cloning, and numbering can be used from the designer without one-off bespoke implementation.
+- `R7`: platform assets can be managed, synced, packaged, versioned, deployed, and post-processed through DBM tooling.
+- `R8`: enterprise users can simulate, replay, explain, govern, monitor, and optimise process portfolios.
+- `R9`: AI can generate or suggest DBM artefacts with traceability, human review, and no unreviewed production mutation.
 
 ## Current assumptions
 
 - `main` remains the integration branch.
-- Official docs and roadmap are tracked in `docs/`; `_codex/` remains local-only.
-- The first portable designer host is XrmToolBox.
-- The first `R3` front-door proof is a DBM-owned local SPA served from the developer machine.
-- Dataverse-first runtime and configuration direction is governed by [ADR-0015](../adr/0015-dataverse-first-roadmap-and-azure-deferral.md); Azure product/runtime capability is deferred to `R5` unless a later ADR approves an earlier exception.
-- The first post-`R1` release is the designer and process-experience productization release rather than the pilot-ready external-runtime release.
-- Branding should consistently use Ahmed Elsawalhy and Yagasoft where appropriate without becoming noisy.
+- `R0` remains a useful foundation, but product delivery restarts at new `R1`.
+- The current designer core, graph/workspace contracts, process renderer, Dataverse synthesis, JS VM, CKEditor/CodeMirror editors, and Jint evaluator are reusable reference candidates.
+- Existing release closeout documents remain historical evidence only.
+- British spelling is used in new roadmap material.
