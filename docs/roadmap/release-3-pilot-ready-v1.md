@@ -2,18 +2,18 @@
 
 ## Goal
 
-Turn the `R2` designer and process-experience foundation into a pilot-ready platform where a real approval/request process uses the shared DBM process experience, starts in a DBM-owned external runtime, runs through Dataverse and Azure where needed, returns to the front door, and is supportable in `UAT` and `Prod`.
+Turn the `R2` designer and process-experience foundation into a pilot-ready Dataverse-first platform where a real approval/request process uses the shared DBM process experience, starts in a DBM-owned external runtime, runs through Dataverse, returns to the front door, and is supportable in `UAT` and `Prod` without requiring Azure runtime services.
 
 ## Feature set and deliverables
 
 - DBM-owned external runtime built on the `R1` portal projection contract and the shared process-experience system delivered in `R2`, beginning with a local SPA proof in `R3.1`
-- work-management core with inboxes, queues, reassignment, delegation, escalation, and SLA timers
+- Dataverse-owned work-management core with inboxes, queues, reassignment, delegation, escalation, and SLA timers
 - timeline and audit trail as first-class runtime output
 - support and administration surfaces
 - runtime observability baseline
-- Azure orchestration and integration services
+- Dataverse-owned operational configuration and service-plane behaviour where feasible
 - end-to-end state return to the external front door
-- browser- or Azure-hosted administration surfaces where needed for pilot operation
+- browser- or model-driven administration surfaces where needed for pilot operation
 - observability, supportability, rollback, and pilot runbooks
 
 ## Stages
@@ -30,18 +30,18 @@ Must define and implement:
 - use of the shared process-experience renderer and the external-visible status projection defined in `R1`
 - coherent external-facing status and stage communication without leaking hidden internal steps
 
-### R3.2 Azure orchestration and service plane
+### R3.2 Dataverse work management and service plane
 
 Output:
-- stable Azure-backed execution layer that complements Dataverse without duplicating it
+- stable Dataverse-owned execution and operational layer that complements the existing runtime without duplicating it
 
 Must include:
-- inboxes and queues where operationally useful
+- Dataverse-backed inboxes and queues where operationally useful
 - reassignment and delegation paths
 - escalation and SLA timers
-- background work strategy
-- orchestration strategy
-- telemetry and service APIs where Azure adds clear value
+- Dataverse-first background work strategy
+- Dataverse-owned orchestration strategy
+- operational configuration and telemetry where Dataverse or Power Platform surfaces can reasonably own them
 
 ### R3.3 End-to-end lifecycle completion
 
@@ -52,7 +52,7 @@ Must connect:
 - DBM-owned external runtime
 - model-driven DBM process runtime
 - Dataverse backend execution
-- Azure orchestration and supporting services
+- Dataverse-owned work management and supporting services
 - state return to the external front door
 
 Must include:
@@ -76,7 +76,7 @@ Must include:
 
 ## Exit criteria
 
-- the reference approval/request solution works end-to-end from external entry to completion and back
+- the reference approval/request solution works end-to-end from external entry to completion and back without requiring Azure runtime services
 - external-facing status remains coherent with the internal process model without exposing hidden internal stages or steps
 - work management, audit, and support diagnostics are usable by real operators
 - the solution is supportable in `UAT` and `Prod`

@@ -18,9 +18,10 @@ This document defines the approved high-level release ladder for DBM and the sta
 | `R0` | Engineering Foundation And Product Baseline | make the repo, environments, docs, and delivery posture production-grade enough to support later feature work |
 | `R1` | Builder Platform MVP | let architects and developers define and run one real approval/request process through a DBM-owned designer-first experience with portal-compatible state projection |
 | `R2` | Designer And Process Experience Platform | turn the `R1` bridges into product-grade designer and process-experience foundations before pilot-readiness work resumes |
-| `R3` | Pilot-Ready End-To-End Platform | complete the live external-runtime-to-Dataverse-to-Azure-to-front-door loop and harden to pilot-ready `v1.0.0` on top of the new `R2` foundation |
+| `R3` | Pilot-Ready End-To-End Platform | complete the live external-runtime-to-Dataverse-to-front-door loop and harden to pilot-ready `v1.0.0` on top of the new `R2` foundation |
 | `R4` | AI-Assisted Platform | add trustworthy AI assistance only after the core platform, designer surfaces, and operations are stable |
-| `R5` | Enterprise Sophistication And Optimization | deepen the platform with simulation, reuse, synthesis governance, advanced observability, and optimization beyond the pilot-ready baseline |
+| `R5` | Azure Deferred Extension | add Azure-backed services only where Dataverse cannot reasonably own the required runtime, integration, telemetry, or operational responsibility |
+| `R6` | Enterprise Sophistication And Optimization | deepen the platform with simulation, reuse, synthesis governance, advanced observability, and optimization beyond the pilot-ready baseline |
 
 ## Cross-release rules
 
@@ -37,7 +38,7 @@ This document defines the approved high-level release ladder for DBM and the sta
 
 Every release must pass these base gates before promotion:
 
-- build, package, and static validation for .NET, TypeScript, docs, Dataverse artifacts, and Azure artifacts
+- build, package, and static validation for .NET, TypeScript, docs, Dataverse artifacts, and any approved Azure artifacts
 - secret scanning, dependency scanning, and release-blocking configuration checks
 - promotion through `Dev` and `UAT` before `Prod`
 - release-note generation, rollback plan, and smoke tests
@@ -81,7 +82,7 @@ Feature set and deliverables:
 - first real DBM-owned model-driven process runtime
 - backend execution engine v1
 - one approval/request reference solution
-- Azure support services only where they clearly add value
+- deferred non-Dataverse support services only where Dataverse cannot reasonably own the responsibility
 
 Stages:
 - `R1.1` Canonical model and runtime contract
@@ -126,22 +127,22 @@ Details: [release-2-designer-and-process-experience-platform.md](release-2-desig
 ### Release 3
 
 Goal:
-- turn the `R2` designer and process-experience foundation into a pilot-ready platform where the same approval/request process uses the shared DBM process experience, starts in a DBM-owned external runtime, runs through Dataverse and Azure, returns to the front door, and is supportable in `UAT` and `Prod`
+- turn the `R2` designer and process-experience foundation into a pilot-ready platform where the same approval/request process uses the shared DBM process experience, starts in a DBM-owned external runtime, runs through Dataverse, returns to the front door, and is supportable in `UAT` and `Prod`
 
 Feature set and deliverables:
 - DBM-owned external runtime built on the `R1` portal projection contract and the shared process-experience system delivered in `R2`, beginning with a local SPA proof in `R3.1`
-- work-management core with inboxes, queues, reassignment, delegation, escalation, and SLA timers
+- Dataverse-owned work-management core with inboxes, queues, reassignment, delegation, escalation, and SLA timers
 - timeline and audit trail as first-class runtime output
 - support and administration surfaces
 - runtime observability baseline
-- Azure orchestration and integration services
+- Dataverse-owned operational configuration, runtime authority, support diagnostics, and service-plane behaviour where feasible
 - end-to-end state return to the external front door
-- browser- or Azure-hosted administration surfaces where needed for pilot operation
+- browser- or model-driven administration surfaces where needed for pilot operation
 - observability, supportability, rollback, and pilot runbooks
 
 Stages:
 - `R3.1` Local SPA runtime proof and external entry
-- `R3.2` Azure orchestration and service plane
+- `R3.2` Dataverse work management and service plane
 - `R3.3` End-to-end lifecycle completion
 - `R3.4` Pilot readiness and operational hardening
 
@@ -171,6 +172,25 @@ Details: [release-4-ai-assisted-platform.md](release-4-ai-assisted-platform.md)
 ### Release 5
 
 Goal:
+- add Azure-backed services only where Dataverse cannot reasonably own the required runtime, integration, telemetry, or operational responsibility
+
+Feature set and deliverables:
+- explicit Dataverse-first fit assessment for every Azure capability
+- Azure-hosted runtime or service components only when Dataverse-native implementation is insufficient
+- external integration services that need durable cloud execution outside Dataverse
+- Azure telemetry or analytics only when Dataverse and Power Platform evidence surfaces cannot meet the need
+- Azure delivery, rollback, and support evidence for any approved Azure component
+
+Stages:
+- `R5.1` Azure need assessment and boundary
+- `R5.2` Azure service implementation
+- `R5.3` Azure observability and operations
+
+Details: [release-5-azure-deferred-extension.md](release-5-azure-deferred-extension.md)
+
+### Release 6
+
+Goal:
 - extend the pilot-ready platform into an enterprise-grade design, governance, simulation, and optimization platform
 
 Feature set and deliverables:
@@ -182,21 +202,22 @@ Feature set and deliverables:
 - richer multi-table modeling and operational control-plane depth
 
 Stages:
-- `R5.1` Simulation and replay debugger
-- `R5.2` Reuse, templates, and policy packs
-- `R5.3` Synthesis governance and drift control
-- `R5.4` Advanced observability and optimization
+- `R6.1` Simulation and replay debugger
+- `R6.2` Reuse, templates, and policy packs
+- `R6.3` Synthesis governance and drift control
+- `R6.4` Advanced observability and optimization
 
-Details: [release-5-enterprise-sophistication.md](release-5-enterprise-sophistication.md)
+Details: [release-6-enterprise-sophistication.md](release-6-enterprise-sophistication.md)
 
 ## Release-specific acceptance scenarios
 
 - `R0`: the current PoC can be rebuilt, packaged, deployed to `Dev`, promoted to `UAT`, and rolled back without manual secret handling
 - `R1`: one approval/request flow can be authored in the designer, synthesized into the required Dataverse schema, bound to existing Dataverse forms with DBM-managed supported behavior, edited from both model-driven and XrmToolBox hosts, rendered through the DBM-owned model-driven process experience, projected to portal-visible status, and executed through the backend runtime
 - `R2`: the approval/request reference and at least one non-reference custom existing-form process can be authored through a graph-first designer, rendered through a shared DBM-owned process-experience system, hosted in model-driven through both supported and preferred bridge placements, and proven on `Dev` without changing the canonical model boundary
-- `R3`: the same approval/request flow can start in the DBM-owned external runtime, traverse Dataverse and Azure, return state to the external front door, pass `UAT`, and be supported with documented rollback and operational diagnostics
+- `R3`: the same approval/request flow can start in the DBM-owned external runtime, traverse Dataverse, return state to the external front door, pass `UAT`, and be supported with documented rollback and operational diagnostics
 - `R4`: AI can generate drafts and recommendations with full traceability, mandatory human review, and no direct unreviewed production mutation
-- `R5`: the platform can simulate, explain, govern, and optimize complex process portfolios at enterprise scale without losing portability or operational control
+- `R5`: Azure-backed extensions are introduced only after a Dataverse-first exception rationale proves Dataverse cannot reasonably own the required responsibility
+- `R6`: the platform can simulate, explain, govern, and optimize complex process portfolios at enterprise scale without losing portability or operational control
 
 ## Current assumptions
 
@@ -204,6 +225,6 @@ Details: [release-5-enterprise-sophistication.md](release-5-enterprise-sophistic
 - Official docs and roadmap are tracked in `docs/`; `_codex/` remains local-only.
 - The first portable designer host is XrmToolBox.
 - The first `R3` front-door proof is a DBM-owned local SPA served from the developer machine.
-- Azure should be used early when it provides clear value.
+- Dataverse-first runtime and configuration direction is governed by [ADR-0015](../adr/0015-dataverse-first-roadmap-and-azure-deferral.md); Azure product/runtime capability is deferred to `R5` unless a later ADR approves an earlier exception.
 - The first post-`R1` release is the designer and process-experience productization release rather than the pilot-ready external-runtime release.
 - Branding should consistently use Ahmed Elsawalhy and Yagasoft where appropriate without becoming noisy.

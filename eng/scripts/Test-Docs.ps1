@@ -12,6 +12,7 @@ $requiredDocs = @(
     'docs\adr\0007-github-oidc-key-vault-and-federated-delivery.md',
     'docs\adr\0010-dataverse-metadata-synthesis-and-layered-generated-solution-strategy.md',
     'docs\adr\0012-generic-existing-form-authoring-required-for-r2-closeout.md',
+    'docs\adr\0015-dataverse-first-roadmap-and-azure-deferral.md',
     'docs\architecture\canonical-model-runtime-contract-v1.md',
     'docs\architecture\examples\approval-request-v1.model.json',
     'docs\architecture\examples\generic-existing-form-v1.model.json',
@@ -130,6 +131,66 @@ $contentChecks = @(
         Path = 'docs\releases\release-governance.md'
         Pattern = 'supplemental live proof'
         Description = 'Release governance must define live proof as supplemental evidence only.'
+    },
+    @{
+        Path = 'docs\releases\release-governance.md'
+        Pattern = 'Dataverse-owned operational configuration and secret posture'
+        Description = 'Release governance must define Dataverse-owned operational configuration and secret posture.'
+    },
+    @{
+        Path = 'docs\roadmap\release-plan.md'
+        Pattern = '| `R5` | Azure Deferred Extension |'
+        Description = 'Release plan must move product-runtime Azure capability to R5.'
+    },
+    @{
+        Path = 'docs\roadmap\release-plan.md'
+        Pattern = '| `R6` | Enterprise Sophistication And Optimization |'
+        Description = 'Release plan must move enterprise sophistication to R6.'
+    },
+    @{
+        Path = 'docs\roadmap\release-plan.md'
+        Pattern = '`R3.2` Dataverse work management and service plane'
+        Description = 'Release plan must define R3.2 as Dataverse work management and service plane.'
+    },
+    @{
+        Path = 'docs\roadmap\release-plan.md'
+        Pattern = 'ADR-0015'
+        Description = 'Release plan must reference ADR-0015 for the Dataverse-first reset.'
+    },
+    @{
+        Path = 'docs\roadmap\release-3-pilot-ready-v1.md'
+        Pattern = 'Dataverse work management and service plane'
+        Description = 'Release 3 plan must define a Dataverse-owned R3.2 service plane.'
+    },
+    @{
+        Path = 'docs\roadmap\release-3-pilot-ready-v1.md'
+        Pattern = 'without requiring Azure runtime services'
+        Description = 'Release 3 plan must state that pilot readiness does not require Azure runtime services.'
+    },
+    @{
+        Path = 'docs\roadmap\capability-map.md'
+        Pattern = '`R5` Azure deferred extension'
+        Description = 'Capability map must show Azure as the deferred R5 extension.'
+    },
+    @{
+        Path = 'docs\roadmap\capability-map.md'
+        Pattern = '`R6` enterprise depth'
+        Description = 'Capability map must move enterprise depth to R6.'
+    },
+    @{
+        Path = 'docs\adr\README.md'
+        Pattern = '0015-dataverse-first-roadmap-and-azure-deferral.md'
+        Description = 'ADR index must reference ADR-0015.'
+    },
+    @{
+        Path = 'docs\architecture\product-principles.md'
+        Pattern = 'Dataverse is the near-term default for runtime authority, operational configuration, and platform-owned secrets.'
+        Description = 'Product principles must record the Dataverse-first operational default.'
+    },
+    @{
+        Path = 'docs\architecture\target-platform-architecture.md'
+        Pattern = 'Azure is deferred to R5 for capabilities that Dataverse cannot reasonably own.'
+        Description = 'Target architecture must defer Azure runtime capability to R5.'
     },
     @{
         Path = '.github\PULL_REQUEST_TEMPLATE.md'
@@ -293,6 +354,24 @@ $contentChecks = @(
     }
 )
 
+$forbiddenContentChecks = @(
+    @{
+        Path = 'docs\roadmap\release-plan.md'
+        Pattern = 'traverse Dataverse and Azure'
+        Description = 'Release 3 acceptance must not require traversing Azure.'
+    },
+    @{
+        Path = 'docs\releases\release-governance.md'
+        Pattern = 'Azure Key Vault only'
+        Description = 'Release governance must not state that Azure Key Vault is the only secret source of truth.'
+    },
+    @{
+        Path = 'docs\architecture\product-principles.md'
+        Pattern = 'Azure is used from the start where it adds clear value.'
+        Description = 'Product principles must not keep Azure as an early default.'
+    }
+)
+
 $contentFailures = foreach ($check in $contentChecks) {
     $fullPath = Join-Path $RepoRoot $check.Path
     $content = [System.IO.File]::ReadAllText($fullPath)
@@ -303,6 +382,18 @@ $contentFailures = foreach ($check in $contentChecks) {
 
 if ($contentFailures) {
     throw "Documentation content checks failed: $($contentFailures -join ' ')"
+}
+
+$forbiddenContentFailures = foreach ($check in $forbiddenContentChecks) {
+    $fullPath = Join-Path $RepoRoot $check.Path
+    $content = [System.IO.File]::ReadAllText($fullPath)
+    if ($content -match [regex]::Escape($check.Pattern)) {
+        $check.Description
+    }
+}
+
+if ($forbiddenContentFailures) {
+    throw "Forbidden documentation content checks failed: $($forbiddenContentFailures -join ' ')"
 }
 
 $validateWorkflowPath = Join-Path $RepoRoot '.github\workflows\validate.yml'

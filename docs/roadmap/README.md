@@ -13,7 +13,8 @@ This section holds the official high-level release ladder and the stage plans fo
 - [release-2-designer-and-process-experience-platform.md](release-2-designer-and-process-experience-platform.md)
 - [release-3-pilot-ready-v1.md](release-3-pilot-ready-v1.md)
 - [release-4-ai-assisted-platform.md](release-4-ai-assisted-platform.md)
-- [release-5-enterprise-sophistication.md](release-5-enterprise-sophistication.md)
+- [release-5-azure-deferred-extension.md](release-5-azure-deferred-extension.md)
+- [release-6-enterprise-sophistication.md](release-6-enterprise-sophistication.md)
 
 ## Planning rules
 

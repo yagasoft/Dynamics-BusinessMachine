@@ -42,9 +42,10 @@ These principles are standing constraints for the revival and future evolution o
 ## Security and operational principles
 
 - Secrets never enter Git.
-  - Use GitHub Environments and Azure Key Vault only.
+  - Dataverse is the near-term default for runtime authority, operational configuration, and platform-owned secrets.
+  - Use GitHub Environments and external secret stores only when needed for delivery automation or approved non-Dataverse components.
 - CI/CD is part of the product, not an afterthought.
-  - GitHub pipelines must cover code, Dataverse artifacts, Azure artifacts, documentation, and promotion flows.
+  - GitHub pipelines must cover code, Dataverse artifacts, documentation, promotion flows, and any approved non-Dataverse artifacts.
 - Operational support is a first-class capability.
   - Work management, auditability, support surfaces, and observability are part of the platform, not afterthoughts in a reference solution.
 - Performance is a first-class requirement.
@@ -81,7 +82,8 @@ The following are currently locked unless replaced by a future ADR:
 - The first proof scenario is a real approval/request flow.
 - Selective reuse beats blind preservation.
 - The first portable designer host is XrmToolBox.
-- Azure is used from the start where it adds clear value.
+- Dataverse-first runtime and configuration direction is governed by ADR-0015.
+- Azure product/runtime capability is deferred to `R5` unless a later ADR approves a narrower exception.
 - The first `R3` external/front-door proof is a DBM-owned local SPA; later hosted front-door choices remain open to later release decisions.
 - The first post-`R1` release productizes the designer and DBM-owned process experience before pilot-readiness work resumes.
 - Portal projection semantics are defined in Release 1 before the live external runtime proof arrives in Release 3.

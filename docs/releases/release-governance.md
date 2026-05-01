@@ -291,6 +291,8 @@ Rules:
 
 ## Identity and secret model
 
+ADR-0015 updates the near-term direction: Dataverse-owned operational configuration and secret posture is the preferred product baseline where feasible. Azure Key Vault, GitHub OIDC, and Azure deployment workflow references in this document remain valid historical or deferred delivery context, but they are no longer the default product/runtime direction for new roadmap work.
+
 Authentication rules:
 
 - Azure authentication uses GitHub OIDC through `azure/login@v2`
@@ -308,11 +310,13 @@ Identity ownership model:
   - a Dataverse application user in each target Dataverse environment
   - GitHub federated credentials scoped to this repository and the approved GitHub Environment subjects
 
-Secret source of truth:
+Near-term secret and operational configuration posture:
 
-- Azure Key Vault only
+- Dataverse-owned operational configuration and secret posture where feasible
+- no secrets in Git
+- external secret stores only where deployment automation or approved non-Dataverse components require them
 
-Vault model:
+Deferred or historical vault model:
 
 - `yagasoft-dbm-dev-kv`
 - `yagasoft-dbm-uat-kv`
@@ -333,8 +337,8 @@ GitHub Actions bootstrap secret:
 
 Ownership rules:
 
-- platform owner provisions vaults, rotation policies, and federated identities
-- workflows read secrets only after GitHub Environment approval gates are satisfied
+- platform owner provisions any required Dataverse-owned configuration and approved external secret stores
+- workflows read deployment secrets only after GitHub Environment approval gates are satisfied
 - component owners may not invent new secret names without a docs update and ADR update
 
 ## Dataverse packaging and promotion policy
@@ -354,7 +358,7 @@ Packaging rules:
 - the baseline solution metadata is version-stamped during packaging
 - plugin assembly metadata is refreshed from the built assembly before packaging
 - generated business metadata is emitted from the canonical DBM model into `DynamicsBusinessMachineGeneratedMetadata`
-- the release-candidate packaging lane prefers `app-signing-key` from Azure Key Vault and may fall back to GitHub Actions secret `APP_SIGNING_KEY_B64` during bootstrap or recovery
+- the release-candidate packaging lane currently reads `app-signing-key` from Azure Key Vault and may fall back to GitHub Actions secret `APP_SIGNING_KEY_B64` during bootstrap or recovery; ADR-0015 makes this a transitional delivery path until a Dataverse-owned secret/configuration implementation replaces it where feasible
 - the release-candidate packaging lane enables legacy packaging and promotes the signed merged plugin assembly onto `DbmSolution/Plugins/bin/Release/Yagasoft.Dbm.Plugins.dll`
 - `pac solution pack` produces unmanaged and managed ZIP artifacts for both the core and generated-metadata solutions
 - `pac solution create-settings` generates solution-specific deployment settings templates
@@ -387,7 +391,7 @@ Rollback rules:
   - forward-fix hotfix with a higher version when practical
   - environment restore to the pre-promotion backup when a forward fix is not acceptable inside the release window
 
-## Azure packaging and promotion policy
+## Deferred Azure packaging and promotion policy
 
 Tracked Azure delivery contract:
 
@@ -403,7 +407,7 @@ Rules:
 - Azure deployment uses GitHub OIDC only
 - `azure/config/*.json` is the tracked environment baseline and not a raw ARM parameter file
 - until deployable Azure workloads exist, the Azure workflow validates the contract and passes as an intentional no-op
-- once deployable workloads exist, Azure promotion must use environment-gated workflows and the matching environment config under `azure/config/`
+- once deployable workloads exist under an accepted Dataverse-first exception, Azure promotion must use environment-gated workflows and the matching environment config under `azure/config/`
 
 ## Release evidence
 

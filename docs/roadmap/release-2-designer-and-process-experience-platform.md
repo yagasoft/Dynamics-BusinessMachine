@@ -23,7 +23,7 @@ Out of scope for this release:
 - live hosted external runtime
 - queues, reassignment, delegation, escalation, and SLA timers
 - timeline and audit trail
-- Azure orchestration expansion
+- Dataverse-first work management and deferred Azure extension
 - pilot-readiness hardening and `v1.0.0`
 - AI-assisted authoring or optimization
 - simulation, replay, and governance-at-scale

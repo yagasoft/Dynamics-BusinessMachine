@@ -27,3 +27,4 @@ ADRs capture durable product and delivery decisions that are important enough to
 - [0012-generic-existing-form-authoring-required-for-r2-closeout.md](0012-generic-existing-form-authoring-required-for-r2-closeout.md)
 - [0013-anonymous-power-pages-proof-and-dataverse-portal-initiation-authority.md](0013-anonymous-power-pages-proof-and-dataverse-portal-initiation-authority.md) - superseded history only; replaced by ADR-0014
 - [0014-local-spa-proof-and-dataverse-runtime-authority.md](0014-local-spa-proof-and-dataverse-runtime-authority.md) - current authority for the `R3.1` external front-door/runtime direction
+- [0015-dataverse-first-roadmap-and-azure-deferral.md](0015-dataverse-first-roadmap-and-azure-deferral.md) - current authority for Dataverse-first `R3` runtime scope and deferred Azure product/runtime capability

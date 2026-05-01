@@ -21,7 +21,7 @@ This contract must:
 - define one business process that spans portal to backend to portal
 - preserve a coherent DBM-owned process experience across model-driven and portal surfaces
 - support hidden internal stages and steps without losing portal-visible status clarity
-- support runtime execution across model-driven runtime, Dataverse, portal, and Azure-backed services
+- support runtime execution across model-driven runtime, Dataverse, and portal, with Azure-backed services deferred unless Dataverse cannot reasonably own the responsibility
 - keep Dataverse provider bindings, supported form behavior, and synthesis-owned artifacts attached to the model without turning those artifacts into the model
 - give the next executable contract slice a decision-complete target
 

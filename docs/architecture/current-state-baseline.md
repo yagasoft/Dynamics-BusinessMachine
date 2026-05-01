@@ -65,7 +65,7 @@ flowchart LR
 - a true process-first designer
 - a real PCF-based in-form process runtime
 - full portal-to-backend-to-portal lifecycle support
-- Azure-backed orchestration and service-plane implementation
+- Dataverse-first work-management and service-plane implementation
 - production-grade packaging, promotion, rollback, and release governance
 - AI-assisted analysis and authoring
 

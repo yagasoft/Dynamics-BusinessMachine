@@ -13,7 +13,7 @@ The platform must support:
 - coherent process UI across model-driven and external surfaces
 - metadata, columns, and generated Dataverse form authoring
 - reusable conditions, branching, and status projection
-- execution across external runtime, client, Dataverse, and Azure
+- execution across external runtime, client, and Dataverse, with Azure deferred for exceptional non-Dataverse needs
 - pipeline-driven deployment and promotion
 - future AI-assisted design and validation
 
@@ -86,7 +86,7 @@ The designer is hosted through adapters, not duplicated implementations.
 
 - first proof host: model-driven experience
 - first portable host: XrmToolBox
-- later hosts: browser- or Azure-hosted administration and management surfaces
+- later hosts: browser-hosted administration and management surfaces
 
 The host shell is replaceable. The canonical model, designer graph interchange contract, and designer core are the enduring seams.
 
@@ -97,7 +97,7 @@ The same platform contract should support several execution contexts:
 - DBM-owned model-driven runtime
 - DBM-owned external runtime and state projection
 - Dataverse backend execution
-- Azure orchestration and service-plane execution
+- deferred Azure execution only for `R5` responsibilities that Dataverse cannot reasonably own
 
 ### 8. Delivery and operations layer
 
@@ -105,9 +105,9 @@ The platform must include:
 
 - GitHub Actions pipelines
 - GitHub Environments
-- Azure Key Vault integration
+- Dataverse-owned operational configuration and platform-owned secret posture where feasible
 - Dataverse solution promotion
-- Azure artifact promotion
+- deferred Azure artifact promotion only for approved `R5` Azure components
 - release evidence, smoke tests, and rollback procedures
 
 ### 9. Dataverse synthesis layer
@@ -182,7 +182,7 @@ flowchart TB
         B["Designer Core"]
         C["Model-Driven Host"]
         D["XrmToolBox Host"]
-        E["Future Browser/Azure Host"]
+        E["Future Browser Host"]
     end
 
     subgraph Experience["Process Experience"]
@@ -193,14 +193,14 @@ flowchart TB
     subgraph Runtime["Execution"]
         H["Model-Driven Runtime"]
         I["Dataverse Runtime"]
-        J["Azure Orchestration and Services"]
+        J["Deferred Azure Services (R5)"]
         K["DBM External Runtime"]
     end
 
     subgraph Delivery["Delivery and Operations"]
         L["GitHub Actions"]
         M["GitHub Environments"]
-        N["Azure Key Vault"]
+        N["Dataverse-Owned Config / External Secret Store"]
         O["Release Notes / Runbooks / Rollback"]
     end
 
@@ -249,9 +249,10 @@ flowchart TB
 - Release 1 locks the canonical process semantics, designer core, Dataverse synthesis layer, host adapters, and the first DBM-owned model-driven runtime for one approval/request scenario.
 - Release 1 also defines the portal-facing process projection contract, but it does not deliver the live external runtime.
 - Release 2 productizes the designer shell, the shared process-experience system, the model-driven placement strategy, and the portal-continuity UX foundation without yet delivering the live external runtime.
-- Release 3 delivers the real DBM-owned external runtime, beginning with the local SPA proof, plus end-to-end external continuity, Azure-backed supporting services, work-management, timeline, observability baselines, and pilot-ready hardening.
+- Release 3 delivers the real DBM-owned external runtime, beginning with the local SPA proof, plus Dataverse-first external continuity, work-management, timeline, observability baselines, and pilot-ready hardening.
 - Release 4 adds AI drafting, review, gap detection, and optimization only after platform contracts and operations are reliable.
-- Release 5 deepens enterprise sophistication through simulation, replay, reusable building blocks, synthesis governance, and advanced analytics and optimization.
+- Release 5 adds Azure-backed services only where Dataverse cannot reasonably own the required runtime, integration, telemetry, or operational responsibility.
+- Release 6 deepens enterprise sophistication through simulation, replay, reusable building blocks, synthesis governance, and advanced analytics and optimization.
 
 ## Architecture constraints
 
@@ -261,4 +262,4 @@ flowchart TB
 - No secret may live in source control.
 - No release may bypass Dev and UAT promotion.
 - Release 1 must not use a temporary web-resource substitute as the final process runtime boundary.
-- Azure should complement Dataverse, not copy responsibilities unnecessarily.
+- Azure is deferred to R5 for capabilities that Dataverse cannot reasonably own.
