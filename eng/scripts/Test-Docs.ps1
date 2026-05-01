@@ -50,7 +50,8 @@ $requiredScripts = @(
     'eng\scripts\Test-DbmPortalRuntime.ps1',
     'eng\scripts\Test-DbmPluginRuntime.ps1',
     'eng\scripts\Test-R3PortalRuntimeAutomation.ps1',
-    'eng\scripts\Test-DbmDesignerShell.ps1'
+    'eng\scripts\Test-DbmDesignerShell.ps1',
+    'eng\scripts\Write-CompletedRoadmapCloseoutAttestation.ps1'
 )
 
 $missingScripts = foreach ($relativePath in $requiredScripts) {
@@ -76,6 +77,11 @@ $contentChecks = @(
         Description = 'AGENTS.md must require automatic successful-TDD branch lifecycle cleanup.'
     },
     @{
+        Path = 'AGENTS.md'
+        Pattern = 'durable closeout evidence'
+        Description = 'AGENTS.md must require durable closeout evidence before AI worktree cleanup.'
+    },
+    @{
         Path = 'docs\releases\release-governance.md'
         Pattern = 'TDD evidence policy'
         Description = 'Release governance must define the TDD evidence policy.'
@@ -84,6 +90,11 @@ $contentChecks = @(
         Path = 'docs\releases\release-governance.md'
         Pattern = 'CI parity and closeout attestation'
         Description = 'Release governance must define completed-roadmap CI parity and closeout attestation expectations.'
+    },
+    @{
+        Path = 'docs\releases\release-governance.md'
+        Pattern = 'durable closeout evidence'
+        Description = 'Release governance must define durable closeout evidence expectations.'
     },
     @{
         Path = 'docs\releases\release-governance.md'
@@ -134,6 +145,11 @@ $contentChecks = @(
         Path = '.github\PULL_REQUEST_TEMPLATE.md'
         Pattern = 'CI parity and closeout attestation'
         Description = 'Pull request template must ask for CI parity and closeout attestation evidence.'
+    },
+    @{
+        Path = '.github\PULL_REQUEST_TEMPLATE.md'
+        Pattern = 'durable closeout evidence'
+        Description = 'Pull request template must ask for durable closeout evidence.'
     },
     @{
         Path = '.github\PULL_REQUEST_TEMPLATE.md'
@@ -219,6 +235,11 @@ $contentChecks = @(
         Path = 'docs\roadmap\completed-roadmap-tdd-matrix.md'
         Pattern = 'CI parity and closeout attestation'
         Description = 'Completed roadmap TDD matrix must record CI parity and closeout attestation governance.'
+    },
+    @{
+        Path = 'docs\roadmap\completed-roadmap-tdd-matrix.md'
+        Pattern = 'durable closeout evidence'
+        Description = 'Completed roadmap TDD matrix must record durable closeout evidence governance.'
     },
     @{
         Path = 'docs\roadmap\completed-roadmap-tdd-matrix.md'

@@ -31,6 +31,8 @@ When a task is completed through a successful TDD cycle, treat passing verificat
 
 Successful verified TDD closeout requires automatic merge, push, branch purge, worktree removal, and stale metadata prune without asking again when the target branch is known and the checks below pass.
 
+Before removing an AI-created task worktree, write durable closeout evidence outside that worktree so the validation manifest, branch lifecycle result, and cleanup record survive worktree deletion.
+
 After tests pass:
 
 - confirm the changed files are only within the intended task scope
@@ -43,6 +45,7 @@ After tests pass:
 - delete the completed task branch remotely if it was pushed
 - remove the bound worktree once it is no longer needed
 - prune stale worktree metadata if required
+- leave durable closeout evidence in the stable ignored evidence root
 
 This behaviour applies only to the current task branch or worktree created for the AI's work.
 

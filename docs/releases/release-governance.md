@@ -111,6 +111,8 @@ When a successful verified TDD round is completed on an AI-created branch or wor
 
 After green verification, the default closeout action is automatic merge, push, branch purge, worktree removal, and stale metadata prune. This automatic lifecycle applies only to the current AI-created task branch or worktree, and only when scope checks, unrelated-change checks, and merge checks are clean.
 
+Durable closeout evidence must be written before removing the AI-created task worktree. Use `eng/scripts/Write-CompletedRoadmapCloseoutAttestation.ps1` to copy the passed validation manifest into the stable ignored evidence root and record the final target commit, branch-protection bypass status, and cleanup action statuses. Evidence created only inside the task worktree is not sufficient if that worktree will be removed.
+
 ## Versioning policy
 
 Formal release numbering resets from legacy PoC numbering to SemVer starting with `v0.2.0`.

@@ -428,6 +428,167 @@ foreach ($requiredFunction in @('Get-CompletedRoadmapMarkdownTableRows', 'Get-En
 
 Test-CompletedRoadmapCiParity -RepoRoot $RepoRoot
 
+$closeoutWriterPath = Join-Path $RepoRoot 'eng\scripts\Write-CompletedRoadmapCloseoutAttestation.ps1'
+if (-not (Test-Path $closeoutWriterPath)) {
+    throw "Completed-roadmap durable closeout attestation writer is missing: $closeoutWriterPath"
+}
+
+function New-TestValidationManifest {
+    param(
+        [string]$Path,
+        [string]$Status = 'passed',
+        [switch]$OmitGateList
+    )
+
+    $closeoutAttestation = [ordered]@{
+        schemaVersion = 'completed-roadmap-closeout-attestation.v1'
+        taskBranch = 'codex/test-closeout'
+        taskCommit = '1111111111111111111111111111111111111111'
+        targetBranch = 'main'
+        verificationStatus = $Status
+        pushedTargetBranch = 'pending-post-verification'
+        cleanupActions = @(
+            [ordered]@{
+                action = 'delete-local-task-branch'
+                status = 'required-after-successful-verification'
+            }
+        )
+    }
+
+    if (-not $OmitGateList) {
+        $closeoutAttestation.gateList = @(
+            [ordered]@{
+                name = 'Docs'
+                script = 'eng\scripts\Test-Docs.ps1'
+                arguments = @()
+            }
+        )
+    }
+
+    $manifest = [ordered]@{
+        schemaVersion = 'completed-roadmap-validation.v1'
+        status = $Status
+        branch = 'codex/test-closeout'
+        commit = '1111111111111111111111111111111111111111'
+        closeoutAttestation = $closeoutAttestation
+        gates = @(
+            [ordered]@{
+                name = 'Docs'
+                script = 'eng\scripts\Test-Docs.ps1'
+                status = 'passed'
+            }
+        )
+    }
+
+    $manifest | ConvertTo-Json -Depth 8 | Set-Content -Path $Path -Encoding UTF8
+}
+
+function Invoke-ExpectCloseoutWriterFailure {
+    param(
+        [scriptblock]$ScriptBlock,
+        [string]$Description
+    )
+
+    try {
+        & $ScriptBlock
+    }
+    catch {
+        return
+    }
+
+    throw "Completed-roadmap durable closeout attestation writer must fail for $Description."
+}
+
+$closeoutWriterTestRoot = Join-Path ([System.IO.Path]::GetTempPath()) ("dbm-closeout-writer-{0}" -f ([System.Guid]::NewGuid().ToString('N')))
+New-Item -ItemType Directory -Path $closeoutWriterTestRoot -Force | Out-Null
+try {
+    $taskWorktreeRoot = Join-Path $closeoutWriterTestRoot 'task-worktree'
+    $stableEvidenceRoot = Join-Path $closeoutWriterTestRoot 'stable-evidence'
+    New-Item -ItemType Directory -Path $taskWorktreeRoot -Force | Out-Null
+
+    $passedManifestPath = Join-Path $taskWorktreeRoot 'completed-roadmap-validation-manifest.json'
+    New-TestValidationManifest -Path $passedManifestPath
+
+    $attestationPath = & $closeoutWriterPath `
+        -ValidationManifestPath $passedManifestPath `
+        -TargetRepoRoot $RepoRoot `
+        -EvidenceRoot $stableEvidenceRoot `
+        -TaskWorktreePath $taskWorktreeRoot `
+        -TargetBranch 'main' `
+        -PushedTargetCommit '2222222222222222222222222222222222222222' `
+        -BranchProtectionBypassStatus 'direct-push-bypass-reported' `
+        -LocalBranchDeletionStatus 'completed' `
+        -RemoteBranchDeletionStatus 'not-applicable' `
+        -WorktreeRemovalStatus 'pending' `
+        -WorktreePruneStatus 'pending' |
+        Select-Object -Last 1
+
+    if (-not (Test-Path $attestationPath)) {
+        throw "Completed-roadmap durable closeout attestation writer did not create attestation output: $attestationPath"
+    }
+
+    $attestation = Get-Content -Path $attestationPath -Raw | ConvertFrom-Json
+    if ($attestation.schemaVersion -ne 'completed-roadmap-closeout-attestation-durable.v1') {
+        throw "Completed-roadmap durable closeout attestation has unexpected schema version '$($attestation.schemaVersion)'."
+    }
+
+    if ($attestation.validationManifest.sha256 -notmatch '^[A-Fa-f0-9]{64}$') {
+        throw 'Completed-roadmap durable closeout attestation must record the copied validation manifest SHA-256 hash.'
+    }
+
+    if (-not (Test-Path $attestation.validationManifest.copyPath)) {
+        throw 'Completed-roadmap durable closeout attestation must copy the source validation manifest into durable evidence.'
+    }
+
+    if ($attestation.validation.status -ne 'passed' -or $attestation.validation.gateList.Count -lt 1) {
+        throw 'Completed-roadmap durable closeout attestation must preserve passed verification status and gate list.'
+    }
+
+    if ($attestation.target.branchProtectionBypassStatus -ne 'direct-push-bypass-reported') {
+        throw 'Completed-roadmap durable closeout attestation must record direct-push branch protection bypass status.'
+    }
+
+    $updatedAttestationPath = & $closeoutWriterPath `
+        -ExistingAttestationPath $attestationPath `
+        -PushedTargetCommit '3333333333333333333333333333333333333333' `
+        -LocalBranchDeletionStatus 'completed' `
+        -RemoteBranchDeletionStatus 'not-applicable' `
+        -WorktreeRemovalStatus 'completed' `
+        -WorktreePruneStatus 'completed' |
+        Select-Object -Last 1
+
+    $updatedAttestation = Get-Content -Path $updatedAttestationPath -Raw | ConvertFrom-Json
+    $worktreeRemovalAction = @($updatedAttestation.cleanupActions | Where-Object { $_.action -eq 'remove-bound-worktree' })[0]
+    if ($worktreeRemovalAction.status -ne 'completed') {
+        throw 'Completed-roadmap durable closeout attestation update mode must record final worktree removal status.'
+    }
+
+    $failedManifestPath = Join-Path $closeoutWriterTestRoot 'failed-validation-manifest.json'
+    New-TestValidationManifest -Path $failedManifestPath -Status 'failed'
+    Invoke-ExpectCloseoutWriterFailure -Description 'failed validation manifests' -ScriptBlock {
+        & $closeoutWriterPath -ValidationManifestPath $failedManifestPath -TargetRepoRoot $RepoRoot -EvidenceRoot (Join-Path $closeoutWriterTestRoot 'failed-evidence')
+    }
+
+    $missingGateManifestPath = Join-Path $closeoutWriterTestRoot 'missing-gate-validation-manifest.json'
+    New-TestValidationManifest -Path $missingGateManifestPath -OmitGateList
+    Invoke-ExpectCloseoutWriterFailure -Description 'missing gate lists' -ScriptBlock {
+        & $closeoutWriterPath -ValidationManifestPath $missingGateManifestPath -TargetRepoRoot $RepoRoot -EvidenceRoot (Join-Path $closeoutWriterTestRoot 'missing-gate-evidence')
+    }
+
+    Invoke-ExpectCloseoutWriterFailure -Description 'unknown cleanup statuses' -ScriptBlock {
+        & $closeoutWriterPath -ValidationManifestPath $passedManifestPath -TargetRepoRoot $RepoRoot -EvidenceRoot (Join-Path $closeoutWriterTestRoot 'unknown-status-evidence') -LocalBranchDeletionStatus 'unknown'
+    }
+
+    Invoke-ExpectCloseoutWriterFailure -Description 'evidence roots inside the task worktree' -ScriptBlock {
+        & $closeoutWriterPath -ValidationManifestPath $passedManifestPath -TargetRepoRoot $RepoRoot -EvidenceRoot (Join-Path $taskWorktreeRoot 'artifacts\validate\completed-roadmap-closeout') -TaskWorktreePath $taskWorktreeRoot
+    }
+}
+finally {
+    if (Test-Path $closeoutWriterTestRoot) {
+        Remove-Item -LiteralPath $closeoutWriterTestRoot -Recurse -Force
+    }
+}
+
 $sharedParserConsumers = @(
     'eng\scripts\Test-CompletedRoadmapTddMatrix.ps1',
     'eng\scripts\Test-CompletedRoadmapEnvironmentProofReadiness.ps1'
