@@ -16,6 +16,8 @@
 - What did you run locally or in CI?
 - What evidence should reviewers look for?
 - Which completed-roadmap matrix row does this protect or improve?
+- Which direct deterministic automated gate protects that completed-roadmap row?
+- Is any live Dataverse, UAT, hosted designer, or browser-session proof only supplemental live proof rather than primary coverage?
 - Does the change avoid future roadmap scope?
 - Sequential completed-roadmap validation:
   - If this touches completed-roadmap validation, did you run `eng/scripts/Test-CompletedRoadmapValidation.ps1` or explain why a narrower gate was enough?

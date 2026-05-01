@@ -77,7 +77,7 @@ function Get-CompletedRoadmapMatrixRows {
 function Get-CompletedRoadmapProofLedgerRows {
     param([string]$RepoRoot)
 
-    Get-CompletedRoadmapMarkdownTableRows -Lines (Get-CompletedRoadmapMatrixLines -RepoRoot $RepoRoot) -Heading '## Environment-bound proof ledger' -ExpectedCellCount 7 |
+    Get-CompletedRoadmapMarkdownTableRows -Lines (Get-CompletedRoadmapMatrixLines -RepoRoot $RepoRoot) -Heading '## Supplemental live proof ledger' -ExpectedCellCount 7 |
         ForEach-Object {
             [pscustomobject]@{
                 Capability = $_[0]

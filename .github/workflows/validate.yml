@@ -37,7 +37,11 @@ jobs:
             dbm-app/package-lock.json
             dbm-contract/package-lock.json
             dbm-designer-core/package-lock.json
+            dbm-designer-shell/package-lock.json
             dbm-dataverse-synthesis/package-lock.json
+            dbm-live-e2e/package-lock.json
+            dbm-process-experience/package-lock.json
+            dbm-portal-runtime/package-lock.json
             dbm-script-lib/package-lock.json
             dbm-js-vm/package-lock.json
             dbm-web-resources/package-lock.json
@@ -81,13 +85,29 @@ jobs:
         shell: pwsh
         run: .\eng\scripts\Test-DbmDesignerCore.ps1
 
+      - name: Validate DBM live-E2E deterministic proof
+        shell: pwsh
+        run: .\eng\scripts\Test-DbmLiveE2EDeterministic.ps1
+
+      - name: Validate DBM release promotion contract
+        shell: pwsh
+        run: .\eng\scripts\Test-DbmReleasePromotionContract.ps1
+
       - name: Validate DBM process experience
         shell: pwsh
         run: .\eng\scripts\Test-DbmProcessExperience.ps1
 
+      - name: Validate DBM process experience visual snapshots
+        shell: pwsh
+        run: .\eng\scripts\Test-DbmProcessExperienceVisual.ps1 -InstallBrowsers
+
       - name: Validate DBM portal runtime
         shell: pwsh
         run: .\eng\scripts\Test-DbmPortalRuntime.ps1
+
+      - name: Validate R3 portal runtime automation contract
+        shell: pwsh
+        run: .\eng\scripts\Test-R3PortalRuntimeAutomation.ps1
 
       - name: Validate DBM designer shell
         shell: pwsh

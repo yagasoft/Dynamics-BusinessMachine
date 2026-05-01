@@ -1,5 +1,6 @@
 import { promises as fs } from 'node:fs';
 import path from 'node:path';
+import { fileURLToPath } from 'node:url';
 
 import { chromium, type BrowserContext, type Page } from '@playwright/test';
 
@@ -63,7 +64,7 @@ function assertCondition(condition: unknown, message: string): asserts condition
   }
 }
 
-function normalizeText(value: string): string {
+export function normalizeText(value: string): string {
   return value.replace(/\s+/g, ' ').trim();
 }
 
@@ -189,8 +190,20 @@ async function runLocalSpaSmoke(page: Page, config: SmokeConfig): Promise<Omit<S
   };
 }
 
+export function shouldRunModelDrivenSmoke(config: Pick<SmokeConfig, 'persistedSessionStatePath'>): boolean {
+  return typeof config.persistedSessionStatePath === 'string' && config.persistedSessionStatePath.trim().length > 0;
+}
+
+export function buildModelDrivenRecordUrl(
+  config: Pick<SmokeConfig, 'dataverseUrl' | 'entityLogicalName'>,
+  requestId: string
+): string {
+  return `${config.dataverseUrl.replace(/\/$/, '')}/main.aspx?forceUCI=1&pagetype=entityrecord&etn=${encodeURIComponent(config.entityLogicalName)}&id=${encodeURIComponent(requestId)}`;
+}
+
 async function runModelDrivenSmoke(config: SmokeConfig, requestId: string): Promise<{ executed: boolean; passed: boolean }> {
-  if (!config.persistedSessionStatePath) {
+  const persistedSessionStatePath = config.persistedSessionStatePath?.trim();
+  if (!persistedSessionStatePath) {
     return {
       executed: false,
       passed: false
@@ -200,12 +213,12 @@ async function runModelDrivenSmoke(config: SmokeConfig, requestId: string): Prom
   const browser = await chromium.launch({ headless: true });
   const browserContext = await browser.newContext({
     ignoreHTTPSErrors: true,
-    storageState: config.persistedSessionStatePath
+    storageState: persistedSessionStatePath
   });
 
   try {
     const page = await browserContext.newPage();
-    const recordUrl = `${config.dataverseUrl.replace(/\/$/, '')}/main.aspx?forceUCI=1&pagetype=entityrecord&etn=${encodeURIComponent(config.entityLogicalName)}&id=${encodeURIComponent(requestId)}`;
+    const recordUrl = buildModelDrivenRecordUrl(config, requestId);
     await page.goto(recordUrl, { waitUntil: 'domcontentloaded' });
     await waitForPageText(page, config.requestTitle, 90000);
 
@@ -242,7 +255,7 @@ async function main(): Promise<void> {
       passed: false
     };
 
-    if (config.persistedSessionStatePath) {
+    if (shouldRunModelDrivenSmoke(config)) {
       modelDrivenResult = await runModelDrivenSmoke(config, anonymousResult.requestId);
     }
 
@@ -260,7 +273,14 @@ async function main(): Promise<void> {
   }
 }
 
-main().catch((error) => {
-  process.stderr.write(`${error instanceof Error ? error.stack ?? error.message : String(error)}\n`);
-  process.exitCode = 1;
-});
+function isMainModule(): boolean {
+  const invokedPath = process.argv[1] ? path.resolve(process.argv[1]) : '';
+  return fileURLToPath(import.meta.url) === invokedPath;
+}
+
+if (isMainModule()) {
+  main().catch((error) => {
+    process.stderr.write(`${error instanceof Error ? error.stack ?? error.message : String(error)}\n`);
+    process.exitCode = 1;
+  });
+}

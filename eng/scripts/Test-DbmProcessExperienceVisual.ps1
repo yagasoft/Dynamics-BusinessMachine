@@ -53,7 +53,7 @@ try {
 
     if ($InstallBrowsers) {
         Write-Host 'Installing Playwright browsers for dbm-process-experience visual tests'
-        npx playwright install
+        npx playwright install chromium
         if ($LASTEXITCODE -ne 0) {
             throw "Playwright browser installation failed with exit code $LASTEXITCODE."
         }
@@ -64,6 +64,11 @@ try {
     npm run $scriptName
     if ($LASTEXITCODE -ne 0) {
         throw "dbm-process-experience visual validation failed with exit code $LASTEXITCODE."
+    }
+
+    $playwrightLastRunPath = Join-Path $packageRoot 'test-results\.last-run.json'
+    if (Test-Path $playwrightLastRunPath) {
+        Remove-Item -LiteralPath $playwrightLastRunPath -Force
     }
 }
 finally {

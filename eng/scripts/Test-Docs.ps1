@@ -43,9 +43,13 @@ $requiredScripts = @(
     'eng\scripts\Test-CompletedRoadmapTddMatrix.ps1',
     'eng\scripts\Test-CompletedRoadmapEnvironmentProofReadiness.ps1',
     'eng\scripts\Test-CompletedRoadmapValidation.ps1',
+    'eng\scripts\Test-DbmLiveE2EDeterministic.ps1',
+    'eng\scripts\Test-DbmReleasePromotionContract.ps1',
     'eng\scripts\Test-DbmProcessExperience.ps1',
     'eng\scripts\Test-DbmProcessExperienceVisual.ps1',
     'eng\scripts\Test-DbmPortalRuntime.ps1',
+    'eng\scripts\Test-DbmPluginRuntime.ps1',
+    'eng\scripts\Test-R3PortalRuntimeAutomation.ps1',
     'eng\scripts\Test-DbmDesignerShell.ps1'
 )
 
@@ -92,6 +96,16 @@ $contentChecks = @(
         Description = 'Release governance must define the completed-roadmap clean-worktree guard.'
     },
     @{
+        Path = 'docs\releases\release-governance.md'
+        Pattern = 'direct deterministic automated coverage'
+        Description = 'Release governance must require direct deterministic automated completed-roadmap coverage.'
+    },
+    @{
+        Path = 'docs\releases\release-governance.md'
+        Pattern = 'supplemental live proof'
+        Description = 'Release governance must define live proof as supplemental evidence only.'
+    },
+    @{
         Path = '.github\PULL_REQUEST_TEMPLATE.md'
         Pattern = 'Failing-test evidence'
         Description = 'Pull request template must ask for failing-test evidence.'
@@ -117,14 +131,24 @@ $contentChecks = @(
         Description = 'Pull request template must ask for completed-roadmap clean-worktree guard evidence.'
     },
     @{
+        Path = '.github\PULL_REQUEST_TEMPLATE.md'
+        Pattern = 'direct deterministic automated gate'
+        Description = 'Pull request template must ask for the deterministic completed-roadmap gate.'
+    },
+    @{
+        Path = '.github\PULL_REQUEST_TEMPLATE.md'
+        Pattern = 'supplemental live proof'
+        Description = 'Pull request template must classify live proof as supplemental evidence only.'
+    },
+    @{
         Path = 'docs\roadmap\completed-roadmap-tdd-matrix.md'
         Pattern = 'R3.1 local SPA runtime proof and external entry'
         Description = 'Completed roadmap TDD matrix must trace R3.1 at the capability level.'
     },
     @{
         Path = 'docs\roadmap\completed-roadmap-tdd-matrix.md'
-        Pattern = 'Environment-bound proof ledger'
-        Description = 'Completed roadmap TDD matrix must include an environment-bound proof ledger.'
+        Pattern = 'Supplemental live proof ledger'
+        Description = 'Completed roadmap TDD matrix must include a supplemental live proof ledger.'
     },
     @{
         Path = 'docs\roadmap\completed-roadmap-tdd-matrix.md'
@@ -134,7 +158,22 @@ $contentChecks = @(
     @{
         Path = 'docs\roadmap\completed-roadmap-tdd-matrix.md'
         Pattern = 'Test-DbmProcessExperienceVisual.ps1'
-        Description = 'Completed roadmap TDD matrix must reference the optional process-experience visual proof wrapper.'
+        Description = 'Completed roadmap TDD matrix must reference the deterministic process-experience visual proof wrapper.'
+    },
+    @{
+        Path = 'docs\roadmap\completed-roadmap-tdd-matrix.md'
+        Pattern = 'Test-DbmLiveE2EDeterministic.ps1'
+        Description = 'Completed roadmap TDD matrix must reference the deterministic live-E2E proof wrapper.'
+    },
+    @{
+        Path = 'docs\roadmap\completed-roadmap-tdd-matrix.md'
+        Pattern = 'Test-DbmReleasePromotionContract.ps1'
+        Description = 'Completed roadmap TDD matrix must reference the release promotion contract wrapper.'
+    },
+    @{
+        Path = 'docs\roadmap\completed-roadmap-tdd-matrix.md'
+        Pattern = 'Test-R3PortalRuntimeAutomation.ps1'
+        Description = 'Completed roadmap TDD matrix must reference the R3 proof automation contract check.'
     },
     @{
         Path = 'docs\roadmap\completed-roadmap-tdd-matrix.md'
@@ -180,6 +219,26 @@ $contentChecks = @(
         Path = '.github\workflows\validate.yml'
         Pattern = 'Test-DbmDesignerShell.ps1'
         Description = 'Validate workflow must run designer-shell package tests.'
+    },
+    @{
+        Path = '.github\workflows\validate.yml'
+        Pattern = 'Test-DbmLiveE2EDeterministic.ps1'
+        Description = 'Validate workflow must run deterministic live-E2E tests.'
+    },
+    @{
+        Path = '.github\workflows\validate.yml'
+        Pattern = 'Test-DbmReleasePromotionContract.ps1'
+        Description = 'Validate workflow must run release promotion contract tests.'
+    },
+    @{
+        Path = '.github\workflows\validate.yml'
+        Pattern = 'Test-DbmProcessExperienceVisual.ps1'
+        Description = 'Validate workflow must run deterministic process-experience visual tests.'
+    },
+    @{
+        Path = '.github\workflows\validate.yml'
+        Pattern = 'Test-R3PortalRuntimeAutomation.ps1'
+        Description = 'Validate workflow must run R3 portal runtime automation contract tests.'
     }
 )
 
@@ -199,8 +258,7 @@ $validateWorkflowPath = Join-Path $RepoRoot '.github\workflows\validate.yml'
 $validateWorkflowContent = [System.IO.File]::ReadAllText($validateWorkflowPath)
 $environmentBoundWorkflowScripts = @(
     'Test-CompletedRoadmapEnvironmentProofReadiness.ps1',
-    'Test-CompletedRoadmapValidation.ps1',
-    'Test-DbmProcessExperienceVisual.ps1'
+    'Test-CompletedRoadmapValidation.ps1'
 )
 
 $environmentBoundWorkflowFailures = foreach ($scriptName in $environmentBoundWorkflowScripts) {

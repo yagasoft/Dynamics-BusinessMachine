@@ -14,13 +14,15 @@ function New-CompletedRoadmapGate {
     param(
         [string]$Name,
         [string]$Script,
-        [string]$Description
+        [string]$Description,
+        [string[]]$Arguments = @()
     )
 
     [pscustomobject]@{
         Name = $Name
         Script = $Script
         Description = $Description
+        Arguments = @($Arguments)
     }
 }
 
@@ -83,13 +85,13 @@ $gates.Add((New-CompletedRoadmapGate -Name 'Docs' -Script 'eng\scripts\Test-Docs
 $gates.Add((New-CompletedRoadmapGate -Name 'Completed-roadmap matrix' -Script 'eng\scripts\Test-CompletedRoadmapTddMatrix.ps1' -Description 'capability routing, proof ledger, and warning governance'))
 $gates.Add((New-CompletedRoadmapGate -Name 'Environment proof readiness' -Script 'eng\scripts\Test-CompletedRoadmapEnvironmentProofReadiness.ps1' -Description 'repo-owned proof assets and local readiness warnings'))
 $gates.Add((New-CompletedRoadmapGate -Name 'DBM contract' -Script 'eng\scripts\Test-DbmContract.ps1' -Description 'contract build, tests, and fixture validation'))
+$gates.Add((New-CompletedRoadmapGate -Name 'DBM live-E2E deterministic' -Script 'eng\scripts\Test-DbmLiveE2EDeterministic.ps1' -Description 'offline fake Dataverse live-E2E runner and portal smoke contract tests'))
+$gates.Add((New-CompletedRoadmapGate -Name 'DBM release promotion contract' -Script 'eng\scripts\Test-DbmReleasePromotionContract.ps1' -Description 'Dataverse and Azure promotion workflow, backup, and evidence contract tests'))
 $gates.Add((New-CompletedRoadmapGate -Name 'DBM process experience' -Script 'eng\scripts\Test-DbmProcessExperience.ps1' -Description 'shared process renderer package test and build'))
-
-if ($IncludeVisual) {
-    $gates.Add((New-CompletedRoadmapGate -Name 'DBM process experience visual' -Script 'eng\scripts\Test-DbmProcessExperienceVisual.ps1' -Description 'optional environment-bound visual snapshot proof'))
-}
-
+$gates.Add((New-CompletedRoadmapGate -Name 'DBM process experience visual' -Script 'eng\scripts\Test-DbmProcessExperienceVisual.ps1' -Description 'deterministic process renderer visual snapshot proof' -Arguments @('-InstallBrowsers')))
 $gates.Add((New-CompletedRoadmapGate -Name 'DBM portal runtime' -Script 'eng\scripts\Test-DbmPortalRuntime.ps1' -Description 'local SPA runtime package test and build'))
+$gates.Add((New-CompletedRoadmapGate -Name 'DBM plugin runtime' -Script 'eng\scripts\Test-DbmPluginRuntime.ps1' -Description 'legacy Dataverse plugin runtime unit tests'))
+$gates.Add((New-CompletedRoadmapGate -Name 'R3 portal runtime automation' -Script 'eng\scripts\Test-R3PortalRuntimeAutomation.ps1' -Description 'local proof orchestration, evidence manifest, and cleanup contract tests'))
 $gates.Add((New-CompletedRoadmapGate -Name 'DBM designer shell' -Script 'eng\scripts\Test-DbmDesignerShell.ps1' -Description 'designer shell package test and build'))
 $gates.Add((New-CompletedRoadmapGate -Name 'Node build' -Script 'eng\scripts\Invoke-NodeBuild.ps1' -Description 'full Node asset build path'))
 
@@ -98,10 +100,6 @@ if ($ListOnly) {
     for ($index = 0; $index -lt $gates.Count; $index++) {
         $gate = $gates[$index]
         Write-Output ("{0}. {1} - {2} ({3})" -f ($index + 1), $gate.Name, $gate.Script, $gate.Description)
-    }
-
-    if (-not $IncludeVisual) {
-        Write-Output 'Optional visual proof is excluded. Pass -IncludeVisual to add the environment-bound visual gate.'
     }
 
     return
@@ -144,7 +142,7 @@ $manifest = [ordered]@{
     repoRoot = $resolvedRepoRoot
     branch = (Invoke-RepoGit -Arguments @('rev-parse', '--abbrev-ref', 'HEAD') | Select-Object -First 1)
     commit = (Invoke-RepoGit -Arguments @('rev-parse', 'HEAD') | Select-Object -First 1)
-    includeVisual = [bool]$IncludeVisual
+    includeVisual = $true
     evidenceRoot = $resolvedEvidenceRoot
     preRun = [ordered]@{
         trackedDiff = @($preTrackedDiff)
@@ -172,7 +170,20 @@ try {
         Write-CompletedRoadmapValidationManifest -Manifest $manifest -ManifestPath $manifestPath
 
         Write-Host ("[{0}/{1}] {2}: {3}" -f ($index + 1), $gates.Count, $gate.Name, $gate.Description)
-        & $scriptPath -RepoRoot $resolvedRepoRoot
+        $gateParameters = @{
+            RepoRoot = $resolvedRepoRoot
+        }
+
+        foreach ($argument in @($gate.Arguments)) {
+            if ($argument -match '^-([A-Za-z][A-Za-z0-9]*)$') {
+                $gateParameters[$Matches[1]] = $true
+                continue
+            }
+
+            throw "Completed-roadmap validation gate '$($gate.Script)' has unsupported wrapper argument '$argument'."
+        }
+
+        & $scriptPath @gateParameters
 
         if (-not $?) {
             throw "Completed-roadmap validation gate failed: $($gate.Script)"

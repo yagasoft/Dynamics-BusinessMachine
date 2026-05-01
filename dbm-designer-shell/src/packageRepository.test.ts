@@ -1,10 +1,22 @@
-import { describe, expect, it } from 'vitest';
+import { afterEach, describe, expect, it } from 'vitest';
+import type { DbmHostModelPackageRecord } from './hostBridge';
 import {
   buildPackageResourceNames,
+  createPackageRepository,
   createDraftPackageRecord,
   groupModelPackageResources,
   parsePackageNameFromResourceName
 } from './packageRepository';
+
+const originalGlobalBridge = globalThis.dbmHostBridge;
+const originalWindowBridge = globalThis.window?.dbmHostBridge;
+
+afterEach(() => {
+  globalThis.dbmHostBridge = originalGlobalBridge;
+  if (globalThis.window) {
+    globalThis.window.dbmHostBridge = originalWindowBridge;
+  }
+});
 
 describe('package repository helpers', () => {
   it('builds stable model and workspace resource names', () => {
@@ -67,5 +79,58 @@ describe('package repository helpers', () => {
     expect(draft.workspaceName).toBe('ys_/dbm/data/models/dbm-model-20260414123045.workspace.json');
     expect(draft.modelContent).toContain('"schemaVersion": "dbm.model/v1"');
     expect(draft.workspaceContent).toContain('"schemaVersion": "dbm.designer.workspace/v1"');
+  });
+
+  it('delegates package persistence to a hosted designer bridge when one is available on window', async () => {
+    const calls: string[] = [];
+    const record: DbmHostModelPackageRecord = {
+      modelId: 'model-id',
+      workspaceId: 'workspace-id',
+      packageName: 'approval-request',
+      displayName: 'Approval Request',
+      modelName: 'ys_/dbm/data/models/approval-request.json',
+      workspaceName: 'ys_/dbm/data/models/approval-request.workspace.json',
+      modifiedOn: '2026-04-15T08:00:00.000Z',
+      hasWorkspace: true,
+      modelContent: '{"schemaVersion":"dbm.model/v1"}',
+      workspaceContent: '{"schemaVersion":"dbm.designer.workspace/v1"}'
+    };
+
+    globalThis.dbmHostBridge = undefined;
+    globalThis.window.dbmHostBridge = {
+      hostKind: 'xrmtoolbox',
+      async listModelPackages() {
+        calls.push('list');
+        return [record];
+      },
+      async loadModelPackage(packageName) {
+        calls.push(`load:${packageName}`);
+        return record;
+      },
+      async saveModelPackage(savedRecord) {
+        calls.push(`save:${savedRecord.packageName}`);
+        return {
+          ...savedRecord,
+          modelId: 'saved-model-id',
+          workspaceId: 'saved-workspace-id'
+        };
+      },
+      async deleteModelPackage(deletedRecord) {
+        calls.push(`delete:${deletedRecord.packageName}`);
+      }
+    };
+
+    const repository = createPackageRepository();
+
+    await expect(repository.listPackages()).resolves.toEqual([record]);
+    await expect(repository.loadPackage('approval-request')).resolves.toEqual(record);
+    await expect(repository.savePackage(record)).resolves.toMatchObject({
+      packageName: 'approval-request',
+      modelId: 'saved-model-id',
+      workspaceId: 'saved-workspace-id'
+    });
+    await expect(repository.deletePackage(record)).resolves.toBeUndefined();
+    expect(repository.kind).toBe('xrmtoolbox');
+    expect(calls).toEqual(['list', 'load:approval-request', 'save:approval-request', 'delete:approval-request']);
   });
 });

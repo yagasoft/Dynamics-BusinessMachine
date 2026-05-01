@@ -87,6 +87,8 @@ Every behaviour change must provide:
 - a trace to the completed roadmap capability being protected or improved
 - a scope statement confirming that future roadmap items were not introduced
 
+Completed-roadmap closeout now requires direct deterministic automated coverage for every completed capability row through `R3.1`. Live Dataverse, UAT promotion, hosted designer, and browser-session proof may still be retained as supplemental live proof, but it does not count as the primary TDD surface for a completed behaviour.
+
 Documentation-only changes may use an executable documentation check, such as `eng/scripts/Test-Docs.ps1`, as the failing test. Refactors are treated as behaviour-risking work unless the PR explains why no executable test can observe the change.
 
 The completed-roadmap trace source is [Completed Roadmap TDD Matrix](../roadmap/completed-roadmap-tdd-matrix.md).

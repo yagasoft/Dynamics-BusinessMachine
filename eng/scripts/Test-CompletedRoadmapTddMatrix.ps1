@@ -71,12 +71,22 @@ if ($emptyFailures) {
 
 $classificationFailures = @(
     $matrixRows |
-        Where-Object { [string]$_.VerificationSurface -notmatch '^(Automated|Environment-bound|Manual):\s+\S' } |
+        Where-Object { [string]$_.VerificationSurface -notmatch '^Automated:\s+\S' } |
         ForEach-Object { $_.Capability }
 )
 
 if ($classificationFailures.Count -gt 0) {
-    throw "Completed roadmap TDD matrix rows must classify verification surfaces as Automated, Environment-bound, or Manual: $($classificationFailures -join ', ')"
+    throw "Completed roadmap TDD matrix rows must use direct deterministic Automated verification surfaces only: $($classificationFailures -join ', ')"
+}
+
+$nonDeterministicPrimaryRows = @(
+    $matrixRows |
+        Where-Object { [string]$_.VerificationSurface -match '(Environment-bound|Manual):' } |
+        ForEach-Object { $_.Capability }
+)
+
+if ($nonDeterministicPrimaryRows.Count -gt 0) {
+    throw "Completed roadmap rows must not rely on Environment-bound or Manual proof as primary TDD coverage: $($nonDeterministicPrimaryRows -join ', ')"
 }
 
 $futureScopePatterns = @(
@@ -117,25 +127,7 @@ if ($futureScopeFailures) {
 $ledgerRows = @(Get-CompletedRoadmapProofLedgerRows -RepoRoot $RepoRoot)
 
 if ($ledgerRows.Count -eq 0) {
-    throw 'Environment-bound proof ledger does not contain any proof rows.'
-}
-
-$proofRows = @(
-    $matrixRows |
-        Where-Object { [string]$_.VerificationSurface -match '(Environment-bound|Manual):' }
-)
-
-$missingLedgerRows = @(
-    $proofRows |
-        Where-Object {
-            $capability = $_.Capability
-            -not @($ledgerRows | Where-Object { $_.Capability -eq $capability })
-        } |
-        ForEach-Object { $_.Capability }
-)
-
-if ($missingLedgerRows.Count -gt 0) {
-    throw "Environment-bound proof ledger is missing rows for capability routes: $($missingLedgerRows -join ', ')"
+    throw 'Supplemental live proof ledger does not contain any proof rows.'
 }
 
 $unknownLedgerCapabilities = @(
@@ -145,38 +137,11 @@ $unknownLedgerCapabilities = @(
 )
 
 if ($unknownLedgerCapabilities.Count -gt 0) {
-    throw "Environment-bound proof ledger contains unknown capability routes: $($unknownLedgerCapabilities -join ', ')"
-}
-
-$manualMatrixRows = @(
-    $matrixRows |
-        Where-Object { [string]$_.VerificationSurface -match '^Manual:' }
-)
-
-$manualWithoutLedger = @(
-    $manualMatrixRows |
-        Where-Object {
-            $capability = $_.Capability
-            -not @($ledgerRows | Where-Object { $_.Capability -eq $capability -and $_.ProofType -eq 'Manual' })
-        } |
-        ForEach-Object { $_.Capability }
-)
-
-if ($manualWithoutLedger.Count -gt 0) {
-    throw "Manual proof rows must have explicit Manual ledger entries: $($manualWithoutLedger -join ', ')"
+    throw "Supplemental live proof ledger contains unknown capability routes: $($unknownLedgerCapabilities -join ', ')"
 }
 
 $ledgerConsistencyFailures = foreach ($row in $ledgerRows) {
     $matrixRow = @($matrixRows | Where-Object { $_.Capability -eq $row.Capability })[0]
-    $matrixProofTypes = @(
-        [regex]::Matches([string]$matrixRow.VerificationSurface, '(Automated|Environment-bound|Manual):') |
-            ForEach-Object { $_.Groups[1].Value } |
-            Select-Object -Unique
-    )
-
-    if ($row.ProofType -notin $matrixProofTypes) {
-        "$($row.Capability) ledger proof type '$($row.ProofType)' is not present in matrix proof types '$($matrixProofTypes -join ', ')'"
-    }
 
     if ($row.FutureBoundary -ne $matrixRow.FutureBoundary) {
         "$($row.Capability) ledger future boundary '$($row.FutureBoundary)' does not match matrix boundary '$($matrixRow.FutureBoundary)'"
@@ -184,7 +149,7 @@ $ledgerConsistencyFailures = foreach ($row in $ledgerRows) {
 }
 
 if ($ledgerConsistencyFailures) {
-    throw "Environment-bound proof ledger must stay consistent with matrix rows: $($ledgerConsistencyFailures -join '; ')"
+    throw "Supplemental live proof ledger must stay consistent with matrix rows: $($ledgerConsistencyFailures -join '; ')"
 }
 
 $emptyLedgerFailures = foreach ($row in $ledgerRows) {
@@ -196,17 +161,17 @@ $emptyLedgerFailures = foreach ($row in $ledgerRows) {
 }
 
 if ($emptyLedgerFailures) {
-    throw "Environment-bound proof ledger has empty required cells: $($emptyLedgerFailures -join '; ')"
+    throw "Supplemental live proof ledger has empty required cells: $($emptyLedgerFailures -join '; ')"
 }
 
 $invalidProofTypes = @(
     $ledgerRows |
-        Where-Object { $_.ProofType -notin @('Environment-bound', 'Manual') } |
+        Where-Object { $_.ProofType -notin @('Supplemental live') } |
         ForEach-Object { "$($_.Capability) uses proof type '$($_.ProofType)'" }
 )
 
 if ($invalidProofTypes.Count -gt 0) {
-    throw "Environment-bound proof ledger proof type must be Environment-bound or Manual: $($invalidProofTypes -join '; ')"
+    throw "Supplemental live proof ledger proof type must be Supplemental live: $($invalidProofTypes -join '; ')"
 }
 
 $missingProofReferences = foreach ($row in $ledgerRows) {
@@ -225,7 +190,7 @@ $missingProofReferences = foreach ($row in $ledgerRows) {
 }
 
 if ($missingProofReferences) {
-    throw "Environment-bound proof ledger references missing proof assets: $($missingProofReferences -join '; ')"
+    throw "Supplemental live proof ledger references missing proof assets: $($missingProofReferences -join '; ')"
 }
 
 $issueRows = @(Get-CompletedRoadmapIssueRows -RepoRoot $RepoRoot)
@@ -386,8 +351,13 @@ $expectedListOnlyGateScripts = @(
     'eng\scripts\Test-CompletedRoadmapTddMatrix.ps1',
     'eng\scripts\Test-CompletedRoadmapEnvironmentProofReadiness.ps1',
     'eng\scripts\Test-DbmContract.ps1',
+    'eng\scripts\Test-DbmLiveE2EDeterministic.ps1',
+    'eng\scripts\Test-DbmReleasePromotionContract.ps1',
     'eng\scripts\Test-DbmProcessExperience.ps1',
+    'eng\scripts\Test-DbmProcessExperienceVisual.ps1',
     'eng\scripts\Test-DbmPortalRuntime.ps1',
+    'eng\scripts\Test-DbmPluginRuntime.ps1',
+    'eng\scripts\Test-R3PortalRuntimeAutomation.ps1',
     'eng\scripts\Test-DbmDesignerShell.ps1',
     'eng\scripts\Invoke-NodeBuild.ps1'
 )
