@@ -13,6 +13,7 @@ $requiredDocs = @(
     'docs\adr\0010-dataverse-metadata-synthesis-and-layered-generated-solution-strategy.md',
     'docs\adr\0012-generic-existing-form-authoring-required-for-r2-closeout.md',
     'docs\adr\0015-dataverse-first-roadmap-and-azure-deferral.md',
+    'docs\adr\0016-product-roadmap-reset-process-first.md',
     'docs\architecture\canonical-model-runtime-contract-v1.md',
     'docs\architecture\examples\approval-request-v1.model.json',
     'docs\architecture\examples\generic-existing-form-v1.model.json',
@@ -52,6 +53,7 @@ $requiredScripts = @(
     'eng\scripts\Test-DbmPluginRuntime.ps1',
     'eng\scripts\Test-R3PortalRuntimeAutomation.ps1',
     'eng\scripts\Test-DbmDesignerShell.ps1',
+    'eng\scripts\Test-RoadmapReset.ps1',
     'eng\scripts\Write-CompletedRoadmapCloseoutAttestation.ps1'
 )
 
@@ -139,43 +141,43 @@ $contentChecks = @(
     },
     @{
         Path = 'docs\roadmap\release-plan.md'
-        Pattern = '| `R5` | Azure Deferred Extension |'
-        Description = 'Release plan must move product-runtime Azure capability to R5.'
+        Pattern = '| `R1` | Process/stage designer and actual form render |'
+        Description = 'Release plan must restart product delivery at the new process/stage R1.'
     },
     @{
         Path = 'docs\roadmap\release-plan.md'
-        Pattern = '| `R6` | Enterprise Sophistication And Optimization |'
-        Description = 'Release plan must move enterprise sophistication to R6.'
+        Pattern = '| `R9` | AI-assisted platform |'
+        Description = 'Release plan must defer AI to R9.'
     },
     @{
         Path = 'docs\roadmap\release-plan.md'
-        Pattern = '`R3.2` Dataverse work management and service plane'
-        Description = 'Release plan must define R3.2 as Dataverse work management and service plane.'
+        Pattern = 'current implementation is prototype/reference material'
+        Description = 'Release plan must classify the current implementation as prototype/reference material.'
     },
     @{
         Path = 'docs\roadmap\release-plan.md'
-        Pattern = 'ADR-0015'
-        Description = 'Release plan must reference ADR-0015 for the Dataverse-first reset.'
+        Pattern = 'ADR-0016'
+        Description = 'Release plan must reference ADR-0016 for the process-first reset.'
     },
     @{
-        Path = 'docs\roadmap\release-3-pilot-ready-v1.md'
-        Pattern = 'Dataverse work management and service plane'
-        Description = 'Release 3 plan must define a Dataverse-owned R3.2 service plane.'
+        Path = 'docs\roadmap\release-3-back-office-runtime.md'
+        Pattern = 'Back-office runtime'
+        Description = 'Release 3 plan must define the back-office runtime release.'
     },
     @{
-        Path = 'docs\roadmap\release-3-pilot-ready-v1.md'
-        Pattern = 'without requiring Azure runtime services'
-        Description = 'Release 3 plan must state that pilot readiness does not require Azure runtime services.'
+        Path = 'docs\roadmap\release-5-portal-runtime-and-return-path.md'
+        Pattern = 'Portal runtime and return path'
+        Description = 'Release 5 plan must define the portal runtime and return path release.'
     },
     @{
         Path = 'docs\roadmap\capability-map.md'
-        Pattern = '`R5` Azure deferred extension'
-        Description = 'Capability map must show Azure as the deferred R5 extension.'
+        Pattern = '`R1` process/stage designer and actual form render'
+        Description = 'Capability map must show the new R1 process/stage release.'
     },
     @{
         Path = 'docs\roadmap\capability-map.md'
-        Pattern = '`R6` enterprise depth'
-        Description = 'Capability map must move enterprise depth to R6.'
+        Pattern = '`R9` AI-assisted platform'
+        Description = 'Capability map must defer AI to R9.'
     },
     @{
         Path = 'docs\adr\README.md'
@@ -189,8 +191,8 @@ $contentChecks = @(
     },
     @{
         Path = 'docs\architecture\target-platform-architecture.md'
-        Pattern = 'Azure is deferred to R5 for capabilities that Dataverse cannot reasonably own.'
-        Description = 'Target architecture must defer Azure runtime capability to R5.'
+        Pattern = 'process portfolio'
+        Description = 'Target architecture must define the process portfolio boundary.'
     },
     @{
         Path = '.github\PULL_REQUEST_TEMPLATE.md'
@@ -412,5 +414,7 @@ $environmentBoundWorkflowFailures = foreach ($scriptName in $environmentBoundWor
 if ($environmentBoundWorkflowFailures) {
     throw "Environment-bound workflow checks failed: $($environmentBoundWorkflowFailures -join ' ')"
 }
+
+& (Join-Path $RepoRoot 'eng\scripts\Test-RoadmapReset.ps1') -RepoRoot $RepoRoot
 
 Write-Host 'Documentation checks passed.'

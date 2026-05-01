@@ -1,77 +1,41 @@
-# Current-State Baseline
+# Current-state baseline
 
-This document records the official revival baseline for DBM as it exists today in source and in the published PoC materials.
+This document records the current DBM source posture after the process-first roadmap reset.
 
 ## Baseline sources
 
 - active source branch: `main`
-- reference-only branch: `feature/script-lib/main`
-- current published repo framing: [README.md](../../README.md)
-- reviewed solution package: `DynamicsBusinessMachine_0_1_1_1.zip`
-- supporting external materials: architecture and roadmap visuals in `D:\Drive\Work (1)\DBM`
+- reset authority: [ADR-0016](../adr/0016-product-roadmap-reset-process-first.md)
+- active roadmap: [Release Plan](../roadmap/release-plan.md)
 
-## What exists today
+## Current classification
 
-DBM is currently a Dataverse-centric PoC foundation composed of:
+The current implementation is prototype/reference material.
 
-- an Angular editor application hosted as Dataverse web resources
-- Dataverse form integration scripts that bridge the editor into DBM forms
-- a shared JavaScript runtime/library intended to support cross-tier execution
-- a Dataverse custom workflow activity that evaluates scripts on the server using Jint
-- a Yagasoft model-driven app entry that exposes the DBM editor
+It remains valuable because it proves several useful ideas, but it is not a shipped product baseline and it does not constrain the new product `R1`.
 
-```mermaid
-flowchart LR
-    A["Yagasoft Model-Driven App"] --> B["DBM Angular Editor"]
-    B --> C["Dataverse Web Resources"]
-    B --> D["DBM Tables and Metadata"]
-    E["Form Scripts / BroadcastChannel Bridge"] --> B
-    F["Shared Script Library"] --> B
-    G["DbmEvaluateScript Workflow Activity"] --> D
-    G --> F
-```
+## Useful reference candidates
 
-## Strongest implemented assets
+The following areas can be mined during future implementation slices:
 
-- The editor shell already exists and is usable enough to manage DBM resources.
-- The backend evaluator proves server-side execution through the DBM scripting concept.
-- The shared runtime establishes the core "write once, run everywhere" direction.
-- The packaged solution proves that the idea was shipped publicly as a real PoC.
+- `dbm-designer-core` for host-agnostic designer concepts
+- `dbm-designer-shell` for graph/workspace and host-shell experiments
+- `dbm-process-experience` for process renderer ideas
+- `dbm-dataverse-synthesis` for Dataverse synthesis, readback, diff, and generated metadata concepts
+- `dbm-script-lib` and `dbm-js-vm` for JavaScript VM and shared runtime ideas
+- `dbm-app` editor components for CodeMirror and CKEditor reference implementation
+- `DbmSolution\Plugins\Evaluation\Steps\DbmEvaluateScript.cs` for Jint-based server execution reference
 
-## Key repo areas
+## What the current implementation is not
 
-- `dbm-app`
-  - the current editor and resource-management experience
-- `dbm-web-resources`
-  - model-driven form integration and Dataverse helper code
-- `dbm-script-lib`
-  - shared runtime, entity abstraction, service abstraction, and helper surfaces
-- `dbm-js-vm`
-  - browser-side library loader and execution wrapper
-- `DbmSolution`
-  - Dataverse plugin/workflow project and XrmToolBox host project
+- It is not the active R1 product.
+- It is not a released customer baseline.
+- It is not proof that the old release ladder should remain active.
+- It is not the authoritative process portfolio model.
 
-## What is partial or incomplete
+## Reset implications
 
-- the browser-side VM/runtime surface is incomplete
-- richer Dataverse request mapping is unfinished
-- FetchXML editing is only a placeholder
-- JSON modeling stops short of a full business-process model
-- the XrmToolBox host exists in source but is not yet a product-grade delivery surface
-- source/build drift is present and needs early cleanup
-
-## What does not exist yet
-
-- a true process-first designer
-- a real PCF-based in-form process runtime
-- full portal-to-backend-to-portal lifecycle support
-- Dataverse-first work-management and service-plane implementation
-- production-grade packaging, promotion, rollback, and release governance
-- AI-assisted analysis and authoring
-
-## Baseline implications
-
-- We are reviving a strong seed, not finishing a nearly complete platform.
-- Release 0 must harden engineering, docs, delivery, and environments before we scale feature work.
-- Release 1 must convert the current resource-centric PoC into a process-centric builder platform.
-- Future planning should reuse the proven concepts, but not preserve every PoC implementation choice.
+- `R0` remains the engineering and governance foundation.
+- Product delivery restarts at new `R1`.
+- New work should reuse existing code only when it fits the process-first roadmap and passes current TDD expectations.
+- Old closeout records remain useful evidence, but they are now historical prototype/reference evidence.

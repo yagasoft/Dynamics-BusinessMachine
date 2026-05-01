@@ -1,13 +1,15 @@
 # ADR-0015: Dataverse-first roadmap and Azure deferral
 
-- Status: Accepted
+- Status: Superseded by ADR-0016
 - Date: 2026-05-01
 - Decision owners: Ahmed Elsawalhy, Yagasoft
 - Supersedes: parts of [ADR-0007](0007-github-oidc-key-vault-and-federated-delivery.md) for near-term secret/configuration direction
 
 ## Context
 
-The `R3` roadmap previously described Azure orchestration and service-plane capability as part of the pilot-ready path. On review, many of those responsibilities are better delivered first in Dataverse because Dataverse is already the authoritative runtime system for request state, process progression, ownership, and operational metadata.
+Historical note: this ADR described an earlier Dataverse-first adjustment to the old roadmap. It is superseded as active roadmap authority by [ADR-0016](0016-product-roadmap-reset-process-first.md), while its Dataverse-first reasoning remains useful reference material.
+
+The old `R3` roadmap previously described Azure orchestration and service-plane capability as part of the pilot-ready path. On review, many of those responsibilities were better delivered first in Dataverse because Dataverse was already the authoritative runtime system for request state, process progression, ownership, and operational metadata.
 
 Azure remains useful for cases Dataverse cannot reasonably own, but it should not be treated as a mandatory early dependency for work management, queues, delegation, SLA tracking, or support configuration.
 
@@ -32,7 +34,7 @@ Azure remains useful for cases Dataverse cannot reasonably own, but it should no
 ## Related docs
 
 - [Release Plan](../roadmap/release-plan.md)
-- [Release 3 Pilot Ready v1](../roadmap/release-3-pilot-ready-v1.md)
+- [Superseded old release 3 plan](../roadmap/release-3-pilot-ready-v1.md)
 - [Capability Map](../roadmap/capability-map.md)
 - [Target Platform Architecture](../architecture/target-platform-architecture.md)
 - [Release Governance](../releases/release-governance.md)

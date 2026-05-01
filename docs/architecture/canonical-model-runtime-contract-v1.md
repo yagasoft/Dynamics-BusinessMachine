@@ -1,80 +1,40 @@
-# Canonical Model And Runtime Contract v1
+# Canonical model and runtime contract v1
 
-This document defines the approved architectural target for the DBM canonical model, runtime contract, and packaging contract after the portal-spanning process refresh.
+This document records the reset target for the DBM canonical model after [ADR-0016](../adr/0016-product-roadmap-reset-process-first.md).
 
 ## Status
 
-- Status: Approved architecture target
-- Release scope: `R1.1` baseline plus the `R1.2.1` contract-alignment target
-- Intended first scenario: one approval/request flow
-- Current executable status:
-  - `dbm-contract` and the checked-in example model still implement the earlier minimal stage-only baseline
-  - `R1.2.1` must align the executable TypeScript types, JSON Schema, fixtures, and example model to this document
+- Status: Reset architecture target
+- First product release: `R1`
+- Current executable status: prototype/reference implementation exists, but the active contract must be rebuilt through TDD
 
 ## Purpose
 
-DBM needs one portable contract that all later hosts and runtimes consume.
+DBM needs one portable contract that can describe a complete business cycle from portal to back office and back to portal again.
 
-This contract must:
+The model must support:
 
-- define one authoring model that is not tied to the current web-resource PoC shape
-- define one business process that spans portal to backend to portal
-- preserve a coherent DBM-owned process experience across model-driven and portal surfaces
-- support hidden internal stages and steps without losing portal-visible status clarity
-- support runtime execution across model-driven runtime, Dataverse, and portal, with Azure-backed services deferred unless Dataverse cannot reasonably own the responsibility
-- keep Dataverse provider bindings, supported form behavior, and synthesis-owned artifacts attached to the model without turning those artifacts into the model
-- give the next executable contract slice a decision-complete target
+- one visible main process
+- any number of sub-processes
+- stages with whole-stage, multi-stage, and fractional spans against the main-process timeline
+- stage feature hooks
+- actual rendered form projection for business users
+- portal projection contract for portal users
+- later DBMScript/action execution
+- later back-office and portal runtime state
 
-## Adjacent Non-Authoritative Contracts
+## Canonical envelope
 
-The post-`R1` roadmap reset introduces three adjacent contracts that must stay outside the canonical envelope:
-
-- `DbmDesignerWorkspaceV1`
-  - non-authoritative sidecar that stores graph layout, viewport, preview, and other UI-only authoring state
-  - must never redefine process, form, metadata, rule, or runtime semantics
-- `DbmDesignerGraphDocumentV1`
-  - non-authoritative derived authoring graph and interchange document rebuilt from the canonical model
-  - gives DBM one library-neutral graph contract so the chosen designer library can change later without changing the saved process definition
-  - must never become the authoritative save/load format for business-process semantics
-- `DbmProcessExperienceSnapshotV1`
-  - derived UI read model built from canonical model plus runtime state
-  - consumed by model-driven and portal renderers so the same business-process experience can be projected across hosts without splitting the source of truth
-
-These contracts are important platform interfaces, but they do not replace the canonical DBM model as the authoritative definition of process behavior.
-
-## Normative Platform Rules
-
-- A DBM model is serialized as one UTF-8 JSON document.
-- The top-level shape remains:
-  - `schemaVersion`
-  - `package`
-  - `process`
-  - `forms`
-  - `metadata`
-  - `rules`
-  - `runtime`
-  - `artifacts`
-- The canonical DBM model is the source of truth for:
-  - process semantics
-  - portal-visible state projection
-  - Dataverse provider bindings and synthesis-owned artifacts
-  - runtime contracts
-- No designer-library-native graph document may become authoritative or required for package save/load.
-- `DbmDesignerGraphDocumentV1` is the DBM-owned authoring/interchange boundary for graph-capable designer shells. It is always derived from the canonical model.
-- Native Dataverse business process flow is not the source of truth. It may be generated later as an optional integration artifact where it adds value.
-- All cross-references inside the model use stable string IDs, not host-specific paths, FormXml identifiers, Dataverse web-resource names, or assembly-qualified names.
-- Host-specific and runtime-specific bindings are allowed only under explicit provider-binding fields. They must not replace portable IDs.
-- `schemaVersion` is the contract family marker. Package release versioning belongs under `package.version`.
-
-## Canonical Envelope
-
-Every `DbmModelV1` document continues to follow this logical shape:
+The reset keeps a JSON-based package envelope, but the process section becomes a process portfolio:
 
 ```json
 {
   "schemaVersion": "dbm.model/v1",
   "package": {},
-  "process": {},
+  "processPortfolio": {
+    "mainProcessId": "main",
+    "processes": []
+  },
   "forms": [],
   "metadata": {},
   "rules": [],
@@ -83,278 +43,103 @@ Every `DbmModelV1` document continues to follow this logical shape:
 }
 ```
 
-The architectural expansion approved here happens inside those sections.
+## Process portfolio contract
 
-## Package Contract
+`processPortfolio` owns:
 
-`package` remains the identity and compatibility envelope for the model.
+- `mainProcessId`
+- `processes[]`
+- global actors, statuses, portal statuses, variables, and shared rule references where useful
+- portfolio-level validation rules
 
-It must continue to define:
+Each process owns:
 
-- stable package identity and versioning
-- supported hosts and runtimes
-- compatibility policy
-- deployment metadata
+- stable ID and display name
+- process role: `main` or `sub-process`
+- stages
+- visibility rules if it is a sub-process
+- rendered order below the main process
 
-It now also needs to capture:
+## Stage contract
 
-- which process UI surfaces are supported by the package
-- whether the package exposes portal-visible state
-- whether Dataverse schema synthesis and form-behavior patching are owned by the DBM synthesis layer
+Each stage owns:
 
-## Process Contract
-
-`process` now describes a stage + step + form-state business process rather than a stage-only flow.
-
-### Required process concerns
-
-The architectural target for `process` must define:
-
-- ordered stages
-- stage branching and convergence
-- steps within each stage
-- step branching that can converge back to the same linked stage output
-- form states that control what the user sees or can do at each point
-- internal status versus portal-visible status
-- ownership, notifications, and task expectations at the step level
-
-### Stage model
-
-Each stage must represent a durable process milestone and must define:
-
-- stable identity and display metadata
-- stage type
-- entry and exit conditions
-- portal visibility policy
-- linked step flow
-- linked outcome or stage-transition targets
-
-Stage branching is allowed.
-
-Stage visibility rules must support:
-
-- visible to model-driven users
-- visible to portal users
-- internal-only stages hidden from portal users
-
-### Step model
-
-Steps are first-class process elements nested under a stage or otherwise linked to a stage-owned flow.
-
-Each step must be capable of defining:
-
-- stable identity and display metadata
-- owner
-- notification behavior
-- task behavior
+- stable ID and display name
+- scope: portal, back office, or shared
+- `stageSpan`
+- entry conditions
+- exit conditions
+- branching and convergence hooks
+- optional previous-stage transition hook
+- notification hooks
+- routing hooks
+- SLA/KPI hooks
+- task hooks
+- validation hooks
+- action hooks
 - internal status
-- portal-visible status, when applicable
-- assigned form state
-- entry and exit conditions
-- next-step branching
-- convergence back to the same stage outcome or linked downstream stage
+- portal status
 
-The contract must allow one stage to contain multiple alternative step paths that still resolve to the same stage-level outcome.
+`stageSpan` is first-class. It must support:
 
-### Process state projection
+- start and end at full main stages
+- start and end inside a main stage by fractional position
+- spans across several main stages
+- validation that a sub-process stage resolves to a visible position on the main-process timeline
 
-The canonical process state must distinguish:
+## Rendered form contract
 
-- full internal runtime state
-- model-driven-visible state
-- portal-visible state
+The rendered form is the final business-user process presentation, not the designer.
 
-Portal-visible state is a projection of canonical state, not a separate process model.
+R1 must support:
 
-That projection must support:
+- main process always visible
+- sub-processes below the main process
+- conditional sub-process visibility
+- collapsed main-process slim bar
+- arrows for previous-stage transitions where relevant
+- business-user-safe labels and statuses
 
-- hiding internal stages and steps
-- mapping one or more internal states to a single portal-facing status
-- preserving user-friendly portal status without leaking internal process detail
+## Portal projection contract
 
-## Form Contract
+Portal projection is contract-only in `R1`.
 
-`forms` defines the model-driven form bindings, related form states, and DBM-managed form behavior consumed by the runtime and synthesis layer.
+It must define:
 
-### Form rules
+- which main-process status is visible to the portal user
+- which sub-processes are visible to the portal user
+- how internal statuses map to portal statuses
+- how hidden internal stages stay hidden
+- which future portal actions can be exposed safely
 
-- Forms are model-driven forms, not custom form components.
-- The DBM process UI is separate from the underlying model-driven forms.
-- Forms may span multiple tables through declared bindings and related data projections.
-- In `R1`, canonical forms bind to existing Dataverse forms through explicit provider bindings rather than generating full new form layouts.
-- Same-table form variants should reuse the same underlying model-driven form and apply stateful manipulation through generated behavior instead of multiplying full standalone forms.
+Actual portal rendering and runtime belong to `R5`.
 
-### Form-state model
+## DBMScript/action implications
 
-Each form must support one or more `formStates` that define the active UI shape for a stage or step.
+R1 defines hooks only. R2 owns executable action details.
 
-The architectural target for each form state must allow:
+The contract must leave stable references for:
 
-- tab, section, and control visibility
-- editability and requirement changes
-- state-specific labels or hints where needed
-- state-specific logic bindings
-- same-form variation without treating each variation as a separate full form
+- on-entry actions
+- on-exit actions
+- column value change actions
+- backend/server change actions
+- dynamic button actions
+- template-backed notification send actions
 
-### Form provider ownership
+## Runtime implications
 
-In `R1`, the synthesis layer is responsible for patching DBM-managed fragments onto referenced Dataverse forms in `Dev`.
+R3 owns the first back-office runtime implementation.
 
-Release artifacts remain tracked and pipeline-driven. Direct environment mutation does not become the release source of truth. Full generated-form ownership is deferred to post-R1.
+The contract must allow:
 
-## Metadata Contract
+- process instance creation
+- row, user, role, and owner scope
+- stage transition persistence
+- form behaviour runtime
+- internal status and portal status persistence
+- action trigger execution
 
-`metadata` continues to define the portable business data model and provider-specific bindings.
+## Non-authoritative sidecars
 
-### Expanded scope
-
-The architectural target now assumes that the synthesis layer can generate or update:
-
-- Dataverse columns
-- Dataverse form bindings and DBM-managed form-behavior assets
-- related metadata needed by the first reference scenario
-
-Initial proof scope is:
-
-- tables, columns, and relationships
-- model-driven form bindings plus managed fragment patching on existing forms
-
-Deferred target scope includes:
-
-- generated main forms
-- generated quick-view forms
-- grids
-- richer native Dataverse controls
-- other native Dataverse components beyond the first proof scenario
-
-### Multi-table process support
-
-The canonical metadata model must support process forms that span multiple tables, including:
-
-- a primary business record
-- related supporting records
-- reusable multi-table condition evaluation
-- explicit provider bindings for joins or related record navigation
-
-## Rules And Conditions Contract
-
-`rules` continues to hold reusable business logic, but the contract now explicitly requires a first-class reusable condition component.
-
-### Condition component
-
-The condition component must be reusable anywhere a condition definition is required, including:
-
-- stage branching
-- step branching
-- visibility
-- assignment
-- status projection
-- form-state activation
-- runtime guards
-
-### Condition expectations
-
-Conditions must be able to express:
-
-- same-table comparisons
-- multi-table comparisons
-- join-like related-record navigation
-- boolean composition
-- reusable references from multiple parts of the model
-
-The runtime implementation must evaluate conditions efficiently through compilation, caching, or other equivalent optimization. The architecture does not require conditions to be written in raw Dataverse query syntax.
-
-## Runtime Contract
-
-`runtime` defines the common execution boundary that all later runtime adapters must implement.
-
-### Process experience ownership
-
-The runtime contract now assumes:
-
-- DBM owns the process UI and status experience
-- process renderers consume one derived process-experience snapshot rather than reading host-specific state directly
-- model-driven runtime and portal runtime are different projections of the same canonical process state
-- Dataverse owns authoritative persistence and stage or step transition decisions
-- Azure remains optional support infrastructure where it adds clear value
-
-### Model-driven experience target
-
-The preferred model-driven target is a DBM-owned process experience rendered at the top of the form, above tabs.
-
-If no supported placement can achieve the required UX in the near term, a simplified unsupported placement method may be used temporarily, but that does not change the product boundary or long-term target.
-
-### Runtime request and result implications
-
-The runtime request and result envelopes must evolve to carry:
-
-- stage and step identity
-- active form state
-- full internal status
-- portal-visible status projection
-- multi-table subject context where the scenario needs it
-
-## Packaging Contract
-
-The packaging contract keeps deployable assets associated with the model without making deployment structure the primary authoring surface.
-
-It now also needs to account for:
-
-- generated Dataverse columns
-- patched existing Dataverse form fragments
-- process UI assets
-- generated behavior needed for same-table form-state variation
-
-Tracked release artifacts remain the durable release source of truth even when the designer engine can apply changes directly in `Dev`.
-
-## Approval/Request Example Alignment
-
-The approval/request scenario remains the first proof scenario.
-
-That scenario must now be understood as supporting:
-
-- internal stages and steps that may not all be visible to portal users
-- step-level ownership, notifications, tasks, and status
-- form states within the request and decision lifecycle
-- a portal-facing status projection derived from internal process state
-
-The currently checked-in example model remains a simplified stage-only baseline until `R1.2.1` updates the executable contract and example together.
-
-## Legacy And Implementation Implications
-
-The architectural direction approved here means:
-
-- `dbm-contract` must be revised in `R1.2.1`, not just documented
-- `dbm-designer-core` must evolve from stage-only editing into stage + step + form-state authoring
-- the long-term designer shell may be replaced without changing `dbm-designer-core` as the durable editing seam
-- Dataverse schema synthesis and provider-bound form behavior become part of the synthesis boundary
-- native BPF, if generated later, is downstream from the canonical model rather than upstream into it
-
-## Non-Normative Future Capability Extension Areas
-
-This appendix records likely future sophistication surfaces. It is descriptive only.
-
-- It does not change the current executable `v1` contract.
-- It does not imply that `dbm-contract`, the current example model, or the checked-in schemas already support these surfaces.
-- Any executable adoption of these areas must happen through deliberate later revisions to `dbm-contract`, `dbm-designer-core`, and the example models.
-
-Likely future extension areas include:
-
-- work-item and queue contracts for assignment, reassignment, delegation, escalation, and SLA behavior
-- timeline and audit-event contracts for transitions, notifications, mutations, and support diagnostics
-- explainability traces for branching, visibility, assignment, status projection, synthesis, and validation outcomes
-- synthesis plans, preview diffs, and drift-report surfaces
-- reusable templates, subflows, policy packs, and shared step groups
-- simulation, replay, and debugger session hooks
-- richer observability and optimization signals
-
-## Related Docs
-
-- [Product Principles](product-principles.md)
-- [Current-State Baseline](current-state-baseline.md)
-- [Target Platform Architecture](target-platform-architecture.md)
-- [Release 1 Builder Platform MVP](../roadmap/release-1-builder-platform-mvp.md)
-- [ADR-0002: Designer-First And Portable Host Strategy](../adr/0002-designer-first-and-host-strategy.md)
-- [ADR-0003: Shared Runtime Contract And Mandatory Model-Driven Runtime](../adr/0003-runtime-and-pcf-strategy.md)
-- [ADR-0008: Canonical Contract Authority And Format](../adr/0008-canonical-contract-authority-and-format.md)
-- [ADR-0009: DBM Process UI, Portal State Projection, and Generated Dataverse Artifacts](../adr/0009-dbm-process-ui-portal-state-projection-and-generated-dataverse-artifacts.md)
+Designer workspace state, graph layout, viewport, collapsed node state, and renderer-specific state must remain sidecars. They must not become the authoritative business process definition.

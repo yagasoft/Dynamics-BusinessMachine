@@ -38,5 +38,5 @@ DBM is intended to be a designer-led platform, not a collection of disconnected 
 
 - [Product Principles](../architecture/product-principles.md)
 - [Target Platform Architecture](../architecture/target-platform-architecture.md)
-- [Release 1 Builder Platform MVP](../roadmap/release-1-builder-platform-mvp.md)
+- [Release 1: Process/stage designer and actual form render](../roadmap/release-1-process-stage-designer-and-form-render.md)
 - [ADR-0009: DBM Process UI, Portal State Projection, and Generated Dataverse Artifacts](0009-dbm-process-ui-portal-state-projection-and-generated-dataverse-artifacts.md)

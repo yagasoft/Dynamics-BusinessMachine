@@ -6,11 +6,11 @@
 
 ## Context
 
-Post-`R1` roadmap note:
+Reset roadmap note:
 
 - this ADR remains in force for process-UI ownership, portal projection, and Dataverse authoring boundaries
-- the later roadmap sequencing changed after `R1`; the live external runtime now lands in `R3` under [ADR-0011](0011-post-r1-roadmap-reset-and-designer-process-experience-platform.md)
-- the original Power Pages proof direction was later abandoned before it became durable, and `R3.1` now uses the local SPA proof defined in [ADR-0014](0014-local-spa-proof-and-dataverse-runtime-authority.md)
+- the active release sequencing is now governed by [ADR-0016](0016-product-roadmap-reset-process-first.md)
+- actual portal runtime is deferred until the new `R5`; `R1` defines only the portal projection contract
 
 The revived DBM direction needs a business process that stays coherent from portal to backend to portal. The existing roadmap and contract baseline were still framed around a simpler stage-only process and a model-driven-first runtime without explicit portal state projection, step-level semantics, or generated Dataverse authoring as a first-class product boundary.
 
@@ -45,7 +45,7 @@ The product now needs to lock:
 - `R1.2.3a` must own generated Dataverse tables, columns, relationships, and synthesis layering.
 - `R1.2.3b` must own binding canonical forms to existing Dataverse forms and attaching DBM-managed supported JS behavior.
 - `R1.3` must deliver the first DBM-owned model-driven runtime experience rather than delegating the business-process experience to native BPF.
-- `R2` delivers the shared process-experience system and fixture-validated portal projection foundation that later `R3` external-runtime work builds on.
+- The process-first reset keeps these boundaries but re-plans their delivery through the new `R1` to `R5` sequence.
 
 ## Alternatives considered
 
@@ -62,5 +62,5 @@ The product now needs to lock:
 - [Target Platform Architecture](../architecture/target-platform-architecture.md)
 - [Canonical Model And Runtime Contract v1](../architecture/canonical-model-runtime-contract-v1.md)
 - [Release Plan](../roadmap/release-plan.md)
-- [Release 1 Builder Platform MVP](../roadmap/release-1-builder-platform-mvp.md)
-- [Release 3: Pilot-Ready End-To-End Platform](../roadmap/release-3-pilot-ready-v1.md)
+- [Release 1: Process/stage designer and actual form render](../roadmap/release-1-process-stage-designer-and-form-render.md)
+- [Release 5: Portal runtime and return path](../roadmap/release-5-portal-runtime-and-return-path.md)

@@ -1,6 +1,6 @@
-# DBM Documentation
+# DBM documentation
 
-This `docs/` tree is the tracked source of truth for the revived Dynamics Business Machine (DBM) product by Ahmed Elsawalhy and Yagasoft.
+This `docs/` tree is the tracked source of truth for the reset Dynamics Business Machine (DBM) product by Ahmed Elsawalhy and Yagasoft.
 
 Use this area for durable product documentation:
 
@@ -15,38 +15,34 @@ Do not use this area for temporary execution notes, scratch work, or private pla
 ## Structure
 
 - `architecture/`
-  - product principles, current-state baseline, target-platform architecture, and the canonical contract baseline
+  - product principles, current-state baseline, target-platform architecture, and canonical contract direction
 - `adr/`
   - architecture decision records
 - `roadmap/`
-  - high-level release ladder, capability map, and per-release stage plans
+  - active release ladder, capability map, and per-release stage plans
 - `releases/`
-  - release governance, release notes, and close-out records
+  - release governance, release notes, and historical close-out records
 - `runbooks/`
   - deployment, rollback, bootstrap, and identity runbooks
 
 ## Reading order
 
-1. [Architecture Principles](architecture/product-principles.md)
-2. [Current-State Baseline](architecture/current-state-baseline.md)
-3. [Target Platform Architecture](architecture/target-platform-architecture.md)
-4. [Canonical Model And Runtime Contract v1](architecture/canonical-model-runtime-contract-v1.md)
-5. [ADR Index](adr/README.md)
-6. [Canonical Contract Authority ADR](adr/0008-canonical-contract-authority-and-format.md)
-7. [Process UI And Generated Dataverse Artifacts ADR](adr/0009-dbm-process-ui-portal-state-projection-and-generated-dataverse-artifacts.md)
-8. [Dataverse Metadata Synthesis ADR](adr/0010-dataverse-metadata-synthesis-and-layered-generated-solution-strategy.md)
-9. [Post-R1 Roadmap Reset ADR](adr/0011-post-r1-roadmap-reset-and-designer-process-experience-platform.md)
-10. [Generic Existing-Form Closeout ADR](adr/0012-generic-existing-form-authoring-required-for-r2-closeout.md)
-11. [Release Plan](roadmap/release-plan.md)
-12. [Capability Map](roadmap/capability-map.md)
-13. [Release 2 Designer And Process Experience Platform](roadmap/release-2-designer-and-process-experience-platform.md)
-14. [Release Governance](releases/release-governance.md)
-15. [R1 Close-Out: 0.3.0](releases/r1-close-out-0.3.0.md)
-16. [Runbook Index](runbooks/README.md)
+1. [Product principles](architecture/product-principles.md)
+2. [Current-state baseline](architecture/current-state-baseline.md)
+3. [Target platform architecture](architecture/target-platform-architecture.md)
+4. [Canonical model and runtime contract v1](architecture/canonical-model-runtime-contract-v1.md)
+5. [ADR index](adr/README.md)
+6. [Product roadmap reset ADR](adr/0016-product-roadmap-reset-process-first.md)
+7. [Release plan](roadmap/release-plan.md)
+8. [Capability map](roadmap/capability-map.md)
+9. [Release 1 process/stage designer and actual form render](roadmap/release-1-process-stage-designer-and-form-render.md)
+10. [Release 2 DBMScript and action foundation](roadmap/release-2-dbmscript-and-action-foundation.md)
+11. [Release governance](releases/release-governance.md)
+12. [Runbook index](runbooks/README.md)
 
 ## Working rules
 
-- If a decision is still being explored, keep it out of `docs/` until we intentionally promote it.
+- If a decision is still being explored, keep it out of `docs/` until it is intentionally promoted.
 - If a decision is locked, capture it in an ADR and update the relevant architecture or roadmap doc.
 - If a release or stage changes, update `roadmap/` and then align release governance or runbooks as needed.
-- If a process becomes operationally necessary, document it in `runbooks/` before we rely on it.
+- If a process becomes operationally necessary, document it in `runbooks/` before relying on it.

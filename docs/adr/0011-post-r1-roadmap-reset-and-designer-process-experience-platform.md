@@ -1,12 +1,14 @@
 # ADR-0011: Post-R1 Roadmap Reset And Designer/Process Experience Platform
 
-- Status: Accepted
+- Status: Superseded by ADR-0016
 - Date: 2026-04-14
 - Decision owners: Ahmed Elsawalhy, Yagasoft
 
 ## Context
 
-`R1` shipped successfully on the `0.3.0` line with:
+Historical note: this ADR described an earlier post-`R1` roadmap reset. It is superseded as active roadmap authority by [ADR-0016](0016-product-roadmap-reset-process-first.md).
+
+`R1` previously closed on the `0.3.0` line with:
 
 - canonical DBM process semantics
 - a host-agnostic `dbm-designer-core`
@@ -75,7 +77,7 @@ Those gaps need their own release before the portal/pilot-ready release continue
 - [Target Platform Architecture](../architecture/target-platform-architecture.md)
 - [Canonical Model And Runtime Contract v1](../architecture/canonical-model-runtime-contract-v1.md)
 - [Release Plan](../roadmap/release-plan.md)
-- [Release 2: Designer And Process Experience Platform](../roadmap/release-2-designer-and-process-experience-platform.md)
+- [Superseded old release 2 plan](../roadmap/release-2-designer-and-process-experience-platform.md)
 - [ADR-0002: Designer-First And Portable Host Strategy](0002-designer-first-and-host-strategy.md)
 - [ADR-0003: Shared Runtime Contract And Mandatory Model-Driven Runtime](0003-runtime-and-pcf-strategy.md)
 - [ADR-0009: DBM Process UI, Portal State Projection, and Generated Dataverse Artifacts](0009-dbm-process-ui-portal-state-projection-and-generated-dataverse-artifacts.md)

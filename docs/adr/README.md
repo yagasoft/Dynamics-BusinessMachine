@@ -23,8 +23,9 @@ ADRs capture durable product and delivery decisions that are important enough to
 - [0008-canonical-contract-authority-and-format.md](0008-canonical-contract-authority-and-format.md)
 - [0009-dbm-process-ui-portal-state-projection-and-generated-dataverse-artifacts.md](0009-dbm-process-ui-portal-state-projection-and-generated-dataverse-artifacts.md)
 - [0010-dataverse-metadata-synthesis-and-layered-generated-solution-strategy.md](0010-dataverse-metadata-synthesis-and-layered-generated-solution-strategy.md)
-- [0011-post-r1-roadmap-reset-and-designer-process-experience-platform.md](0011-post-r1-roadmap-reset-and-designer-process-experience-platform.md)
-- [0012-generic-existing-form-authoring-required-for-r2-closeout.md](0012-generic-existing-form-authoring-required-for-r2-closeout.md)
+- [0011-post-r1-roadmap-reset-and-designer-process-experience-platform.md](0011-post-r1-roadmap-reset-and-designer-process-experience-platform.md) - superseded history only; replaced by ADR-0016
+- [0012-generic-existing-form-authoring-required-for-r2-closeout.md](0012-generic-existing-form-authoring-required-for-r2-closeout.md) - superseded history only; replaced by ADR-0016
 - [0013-anonymous-power-pages-proof-and-dataverse-portal-initiation-authority.md](0013-anonymous-power-pages-proof-and-dataverse-portal-initiation-authority.md) - superseded history only; replaced by ADR-0014
-- [0014-local-spa-proof-and-dataverse-runtime-authority.md](0014-local-spa-proof-and-dataverse-runtime-authority.md) - current authority for the `R3.1` external front-door/runtime direction
-- [0015-dataverse-first-roadmap-and-azure-deferral.md](0015-dataverse-first-roadmap-and-azure-deferral.md) - current authority for Dataverse-first `R3` runtime scope and deferred Azure product/runtime capability
+- [0014-local-spa-proof-and-dataverse-runtime-authority.md](0014-local-spa-proof-and-dataverse-runtime-authority.md) - superseded history only; replaced by ADR-0016
+- [0015-dataverse-first-roadmap-and-azure-deferral.md](0015-dataverse-first-roadmap-and-azure-deferral.md) - superseded history only; replaced by ADR-0016
+- [0016-product-roadmap-reset-process-first.md](0016-product-roadmap-reset-process-first.md) - current authority for the process-first product roadmap reset

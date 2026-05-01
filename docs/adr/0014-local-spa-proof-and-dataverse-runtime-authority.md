@@ -1,13 +1,15 @@
 # ADR-0014: Local SPA Proof And Dataverse Runtime Authority
 
-- Status: Accepted
+- Status: Superseded by ADR-0016
 - Date: 2026-04-15
 - Decision owners: Ahmed Elsawalhy, Yagasoft
 - Supersedes: [ADR-0013](0013-anonymous-power-pages-proof-and-dataverse-portal-initiation-authority.md)
 
 ## Context
 
-`R3.1` is the first live external-entry slice after the canonical `R2` merge. It must build on the shipped shared process-experience renderer, portal projection semantics, and generated Dataverse runtime fields without reopening `R2`.
+Historical note: this ADR described the old `R3.1` local SPA proof. It is superseded as active roadmap authority by [ADR-0016](0016-product-roadmap-reset-process-first.md), while the local SPA proof remains useful prototype/reference evidence.
+
+`R3.1` was the first live external-entry slice after the canonical `R2` merge in the old roadmap. It had to build on the shipped shared process-experience renderer, portal projection semantics, and generated Dataverse runtime fields without reopening `R2`.
 
 The original Power Pages proof direction was abandoned after repeated deployment-host instability and tooling overhead that did not add value to the first slice. `R3.1` still needs to prove:
 
@@ -65,6 +67,6 @@ Two earlier exploratory branches, `codex/r2.4-live-connected-e2e` and `codex/r2.
 ## Related docs
 
 - [Release Plan](../roadmap/release-plan.md)
-- [Release 3 Pilot Ready v1](../roadmap/release-3-pilot-ready-v1.md)
+- [Superseded old release 3 plan](../roadmap/release-3-pilot-ready-v1.md)
 - [R2 Process Experience Hosting](../runbooks/r2-process-experience-hosting.md)
 - [R3 Portal Runtime Dev Proof](../runbooks/r3-portal-runtime-dev-proof.md)

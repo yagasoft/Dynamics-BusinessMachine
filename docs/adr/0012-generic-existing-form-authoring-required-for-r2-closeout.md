@@ -1,12 +1,14 @@
 # ADR-0012: Generic Existing-Form Authoring Required For R2 Closeout
 
-- Status: Accepted
+- Status: Superseded by ADR-0016
 - Date: 2026-04-14
 - Decision owners: Ahmed Elsawalhy, Yagasoft
 
 ## Context
 
-`R2.1` through `R2.4` establish the long-term designer shell, DBM-owned graph contract, shared process renderer, supported model-driven host, preferred overlay bridge, synthesis emission, and release hardening.
+Historical note: this ADR described a closeout requirement for the old `R2` roadmap. It is superseded as active roadmap authority by [ADR-0016](0016-product-roadmap-reset-process-first.md), while the generic existing-form lesson remains useful reference material.
+
+`R2.1` through `R2.4` established the long-term designer shell, DBM-owned graph contract, shared process renderer, supported model-driven host, preferred overlay bridge, synthesis emission, and release hardening in the old roadmap.
 
 Those slices are necessary but not sufficient to close `R2`.
 
@@ -46,7 +48,7 @@ If `R2` closed only on the approval/request reference scenario, DBM would still 
 ## Related docs
 
 - [Release Plan](../roadmap/release-plan.md)
-- [Release 2: Designer And Process Experience Platform](../roadmap/release-2-designer-and-process-experience-platform.md)
+- [Superseded old release 2 plan](../roadmap/release-2-designer-and-process-experience-platform.md)
 - [R2 Generic Existing-Form Dev Proof](../runbooks/r2-generic-existing-form-dev-proof.md)
 - [Designer Hosted Validation](../runbooks/designer-hosted-validation.md)
 - [ADR-0011: Post-R1 Roadmap Reset And Designer/Process Experience Platform](0011-post-r1-roadmap-reset-and-designer-process-experience-platform.md)
