@@ -82,6 +82,16 @@ $contentChecks = @(
         Description = 'Release governance must define branch-protection bypass evidence expectations.'
     },
     @{
+        Path = 'docs\releases\release-governance.md'
+        Pattern = 'completed-roadmap validation manifest'
+        Description = 'Release governance must require completed-roadmap validation manifest evidence.'
+    },
+    @{
+        Path = 'docs\releases\release-governance.md'
+        Pattern = 'clean-worktree guard'
+        Description = 'Release governance must define the completed-roadmap clean-worktree guard.'
+    },
+    @{
         Path = '.github\PULL_REQUEST_TEMPLATE.md'
         Pattern = 'Failing-test evidence'
         Description = 'Pull request template must ask for failing-test evidence.'
@@ -95,6 +105,16 @@ $contentChecks = @(
         Path = '.github\PULL_REQUEST_TEMPLATE.md'
         Pattern = 'Protected-branch bypass'
         Description = 'Pull request template must ask for protected-branch bypass evidence.'
+    },
+    @{
+        Path = '.github\PULL_REQUEST_TEMPLATE.md'
+        Pattern = 'completed-roadmap validation manifest'
+        Description = 'Pull request template must ask for completed-roadmap validation manifest evidence.'
+    },
+    @{
+        Path = '.github\PULL_REQUEST_TEMPLATE.md'
+        Pattern = 'clean-worktree guard'
+        Description = 'Pull request template must ask for completed-roadmap clean-worktree guard evidence.'
     },
     @{
         Path = 'docs\roadmap\completed-roadmap-tdd-matrix.md'
@@ -125,6 +145,16 @@ $contentChecks = @(
         Path = 'docs\roadmap\completed-roadmap-tdd-matrix.md'
         Pattern = 'Test-CompletedRoadmapValidation.ps1'
         Description = 'Completed roadmap TDD matrix must reference the sequential completed-roadmap validation wrapper.'
+    },
+    @{
+        Path = 'docs\roadmap\completed-roadmap-tdd-matrix.md'
+        Pattern = 'completed-roadmap-validation-manifest.json'
+        Description = 'Completed roadmap TDD matrix must reference the validation evidence manifest.'
+    },
+    @{
+        Path = 'docs\roadmap\completed-roadmap-tdd-matrix.md'
+        Pattern = 'Validation-generated content drift'
+        Description = 'Completed roadmap TDD matrix must record validation-generated content drift governance.'
     },
     @{
         Path = '.github\workflows\validate.yml'

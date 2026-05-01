@@ -318,6 +318,94 @@ if ($parallelPackageWarningRows[0].ExpectedHandling -notmatch 'Test-CompletedRoa
     throw 'Round-4 parallel package validation warning must point to the sequential completed-roadmap validation wrapper.'
 }
 
+$generatedDriftWarningRows = @($warningRows | Where-Object { $_.WarningSource -eq 'Validation-generated content drift' })
+if ($generatedDriftWarningRows.Count -ne 1) {
+    throw 'Verification warning ledger must contain exactly one validation-generated content drift warning row.'
+}
+
+if ($generatedDriftWarningRows[0].Classification -ne 'Actionable') {
+    throw 'Validation-generated content drift warning must be classified as Actionable.'
+}
+
+if ($generatedDriftWarningRows[0].ExpectedHandling -notmatch 'completed-roadmap-validation-manifest\.json') {
+    throw 'Validation-generated content drift warning must point to the completed-roadmap validation manifest.'
+}
+
+$validationWrapperPath = Join-Path $RepoRoot 'eng\scripts\Test-CompletedRoadmapValidation.ps1'
+if (-not (Test-Path $validationWrapperPath)) {
+    throw "Completed-roadmap sequential validation wrapper is missing: $validationWrapperPath"
+}
+
+$validationWrapper = Get-Content -Path $validationWrapperPath -Raw
+$validationWrapperRequirements = @(
+    @{
+        Pattern = '\[string\]\$EvidenceRoot'
+        Description = 'accept an -EvidenceRoot parameter'
+    },
+    @{
+        Pattern = 'completed-roadmap-validation-manifest\.json'
+        Description = 'write a completed-roadmap validation manifest'
+    },
+    @{
+        Pattern = 'ConvertTo-Json'
+        Description = 'serialise the completed-roadmap validation manifest as JSON'
+    },
+    @{
+        Pattern = 'git\s+diff\s+--name-only'
+        Description = 'capture tracked content diffs before and after validation'
+    },
+    @{
+        Pattern = 'git\s+ls-files\s+--others\s+--exclude-standard'
+        Description = 'capture untracked non-ignored files before and after validation'
+    },
+    @{
+        Pattern = 'clean-worktree guard'
+        Description = 'fail clearly when validation generates content drift'
+    }
+)
+
+$validationWrapperFailures = foreach ($requirement in $validationWrapperRequirements) {
+    if ($validationWrapper -notmatch $requirement.Pattern) {
+        "Completed-roadmap validation wrapper must $($requirement.Description)."
+    }
+}
+
+if ($validationWrapperFailures) {
+    throw "Completed-roadmap validation wrapper contract checks failed: $($validationWrapperFailures -join ' ')"
+}
+
+$listOnlyEvidenceRoot = Join-Path ([System.IO.Path]::GetTempPath()) ("dbm-completed-roadmap-listonly-{0}" -f ([System.Guid]::NewGuid().ToString('N')))
+$listOnlyOutput = @(& $validationWrapperPath -RepoRoot $RepoRoot -ListOnly -EvidenceRoot $listOnlyEvidenceRoot 2>&1 | ForEach-Object { [string]$_ })
+
+if (Test-Path $listOnlyEvidenceRoot) {
+    throw "Completed-roadmap validation -ListOnly must not create evidence output: $listOnlyEvidenceRoot"
+}
+
+$expectedListOnlyGateScripts = @(
+    'eng\scripts\Test-Docs.ps1',
+    'eng\scripts\Test-CompletedRoadmapTddMatrix.ps1',
+    'eng\scripts\Test-CompletedRoadmapEnvironmentProofReadiness.ps1',
+    'eng\scripts\Test-DbmContract.ps1',
+    'eng\scripts\Test-DbmProcessExperience.ps1',
+    'eng\scripts\Test-DbmPortalRuntime.ps1',
+    'eng\scripts\Test-DbmDesignerShell.ps1',
+    'eng\scripts\Invoke-NodeBuild.ps1'
+)
+
+$listOnlyText = $listOnlyOutput -join "`n"
+$missingListOnlyGates = @(
+    $expectedListOnlyGateScripts |
+        Where-Object { $listOnlyText -notmatch [regex]::Escape($_) }
+)
+
+if ($missingListOnlyGates.Count -gt 0) {
+    throw "Completed-roadmap validation -ListOnly output is missing expected sequential gates: $($missingListOnlyGates -join ', ')"
+}
+
+if ($listOnlyText -match 'completed-roadmap-validation-manifest\.json') {
+    throw 'Completed-roadmap validation -ListOnly output must not claim a completed-roadmap validation manifest was written.'
+}
+
 $readinessScriptPath = Join-Path $RepoRoot 'eng\scripts\Test-CompletedRoadmapEnvironmentProofReadiness.ps1'
 if (-not (Test-Path $readinessScriptPath)) {
     throw "Completed-roadmap environment proof readiness script is missing: $readinessScriptPath"

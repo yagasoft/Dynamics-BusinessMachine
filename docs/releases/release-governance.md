@@ -97,7 +97,9 @@ Completed-roadmap closeout evidence should prefer the local sequential wrapper `
 
 The wrapper is local evidence for AI closeout and reviewer reproduction. It is not a replacement for the protected-branch `validate` workflow, and it must not be wired into normal CI as a duplicate gate.
 
-If an emergency admin action or direct push creates a branch-protection bypass, the closeout evidence must say so explicitly, identify the bypassed review or workflow path, and record the sequential local validation that was used to compensate. The bypass does not change the normal PR-only rule for protected branches.
+The wrapper must write a completed-roadmap validation manifest under the ignored `artifacts/` evidence tree when it runs full validation. The same wrapper must enforce a clean-worktree guard by comparing tracked content diffs and untracked non-ignored files before and after validation, so generated package or build drift cannot be hidden in closeout.
+
+If an emergency admin action or direct push creates a branch-protection bypass, the closeout evidence must say so explicitly, identify the bypassed review or workflow path, and record the sequential local validation that was used to compensate. When the completed-roadmap wrapper is used, that evidence must include the completed-roadmap validation manifest path. The bypass does not change the normal PR-only rule for protected branches.
 
 ## Versioning policy
 

@@ -19,9 +19,11 @@
 - Does the change avoid future roadmap scope?
 - Sequential completed-roadmap validation:
   - If this touches completed-roadmap validation, did you run `eng/scripts/Test-CompletedRoadmapValidation.ps1` or explain why a narrower gate was enough?
+  - If the full wrapper was run, what is the completed-roadmap validation manifest path?
+  - Did the clean-worktree guard finish without new tracked diffs or untracked non-ignored files?
 - Protected-branch bypass:
   - Was any direct push, emergency admin action, or branch-protection bypass used?
-  - If yes, what review, workflow, and sequential local validation evidence covers that bypass?
+  - If yes, what review, workflow, sequential local validation, and completed-roadmap validation manifest evidence covers that bypass?
 
 ## Docs Impact
 
