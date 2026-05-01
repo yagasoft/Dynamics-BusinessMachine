@@ -39,8 +39,10 @@ if ($missing) {
 }
 
 $requiredScripts = @(
+    'eng\scripts\CompletedRoadmapMatrix.Common.ps1',
     'eng\scripts\Test-CompletedRoadmapTddMatrix.ps1',
     'eng\scripts\Test-CompletedRoadmapEnvironmentProofReadiness.ps1',
+    'eng\scripts\Test-CompletedRoadmapValidation.ps1',
     'eng\scripts\Test-DbmProcessExperience.ps1',
     'eng\scripts\Test-DbmProcessExperienceVisual.ps1',
     'eng\scripts\Test-DbmPortalRuntime.ps1',
@@ -70,9 +72,29 @@ $contentChecks = @(
         Description = 'Release governance must define the TDD evidence policy.'
     },
     @{
+        Path = 'docs\releases\release-governance.md'
+        Pattern = 'Sequential completed-roadmap validation'
+        Description = 'Release governance must define sequential completed-roadmap validation evidence.'
+    },
+    @{
+        Path = 'docs\releases\release-governance.md'
+        Pattern = 'branch-protection bypass'
+        Description = 'Release governance must define branch-protection bypass evidence expectations.'
+    },
+    @{
         Path = '.github\PULL_REQUEST_TEMPLATE.md'
         Pattern = 'Failing-test evidence'
         Description = 'Pull request template must ask for failing-test evidence.'
+    },
+    @{
+        Path = '.github\PULL_REQUEST_TEMPLATE.md'
+        Pattern = 'Sequential completed-roadmap validation'
+        Description = 'Pull request template must ask for sequential completed-roadmap validation evidence.'
+    },
+    @{
+        Path = '.github\PULL_REQUEST_TEMPLATE.md'
+        Pattern = 'Protected-branch bypass'
+        Description = 'Pull request template must ask for protected-branch bypass evidence.'
     },
     @{
         Path = 'docs\roadmap\completed-roadmap-tdd-matrix.md'
@@ -93,6 +115,16 @@ $contentChecks = @(
         Path = 'docs\roadmap\completed-roadmap-tdd-matrix.md'
         Pattern = 'Test-DbmProcessExperienceVisual.ps1'
         Description = 'Completed roadmap TDD matrix must reference the optional process-experience visual proof wrapper.'
+    },
+    @{
+        Path = 'docs\roadmap\completed-roadmap-tdd-matrix.md'
+        Pattern = 'Parallel package validation from one worktree'
+        Description = 'Completed roadmap TDD matrix must record the round-4 parallel package validation warning.'
+    },
+    @{
+        Path = 'docs\roadmap\completed-roadmap-tdd-matrix.md'
+        Pattern = 'Test-CompletedRoadmapValidation.ps1'
+        Description = 'Completed roadmap TDD matrix must reference the sequential completed-roadmap validation wrapper.'
     },
     @{
         Path = '.github\workflows\validate.yml'
@@ -137,6 +169,7 @@ $validateWorkflowPath = Join-Path $RepoRoot '.github\workflows\validate.yml'
 $validateWorkflowContent = [System.IO.File]::ReadAllText($validateWorkflowPath)
 $environmentBoundWorkflowScripts = @(
     'Test-CompletedRoadmapEnvironmentProofReadiness.ps1',
+    'Test-CompletedRoadmapValidation.ps1',
     'Test-DbmProcessExperienceVisual.ps1'
 )
 

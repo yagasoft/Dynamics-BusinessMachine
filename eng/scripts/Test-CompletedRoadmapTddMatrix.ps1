@@ -5,88 +5,14 @@ param(
 
 $ErrorActionPreference = 'Stop'
 
+. (Join-Path $PSScriptRoot 'CompletedRoadmapMatrix.Common.ps1')
+
 $matrixPath = Join-Path $RepoRoot 'docs\roadmap\completed-roadmap-tdd-matrix.md'
 if (-not (Test-Path $matrixPath)) {
     throw "Completed roadmap TDD matrix is missing: $matrixPath"
 }
 
-$content = Get-Content -Path $matrixPath -Raw
-$lines = $content -split "`r?`n"
-
-function Get-MarkdownTableRows {
-    param(
-        [string[]]$Lines,
-        [string]$Heading,
-        [int]$ExpectedCellCount
-    )
-
-    $rows = @()
-    $inSection = $false
-    $foundHeading = $false
-
-    foreach ($line in $Lines) {
-        if ($line -eq $Heading) {
-            $inSection = $true
-            $foundHeading = $true
-            continue
-        }
-
-        if ($inSection -and $line -like '## *') {
-            break
-        }
-
-        if (-not $inSection -or -not $line.TrimStart().StartsWith('|')) {
-            continue
-        }
-
-        $cells = @($line.Trim().Trim('|').Split('|') | ForEach-Object { $_.Trim() })
-        if ($cells.Count -ne $ExpectedCellCount) {
-            throw "$Heading contains a table row with $($cells.Count) cells; expected $ExpectedCellCount cells: $line"
-        }
-
-        if ($cells[0] -eq 'Capability' -or $cells[0] -match '^-+$') {
-            continue
-        }
-
-        $rows += ,$cells
-    }
-
-    if (-not $foundHeading) {
-        throw "Completed roadmap TDD matrix is missing required section: $Heading"
-    }
-
-    return $rows
-}
-
-$matrixRows = @()
-$inMatrix = $false
-foreach ($line in $lines) {
-    if ($line -eq '## Matrix') {
-        $inMatrix = $true
-        continue
-    }
-
-    if ($inMatrix -and $line -like '## *') {
-        break
-    }
-
-    if (-not $inMatrix -or -not $line.TrimStart().StartsWith('|')) {
-        continue
-    }
-
-    $cells = @($line.Trim().Trim('|').Split('|') | ForEach-Object { $_.Trim() })
-    if ($cells.Count -ne 5 -or $cells[0] -eq 'Capability' -or $cells[0] -match '^-+$') {
-        continue
-    }
-
-    $matrixRows += [pscustomobject]@{
-        Capability = $cells[0]
-        CompletedBehaviour = $cells[1]
-        TddAnchor = $cells[2]
-        VerificationSurface = $cells[3]
-        FutureBoundary = $cells[4]
-    }
-}
+$matrixRows = @(Get-CompletedRoadmapMatrixRows -RepoRoot $RepoRoot)
 
 if ($matrixRows.Count -eq 0) {
     throw 'Completed roadmap TDD matrix does not contain any capability rows.'
@@ -188,20 +114,7 @@ if ($futureScopeFailures) {
     throw "Completed roadmap TDD matrix appears to include future roadmap scope as implemented coverage: $($futureScopeFailures -join '; ')"
 }
 
-$ledgerRows = @(
-    Get-MarkdownTableRows -Lines $lines -Heading '## Environment-bound proof ledger' -ExpectedCellCount 7 |
-        ForEach-Object {
-            [pscustomobject]@{
-                Capability = $_[0]
-                ProofType = $_[1]
-                CommandOrRunbook = $_[2]
-                Prerequisites = $_[3]
-                EvidenceOutput = $_[4]
-                WhyNotCi = $_[5]
-                FutureBoundary = $_[6]
-            }
-        }
-)
+$ledgerRows = @(Get-CompletedRoadmapProofLedgerRows -RepoRoot $RepoRoot)
 
 if ($ledgerRows.Count -eq 0) {
     throw 'Environment-bound proof ledger does not contain any proof rows.'
@@ -315,18 +228,7 @@ if ($missingProofReferences) {
     throw "Environment-bound proof ledger references missing proof assets: $($missingProofReferences -join '; ')"
 }
 
-$issueRows = @(
-    Get-MarkdownTableRows -Lines $lines -Heading '## Retrofit issue log' -ExpectedCellCount 4 |
-        Where-Object { $_[0] -ne 'Exposed by' -and $_[0] -notmatch '^-+$' } |
-        ForEach-Object {
-            [pscustomobject]@{
-                ExposedBy = $_[0]
-                CapabilityRoute = $_[1]
-                Issue = $_[2]
-                Resolution = $_[3]
-            }
-        }
-)
+$issueRows = @(Get-CompletedRoadmapIssueRows -RepoRoot $RepoRoot)
 
 if ($issueRows.Count -eq 0) {
     throw 'Retrofit issue log does not contain any issue rows.'
@@ -355,19 +257,33 @@ if ($issueRouteFailures) {
     throw "Retrofit issue log routes must match completed matrix capability rows: $($issueRouteFailures -join '; ')"
 }
 
-$warningRows = @(
-    Get-MarkdownTableRows -Lines $lines -Heading '## Verification warning ledger' -ExpectedCellCount 5 |
-        Where-Object { $_[0] -ne 'Warning source' -and $_[0] -notmatch '^-+$' } |
-        ForEach-Object {
-            [pscustomobject]@{
-                WarningSource = $_[0]
-                Classification = $_[1]
-                Warning = $_[2]
-                ExpectedHandling = $_[3]
-                FutureBoundary = $_[4]
-            }
-        }
+$parallelPackageIssueRows = @($issueRows | Where-Object { $_.ExposedBy -eq 'Parallel package validation from one worktree' })
+if ($parallelPackageIssueRows.Count -ne 1) {
+    throw 'Retrofit issue log must contain exactly one round-4 parallel package validation issue row.'
+}
+
+$parallelPackageRoutes = @(
+    ([string]$parallelPackageIssueRows[0].CapabilityRoute -replace '<br\s*/?>', ';') -split ';' |
+        ForEach-Object { $_.Trim() } |
+        Where-Object { -not [string]::IsNullOrWhiteSpace($_) }
 )
+
+$requiredParallelPackageRoutes = @(
+    '`R1.1` canonical model and runtime contract',
+    '`R2.3` shared process experience and model-driven host strategy',
+    '`R3.1` proof automation'
+)
+
+$missingParallelPackageRoutes = @(
+    $requiredParallelPackageRoutes |
+        Where-Object { $_ -notin $parallelPackageRoutes }
+)
+
+if ($missingParallelPackageRoutes.Count -gt 0) {
+    throw "Round-4 parallel package validation issue must route to exact completed capabilities: $($missingParallelPackageRoutes -join ', ')"
+}
+
+$warningRows = @(Get-CompletedRoadmapWarningRows -RepoRoot $RepoRoot)
 
 if ($warningRows.Count -eq 0) {
     throw 'Verification warning ledger does not contain any warning rows.'
@@ -389,6 +305,19 @@ if ($warningLedgerFailures) {
     throw "Verification warning ledger entries must be classified and complete: $($warningLedgerFailures -join '; ')"
 }
 
+$parallelPackageWarningRows = @($warningRows | Where-Object { $_.WarningSource -eq 'Parallel package validation from one worktree' })
+if ($parallelPackageWarningRows.Count -ne 1) {
+    throw 'Verification warning ledger must contain exactly one round-4 parallel package validation warning row.'
+}
+
+if ($parallelPackageWarningRows[0].Classification -ne 'Actionable') {
+    throw 'Round-4 parallel package validation warning must be classified as Actionable.'
+}
+
+if ($parallelPackageWarningRows[0].ExpectedHandling -notmatch 'Test-CompletedRoadmapValidation\.ps1') {
+    throw 'Round-4 parallel package validation warning must point to the sequential completed-roadmap validation wrapper.'
+}
+
 $readinessScriptPath = Join-Path $RepoRoot 'eng\scripts\Test-CompletedRoadmapEnvironmentProofReadiness.ps1'
 if (-not (Test-Path $readinessScriptPath)) {
     throw "Completed-roadmap environment proof readiness script is missing: $readinessScriptPath"
@@ -399,8 +328,42 @@ if ($readinessScript -match '(?m)^\$repoOwnedProofAssets\s*=\s*@\(') {
     throw 'Completed-roadmap environment proof readiness must derive repo-owned proof assets from the proof ledger instead of maintaining $repoOwnedProofAssets.'
 }
 
-if ($readinessScript -notmatch 'Get-EnvironmentProofAssetReferences') {
-    throw 'Completed-roadmap environment proof readiness must expose Get-EnvironmentProofAssetReferences for ledger-driven proof asset parsing.'
+$commonParserPath = Join-Path $RepoRoot 'eng\scripts\CompletedRoadmapMatrix.Common.ps1'
+if (-not (Test-Path $commonParserPath)) {
+    throw "Completed roadmap matrix common parser is missing: $commonParserPath"
+}
+
+$commonParser = Get-Content -Path $commonParserPath -Raw
+foreach ($requiredFunction in @('Get-CompletedRoadmapMarkdownTableRows', 'Get-EnvironmentProofAssetReferences')) {
+    if ($commonParser -notmatch "function\s+$([regex]::Escape($requiredFunction))\b") {
+        throw "Completed roadmap matrix common parser must define $requiredFunction."
+    }
+}
+
+$sharedParserConsumers = @(
+    'eng\scripts\Test-CompletedRoadmapTddMatrix.ps1',
+    'eng\scripts\Test-CompletedRoadmapEnvironmentProofReadiness.ps1'
+)
+
+$sharedParserFailures = foreach ($relativeScript in $sharedParserConsumers) {
+    $scriptPath = Join-Path $RepoRoot $relativeScript
+    $scriptContent = Get-Content -Path $scriptPath -Raw
+
+    if ($scriptContent -notmatch 'CompletedRoadmapMatrix\.Common\.ps1') {
+        "$relativeScript must dot-source CompletedRoadmapMatrix.Common.ps1"
+    }
+
+    if ($scriptContent -match 'function\s+Get-MarkdownTableRows\b') {
+        "$relativeScript must not carry a local Get-MarkdownTableRows parser"
+    }
+
+    if ($relativeScript -ne 'eng\scripts\CompletedRoadmapMatrix.Common.ps1' -and $scriptContent -match 'function\s+Get-EnvironmentProofAssetReferences\b') {
+        "$relativeScript must use the shared Get-EnvironmentProofAssetReferences helper"
+    }
+}
+
+if ($sharedParserFailures) {
+    throw "Completed-roadmap validators must share matrix parsing: $($sharedParserFailures -join '; ')"
 }
 
 Write-Host 'Completed roadmap TDD matrix checks passed.'
