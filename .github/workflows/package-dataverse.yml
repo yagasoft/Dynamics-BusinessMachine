@@ -111,7 +111,7 @@ jobs:
         run: .\eng\scripts\Invoke-DataversePackaging.ps1 -RunSolutionCheck:$false -GenerateSettings:$true
 
       - name: Upload Dataverse package artifacts
-        uses: actions/upload-artifact@v4
+        uses: actions/upload-artifact@v7
         with:
           name: dataverse-${{ steps.version.outputs.semVer }}
           path: artifacts/dataverse
@@ -265,7 +265,7 @@ jobs:
           Add-Content -Path $env:GITHUB_OUTPUT -Value "name=$artifactName"
 
       - name: Upload Dataverse package artifacts
-        uses: actions/upload-artifact@v4
+        uses: actions/upload-artifact@v7
         with:
           name: ${{ steps.artifact.outputs.name }}
           path: artifacts/dataverse

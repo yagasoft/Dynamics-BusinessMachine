@@ -140,7 +140,7 @@ jobs:
         run: .\eng\scripts\Test-AzureContract.ps1
 
       - name: Upload validation staging artifacts
-        uses: actions/upload-artifact@v4
+        uses: actions/upload-artifact@v7
         with:
           name: validate-${{ steps.version.outputs.semVer }}
           path: artifacts/validate
