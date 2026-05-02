@@ -1,5 +1,7 @@
 # R3 Local SPA Runtime Dev Proof
 
+Historical/prototype reference: this runbook records the old `R3.1` local SPA proof line. It is not active roadmap authority after [ADR-0016](../adr/0016-product-roadmap-reset-process-first.md); use [the current release plan](../roadmap/release-plan.md) for the process-first `R1` to `R9` roadmap.
+
 This runbook is the operator path for `R3.1 Local SPA runtime proof and external entry`. It proves that a repo-owned local SPA can create and submit an approval request through the canonical Dataverse runtime contract while preserving the shared external-safe process experience from `R2`.
 
 ## Scope

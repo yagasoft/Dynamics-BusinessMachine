@@ -21,6 +21,7 @@ The model must support:
 - actual rendered form projection for business users
 - portal projection contract for portal users
 - later DBMScript/action execution
+- later DBM Object composition
 - later back-office and portal runtime state
 
 ## Canonical envelope
@@ -126,6 +127,10 @@ The contract must leave stable references for:
 - backend/server change actions
 - dynamic button actions
 - template-backed notification send actions
+- DBMScript language/runtime contract references
+- DBM Object references for maps, scoped composition, and generated object inputs
+- browser, model-driven, plugin/server, and Dataverse/Jint execution contexts
+- script/object version history and test case support
 
 ## Runtime implications
 
@@ -134,9 +139,17 @@ R3 owns the first back-office runtime implementation.
 The contract must allow:
 
 - process instance creation
+- process sessions
 - row, user, role, and owner scope
+- process instance per row, user, role, or owner where configured
+- record-level and user-level process switching
 - stage transition persistence
+- show Next transition mode and automatic transition mode
+- parallel branches and convergence
+- expression, FetchXML, and action-backed condition references
+- backend condition evaluation on load and save
 - form behaviour runtime
+- XRM/form-context helper binding
 - internal status and portal status persistence
 - action trigger execution
 

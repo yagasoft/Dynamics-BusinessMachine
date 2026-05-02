@@ -1,10 +1,12 @@
 # Release Performance Baseline
 
+Historical/prototype reference: this runbook records the old builder-platform release baseline. It is not active roadmap authority after [ADR-0016](../adr/0016-product-roadmap-reset-process-first.md); use [the current release plan](../roadmap/release-plan.md) for the process-first `R1` to `R9` roadmap.
+
 ## Purpose
 
-Record a compact wall-clock baseline for the release-shaped engineering path we are actually shipping.
+Record a compact wall-clock baseline for the old release-shaped engineering path captured as prototype/reference evidence.
 
-For `R1`, this is not a load test, concurrency test, or portal benchmark. It is a timed record of the core build, synthesis, package, deploy, and smoke path for the builder-platform MVP.
+For the old `R1`, this is not a load test, concurrency test, or portal benchmark. It is a timed record of the core build, synthesis, package, deploy, and smoke path for the historical builder-platform prototype line.
 
 ## Script
 

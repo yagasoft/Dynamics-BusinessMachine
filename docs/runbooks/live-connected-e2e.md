@@ -1,5 +1,7 @@
 # Live Connected E2E
 
+Historical/prototype reference: this runbook records the old live E2E harness and prototype/reference proof path. It is not active roadmap authority after [ADR-0016](../adr/0016-product-roadmap-reset-process-first.md); use [the current release plan](../roadmap/release-plan.md) for the process-first `R1` to `R9` roadmap.
+
 ## Purpose
 
 Run the DBM connected live end-to-end harness against the deployed model-driven host and real Dataverse/backend state using only the existing `Dev`, `UAT`, and `Prod` environments.

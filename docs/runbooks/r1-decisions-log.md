@@ -1,5 +1,7 @@
 # R1 Decisions Log
 
+Historical/prototype reference: this runbook records the old `R1` prototype/reference line. It is not active roadmap authority after [ADR-0016](../adr/0016-product-roadmap-reset-process-first.md); use [the current release plan](../roadmap/release-plan.md) for the process-first `R1` to `R9` roadmap.
+
 This document collects the major product and implementation decisions made during R1 so they can be reviewed together at the end of the release.
 
 ## Current Direction

@@ -16,7 +16,7 @@ Historical note: this ADR described an earlier post-`R1` roadmap reset. It is su
 - existing-form Dataverse synthesis plus DBM-managed supported JS behavior
 - a DBM-owned model-driven runtime rendered today through supported form JS and top-of-form notifications
 
-That shipped boundary is historically correct and must not be rewritten.
+That historical prototype/reference boundary is retained as evidence, but it is not the active product baseline.
 
 However, the biggest post-`R1` product gaps are now clear:
 
@@ -27,8 +27,8 @@ Those gaps need their own release before the portal/pilot-ready release continue
 
 ## Decision
 
-- Insert a new `R2` between shipped `R1` and the former portal/pilot-ready release.
-- Keep `R1` historically unchanged as the completed builder-platform MVP baseline.
+- Insert a new `R2` between the old `R1` and the former portal/pilot-ready release.
+- Keep the old `R1` evidence historically unchanged as prototype/reference material.
 - Re-slot the later releases as follows:
   - old `R2` becomes new `R3`
   - old `R3` becomes new `R4`
