@@ -134,7 +134,7 @@ export function buildGuidedWorkspaceViewModel(snapshot, audience = snapshot.audi
             isCurrent: step.id === currentStep?.id
         }));
     return {
-        processTitle: titleCaseIdentifier(snapshot.processId),
+        processTitle: snapshot.activeProcess?.displayName ?? snapshot.rootProcess?.displayName ?? titleCaseIdentifier(snapshot.processId),
         introCopy: 'Follow the highlighted step to keep this request moving.',
         currentTask: {
             stageTitle: isHiddenCurrentStage ? hiddenStageLabel(currentStage) : currentStage.displayName,

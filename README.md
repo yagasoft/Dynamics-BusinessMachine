@@ -18,9 +18,9 @@ DBM currently contains prototype/reference implementation assets. The active roa
 
 The reset product direction includes:
 
--   Process portfolio designer: Define a main process and any number of sub-processes.
+-   Process hierarchy designer: Define a parent process, child processes under parent stages, and deeper child processes where the business flow needs them.
 -   Generic process contract: Use user-defined process types, actor roles, stage kinds, work kinds, statuses, outcomes, and visibility rules.
--   Stage spans: Align sub-process stages to full or fractional spans of the main-process timeline.
+-   Stage-owned child process links: Keep the parent process anchored on the owning stage while a child process becomes the active working surface.
 -   Rendered form experience: Show the process to business users on actual model-driven forms.
 -   DBMScript actions: Define JavaScript-first actions for stage, form, field, backend, and button triggers.
 -   Back-office runtime: Execute stage transitions, statuses, form behaviour, actions, routing, tasks, SLA/KPI, and support operations.

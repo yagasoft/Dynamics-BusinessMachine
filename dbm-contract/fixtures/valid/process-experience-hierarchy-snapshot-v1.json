@@ -1,0 +1,186 @@
+{
+  "schemaVersion": "dbm.process-experience.snapshot/v1",
+  "packageId": "dbm-employee-onboarding",
+  "packageVersion": "1.2.0",
+  "processId": "it-readiness",
+  "audience": "internal",
+  "currentStageId": "prepare-access",
+  "currentStepId": null,
+  "activeFormId": null,
+  "activeFormStateId": null,
+  "internalStatus": {
+    "id": "preparing",
+    "displayName": "Preparing",
+    "audience": "internal",
+    "kind": "progress"
+  },
+  "portalStatus": null,
+  "availableOutcomes": [],
+  "stages": [
+    {
+      "id": "prepare-access",
+      "displayName": "Prepare access",
+      "stageType": "task",
+      "state": "current",
+      "visibility": "visible",
+      "actor": {
+        "id": "it-team",
+        "displayName": "IT",
+        "actorType": "approver"
+      },
+      "formId": null,
+      "currentStepId": null,
+      "stepIds": [],
+      "availableOutcomeIds": []
+    }
+  ],
+  "steps": [],
+  "transitions": [],
+  "projection": {
+    "projectedStageId": "prepare-access",
+    "projectedStepId": null,
+    "message": null
+  },
+  "rootProcess": {
+    "id": "onboarding-main",
+    "displayName": "Onboarding timeline",
+    "displayMode": "expanded",
+    "currentStageId": "preparation",
+    "stages": [
+      {
+        "id": "offer-accepted",
+        "displayName": "Offer accepted",
+        "stageType": "start",
+        "stageCategory": "start",
+        "stageKindId": "employment-confirmed",
+        "childProcessRefs": []
+      },
+      {
+        "id": "preparation",
+        "displayName": "Preparation",
+        "stageType": "task",
+        "stageCategory": "work",
+        "stageKindId": "readiness-work",
+        "childProcessRefs": [
+          {
+            "id": "spawn-it-readiness",
+            "processId": "it-readiness",
+            "displayName": "IT readiness",
+            "activationRuleId": "show-it-readiness",
+            "blocksParent": true
+          }
+        ]
+      }
+    ]
+  },
+  "activeProcess": {
+    "id": "it-readiness",
+    "displayName": "IT readiness",
+    "role": "child",
+    "stages": [
+      {
+        "id": "prepare-access",
+        "displayName": "Prepare access",
+        "stageType": "task",
+        "state": "current",
+        "visibility": "visible",
+        "actor": {
+          "id": "it-team",
+          "displayName": "IT",
+          "actorType": "approver"
+        },
+        "formId": null,
+        "currentStepId": null,
+        "stepIds": [],
+        "availableOutcomeIds": []
+      }
+    ],
+    "steps": [],
+    "transitions": [],
+    "parentLink": {
+      "parentProcessId": "onboarding-main",
+      "parentStageId": "preparation",
+      "childProcessRefId": "spawn-it-readiness",
+      "blocksParent": true,
+      "displayName": "IT readiness",
+      "activationRuleId": "show-it-readiness"
+    }
+  },
+  "blockedParentStage": {
+    "parentProcessId": "onboarding-main",
+    "parentStageId": "preparation",
+    "parentStageDisplayName": "Preparation",
+    "childProcessId": "it-readiness",
+    "childProcessDisplayName": "IT readiness",
+    "childProcessRefId": "spawn-it-readiness",
+    "label": "Parent stage awaiting child completion"
+  },
+  "hierarchy": {
+    "processes": [
+      {
+        "id": "onboarding-main",
+        "displayName": "Onboarding timeline",
+        "role": "main",
+        "displayMode": "expanded",
+        "stages": [
+          {
+            "id": "preparation",
+            "displayName": "Preparation",
+            "stageType": "task",
+            "stageCategory": "work",
+            "stageKindId": "readiness-work",
+            "childProcessRefs": [
+              {
+                "id": "spawn-it-readiness",
+                "processId": "it-readiness",
+                "displayName": "IT readiness",
+                "activationRuleId": "show-it-readiness",
+                "blocksParent": true
+              }
+            ]
+          }
+        ]
+      },
+      {
+        "id": "it-readiness",
+        "displayName": "IT readiness",
+        "role": "child",
+        "displayMode": "expanded",
+        "stages": [
+          {
+            "id": "prepare-access",
+            "displayName": "Prepare access",
+            "stageType": "task",
+            "stageCategory": "work",
+            "stageKindId": "access-preparation",
+            "childProcessRefs": [
+              {
+                "id": "spawn-access-review",
+                "processId": "access-review",
+                "displayName": "Access review",
+                "activationRuleId": "access-review-needed",
+                "blocksParent": true
+              }
+            ]
+          }
+        ]
+      },
+      {
+        "id": "access-review",
+        "displayName": "Access review",
+        "role": "child",
+        "displayMode": "expanded",
+        "stages": [
+          {
+            "id": "verify-access",
+            "displayName": "Verify access",
+            "stageType": "approval",
+            "stageCategory": "decision",
+            "stageKindId": "access-verification",
+            "childProcessRefs": []
+          }
+        ]
+      }
+    ]
+  }
+}

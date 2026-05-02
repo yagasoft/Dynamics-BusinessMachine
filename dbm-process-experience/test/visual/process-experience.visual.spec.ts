@@ -1,11 +1,14 @@
+import { readFileSync } from 'node:fs';
 import path from 'node:path';
 import { fileURLToPath } from 'node:url';
 import { expect, test, type Page } from '@playwright/test';
-import type { DbmProcessExperienceAudienceV1, DbmProcessExperienceSnapshotV1 } from 'dbm-contract';
+import type { DbmModelV1, DbmProcessExperienceAudienceV1, DbmProcessExperienceSnapshotV1 } from 'dbm-contract';
+import { buildProcessPortfolioExperienceSnapshot } from '../../src/runtime-snapshot';
 import type { DbmProcessExperienceModeV1 } from '../../src/types';
 import { buildApprovalRequestSnapshot, type ApprovalRequestFixtureScenario } from '../../src/test-fixtures/approvalRequestFixture';
 
 const __dirname = path.dirname(fileURLToPath(import.meta.url));
+const repoRoot = path.resolve(__dirname, '../../..');
 const rendererScriptPath = path.resolve(__dirname, '../../dist/browser/renderer.js');
 
 async function renderSnapshot(
@@ -157,4 +160,45 @@ test('external-runtime draft visual baseline', async ({ page }) => {
       }
     }
   );
+});
+
+test('model-driven-section hierarchy parent child visual baseline', async ({ page }) => {
+  const model = JSON.parse(
+    readFileSync(
+      path.join(repoRoot, 'dbm-contract', 'fixtures', 'valid', 'generic-process-matrix', 'employee-onboarding.model.json'),
+      'utf8'
+    )
+  ) as DbmModelV1;
+  const snapshot = buildProcessPortfolioExperienceSnapshot(
+    model,
+    {
+      stageId: 'preparation',
+      stepId: 'provision-access-step',
+      formStateId: null,
+      internalStatusId: 'preparing',
+      portalStatusId: null
+    },
+    {
+      currentFormId: 'starter-form'
+    }
+  );
+
+  await renderSnapshot(page, {
+    snapshot,
+    mode: 'model-driven-section',
+    audience: 'internal'
+  });
+
+  const root = page.locator('#root');
+  await expect(root).toContainText('Parent process');
+  await expect(root).toContainText('Onboarding timeline');
+  await expect(root).toContainText('Parent stage awaiting child completion');
+  await expect(root).toContainText('Active child process');
+  await expect(root).toContainText('IT readiness');
+  await expect(root).not.toContainText('React Flow');
+  await expect(root).not.toContainText('designer graph');
+  await expect(root).not.toContainText('drag');
+  await expect(root).toHaveScreenshot('model-driven-section-hierarchy-parent-child.png', {
+    animations: 'disabled'
+  });
 });

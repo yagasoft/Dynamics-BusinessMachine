@@ -153,6 +153,26 @@ runPositiveValidation(
   path.join(projectRoot, 'fixtures', 'valid', 'process-experience-snapshot-v1.json')
 );
 
+const hierarchySnapshotPath = path.join(projectRoot, 'fixtures', 'valid', 'process-experience-hierarchy-snapshot-v1.json');
+runPositiveValidation(
+  validateSnapshot,
+  'valid process experience hierarchy snapshot fixture',
+  hierarchySnapshotPath
+);
+
+const hierarchySnapshot = loadJson(hierarchySnapshotPath);
+if (hierarchySnapshot.rootProcess?.id !== 'onboarding-main') {
+  throw new Error('R1.4 process experience hierarchy snapshot fixture must carry the root parent process context.');
+}
+
+if (hierarchySnapshot.activeProcess?.id !== 'it-readiness') {
+  throw new Error('R1.4 process experience hierarchy snapshot fixture must carry the active child process context.');
+}
+
+if (hierarchySnapshot.blockedParentStage?.parentStageId !== 'preparation') {
+  throw new Error('R1.4 process experience hierarchy snapshot fixture must carry the blocked parent stage context.');
+}
+
 runPositiveValidation(
   validateRequest,
   'valid runtime request fixture',

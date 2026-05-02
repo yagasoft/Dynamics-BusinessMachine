@@ -139,12 +139,13 @@ test('ProcessExperienceSurface renders a parent process bar and active child wor
         currentFormId: 'starter-form'
     });
     render(_jsx(ProcessExperienceSurface, { snapshot: snapshot, mode: "model-driven-section" }));
+    expect(screen.getByRole('heading', { level: 2, name: 'IT readiness' })).toBeTruthy();
     expect(screen.getByText('Parent process')).toBeTruthy();
     expect(screen.getByText('Onboarding timeline')).toBeTruthy();
     expect(screen.getByText('Parent stage awaiting child completion')).toBeTruthy();
     expect(screen.getByText('Preparation')).toBeTruthy();
     expect(screen.getByText('Active child process')).toBeTruthy();
-    expect(screen.getByText('IT readiness')).toBeTruthy();
+    expect(screen.getAllByText('IT readiness').length).toBeGreaterThan(0);
     expect(screen.getAllByText('Prepare access').length).toBeGreaterThan(0);
     expect(screen.queryByText(/React Flow/i)).toBeNull();
     expect(screen.queryByText(/designer graph/i)).toBeNull();
