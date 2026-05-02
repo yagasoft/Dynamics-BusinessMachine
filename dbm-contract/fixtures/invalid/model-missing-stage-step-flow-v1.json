@@ -10,9 +10,15 @@
       "prefix": "dbm"
     },
     "entryProcessId": "approval-request-process",
-    "supportedHosts": ["model-driven"],
-    "supportedRuntimes": ["dataverse"],
-    "processUiSurfaces": ["model-driven"],
+    "supportedHosts": [
+      "model-driven"
+    ],
+    "supportedRuntimes": [
+      "dataverse"
+    ],
+    "processUiSurfaces": [
+      "model-driven"
+    ],
     "exposesPortalState": true,
     "ownsGeneratedDataverseArtifacts": true,
     "compatibility": {
@@ -26,33 +32,55 @@
       "artifactRoot": "artifacts/dbm-approval-request"
     }
   },
-  "process": {
-    "id": "approval-request-process",
-    "displayName": "Approval Request",
-    "scenarioType": "approval-request",
-    "actors": [],
-    "variables": [],
-    "statuses": [],
-    "tasks": [],
-    "notifications": [],
-    "stages": [
+  "processPortfolio": {
+    "mainProcessId": "approval-request-process",
+    "processes": [
       {
-        "id": "draft-request",
-        "displayName": "Draft Request",
-        "stageType": "start",
-        "actorId": "requester",
-        "formId": null,
-        "portalVisibility": "visible",
-        "defaultStepId": null,
-        "entryRuleIds": [],
-        "exitRuleIds": [],
-        "allowedOutcomeIds": []
+        "id": "approval-request-process",
+        "displayName": "Approval Request",
+        "scenarioType": "approval-request",
+        "actors": [],
+        "variables": [],
+        "statuses": [],
+        "tasks": [],
+        "notifications": [],
+        "stages": [
+          {
+            "id": "draft-request",
+            "displayName": "Draft Request",
+            "stageType": "start",
+            "actorId": "requester",
+            "formId": null,
+            "portalVisibility": "visible",
+            "defaultStepId": null,
+            "entryRuleIds": [],
+            "exitRuleIds": [],
+            "allowedOutcomeIds": [],
+            "scope": "portal",
+            "stageSpan": {
+              "start": {
+                "stageId": "draft-request",
+                "fraction": 0
+              },
+              "end": {
+                "stageId": "draft-request",
+                "fraction": 1
+              }
+            },
+            "statusId": "draft",
+            "portalStatusId": "draft"
+          }
+        ],
+        "steps": [],
+        "transitions": [],
+        "stepTransitions": [],
+        "outcomes": [],
+        "role": "main",
+        "mainDisplayMode": "expanded",
+        "statusId": "draft",
+        "portalStatusId": "draft"
       }
-    ],
-    "steps": [],
-    "transitions": [],
-    "stepTransitions": [],
-    "outcomes": []
+    ]
   },
   "forms": [],
   "metadata": {
@@ -71,9 +99,17 @@
       "statuses": []
     },
     "ownership": {
-      "pcf": { "responsibilities": [] },
-      "dataverse": { "responsibilities": [] },
-      "azure": { "responsibilities": ["support-services-only"] }
+      "pcf": {
+        "responsibilities": []
+      },
+      "dataverse": {
+        "responsibilities": []
+      },
+      "azure": {
+        "responsibilities": [
+          "support-services-only"
+        ]
+      }
     }
   },
   "artifacts": []

@@ -7,12 +7,12 @@
   "scripts": {
     "schema": "node ./scripts/generate-schema.cjs",
     "build": "npm run schema && tsc -p tsconfig.json",
-    "test": "npm run schema && node --test test/contract-fixtures.test.cjs",
+    "test": "npm run build && node --test test/contract-fixtures.test.cjs",
     "validate": "node ./scripts/validate-contracts.cjs"
   },
   "devDependencies": {
-    "ajv": "^8.18.0",
-    "typescript": "^6.0.2",
+    "ajv": "^8.20.0",
+    "typescript": "^6.0.3",
     "typescript-json-schema": "^0.67.1"
   }
 }

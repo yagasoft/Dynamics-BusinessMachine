@@ -57,9 +57,20 @@ Each process owns:
 
 - stable ID and display name
 - process role: `main` or `sub-process`
+- display mode for the main process: `expanded` or `collapsed`
+- internal status and portal status identifiers that can be projected without invoking runtime code
 - stages
 - visibility rules if it is a sub-process
 - rendered order below the main process
+
+`processPortfolio.mainProcessId` is the canonical main-process authority. `package.entryProcessId` may remain in package metadata for compatibility, but it must not override the process identified by `processPortfolio.mainProcessId`.
+
+Sub-process visibility uses audience-specific rules:
+
+- `form` for the rendered model-driven form projection
+- `portal` for the portal projection contract
+
+The same sub-process can therefore be visible in the rendered form and hidden from the portal projection, or the reverse, depending on the projection audience and rule result.
 
 ## Stage contract
 
@@ -88,6 +99,19 @@ Each stage owns:
 - spans across several main stages
 - validation that a sub-process stage resolves to a visible position on the main-process timeline
 
+Each `stageSpan` anchor stores a `stageId` and numeric `fraction`. `fraction` `0` means the start of the referenced main-process stage, and `fraction` `1` means the end of that stage. Stage scope is one of `portal`, `back-office`, or `shared`.
+
+## Executable contract helpers
+
+The R1.1 contract package exposes only minimal executable helpers:
+
+- `validateProcessPortfolioModelV1(model)` validates process-portfolio references that JSON Schema cannot prove, including a resolvable `mainProcessId` and stage-span anchors against the main-process timeline.
+- `createProcessPortfolioProjectionV1(model, context)` creates a contract-only projection for `form` or `portal`.
+
+The projection helper always includes the main process from `processPortfolio.mainProcessId`. It evaluates sub-process visibility separately for the requested audience. When the main process is projected as `collapsed`, the projection must still carry business-user status and portal status identifiers.
+
+The portal projection output is a contract shape only. It records `portalRuntimeInvoked: false` and must not depend on portal runtime, portal rendering, or external identity handling.
+
 ## Rendered form contract
 
 The rendered form is the final business-user process presentation, not the designer.
@@ -114,6 +138,20 @@ It must define:
 - which future portal actions can be exposed safely
 
 Actual portal rendering and runtime belong to `R5`.
+
+## R1.1 exclusions
+
+R1.1 does not implement:
+
+- portal runtime or portal rendering
+- DBMScript or action runtime
+- back-office transition runtime
+- routing
+- SLA/KPI execution
+- task execution
+- notification sending
+- DBM Object
+- AI behaviour
 
 ## DBMScript/action implications
 

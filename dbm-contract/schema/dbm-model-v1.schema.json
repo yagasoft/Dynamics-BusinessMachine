@@ -14,9 +14,9 @@
           "$ref": "#/definitions/DbmPackageV1",
           "title": "package"
         },
-        "process": {
-          "$ref": "#/definitions/DbmProcessV1",
-          "title": "process"
+        "processPortfolio": {
+          "$ref": "#/definitions/DbmProcessPortfolioV1",
+          "title": "processPortfolio"
         },
         "forms": {
           "type": "array",
@@ -54,7 +54,7 @@
         "forms",
         "metadata",
         "package",
-        "process",
+        "processPortfolio",
         "rules",
         "runtime",
         "schemaVersion"
@@ -231,6 +231,28 @@
         "solutionName"
       ]
     },
+    "DbmProcessPortfolioV1": {
+      "title": "DbmProcessPortfolioV1",
+      "type": "object",
+      "properties": {
+        "mainProcessId": {
+          "type": "string",
+          "title": "mainProcessId"
+        },
+        "processes": {
+          "type": "array",
+          "items": {
+            "$ref": "#/definitions/DbmProcessV1"
+          },
+          "title": "processes"
+        }
+      },
+      "additionalProperties": false,
+      "required": [
+        "mainProcessId",
+        "processes"
+      ]
+    },
     "DbmProcessV1": {
       "title": "DbmProcessV1",
       "type": "object",
@@ -243,9 +265,39 @@
           "type": "string",
           "title": "displayName"
         },
+        "role": {
+          "$ref": "#/definitions/DbmProcessRoleV1",
+          "title": "role"
+        },
         "scenarioType": {
           "type": "string",
           "title": "scenarioType"
+        },
+        "mainDisplayMode": {
+          "$ref": "#/definitions/DbmMainProcessDisplayModeV1",
+          "title": "mainDisplayMode"
+        },
+        "statusId": {
+          "type": "string",
+          "title": "statusId"
+        },
+        "portalStatusId": {
+          "type": [
+            "null",
+            "string"
+          ],
+          "title": "portalStatusId"
+        },
+        "renderOrder": {
+          "type": "number",
+          "title": "renderOrder"
+        },
+        "subProcessVisibility": {
+          "type": "array",
+          "items": {
+            "$ref": "#/definitions/DbmSubProcessVisibilityRuleV1"
+          },
+          "title": "subProcessVisibility"
         },
         "actors": {
           "type": "array",
@@ -323,10 +375,14 @@
         "actors",
         "displayName",
         "id",
+        "mainDisplayMode",
         "notifications",
         "outcomes",
+        "portalStatusId",
+        "role",
         "scenarioType",
         "stages",
+        "statusId",
         "statuses",
         "stepTransitions",
         "steps",
@@ -334,6 +390,57 @@
         "transitions",
         "variables"
       ]
+    },
+    "DbmProcessRoleV1": {
+      "title": "DbmProcessRoleV1",
+      "enum": [
+        "main",
+        "sub-process"
+      ],
+      "type": "string"
+    },
+    "DbmMainProcessDisplayModeV1": {
+      "title": "DbmMainProcessDisplayModeV1",
+      "enum": [
+        "collapsed",
+        "expanded"
+      ],
+      "type": "string"
+    },
+    "DbmSubProcessVisibilityRuleV1": {
+      "title": "DbmSubProcessVisibilityRuleV1",
+      "type": "object",
+      "properties": {
+        "audience": {
+          "$ref": "#/definitions/DbmProcessPortfolioProjectionAudienceV1",
+          "title": "audience"
+        },
+        "ruleId": {
+          "type": [
+            "null",
+            "string"
+          ],
+          "title": "ruleId"
+        },
+        "visibleWhen": {
+          "type": "boolean",
+          "title": "visibleWhen"
+        }
+      },
+      "additionalProperties": false,
+      "required": [
+        "audience",
+        "ruleId",
+        "visibleWhen"
+      ]
+    },
+    "DbmProcessPortfolioProjectionAudienceV1": {
+      "title": "DbmProcessPortfolioProjectionAudienceV1",
+      "enum": [
+        "form",
+        "portal"
+      ],
+      "type": "string"
     },
     "DbmActorV1": {
       "title": "DbmActorV1",
@@ -594,6 +701,14 @@
           "$ref": "#/definitions/DbmStageTypeV1",
           "title": "stageType"
         },
+        "scope": {
+          "$ref": "#/definitions/DbmStageScopeV1",
+          "title": "scope"
+        },
+        "stageSpan": {
+          "$ref": "#/definitions/DbmStageSpanV1",
+          "title": "stageSpan"
+        },
         "actorId": {
           "type": "string",
           "title": "actorId"
@@ -608,6 +723,17 @@
         "portalVisibility": {
           "$ref": "#/definitions/DbmStagePortalVisibilityV1",
           "title": "portalVisibility"
+        },
+        "statusId": {
+          "type": "string",
+          "title": "statusId"
+        },
+        "portalStatusId": {
+          "type": [
+            "null",
+            "string"
+          ],
+          "title": "portalStatusId"
         },
         "stepIds": {
           "type": "array",
@@ -655,8 +781,12 @@
         "exitRuleIds",
         "formId",
         "id",
+        "portalStatusId",
         "portalVisibility",
+        "scope",
+        "stageSpan",
         "stageType",
+        "statusId",
         "stepIds"
       ]
     },
@@ -670,6 +800,53 @@
         "task"
       ],
       "type": "string"
+    },
+    "DbmStageScopeV1": {
+      "title": "DbmStageScopeV1",
+      "enum": [
+        "back-office",
+        "portal",
+        "shared"
+      ],
+      "type": "string"
+    },
+    "DbmStageSpanV1": {
+      "title": "DbmStageSpanV1",
+      "type": "object",
+      "properties": {
+        "start": {
+          "$ref": "#/definitions/DbmStageSpanAnchorV1",
+          "title": "start"
+        },
+        "end": {
+          "$ref": "#/definitions/DbmStageSpanAnchorV1",
+          "title": "end"
+        }
+      },
+      "additionalProperties": false,
+      "required": [
+        "end",
+        "start"
+      ]
+    },
+    "DbmStageSpanAnchorV1": {
+      "title": "DbmStageSpanAnchorV1",
+      "type": "object",
+      "properties": {
+        "stageId": {
+          "type": "string",
+          "title": "stageId"
+        },
+        "fraction": {
+          "type": "number",
+          "title": "fraction"
+        }
+      },
+      "additionalProperties": false,
+      "required": [
+        "fraction",
+        "stageId"
+      ]
     },
     "DbmStagePortalVisibilityV1": {
       "title": "DbmStagePortalVisibilityV1",

@@ -7,6 +7,10 @@ const Ajv = require('ajv');
 const projectRoot = path.resolve(__dirname, '..');
 const repoRoot = path.resolve(projectRoot, '..');
 const schemaRoot = path.join(projectRoot, 'schema');
+const {
+  createProcessPortfolioProjectionV1,
+  validateProcessPortfolioModelV1
+} = require(path.join(projectRoot, 'dist', 'index.js'));
 
 function loadJson(filePath) {
   return JSON.parse(fs.readFileSync(filePath, 'utf8'));
@@ -43,6 +47,117 @@ test('R1.1 canonical approval request model fixture satisfies DbmModelV1', () =>
   const model = loadJson(path.join(repoRoot, 'docs', 'architecture', 'examples', 'approval-request-v1.model.json'));
 
   expectValid(validateModel, model, 'approval request model');
+});
+
+test('R1.1 process portfolio fixture validates against DbmModelV1 schema', () => {
+  const validateModel = compileSchema('dbm-model-v1.schema.json');
+  const model = loadJson(path.join(projectRoot, 'fixtures', 'valid', 'process-portfolio-r1-1.model.json'));
+
+  expectValid(validateModel, model, 'R1.1 process portfolio model');
+  assert.equal(model.processPortfolio.mainProcessId, 'approval-main');
+  assert.equal(model.package.entryProcessId, 'legacy-entry-not-authoritative');
+});
+
+test('R1.1 executable validation rejects an unresolved main process', () => {
+  assert.equal(typeof validateProcessPortfolioModelV1, 'function');
+
+  const model = loadJson(path.join(projectRoot, 'fixtures', 'valid', 'process-portfolio-r1-1.model.json'));
+  model.processPortfolio.mainProcessId = 'missing-main';
+
+  const issues = validateProcessPortfolioModelV1(model);
+
+  assert.equal(issues.some((issue) => issue.code === 'main-process-not-found'), true);
+});
+
+test('R1.1 form projection always includes the main process from processPortfolio.mainProcessId', () => {
+  assert.equal(typeof createProcessPortfolioProjectionV1, 'function');
+
+  const model = loadJson(path.join(projectRoot, 'fixtures', 'valid', 'process-portfolio-r1-1.model.json'));
+  const projection = createProcessPortfolioProjectionV1(model, {
+    audience: 'form',
+    ruleResults: {
+      'show-internal-screening-on-form': true,
+      'show-portal-follow-up-on-form': false
+    }
+  });
+
+  assert.equal(projection.mainProcess.id, 'approval-main');
+  assert.equal(projection.processIdAuthority, 'processPortfolio.mainProcessId');
+  assert.equal(projection.mainProcess.statusId, 'under-review');
+});
+
+test('R1.1 sub-process visibility is evaluated separately for form and portal audiences', () => {
+  const model = loadJson(path.join(projectRoot, 'fixtures', 'valid', 'process-portfolio-r1-1.model.json'));
+  const formProjection = createProcessPortfolioProjectionV1(model, {
+    audience: 'form',
+    ruleResults: {
+      'show-internal-screening-on-form': true,
+      'show-internal-screening-on-portal': false,
+      'show-portal-follow-up-on-form': false,
+      'show-portal-follow-up-on-portal': true
+    }
+  });
+  const portalProjection = createProcessPortfolioProjectionV1(model, {
+    audience: 'portal',
+    ruleResults: {
+      'show-internal-screening-on-form': true,
+      'show-internal-screening-on-portal': false,
+      'show-portal-follow-up-on-form': false,
+      'show-portal-follow-up-on-portal': true
+    }
+  });
+
+  assert.deepEqual(formProjection.subProcesses.map((process) => process.id), ['internal-screening']);
+  assert.deepEqual(portalProjection.subProcesses.map((process) => process.id), ['portal-follow-up']);
+});
+
+test('R1.1 whole-stage and fractional stageSpan anchors validate against the main timeline', () => {
+  const model = loadJson(path.join(projectRoot, 'fixtures', 'valid', 'process-portfolio-r1-1.model.json'));
+
+  assert.deepEqual(validateProcessPortfolioModelV1(model), []);
+
+  model.processPortfolio.processes[1].stages[0].stageSpan.start.fraction = 1.5;
+  assert.equal(
+    validateProcessPortfolioModelV1(model).some((issue) => issue.code === 'stage-span-fraction-out-of-range'),
+    true
+  );
+
+  model.processPortfolio.processes[1].stages[0].stageSpan.start.fraction = 0.5;
+  model.processPortfolio.processes[1].stages[0].stageSpan.end.stageId = 'missing-stage';
+  assert.equal(
+    validateProcessPortfolioModelV1(model).some((issue) => issue.code === 'stage-span-anchor-not-found'),
+    true
+  );
+});
+
+test('R1.1 collapsed main-process projection preserves business-user process status', () => {
+  const model = loadJson(path.join(projectRoot, 'fixtures', 'valid', 'process-portfolio-r1-1.model.json'));
+  const projection = createProcessPortfolioProjectionV1(model, {
+    audience: 'form',
+    mainDisplayMode: 'collapsed',
+    ruleResults: {}
+  });
+
+  assert.equal(projection.mainProcess.displayMode, 'collapsed');
+  assert.equal(projection.mainProcess.statusId, 'under-review');
+  assert.equal(projection.mainProcess.portalStatusId, 'under-review');
+});
+
+test('R1.1 portal projection contract output validates without portal runtime', () => {
+  const validateProjection = compileSchema('dbm-process-portfolio-projection-v1.schema.json');
+  const model = loadJson(path.join(projectRoot, 'fixtures', 'valid', 'process-portfolio-r1-1.model.json'));
+  const projection = createProcessPortfolioProjectionV1(model, {
+    audience: 'portal',
+    ruleResults: {
+      'show-internal-screening-on-portal': false,
+      'show-portal-follow-up-on-portal': true
+    }
+  });
+
+  expectValid(validateProjection, projection, 'portal projection contract');
+  assert.equal(projection.schemaVersion, 'dbm.process-portfolio.projection/v1');
+  assert.equal(projection.audience, 'portal');
+  assert.equal(projection.portalRuntimeInvoked, false);
 });
 
 test('R2.1 designer workspace rejects canonical model leakage', () => {

@@ -2,6 +2,7 @@ export type DbmSchemaVersionV1 = 'dbm.model/v1';
 export type DbmDesignerWorkspaceSchemaVersionV1 = 'dbm.designer.workspace/v1';
 export type DbmDesignerGraphDocumentSchemaVersionV1 = 'dbm.designer.graph-document/v1';
 export type DbmProcessExperienceSnapshotSchemaVersionV1 = 'dbm.process-experience.snapshot/v1';
+export type DbmProcessPortfolioProjectionSchemaVersionV1 = 'dbm.process-portfolio.projection/v1';
 export type DbmRuntimeRequestSchemaVersionV1 = 'dbm.runtime.request/v1';
 export type DbmRuntimeResultSchemaVersionV1 = 'dbm.runtime.result/v1';
 export type DbmPortalRuntimeBootstrapSchemaVersionV1 = 'dbm.portal-runtime.bootstrap/v1';
@@ -25,6 +26,10 @@ export type DbmVariablePersistenceV1 = 'runtime-only' | 'persisted';
 
 export type DbmStageTypeV1 = 'start' | 'task' | 'approval' | 'system' | 'end';
 export type DbmStagePortalVisibilityV1 = 'visible' | 'hidden';
+export type DbmProcessRoleV1 = 'main' | 'sub-process';
+export type DbmStageScopeV1 = 'portal' | 'back-office' | 'shared';
+export type DbmProcessPortfolioProjectionAudienceV1 = 'form' | 'portal';
+export type DbmMainProcessDisplayModeV1 = 'expanded' | 'collapsed';
 
 export type DbmStepTypeV1 = 'data-entry' | 'review' | 'approval' | 'system';
 
@@ -178,13 +183,27 @@ export interface DbmNotificationDefinitionV1 {
   templateRef: string;
 }
 
+export interface DbmStageSpanAnchorV1 {
+  stageId: string;
+  fraction: number;
+}
+
+export interface DbmStageSpanV1 {
+  start: DbmStageSpanAnchorV1;
+  end: DbmStageSpanAnchorV1;
+}
+
 export interface DbmStageV1 {
   id: string;
   displayName: string;
   stageType: DbmStageTypeV1;
+  scope: DbmStageScopeV1;
+  stageSpan: DbmStageSpanV1;
   actorId: string;
   formId: string | null;
   portalVisibility: DbmStagePortalVisibilityV1;
+  statusId: string;
+  portalStatusId: string | null;
   stepIds: string[];
   defaultStepId: string | null;
   entryRuleIds: string[];
@@ -236,10 +255,22 @@ export interface DbmOutcomeV1 {
   displayName: string;
 }
 
+export interface DbmSubProcessVisibilityRuleV1 {
+  audience: DbmProcessPortfolioProjectionAudienceV1;
+  ruleId: string | null;
+  visibleWhen: boolean;
+}
+
 export interface DbmProcessV1 {
   id: string;
   displayName: string;
+  role: DbmProcessRoleV1;
   scenarioType: string;
+  mainDisplayMode: DbmMainProcessDisplayModeV1;
+  statusId: string;
+  portalStatusId: string | null;
+  renderOrder?: number;
+  subProcessVisibility?: DbmSubProcessVisibilityRuleV1[];
   actors: DbmActorV1[];
   variables: DbmVariableV1[];
   statuses: DbmStatusV1[];
@@ -250,6 +281,11 @@ export interface DbmProcessV1 {
   transitions: DbmTransitionV1[];
   stepTransitions: DbmStepTransitionV1[];
   outcomes: DbmOutcomeV1[];
+}
+
+export interface DbmProcessPortfolioV1 {
+  mainProcessId: string;
+  processes: DbmProcessV1[];
 }
 
 export interface DbmLayoutRegionV1 {
@@ -422,12 +458,238 @@ export interface DbmArtifactV1 {
 export interface DbmModelV1 {
   schemaVersion: DbmSchemaVersionV1;
   package: DbmPackageV1;
-  process: DbmProcessV1;
+  processPortfolio: DbmProcessPortfolioV1;
   forms: DbmFormV1[];
   metadata: DbmMetadataV1;
   rules: DbmRuleV1[];
   runtime: DbmRuntimeModelV1;
   artifacts: DbmArtifactV1[];
+}
+
+export type DbmProcessPortfolioValidationIssueCodeV1 =
+  | 'main-process-not-found'
+  | 'main-process-role-invalid'
+  | 'main-process-duplicate'
+  | 'sub-process-role-invalid'
+  | 'stage-span-anchor-not-found'
+  | 'stage-span-fraction-out-of-range'
+  | 'stage-span-reversed';
+
+export interface DbmProcessPortfolioValidationIssueV1 {
+  code: DbmProcessPortfolioValidationIssueCodeV1;
+  path: string;
+  message: string;
+}
+
+export interface DbmProcessPortfolioProjectionContextV1 {
+  audience: DbmProcessPortfolioProjectionAudienceV1;
+  mainDisplayMode?: DbmMainProcessDisplayModeV1;
+  ruleResults?: Record<string, boolean>;
+}
+
+export interface DbmProcessPortfolioProjectionStageV1 {
+  id: string;
+  displayName: string;
+  stageType: DbmStageTypeV1;
+  scope: DbmStageScopeV1;
+  stageSpan: DbmStageSpanV1;
+  portalVisibility: DbmStagePortalVisibilityV1;
+  statusId: string;
+  portalStatusId: string | null;
+}
+
+export interface DbmProcessPortfolioProjectionProcessV1 {
+  id: string;
+  displayName: string;
+  role: DbmProcessRoleV1;
+  displayMode: DbmMainProcessDisplayModeV1;
+  statusId: string;
+  portalStatusId: string | null;
+  stages: DbmProcessPortfolioProjectionStageV1[];
+}
+
+export interface DbmProcessPortfolioProjectionV1 {
+  schemaVersion: DbmProcessPortfolioProjectionSchemaVersionV1;
+  packageId: string;
+  packageVersion: string;
+  audience: DbmProcessPortfolioProjectionAudienceV1;
+  processIdAuthority: 'processPortfolio.mainProcessId';
+  portalRuntimeInvoked: boolean;
+  mainProcess: DbmProcessPortfolioProjectionProcessV1;
+  subProcesses: DbmProcessPortfolioProjectionProcessV1[];
+}
+
+function createValidationIssue(
+  code: DbmProcessPortfolioValidationIssueCodeV1,
+  path: string,
+  message: string
+): DbmProcessPortfolioValidationIssueV1 {
+  return { code, path, message };
+}
+
+function findMainProcess(model: DbmModelV1): DbmProcessV1 | undefined {
+  return model.processPortfolio.processes.find((process) => process.id === model.processPortfolio.mainProcessId);
+}
+
+function resolveTimelinePosition(
+  anchor: DbmStageSpanAnchorV1,
+  mainStageIndex: Map<string, number>
+): number | null {
+  const stageIndex = mainStageIndex.get(anchor.stageId);
+  if (stageIndex === undefined) {
+    return null;
+  }
+
+  return stageIndex + anchor.fraction;
+}
+
+export function validateProcessPortfolioModelV1(model: DbmModelV1): DbmProcessPortfolioValidationIssueV1[] {
+  const issues: DbmProcessPortfolioValidationIssueV1[] = [];
+  const mainProcess = findMainProcess(model);
+
+  if (!mainProcess) {
+    issues.push(createValidationIssue(
+      'main-process-not-found',
+      '/processPortfolio/mainProcessId',
+      'processPortfolio.mainProcessId must resolve to a process in processPortfolio.processes.'
+    ));
+    return issues;
+  }
+
+  if (mainProcess.role !== 'main') {
+    issues.push(createValidationIssue(
+      'main-process-role-invalid',
+      `/processPortfolio/processes/${model.processPortfolio.processes.indexOf(mainProcess)}/role`,
+      'The process identified by processPortfolio.mainProcessId must have role main.'
+    ));
+  }
+
+  const mainRoleProcesses = model.processPortfolio.processes.filter((process) => process.role === 'main');
+  if (mainRoleProcesses.length !== 1) {
+    issues.push(createValidationIssue(
+      'main-process-duplicate',
+      '/processPortfolio/processes',
+      'Exactly one process must have role main.'
+    ));
+  }
+
+  const mainStageIndex = new Map(mainProcess.stages.map((stage, index) => [stage.id, index]));
+
+  model.processPortfolio.processes.forEach((process, processIndex) => {
+    if (process.id !== mainProcess.id && process.role !== 'sub-process') {
+      issues.push(createValidationIssue(
+        'sub-process-role-invalid',
+        `/processPortfolio/processes/${processIndex}/role`,
+        'Every non-main process in the portfolio must have role sub-process.'
+      ));
+    }
+
+    process.stages.forEach((stage, stageIndex) => {
+      const spanPath = `/processPortfolio/processes/${processIndex}/stages/${stageIndex}/stageSpan`;
+      const anchors: Array<[string, DbmStageSpanAnchorV1]> = [
+        ['start', stage.stageSpan.start],
+        ['end', stage.stageSpan.end]
+      ];
+
+      for (const [anchorName, anchor] of anchors) {
+        if (anchor.fraction < 0 || anchor.fraction > 1) {
+          issues.push(createValidationIssue(
+            'stage-span-fraction-out-of-range',
+            `${spanPath}/${anchorName}/fraction`,
+            'stageSpan anchor fraction must be between 0 and 1.'
+          ));
+        }
+
+        if (!mainStageIndex.has(anchor.stageId)) {
+          issues.push(createValidationIssue(
+            'stage-span-anchor-not-found',
+            `${spanPath}/${anchorName}/stageId`,
+            'stageSpan anchor stageId must resolve to a stage in the main process timeline.'
+          ));
+        }
+      }
+
+      const startPosition = resolveTimelinePosition(stage.stageSpan.start, mainStageIndex);
+      const endPosition = resolveTimelinePosition(stage.stageSpan.end, mainStageIndex);
+      if (startPosition !== null && endPosition !== null && startPosition > endPosition) {
+        issues.push(createValidationIssue(
+          'stage-span-reversed',
+          spanPath,
+          'stageSpan start anchor must not appear after the end anchor on the main process timeline.'
+        ));
+      }
+    });
+  });
+
+  return issues;
+}
+
+function isSubProcessVisible(
+  process: DbmProcessV1,
+  context: DbmProcessPortfolioProjectionContextV1
+): boolean {
+  const visibilityRules = process.subProcessVisibility?.filter((rule) => rule.audience === context.audience) ?? [];
+  if (visibilityRules.length === 0) {
+    return false;
+  }
+
+  return visibilityRules.some((rule) => {
+    if (rule.ruleId === null) {
+      return rule.visibleWhen;
+    }
+
+    return (context.ruleResults?.[rule.ruleId] ?? false) === rule.visibleWhen;
+  });
+}
+
+function projectProcess(
+  process: DbmProcessV1,
+  displayMode: DbmMainProcessDisplayModeV1
+): DbmProcessPortfolioProjectionProcessV1 {
+  return {
+    id: process.id,
+    displayName: process.displayName,
+    role: process.role,
+    displayMode,
+    statusId: process.statusId,
+    portalStatusId: process.portalStatusId,
+    stages: process.stages.map((stage) => ({
+      id: stage.id,
+      displayName: stage.displayName,
+      stageType: stage.stageType,
+      scope: stage.scope,
+      stageSpan: stage.stageSpan,
+      portalVisibility: stage.portalVisibility,
+      statusId: stage.statusId,
+      portalStatusId: stage.portalStatusId
+    }))
+  };
+}
+
+export function createProcessPortfolioProjectionV1(
+  model: DbmModelV1,
+  context: DbmProcessPortfolioProjectionContextV1
+): DbmProcessPortfolioProjectionV1 {
+  const mainProcess = findMainProcess(model);
+  if (!mainProcess) {
+    throw new Error('processPortfolio.mainProcessId must resolve before a projection can be created.');
+  }
+
+  const displayMode = context.mainDisplayMode ?? mainProcess.mainDisplayMode;
+  const visibleSubProcesses = model.processPortfolio.processes
+    .filter((process) => process.id !== mainProcess.id && process.role === 'sub-process' && isSubProcessVisible(process, context))
+    .sort((left, right) => (left.renderOrder ?? 0) - (right.renderOrder ?? 0));
+
+  return {
+    schemaVersion: 'dbm.process-portfolio.projection/v1',
+    packageId: model.package.id,
+    packageVersion: model.package.version,
+    audience: context.audience,
+    processIdAuthority: 'processPortfolio.mainProcessId',
+    portalRuntimeInvoked: false,
+    mainProcess: projectProcess(mainProcess, displayMode),
+    subProcesses: visibleSubProcesses.map((process) => projectProcess(process, process.mainDisplayMode))
+  };
 }
 
 export interface DbmDesignerViewportV1 {

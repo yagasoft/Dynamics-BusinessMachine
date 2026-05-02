@@ -1,6 +1,10 @@
 const fs = require('fs');
 const path = require('path');
 const Ajv = require('ajv');
+const {
+  createProcessPortfolioProjectionV1,
+  validateProcessPortfolioModelV1
+} = require('../dist/index.js');
 
 const projectRoot = path.resolve(__dirname, '..');
 const repoRoot = path.resolve(projectRoot, '..');
@@ -52,6 +56,7 @@ const ajv = new Ajv({
 });
 
 const modelSchema = loadJson(path.join(schemaRoot, 'dbm-model-v1.schema.json'));
+const processPortfolioProjectionSchema = loadJson(path.join(schemaRoot, 'dbm-process-portfolio-projection-v1.schema.json'));
 const workspaceSchema = loadJson(path.join(schemaRoot, 'dbm-designer-workspace-v1.schema.json'));
 const graphDocumentSchema = loadJson(path.join(schemaRoot, 'dbm-designer-graph-document-v1.schema.json'));
 const snapshotSchema = loadJson(path.join(schemaRoot, 'dbm-process-experience-snapshot-v1.schema.json'));
@@ -66,12 +71,37 @@ const validateRequest = ajv.compile(requestSchema);
 const validateResult = ajv.compile(resultSchema);
 const validatePortalBootstrap = ajv.compile(portalBootstrapSchema);
 const validateModel = ajv.compile(modelSchema);
+const validateProcessPortfolioProjection = ajv.compile(processPortfolioProjectionSchema);
 
 runPositiveValidation(
   validateModel,
   'docs approval/request example model',
   path.join(repoRoot, 'docs', 'architecture', 'examples', 'approval-request-v1.model.json')
 );
+
+const processPortfolioModelPath = path.join(projectRoot, 'fixtures', 'valid', 'process-portfolio-r1-1.model.json');
+runPositiveValidation(
+  validateModel,
+  'valid R1.1 process portfolio model fixture',
+  processPortfolioModelPath
+);
+
+const processPortfolioModel = loadJson(processPortfolioModelPath);
+const processPortfolioIssues = validateProcessPortfolioModelV1(processPortfolioModel);
+if (processPortfolioIssues.length > 0) {
+  throw new Error(`R1.1 process portfolio executable validation failed:\n${JSON.stringify(processPortfolioIssues, null, 2)}`);
+}
+
+const processPortfolioProjection = createProcessPortfolioProjectionV1(processPortfolioModel, {
+  audience: 'portal',
+  ruleResults: {
+    'show-internal-screening-on-portal': false,
+    'show-portal-follow-up-on-portal': true
+  }
+});
+if (!validateProcessPortfolioProjection(processPortfolioProjection)) {
+  throw new Error(`R1.1 process portfolio projection validation failed:\n${formatErrors(validateProcessPortfolioProjection.errors)}`);
+}
 
 runPositiveValidation(
   validateWorkspace,
