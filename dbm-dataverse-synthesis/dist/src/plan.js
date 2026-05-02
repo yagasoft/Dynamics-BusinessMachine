@@ -3,6 +3,7 @@ Object.defineProperty(exports, "__esModule", { value: true });
 exports.planDataverseSynthesis = planDataverseSynthesis;
 const common_1 = require("./common");
 const forms_1 = require("./forms");
+const process_portfolio_1 = require("./process-portfolio");
 function tryGetLogicalName(binding, fallbackLabel, diagnostics, modelPath) {
     try {
         return (0, common_1.getDataverseLogicalName)(binding, fallbackLabel);
@@ -41,7 +42,8 @@ function mapChoiceOptions(field) {
     }));
 }
 function getRuntimeOwnerEntityId(model) {
-    const startStage = model.process.stages.find((stage) => stage.stageType === 'start') ?? model.process.stages[0];
+    const stages = (0, process_portfolio_1.getProcessStages)(model);
+    const startStage = stages.find((stage) => (0, process_portfolio_1.getStageType)(stage) === 'start') ?? stages[0];
     if (!startStage?.formId) {
         return null;
     }
@@ -81,55 +83,6 @@ function createSyntheticRuntimeStateColumns(entityId, entityLogicalName) {
         maxLength: 200
     }));
 }
-function buildProcessExperienceRuntimeModel(model) {
-    return {
-        packageId: model.package.id,
-        packageVersion: model.package.version,
-        processId: model.process.id,
-        actors: model.process.actors.map((actor) => ({
-            id: actor.id,
-            displayName: actor.displayName,
-            actorType: actor.actorType
-        })),
-        statuses: model.process.statuses.map((status) => ({
-            id: status.id,
-            displayName: status.displayName,
-            audience: status.audience,
-            kind: status.kind
-        })),
-        outcomes: model.process.outcomes.map((outcome) => ({
-            id: outcome.id,
-            displayName: outcome.displayName
-        })),
-        stages: model.process.stages.map((stage) => ({
-            id: stage.id,
-            displayName: stage.displayName,
-            stageType: stage.stageType,
-            actorId: stage.actorId,
-            formId: stage.formId,
-            portalVisibility: stage.portalVisibility,
-            stepIds: [...stage.stepIds],
-            defaultStepId: stage.defaultStepId,
-            allowedOutcomeIds: [...stage.allowedOutcomeIds]
-        })),
-        steps: model.process.steps.map((step) => ({
-            id: step.id,
-            stageId: step.stageId,
-            displayName: step.displayName,
-            stepType: step.stepType,
-            ownerActorId: step.ownerActorId,
-            internalStatusId: step.internalStatusId,
-            portalStatusId: step.portalStatusId,
-            formStateId: step.formStateId
-        })),
-        transitions: model.process.transitions.map((transition) => ({
-            id: transition.id,
-            fromStageId: transition.fromStageId,
-            toStageId: transition.toStageId,
-            outcomeId: transition.outcomeId
-        }))
-    };
-}
 function toPortalRouteSegment(packageId) {
     const normalized = packageId
         .toLowerCase()
@@ -153,7 +106,7 @@ function buildPortalRuntimeEntryFields(model, runtimeOwnerEntityId, startStageId
         diagnostics.push((0, common_1.createDiagnostic)('portal-runtime-entry-fields-incomplete', 'warning', 'Portal runtime entry fields could not be derived from the start-form configuration.', 'forms'));
         return [];
     }
-    const startFormStateIds = new Set(model.process.steps
+    const startFormStateIds = new Set((0, process_portfolio_1.getProcessSteps)(model)
         .filter((step) => step.stageId === startStageId && step.formStateId)
         .map((step) => step.formStateId));
     if (startFormStateIds.size === 0) {
@@ -207,10 +160,13 @@ function buildPortalRuntimePlan(model, entityPlans, runtimeOwnerEntityId, diagno
         return null;
     }
     const runtimeOwnerEntity = entityPlans.get(runtimeOwnerEntityId);
-    const startStage = model.process.stages.find((stage) => stage.stageType === 'start') ?? model.process.stages[0];
+    const stages = (0, process_portfolio_1.getProcessStages)(model);
+    const steps = (0, process_portfolio_1.getProcessSteps)(model);
+    const mainProcess = (0, process_portfolio_1.getMainProcess)(model);
+    const startStage = stages.find((stage) => (0, process_portfolio_1.getStageType)(stage) === 'start') ?? stages[0];
     const defaultStep = startStage
-        ? model.process.steps.find((step) => step.id === startStage.defaultStepId)
-            ?? model.process.steps.find((step) => step.stageId === startStage.id)
+        ? steps.find((step) => step.id === startStage.defaultStepId)
+            ?? steps.find((step) => step.stageId === startStage.id)
         : null;
     if (!runtimeOwnerEntity || !startStage || !defaultStep || !startStage.formId) {
         diagnostics.push((0, common_1.createDiagnostic)('portal-runtime-bootstrap-incomplete', 'warning', 'Portal runtime bootstrap was skipped because the start-stage runtime contract is incomplete.', 'process.stages'));
@@ -224,7 +180,7 @@ function buildPortalRuntimePlan(model, entityPlans, runtimeOwnerEntityId, diagno
             schemaVersion: 'dbm.portal-runtime.bootstrap/v1',
             packageId: model.package.id,
             packageVersion: model.package.version,
-            processId: model.process.id,
+            processId: mainProcess.id,
             identityMode: 'generic-profile',
             genericProfileKey: 'dev-anonymous-requester',
             routes: {
@@ -253,7 +209,7 @@ function buildPortalRuntimePlan(model, entityPlans, runtimeOwnerEntityId, diagno
             },
             allowedActions: ['create-draft', 'submit-request', 'refresh-status']
         },
-        processExperienceRuntime: buildProcessExperienceRuntimeModel(model),
+        processExperienceRuntime: (0, process_portfolio_1.buildProcessExperienceRuntimeModelFromModel)(model),
         requestEntityId: runtimeOwnerEntityId,
         requestEntityLogicalName: runtimeOwnerEntity.logicalName,
         requestEntitySetName: runtimeOwnerEntity.logicalCollectionName,

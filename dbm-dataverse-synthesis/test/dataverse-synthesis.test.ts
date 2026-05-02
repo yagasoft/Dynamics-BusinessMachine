@@ -5,6 +5,7 @@ import test from 'node:test';
 import { createContext, runInContext } from 'node:vm';
 import type { DbmModelV1 } from 'dbm-contract';
 import approvalRequestModel from '../../docs/architecture/examples/approval-request-v1.model.json';
+import employeeOnboardingModel from '../../dbm-contract/fixtures/valid/generic-process-matrix/employee-onboarding.model.json';
 import genericExistingFormModel from '../../docs/architecture/examples/generic-existing-form-v1.model.json';
 import {
   applySynthesisPlanToDev,
@@ -43,7 +44,7 @@ function sanitizeFunctionIdentifier(value: string): string {
 }
 
 async function createRuntimeHarnessForModel(model: DbmModelV1, formId: string): Promise<RuntimeHarness> {
-  const { buildRuntimeProcessExperienceSnapshot } = await import('dbm-process-experience');
+  const { buildProcessPortfolioExperienceSnapshot, buildRuntimeProcessExperienceSnapshot } = await import('dbm-process-experience');
   const plan = planDataverseSynthesis(model);
   const runtimeJs = plan.behaviors.find((behavior) => behavior.webResourceName === 'ys_/dbm/forms/runtime.js')?.content;
   const configFileName = `${formId}.js`;
@@ -84,6 +85,7 @@ async function createRuntimeHarnessForModel(model: DbmModelV1, formId: string): 
   const context = createContext(sandbox);
   runInContext(runtimeJs, context);
   sandbox.DBM.ProcessExperienceHost = {
+    buildProcessPortfolioExperienceSnapshot,
     buildRuntimeProcessExperienceSnapshot,
     render: () => undefined,
     unmount: () => undefined
@@ -413,6 +415,8 @@ test('planDataverseSynthesis maps the approval example into entities, existing f
   assert.match(reviewHostData.hostVersion ?? '', /^[a-f0-9]+$/i);
   assert.equal(reviewHostData.minHeightPx, 320);
   assert.equal(reviewForm?.processHost?.supported?.minHeightPx, 320);
+  assert.equal((reviewForm?.runtime?.processExperienceRuntime as any)?.processPortfolio?.mainProcessId, 'approval-request-process');
+  assert.doesNotMatch(JSON.stringify(reviewForm?.processHost ?? {}), /reactFlow|designer graph|nodes|edges/i);
   assert.match(hostPageBehavior?.content ?? '', /ResizeObserver/);
   assert.equal(
     reviewForm?.processHost?.designerEntryUrl,
@@ -437,7 +441,7 @@ test('planDataverseSynthesis maps the approval example into entities, existing f
 });
 
 test('planDataverseSynthesis supports a non-reference existing-form model with explicit cross-entity handoff', () => {
-  const plan = planDataverseSynthesis(genericExistingFormModel as DbmModelV1);
+  const plan = planDataverseSynthesis(genericExistingFormModel as unknown as DbmModelV1);
   const assignmentForm = plan.forms.find((form) => form.id === 'assignment-form');
   const caseEntity = plan.entities.find((entity) => entity.logicalName === 'dbm_case');
 
@@ -486,6 +490,16 @@ test('planDataverseSynthesis supports a non-reference existing-form model with e
     assignmentForm?.processHost?.designerEntryUrl,
     '/main.aspx?pagetype=webresource&webresourceName=ys_%2Fdbm%2Fapps%2Feditor%2Findex.html&data=%7B%22packageName%22%3A%22dbm-case-assignment%22%7D'
   );
+});
+
+test('planDataverseSynthesis accepts a generic matrix model without legacy model.process', () => {
+  const model = employeeOnboardingModel as DbmModelV1 & { process?: unknown };
+
+  assert.equal(model.process, undefined);
+  const plan = planDataverseSynthesis(model);
+
+  assert.equal(plan.summary.supportedForms, 0);
+  assert.equal(plan.diagnostics.some((diagnostic) => /model\.process/i.test(diagnostic.message)), false);
 });
 
 test('normalizeReadbackEntity captures lookup targets and picklist values', () => {
@@ -753,6 +767,8 @@ test('generated request runtime sync advances large requests into supporting det
     assert.equal(form.controls.get('dbm_screeningresult')?.state.visible, false);
     assert.equal(form.sectionRenders.length, 1);
     assert.equal(form.sectionRenders[0]?.snapshot.currentStepId, 'capture-supporting-details');
+    assert.equal(form.sectionRenders[0]?.snapshot.rootProcess?.id, 'approval-request-process');
+    assert.equal(form.sectionRenders[0]?.snapshot.activeProcess?.id, 'approval-request-process');
     assert.equal(form.sectionRenders[0]?.mode, 'model-driven-section');
     assert.equal(form.sectionRenders[0]?.navigationTarget?.controlName, 'dbm_supportingnotes');
     assert.equal(form.overlayRenders.length, 1);
@@ -850,7 +866,7 @@ test('generated request runtime creates a related record and prepares cross-form
 });
 
 test('generic existing-form runtime creates a related record and opens the generated target form during handoff', async () => {
-  const harness = await createRuntimeHarnessForModel(genericExistingFormModel as DbmModelV1, 'case-form');
+  const harness = await createRuntimeHarnessForModel(genericExistingFormModel as unknown as DbmModelV1, 'case-form');
   try {
     const patchedPayloads: any[] = [];
     const createdAssignmentPayloads: any[] = [];
@@ -935,7 +951,7 @@ test('generic existing-form runtime creates a related record and opens the gener
 });
 
 test('generic existing-form runtime does not persist a cross-form handoff when the related record cannot be created', async () => {
-  const harness = await createRuntimeHarnessForModel(genericExistingFormModel as DbmModelV1, 'case-form');
+  const harness = await createRuntimeHarnessForModel(genericExistingFormModel as unknown as DbmModelV1, 'case-form');
   try {
     const patchedPayloads: any[] = [];
     const openedForms: any[] = [];
@@ -999,7 +1015,7 @@ test('generic existing-form runtime does not persist a cross-form handoff when t
 });
 
 test('generic existing-form runtime can select an existing related target record during handoff', async () => {
-  const harness = await createRuntimeHarnessForModel(genericExistingFormModel as DbmModelV1, 'case-form');
+  const harness = await createRuntimeHarnessForModel(genericExistingFormModel as unknown as DbmModelV1, 'case-form');
   try {
     const patchedPayloads: any[] = [];
     const openedForms: any[] = [];
@@ -1081,7 +1097,7 @@ test('generic existing-form runtime can select an existing related target record
 });
 
 test('generic existing-form runtime applies terminal statuses when a target-form outcome reaches an end stage', async () => {
-  const harness = await createRuntimeHarnessForModel(genericExistingFormModel as DbmModelV1, 'assignment-form');
+  const harness = await createRuntimeHarnessForModel(genericExistingFormModel as unknown as DbmModelV1, 'assignment-form');
   try {
     const patchedPayloads: any[] = [];
     const assignmentRecord = {

@@ -251,7 +251,7 @@ export interface DataverseFormRuntimePlan {
   stepTransitions: DataverseRuntimeStepTransitionPlan[];
   rules: Record<string, string>;
   valueBindings: DataverseRuntimeValueBindingPlan[];
-  processExperienceRuntime: DbmProcessExperienceRuntimeModelV1;
+  processExperienceRuntime: DbmProcessExperienceRuntimeModelV1 | DbmModelV1;
 }
 
 export interface DataverseFormPlan {

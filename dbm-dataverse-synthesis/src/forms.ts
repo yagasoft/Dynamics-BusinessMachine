@@ -17,6 +17,16 @@ import {
   getEntityById,
   getFieldById
 } from './common';
+import {
+  buildProcessExperienceRuntimeModelFromModel,
+  getMainProcess,
+  getProcessStages,
+  getProcessStepTransitions,
+  getProcessSteps,
+  getProcessTransitions,
+  getStageType,
+  hasProcessPortfolio
+} from './process-portfolio';
 import type {
   DataverseBehaviorPlan,
   DataverseEntityPlan,
@@ -65,8 +75,8 @@ function buildBehaviorVersionKey(content: string): string {
 }
 
 function getDefaultFormStateId(model: DbmModelV1, formId: string): string | null {
-  const stageMap = new Map(model.process.stages.map((stage) => [stage.id, stage]));
-  for (const step of model.process.steps) {
+  const stageMap = new Map(getProcessStages(model).map((stage) => [stage.id, stage]));
+  for (const step of getProcessSteps(model)) {
     const stage = stageMap.get(step.stageId);
     if (stage?.formId === formId && step.formStateId) {
       return step.formStateId;
@@ -160,7 +170,8 @@ function buildStatePlans(
 }
 
 function getRuntimeOwnerEntityId(model: DbmModelV1): string | null {
-  const startStage = model.process.stages.find((stage) => stage.stageType === 'start') ?? model.process.stages[0];
+  const stages = getProcessStages(model);
+  const startStage = stages.find((stage) => getStageType(stage) === 'start') ?? stages[0];
   if (!startStage?.formId) {
     return null;
   }
@@ -220,53 +231,7 @@ function buildRuntimeValueBindings(model: DbmModelV1): DataverseRuntimeValueBind
 }
 
 function buildProcessExperienceRuntimeModel(model: DbmModelV1): DbmProcessExperienceRuntimeModelV1 {
-  return {
-    packageId: model.package.id,
-    packageVersion: model.package.version,
-    processId: model.process.id,
-    actors: model.process.actors.map((actor) => ({
-      id: actor.id,
-      displayName: actor.displayName,
-      actorType: actor.actorType
-    })),
-    statuses: model.process.statuses.map((status) => ({
-      id: status.id,
-      displayName: status.displayName,
-      audience: status.audience,
-      kind: status.kind
-    })),
-    outcomes: model.process.outcomes.map((outcome) => ({
-      id: outcome.id,
-      displayName: outcome.displayName
-    })),
-    stages: model.process.stages.map((stage) => ({
-      id: stage.id,
-      displayName: stage.displayName,
-      stageType: stage.stageType,
-      actorId: stage.actorId,
-      formId: stage.formId,
-      portalVisibility: stage.portalVisibility,
-      stepIds: [...stage.stepIds],
-      defaultStepId: stage.defaultStepId,
-      allowedOutcomeIds: [...stage.allowedOutcomeIds]
-    })),
-    steps: model.process.steps.map((step) => ({
-      id: step.id,
-      stageId: step.stageId,
-      displayName: step.displayName,
-      stepType: step.stepType,
-      ownerActorId: step.ownerActorId,
-      internalStatusId: step.internalStatusId,
-      portalStatusId: step.portalStatusId,
-      formStateId: step.formStateId
-    })),
-    transitions: model.process.transitions.map((transition) => ({
-      id: transition.id,
-      fromStageId: transition.fromStageId,
-      toStageId: transition.toStageId,
-      outcomeId: transition.outcomeId
-    }))
-  };
+  return buildProcessExperienceRuntimeModelFromModel(model);
 }
 
 function buildStateJumpTarget(
@@ -318,7 +283,7 @@ function buildProcessHostConfig(
 
   return {
     packageId: model.package.id,
-    processId: model.process.id,
+    processId: getMainProcess(model).id,
     currentFormId: formPlan.id,
     designerEntryUrl: buildDesignerEntryUrl(model.package.id),
     supported: {
@@ -552,8 +517,10 @@ function buildStageHandoffsByStageId(
   entityPlans: Map<string, DataverseEntityPlan>,
   diagnostics: DataverseSynthesisDiagnostic[]
 ) {
-  const stageMap = new Map(model.process.stages.map((stage) => [stage.id, stage]));
-  const stepMap = new Map(model.process.steps.map((step) => [step.id, step]));
+  const transitions = getProcessTransitions(model);
+  const stepTransitions = getProcessStepTransitions(model);
+  const stageMap = new Map(getProcessStages(model).map((stage) => [stage.id, stage]));
+  const stepMap = new Map(getProcessSteps(model).map((step) => [step.id, step]));
   const formMap = new Map(model.forms.map((form) => [form.id, form]));
   const entityMap = new Map(model.metadata.entities.map((entity) => [entity.id, entity]));
   const handoffs: NonNullable<DataverseFormRuntimePlan['stageHandoffsByStageId']> = {};
@@ -561,7 +528,7 @@ function buildStageHandoffsByStageId(
   const registerHandoff = (
     sourceStageId: string,
     targetStageId: string,
-    subjectHandoff: DbmModelV1['process']['transitions'][number]['subjectHandoff'] | DbmModelV1['process']['stepTransitions'][number]['subjectHandoff']
+    subjectHandoff: { strategy: DataverseFormRuntimePlan['stageHandoffsByStageId'][string]['strategy']; relationshipId?: string | null } | null | undefined
   ) => {
     if (!subjectHandoff) {
       return;
@@ -654,8 +621,8 @@ function buildStageHandoffsByStageId(
     handoffs[targetStageId] = nextPlan;
   };
 
-  model.process.transitions.forEach((transition) => registerHandoff(transition.fromStageId, transition.toStageId, transition.subjectHandoff));
-  model.process.stepTransitions.forEach((transition) => {
+  transitions.forEach((transition) => registerHandoff(transition.fromStageId, transition.toStageId, transition.subjectHandoff));
+  stepTransitions.forEach((transition) => {
     if ('outcomeId' in transition.target) {
       return;
     }
@@ -710,10 +677,15 @@ function buildFormRuntimePlan(
   const runtimeStateFieldLogicalNames = getRuntimeStateFieldLogicalNames(runtimeOwnerEntityPlan);
   const formPrimaryBinding = getFormPrimaryBinding(form);
   const currentFormEntity = formPrimaryBinding ? model.metadata.entities.find((entry) => entry.id === formPrimaryBinding.entityId) : null;
+  const process = getMainProcess(model);
+  const stages = getProcessStages(model);
+  const steps = getProcessSteps(model);
+  const transitions = getProcessTransitions(model);
+  const stepTransitions = getProcessStepTransitions(model);
 
-  const startStage = model.process.stages.find((stage) => stage.stageType === 'start') ?? model.process.stages[0];
-  const defaultStepId = startStage?.defaultStepId ?? model.process.steps[0]?.id ?? '';
-  const defaultStep = model.process.steps.find((step) => step.id === defaultStepId) ?? model.process.steps[0];
+  const startStage = stages.find((stage) => getStageType(stage) === 'start') ?? stages[0];
+  const defaultStepId = startStage?.defaultStepId ?? steps[0]?.id ?? '';
+  const defaultStep = steps.find((step) => step.id === defaultStepId) ?? steps[0];
 
   const relatedProcessOwnerLookupFieldLogicalName =
     primaryEntityPlan.id === runtimeOwnerEntityId
@@ -735,7 +707,7 @@ function buildFormRuntimePlan(
         })();
 
   const valueBindings = buildRuntimeValueBindings(model);
-  const processExperienceRuntime = buildProcessExperienceRuntimeModel(model);
+  const processExperienceRuntime = hasProcessPortfolio(model) ? model : buildProcessExperienceRuntimeModel(model);
   const stageHandoffsByStageId = buildStageHandoffsByStageId(model, entityPlans, diagnostics);
 
   return {
@@ -755,14 +727,14 @@ function buildFormRuntimePlan(
     defaultStageId: startStage?.id ?? '',
     defaultStepId,
     defaultFormStateId: defaultStep?.formStateId ?? null,
-    statuses: model.process.statuses.map((status) => ({
+    statuses: process.statuses.map((status) => ({
       id: status.id,
       displayName: status.displayName
     })),
-    stages: model.process.stages.map((stage) => ({
+    stages: stages.map((stage) => ({
       id: stage.id,
       displayName: stage.displayName,
-      stageType: stage.stageType,
+      stageType: getStageType(stage),
       formId: stage.formId,
       entityLogicalName:
         stage.formId
@@ -778,7 +750,7 @@ function buildFormRuntimePlan(
           : null,
       defaultStepId: stage.defaultStepId
     })),
-    steps: model.process.steps.map((step) => ({
+    steps: steps.map((step) => ({
       id: step.id,
       stageId: step.stageId,
       displayName: step.displayName,
@@ -788,14 +760,14 @@ function buildFormRuntimePlan(
       entryRuleIds: step.entryRuleIds,
       exitRuleIds: step.exitRuleIds
     })),
-    transitions: model.process.transitions.map((transition) => ({
+    transitions: transitions.map((transition) => ({
       id: transition.id,
       fromStageId: transition.fromStageId,
       toStageId: transition.toStageId,
       outcomeId: transition.outcomeId,
       guardRuleId: transition.guardRuleId
     })),
-    stepTransitions: model.process.stepTransitions.map((transition) => ({
+    stepTransitions: stepTransitions.map((transition) => ({
       id: transition.id,
       fromStepId: transition.fromStepId,
       guardRuleId: transition.guardRuleId,
@@ -1588,18 +1560,23 @@ function buildSharedRuntimeBehaviorContent(): string {
   }
   function buildProcessExperienceProps(formContext, config, result, mode) {
     const bridge = getProcessExperienceBridge();
-    if (!bridge || typeof bridge.buildRuntimeProcessExperienceSnapshot !== 'function') {
+    if (!bridge) {
       return null;
     }
     const navigationTarget = resolveNavigationTarget(config, result.state.formStateId);
-    const snapshot = bridge.buildRuntimeProcessExperienceSnapshot(
-      config.runtime.processExperienceRuntime,
-      result.state,
-      {
-        audience: 'internal',
-        currentFormId: config.formId
-      }
-    );
+    const runtimePayload = config.runtime.processExperienceRuntime;
+    const snapshotOptions = {
+      audience: 'internal',
+      currentFormId: config.formId
+    };
+    const snapshot = runtimePayload && runtimePayload.processPortfolio && typeof bridge.buildProcessPortfolioExperienceSnapshot === 'function'
+      ? bridge.buildProcessPortfolioExperienceSnapshot(runtimePayload, result.state, snapshotOptions)
+      : typeof bridge.buildRuntimeProcessExperienceSnapshot === 'function'
+        ? bridge.buildRuntimeProcessExperienceSnapshot(runtimePayload, result.state, snapshotOptions)
+        : null;
+    if (!snapshot) {
+      return null;
+    }
     return {
       snapshot,
       audience: 'internal',

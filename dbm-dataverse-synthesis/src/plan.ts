@@ -5,7 +5,6 @@ import type {
   DbmPortalRuntimeEntryFieldV1,
   DbmRelationshipV1
 } from 'dbm-contract';
-import type { DbmProcessExperienceRuntimeModelV1 } from 'dbm-process-experience' with { "resolution-mode": "import" };
 import {
   createDiagnostic,
   DEFAULT_GENERATED_METADATA_SOLUTION_NAME,
@@ -18,6 +17,13 @@ import {
   toSchemaName
 } from './common';
 import { planExistingDataverseForms } from './forms';
+import {
+  buildProcessExperienceRuntimeModelFromModel,
+  getMainProcess,
+  getProcessStages,
+  getProcessSteps,
+  getStageType
+} from './process-portfolio';
 import type {
   DataverseChoiceOptionPlan,
   DataverseColumnPlan,
@@ -81,7 +87,8 @@ function mapChoiceOptions(field: DbmFieldV1): DataverseChoiceOptionPlan[] {
 }
 
 function getRuntimeOwnerEntityId(model: DbmModelV1): string | null {
-  const startStage = model.process.stages.find((stage) => stage.stageType === 'start') ?? model.process.stages[0];
+  const stages = getProcessStages(model);
+  const startStage = stages.find((stage) => getStageType(stage) === 'start') ?? stages[0];
   if (!startStage?.formId) {
     return null;
   }
@@ -124,56 +131,6 @@ function createSyntheticRuntimeStateColumns(entityId: string, entityLogicalName:
     isPrimaryNameAttribute: false,
     maxLength: 200
   }));
-}
-
-function buildProcessExperienceRuntimeModel(model: DbmModelV1): DbmProcessExperienceRuntimeModelV1 {
-  return {
-    packageId: model.package.id,
-    packageVersion: model.package.version,
-    processId: model.process.id,
-    actors: model.process.actors.map((actor) => ({
-      id: actor.id,
-      displayName: actor.displayName,
-      actorType: actor.actorType
-    })),
-    statuses: model.process.statuses.map((status) => ({
-      id: status.id,
-      displayName: status.displayName,
-      audience: status.audience,
-      kind: status.kind
-    })),
-    outcomes: model.process.outcomes.map((outcome) => ({
-      id: outcome.id,
-      displayName: outcome.displayName
-    })),
-    stages: model.process.stages.map((stage) => ({
-      id: stage.id,
-      displayName: stage.displayName,
-      stageType: stage.stageType,
-      actorId: stage.actorId,
-      formId: stage.formId,
-      portalVisibility: stage.portalVisibility,
-      stepIds: [...stage.stepIds],
-      defaultStepId: stage.defaultStepId,
-      allowedOutcomeIds: [...stage.allowedOutcomeIds]
-    })),
-    steps: model.process.steps.map((step) => ({
-      id: step.id,
-      stageId: step.stageId,
-      displayName: step.displayName,
-      stepType: step.stepType,
-      ownerActorId: step.ownerActorId,
-      internalStatusId: step.internalStatusId,
-      portalStatusId: step.portalStatusId,
-      formStateId: step.formStateId
-    })),
-    transitions: model.process.transitions.map((transition) => ({
-      id: transition.id,
-      fromStageId: transition.fromStageId,
-      toStageId: transition.toStageId,
-      outcomeId: transition.outcomeId
-    }))
-  };
 }
 
 function toPortalRouteSegment(packageId: string): string {
@@ -221,7 +178,7 @@ function buildPortalRuntimeEntryFields(
   }
 
   const startFormStateIds = new Set(
-    model.process.steps
+    getProcessSteps(model)
       .filter((step) => step.stageId === startStageId && step.formStateId)
       .map((step) => step.formStateId as string)
   );
@@ -311,10 +268,13 @@ function buildPortalRuntimePlan(
   }
 
   const runtimeOwnerEntity = entityPlans.get(runtimeOwnerEntityId);
-  const startStage = model.process.stages.find((stage) => stage.stageType === 'start') ?? model.process.stages[0];
+  const stages = getProcessStages(model);
+  const steps = getProcessSteps(model);
+  const mainProcess = getMainProcess(model);
+  const startStage = stages.find((stage) => getStageType(stage) === 'start') ?? stages[0];
   const defaultStep = startStage
-    ? model.process.steps.find((step) => step.id === startStage.defaultStepId)
-      ?? model.process.steps.find((step) => step.stageId === startStage.id)
+    ? steps.find((step) => step.id === startStage.defaultStepId)
+      ?? steps.find((step) => step.stageId === startStage.id)
     : null;
 
   if (!runtimeOwnerEntity || !startStage || !defaultStep || !startStage.formId) {
@@ -344,7 +304,7 @@ function buildPortalRuntimePlan(
       schemaVersion: 'dbm.portal-runtime.bootstrap/v1',
       packageId: model.package.id,
       packageVersion: model.package.version,
-      processId: model.process.id,
+      processId: mainProcess.id,
       identityMode: 'generic-profile',
       genericProfileKey: 'dev-anonymous-requester',
       routes: {
@@ -373,7 +333,7 @@ function buildPortalRuntimePlan(
       },
       allowedActions: ['create-draft', 'submit-request', 'refresh-status']
     },
-    processExperienceRuntime: buildProcessExperienceRuntimeModel(model),
+    processExperienceRuntime: buildProcessExperienceRuntimeModelFromModel(model),
     requestEntityId: runtimeOwnerEntityId,
     requestEntityLogicalName: runtimeOwnerEntity.logicalName,
     requestEntitySetName: runtimeOwnerEntity.logicalCollectionName,

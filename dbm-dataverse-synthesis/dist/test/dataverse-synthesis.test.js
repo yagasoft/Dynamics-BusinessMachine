@@ -9,6 +9,7 @@ const node_path_1 = __importDefault(require("node:path"));
 const node_test_1 = __importDefault(require("node:test"));
 const node_vm_1 = require("node:vm");
 const approval_request_v1_model_json_1 = __importDefault(require("../../docs/architecture/examples/approval-request-v1.model.json"));
+const employee_onboarding_model_json_1 = __importDefault(require("../../dbm-contract/fixtures/valid/generic-process-matrix/employee-onboarding.model.json"));
 const generic_existing_form_v1_model_json_1 = __importDefault(require("../../docs/architecture/examples/generic-existing-form-v1.model.json"));
 const index_1 = require("../src/index");
 function jsonResponse(status, payload) {
@@ -22,7 +23,7 @@ function sanitizeFunctionIdentifier(value) {
     return /^[A-Za-z_]/.test(normalized) ? normalized : `_${normalized}`;
 }
 async function createRuntimeHarnessForModel(model, formId) {
-    const { buildRuntimeProcessExperienceSnapshot } = await import('dbm-process-experience');
+    const { buildProcessPortfolioExperienceSnapshot, buildRuntimeProcessExperienceSnapshot } = await import('dbm-process-experience');
     const plan = (0, index_1.planDataverseSynthesis)(model);
     const runtimeJs = plan.behaviors.find((behavior) => behavior.webResourceName === 'ys_/dbm/forms/runtime.js')?.content;
     const configFileName = `${formId}.js`;
@@ -60,6 +61,7 @@ async function createRuntimeHarnessForModel(model, formId) {
     const context = (0, node_vm_1.createContext)(sandbox);
     (0, node_vm_1.runInContext)(runtimeJs, context);
     sandbox.DBM.ProcessExperienceHost = {
+        buildProcessPortfolioExperienceSnapshot,
         buildRuntimeProcessExperienceSnapshot,
         render: () => undefined,
         unmount: () => undefined
@@ -315,6 +317,8 @@ async function createRuntimeHarness(formId) {
     strict_1.default.match(reviewHostData.hostVersion ?? '', /^[a-f0-9]+$/i);
     strict_1.default.equal(reviewHostData.minHeightPx, 320);
     strict_1.default.equal(reviewForm?.processHost?.supported?.minHeightPx, 320);
+    strict_1.default.equal(reviewForm?.runtime?.processExperienceRuntime?.processPortfolio?.mainProcessId, 'approval-request-process');
+    strict_1.default.doesNotMatch(JSON.stringify(reviewForm?.processHost ?? {}), /reactFlow|designer graph|nodes|edges/i);
     strict_1.default.match(hostPageBehavior?.content ?? '', /ResizeObserver/);
     strict_1.default.equal(reviewForm?.processHost?.designerEntryUrl, '/main.aspx?pagetype=webresource&webresourceName=ys_%2Fdbm%2Fapps%2Feditor%2Findex.html&data=%7B%22packageName%22%3A%22dbm-approval-request%22%7D');
     strict_1.default.ok(plan.portalRuntime);
@@ -371,6 +375,13 @@ async function createRuntimeHarness(formId) {
     strict_1.default.equal(assignmentHostData.minHeightPx, 320);
     strict_1.default.equal(assignmentForm?.processHost?.supported?.minHeightPx, 320);
     strict_1.default.equal(assignmentForm?.processHost?.designerEntryUrl, '/main.aspx?pagetype=webresource&webresourceName=ys_%2Fdbm%2Fapps%2Feditor%2Findex.html&data=%7B%22packageName%22%3A%22dbm-case-assignment%22%7D');
+});
+(0, node_test_1.default)('planDataverseSynthesis accepts a generic matrix model without legacy model.process', () => {
+    const model = employee_onboarding_model_json_1.default;
+    strict_1.default.equal(model.process, undefined);
+    const plan = (0, index_1.planDataverseSynthesis)(model);
+    strict_1.default.equal(plan.summary.supportedForms, 0);
+    strict_1.default.equal(plan.diagnostics.some((diagnostic) => /model\.process/i.test(diagnostic.message)), false);
 });
 (0, node_test_1.default)('normalizeReadbackEntity captures lookup targets and picklist values', () => {
     const entity = (0, index_1.normalizeReadbackEntity)({
@@ -580,6 +591,8 @@ async function createRuntimeHarness(formId) {
         strict_1.default.equal(form.controls.get('dbm_screeningresult')?.state.visible, false);
         strict_1.default.equal(form.sectionRenders.length, 1);
         strict_1.default.equal(form.sectionRenders[0]?.snapshot.currentStepId, 'capture-supporting-details');
+        strict_1.default.equal(form.sectionRenders[0]?.snapshot.rootProcess?.id, 'approval-request-process');
+        strict_1.default.equal(form.sectionRenders[0]?.snapshot.activeProcess?.id, 'approval-request-process');
         strict_1.default.equal(form.sectionRenders[0]?.mode, 'model-driven-section');
         strict_1.default.equal(form.sectionRenders[0]?.navigationTarget?.controlName, 'dbm_supportingnotes');
         strict_1.default.equal(form.overlayRenders.length, 1);
