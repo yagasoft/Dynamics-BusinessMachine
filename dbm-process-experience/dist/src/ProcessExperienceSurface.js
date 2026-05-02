@@ -85,6 +85,17 @@ function portalActionHelper(actionId) {
             return null;
     }
 }
+function renderHierarchyContext(snapshot, isModelDriven) {
+    if (!snapshot.rootProcess) {
+        return null;
+    }
+    const isCollapsed = snapshot.rootProcess.displayMode === 'collapsed';
+    const parentBarLabel = isCollapsed ? 'Slim parent process bar' : 'Parent process bar';
+    return (_jsxs("section", { "aria-label": parentBarLabel, style: isCollapsed || isModelDriven ? hierarchyParentBarCompactStyle : hierarchyParentBarStyle, children: [_jsxs("div", { style: hierarchyParentHeaderStyle, children: [_jsxs("div", { style: hierarchyParentTitleStackStyle, children: [_jsx("span", { style: hierarchyLabelStyle, children: "Parent process" }), _jsx("strong", { style: hierarchyParentTitleStyle, children: snapshot.rootProcess.displayName })] }), snapshot.blockedParentStage ? (_jsx("span", { style: hierarchyBlockedPillStyle, children: snapshot.blockedParentStage.label })) : null] }), _jsx("div", { style: hierarchyStageStripStyle, children: snapshot.rootProcess.stages.map((stage) => {
+                    const isCurrentParentStage = stage.id === snapshot.rootProcess?.currentStageId;
+                    return (_jsxs("button", { type: "button", style: isCurrentParentStage ? hierarchyStageCurrentStyle : hierarchyStageStyle, "aria-current": isCurrentParentStage ? 'step' : undefined, children: [_jsx("span", { style: hierarchyStageKindStyle, children: isCurrentParentStage ? 'Parent stage' : stage.stageType }), _jsx("strong", { style: hierarchyStageLabelStyle, children: stage.displayName })] }, stage.id));
+                }) }), snapshot.activeProcess && snapshot.activeProcess.id !== snapshot.rootProcess.id ? (_jsxs("div", { style: hierarchyActiveChildStyle, children: [_jsx("span", { style: hierarchyLabelStyle, children: "Active child process" }), _jsx("strong", { children: snapshot.activeProcess.displayName }), snapshot.activeProcess.parentLink?.blocksParent ? (_jsx("span", { style: hierarchyChildHelperStyle, children: "Blocks parent stage until completion" })) : null] })) : null] }));
+}
 export function ProcessExperienceSurface(props) {
     const snapshot = props.snapshot;
     const portalShell = props.portalShell ?? null;
@@ -241,7 +252,7 @@ export function ProcessExperienceSurface(props) {
                                     void handleOpenDesigner();
                                 }, children: "Edit process" })) : null, _jsx("button", { type: "button", style: resolvedFlowToggleButtonStyle, "aria-expanded": isFlowOpen, onClick: () => setFlowOpen((current) => !current), children: isFlowOpen ? 'Hide flow' : 'View flow' })] })] }), isExternalRuntime && portalShell ? (_jsxs("div", { style: resolvedSupportCardStyle, children: [_jsx("div", { style: supportCardLabelStyle, children: portalShell.entryTitle ?? 'Portal session' }), _jsx("p", { style: resolvedSupportParagraphStyle, children: portalShell.requestStateLabel
                             ? `Current portal state: ${portalShell.requestStateLabel}.`
-                            : 'The portal shell is reading the canonical Dataverse runtime state for this request.' }), portalActionEntries.length > 0 ? (_jsx("div", { style: resolvedActionGroupStyle, children: portalActionEntries.map((action) => (_jsx("button", { type: "button", style: action.emphasis === 'primary' ? resolvedPrimaryActionButtonStyle : resolvedSecondaryActionButtonStyle, onClick: () => props.onPortalAction?.(action.id), disabled: !props.onPortalAction || !action.enabled || action.pending, children: action.pending ? `${action.label}...` : action.label }, action.id))) })) : null] })) : null, snapshot.projection.message ? _jsx("div", { style: resolvedProjectionNoticeStyle, children: renderProjectionCallToAction(snapshot, props) }) : null, _jsx("div", { style: resolvedJourneyTrackerShellStyle, children: viewModel.trackerItems.map((item) => {
+                            : 'The portal shell is reading the canonical Dataverse runtime state for this request.' }), portalActionEntries.length > 0 ? (_jsx("div", { style: resolvedActionGroupStyle, children: portalActionEntries.map((action) => (_jsx("button", { type: "button", style: action.emphasis === 'primary' ? resolvedPrimaryActionButtonStyle : resolvedSecondaryActionButtonStyle, onClick: () => props.onPortalAction?.(action.id), disabled: !props.onPortalAction || !action.enabled || action.pending, children: action.pending ? `${action.label}...` : action.label }, action.id))) })) : null] })) : null, renderHierarchyContext(snapshot, isModelDriven), snapshot.projection.message ? _jsx("div", { style: resolvedProjectionNoticeStyle, children: renderProjectionCallToAction(snapshot, props) }) : null, _jsx("div", { style: resolvedJourneyTrackerShellStyle, children: viewModel.trackerItems.map((item) => {
                     const palette = tonePalette(item.tone);
                     return (_jsxs("button", { type: "button", style: {
                             ...resolvedTrackerItemStyle,
@@ -283,6 +294,102 @@ const surfaceShellStyle = {
     background: 'linear-gradient(180deg, #fffdfa 0%, #f5efe6 100%)',
     border: '1px solid #ece2d2',
     color: '#10233f'
+};
+const hierarchyParentBarStyle = {
+    display: 'grid',
+    gap: '0.85rem',
+    padding: '0.95rem',
+    borderRadius: '1rem',
+    background: '#f8fbff',
+    border: '1px solid #cfe0f5'
+};
+const hierarchyParentBarCompactStyle = {
+    ...hierarchyParentBarStyle,
+    gap: '0.55rem',
+    padding: '0.68rem',
+    borderRadius: '0.78rem'
+};
+const hierarchyParentHeaderStyle = {
+    display: 'flex',
+    justifyContent: 'space-between',
+    gap: '0.75rem',
+    alignItems: 'center',
+    flexWrap: 'wrap'
+};
+const hierarchyParentTitleStackStyle = {
+    display: 'grid',
+    gap: '0.18rem'
+};
+const hierarchyLabelStyle = {
+    fontSize: '0.72rem',
+    textTransform: 'uppercase',
+    letterSpacing: '0.08em',
+    color: '#386085',
+    fontWeight: 800
+};
+const hierarchyParentTitleStyle = {
+    fontSize: '0.98rem',
+    lineHeight: 1.16
+};
+const hierarchyBlockedPillStyle = {
+    padding: '0.36rem 0.62rem',
+    borderRadius: '999px',
+    background: '#fff4df',
+    border: '1px solid #ebb767',
+    color: '#875000',
+    fontSize: '0.76rem',
+    fontWeight: 800
+};
+const hierarchyStageStripStyle = {
+    display: 'flex',
+    gap: '0.52rem',
+    overflowX: 'auto',
+    paddingBottom: '0.05rem'
+};
+const hierarchyStageStyle = {
+    display: 'grid',
+    gap: '0.12rem',
+    minWidth: '120px',
+    padding: '0.46rem 0.58rem',
+    borderRadius: '0.65rem',
+    border: '1px solid #d5dfeb',
+    background: '#ffffff',
+    color: '#253247',
+    textAlign: 'left',
+    cursor: 'default'
+};
+const hierarchyStageCurrentStyle = {
+    ...hierarchyStageStyle,
+    borderColor: '#e59f42',
+    background: '#fff8ed',
+    boxShadow: '0 8px 18px rgba(197, 121, 28, 0.13)'
+};
+const hierarchyStageKindStyle = {
+    fontSize: '0.64rem',
+    textTransform: 'uppercase',
+    letterSpacing: '0.06em',
+    color: '#64748b',
+    fontWeight: 800
+};
+const hierarchyStageLabelStyle = {
+    fontSize: '0.78rem',
+    lineHeight: 1.16
+};
+const hierarchyActiveChildStyle = {
+    display: 'flex',
+    gap: '0.5rem',
+    alignItems: 'center',
+    flexWrap: 'wrap',
+    padding: '0.58rem 0.68rem',
+    borderRadius: '0.78rem',
+    background: '#f0fdf7',
+    border: '1px solid #b6e3c6',
+    color: '#153d2a'
+};
+const hierarchyChildHelperStyle = {
+    fontSize: '0.74rem',
+    color: '#2f6f4c',
+    fontWeight: 700
 };
 const compactSurfaceShellStyle = {
     ...surfaceShellStyle,

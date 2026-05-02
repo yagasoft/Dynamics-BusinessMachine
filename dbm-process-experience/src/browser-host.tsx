@@ -1,6 +1,6 @@
 import { createRoot, type Root } from 'react-dom/client';
 import { ProcessExperienceSurface } from './ProcessExperienceSurface';
-import { buildRuntimeProcessExperienceSnapshot } from './runtime-snapshot';
+import { buildProcessPortfolioExperienceSnapshot, buildRuntimeProcessExperienceSnapshot } from './runtime-snapshot';
 import type { ProcessExperienceSurfaceProps } from './types';
 
 const roots = new WeakMap<HTMLElement, Root>();
@@ -36,6 +36,7 @@ export function registerBrowserHost(): void {
   globalScope.DBM.ProcessExperienceHost = {
     render,
     unmount,
+    buildProcessPortfolioExperienceSnapshot,
     buildRuntimeProcessExperienceSnapshot
   };
 }

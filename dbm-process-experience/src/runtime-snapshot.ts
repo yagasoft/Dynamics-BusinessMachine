@@ -1,10 +1,22 @@
 import type {
+  DbmActorV1,
   DbmProcessExperienceActorRefV1,
   DbmProcessExperienceAudienceV1,
+  DbmProcessExperienceBlockedParentStageV1,
+  DbmProcessExperienceChildProcessRefV1,
+  DbmProcessExperienceHierarchyProcessV1,
+  DbmProcessExperienceHierarchyStageV1,
   DbmProcessExperienceOutcomeRefV1,
+  DbmProcessExperienceParentLinkV1,
   DbmProcessExperienceSnapshotV1,
   DbmProcessExperienceStatusRefV1,
-  DbmProcessExperienceVisibilityV1
+  DbmProcessExperienceVisibilityV1,
+  DbmProcessV1,
+  DbmModelV1,
+  DbmStageCategoryV1,
+  DbmStageTypeV1,
+  DbmStepTypeV1,
+  DbmWorkCategoryV1
 } from 'dbm-contract';
 import type {
   BuildRuntimeProcessExperienceSnapshotOptions,
@@ -126,7 +138,7 @@ function resolveCurrentStep(
 }
 
 function allowsMissingCurrentStep(currentStage: DbmProcessExperienceRuntimeStageV1, currentStep: DbmProcessExperienceRuntimeStepV1 | undefined): boolean {
-  return !currentStep && currentStage.stageType === 'end' && currentStage.stepIds.length === 0 && currentStage.defaultStepId == null;
+  return !currentStep && currentStage.stepIds.length === 0 && currentStage.defaultStepId == null;
 }
 
 function createStageVisibility(
@@ -301,6 +313,279 @@ export function buildRuntimeProcessExperienceSnapshot(
       projectedStageId: currentStageVisibility === 'visible' ? currentStage.id : null,
       projectedStepId: currentStageVisibility === 'visible' ? currentStep?.id ?? null : null,
       message: buildProjectionMessage(options.currentFormId ?? null, currentStage, currentStageVisibility)
+    }
+  };
+}
+
+function mapActorType(actor: DbmActorV1): DbmProcessExperienceRuntimeActorV1['actorType'] {
+  if (actor.actorCategory === 'system') {
+    return 'system';
+  }
+
+  if (actor.actorCategory === 'external' || /requester|applicant|author|starter|customer|citizen/i.test(actor.roleKey)) {
+    return 'requester';
+  }
+
+  return 'approver';
+}
+
+function mapStageType(stageCategory: DbmStageCategoryV1): DbmStageTypeV1 {
+  switch (stageCategory) {
+    case 'start':
+      return 'start';
+    case 'decision':
+      return 'approval';
+    case 'system':
+      return 'system';
+    case 'end':
+      return 'end';
+    default:
+      return 'task';
+  }
+}
+
+function mapStepType(workCategory: DbmWorkCategoryV1): DbmStepTypeV1 {
+  switch (workCategory) {
+    case 'data':
+      return 'data-entry';
+    case 'decision':
+      return 'approval';
+    case 'system':
+      return 'system';
+    default:
+      return 'review';
+  }
+}
+
+function buildRuntimeFromPortfolioProcess(
+  model: DbmModelV1,
+  process: DbmProcessV1
+): DbmProcessExperienceRuntimeModelV1 {
+  return {
+    packageId: model.package.id,
+    packageVersion: model.package.version,
+    processId: process.id,
+    actors: process.actors.map((actor) => ({
+      id: actor.id,
+      displayName: actor.displayName,
+      actorType: mapActorType(actor)
+    })),
+    statuses: process.statuses.map((status) => ({
+      id: status.id,
+      displayName: status.displayName,
+      audience: status.audience,
+      kind: status.kind
+    })),
+    outcomes: process.outcomes.map((outcome) => ({
+      id: outcome.id,
+      displayName: outcome.displayName
+    })),
+    stages: process.stages.map((stage) => ({
+      id: stage.id,
+      displayName: stage.displayName,
+      stageType: mapStageType(stage.stageCategory),
+      actorId: stage.actorId,
+      formId: stage.formId,
+      portalVisibility: stage.portalVisibility,
+      stepIds: [...stage.stepIds],
+      defaultStepId: stage.defaultStepId,
+      allowedOutcomeIds: [...stage.allowedOutcomeIds]
+    })),
+    steps: process.steps.map((step) => ({
+      id: step.id,
+      stageId: step.stageId,
+      displayName: step.displayName,
+      stepType: mapStepType(step.workCategory),
+      ownerActorId: step.ownerActorId,
+      internalStatusId: step.internalStatusId,
+      portalStatusId: step.portalStatusId,
+      formStateId: step.formStateId
+    })),
+    transitions: process.transitions.map((transition) => ({
+      id: transition.id,
+      fromStageId: transition.fromStageId,
+      toStageId: transition.toStageId,
+      outcomeId: transition.outcomeId
+    }))
+  };
+}
+
+function toChildProcessRefSummary(ref: DbmProcessV1['stages'][number]['childProcessRefs'][number]): DbmProcessExperienceChildProcessRefV1 {
+  return {
+    id: ref.id,
+    processId: ref.processId,
+    displayName: ref.displayName,
+    activationRuleId: ref.activationRuleId,
+    blocksParent: ref.blocksParent
+  };
+}
+
+function toHierarchyStage(stage: DbmProcessV1['stages'][number]): DbmProcessExperienceHierarchyStageV1 {
+  return {
+    id: stage.id,
+    displayName: stage.displayName,
+    stageType: mapStageType(stage.stageCategory),
+    stageCategory: stage.stageCategory,
+    stageKindId: stage.stageKindId,
+    childProcessRefs: stage.childProcessRefs.map(toChildProcessRefSummary)
+  };
+}
+
+function toHierarchyProcess(process: DbmProcessV1): DbmProcessExperienceHierarchyProcessV1 {
+  return {
+    id: process.id,
+    displayName: process.displayName,
+    role: process.role,
+    displayMode: process.mainDisplayMode,
+    stages: process.stages.map(toHierarchyStage)
+  };
+}
+
+function findStageProcess(model: DbmModelV1, stageId: string): DbmProcessV1 | undefined {
+  return model.processPortfolio.processes.find((process) => process.stages.some((stage) => stage.id === stageId));
+}
+
+function findParentLinkForProcess(
+  model: DbmModelV1,
+  childProcessId: string
+): { parentProcess: DbmProcessV1; parentStage: DbmProcessV1['stages'][number]; ref: DbmProcessV1['stages'][number]['childProcessRefs'][number] } | null {
+  for (const parentProcess of model.processPortfolio.processes) {
+    for (const parentStage of parentProcess.stages) {
+      const ref = parentStage.childProcessRefs.find((candidate) => candidate.processId === childProcessId);
+      if (ref) {
+        return { parentProcess, parentStage, ref };
+      }
+    }
+  }
+
+  return null;
+}
+
+function createParentLink(
+  parentProcess: DbmProcessV1,
+  parentStage: DbmProcessV1['stages'][number],
+  ref: DbmProcessV1['stages'][number]['childProcessRefs'][number]
+): DbmProcessExperienceParentLinkV1 {
+  return {
+    parentProcessId: parentProcess.id,
+    parentStageId: parentStage.id,
+    childProcessRefId: ref.id,
+    blocksParent: ref.blocksParent,
+    displayName: ref.displayName,
+    activationRuleId: ref.activationRuleId
+  };
+}
+
+function createBlockedParentStage(
+  parentProcess: DbmProcessV1,
+  parentStage: DbmProcessV1['stages'][number],
+  childProcess: DbmProcessV1,
+  ref: DbmProcessV1['stages'][number]['childProcessRefs'][number]
+): DbmProcessExperienceBlockedParentStageV1 {
+  return {
+    parentProcessId: parentProcess.id,
+    parentStageId: parentStage.id,
+    parentStageDisplayName: parentStage.displayName,
+    childProcessId: childProcess.id,
+    childProcessDisplayName: childProcess.displayName,
+    childProcessRefId: ref.id,
+    label: 'Parent stage awaiting child completion'
+  };
+}
+
+function resolveRuntimeStateForProcess(
+  process: DbmProcessV1,
+  runtimeState: DbmProcessExperienceRuntimeStateV1
+): DbmProcessExperienceRuntimeStateV1 {
+  const stage = process.stages.find((candidate) => candidate.id === runtimeState.stageId) ?? process.stages[0];
+  const step = stage
+    ? process.steps.find((candidate) => candidate.id === runtimeState.stepId && candidate.stageId === stage.id)
+      ?? process.steps.find((candidate) => candidate.id === stage.defaultStepId)
+      ?? process.steps.find((candidate) => candidate.stageId === stage.id)
+    : undefined;
+
+  return {
+    stageId: stage?.id ?? runtimeState.stageId,
+    stepId: step?.id ?? '',
+    formStateId: step?.formStateId ?? null,
+    internalStatusId: step?.internalStatusId ?? runtimeState.internalStatusId,
+    portalStatusId: step?.portalStatusId ?? runtimeState.portalStatusId
+  };
+}
+
+export function buildProcessPortfolioExperienceSnapshot(
+  model: DbmModelV1,
+  runtimeState: DbmProcessExperienceRuntimeStateV1,
+  options: BuildRuntimeProcessExperienceSnapshotOptions & { processId?: string | null } = {}
+): DbmProcessExperienceSnapshotV1 {
+  const rootProcess = model.processPortfolio.processes.find((process) => process.id === model.processPortfolio.mainProcessId);
+  if (!rootProcess) {
+    throw new Error('Cannot build process experience snapshot because processPortfolio.mainProcessId does not resolve.');
+  }
+
+  const requestedProcess = options.processId
+    ? model.processPortfolio.processes.find((process) => process.id === options.processId)
+    : findStageProcess(model, runtimeState.stageId);
+
+  const parentStage = rootProcess.stages.find((stage) => stage.id === runtimeState.stageId)
+    ?? (
+      requestedProcess && requestedProcess.id !== rootProcess.id
+        ? findParentLinkForProcess(model, requestedProcess.id)?.parentStage
+        : undefined
+    )
+    ?? rootProcess.stages[0];
+
+  if (!parentStage) {
+    throw new Error('Cannot build process experience snapshot without at least one root process stage.');
+  }
+
+  const firstBlockingChildRef = parentStage.childProcessRefs.find((ref) => ref.blocksParent);
+  const firstBlockingChildProcess = firstBlockingChildRef
+    ? model.processPortfolio.processes.find((process) => process.id === firstBlockingChildRef.processId)
+    : undefined;
+  const activeProcess = firstBlockingChildProcess ?? requestedProcess ?? rootProcess;
+  const activeRuntime = buildRuntimeFromPortfolioProcess(model, activeProcess);
+  const activeRuntimeState = activeProcess.id === rootProcess.id
+    ? resolveRuntimeStateForProcess(activeProcess, runtimeState)
+    : resolveRuntimeStateForProcess(activeProcess, {
+      ...runtimeState,
+      stageId: activeProcess.stages[0]?.id ?? runtimeState.stageId,
+      stepId: activeProcess.stages[0]?.defaultStepId ?? ''
+    });
+  const activeSnapshot = buildRuntimeProcessExperienceSnapshot(activeRuntime, activeRuntimeState, options);
+  const parentLink = activeProcess.id === rootProcess.id
+    ? null
+    : firstBlockingChildRef && firstBlockingChildProcess
+      ? createParentLink(rootProcess, parentStage, firstBlockingChildRef)
+      : (() => {
+        const link = findParentLinkForProcess(model, activeProcess.id);
+        return link ? createParentLink(link.parentProcess, link.parentStage, link.ref) : null;
+      })();
+  const blockedParentStage = firstBlockingChildRef && firstBlockingChildProcess
+    ? createBlockedParentStage(rootProcess, parentStage, firstBlockingChildProcess, firstBlockingChildRef)
+    : null;
+
+  return {
+    ...activeSnapshot,
+    rootProcess: {
+      id: rootProcess.id,
+      displayName: rootProcess.displayName,
+      displayMode: rootProcess.mainDisplayMode,
+      currentStageId: parentStage.id,
+      stages: rootProcess.stages.map(toHierarchyStage)
+    },
+    activeProcess: {
+      id: activeProcess.id,
+      displayName: activeProcess.displayName,
+      role: activeProcess.role,
+      stages: activeSnapshot.stages,
+      steps: activeSnapshot.steps,
+      transitions: activeSnapshot.transitions,
+      parentLink
+    },
+    blockedParentStage,
+    hierarchy: {
+      processes: model.processPortfolio.processes.map(toHierarchyProcess)
     }
   };
 }

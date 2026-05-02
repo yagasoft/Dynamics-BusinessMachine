@@ -104,6 +104,29 @@
         "projection": {
           "$ref": "#/definitions/DbmProcessExperienceProjectionV1",
           "title": "projection"
+        },
+        "rootProcess": {
+          "$ref": "#/definitions/DbmProcessExperienceRootProcessV1",
+          "title": "rootProcess"
+        },
+        "activeProcess": {
+          "$ref": "#/definitions/DbmProcessExperienceActiveProcessV1",
+          "title": "activeProcess"
+        },
+        "blockedParentStage": {
+          "anyOf": [
+            {
+              "$ref": "#/definitions/DbmProcessExperienceBlockedParentStageV1"
+            },
+            {
+              "type": "null"
+            }
+          ],
+          "title": "blockedParentStage"
+        },
+        "hierarchy": {
+          "$ref": "#/definitions/DbmProcessExperienceHierarchyV1",
+          "title": "hierarchy"
         }
       },
       "additionalProperties": false,
@@ -510,6 +533,350 @@
         "message",
         "projectedStageId",
         "projectedStepId"
+      ]
+    },
+    "DbmProcessExperienceRootProcessV1": {
+      "title": "DbmProcessExperienceRootProcessV1",
+      "type": "object",
+      "properties": {
+        "id": {
+          "type": "string",
+          "title": "id"
+        },
+        "displayName": {
+          "type": "string",
+          "title": "displayName"
+        },
+        "displayMode": {
+          "$ref": "#/definitions/DbmMainProcessDisplayModeV1",
+          "title": "displayMode"
+        },
+        "currentStageId": {
+          "type": "string",
+          "title": "currentStageId"
+        },
+        "stages": {
+          "type": "array",
+          "items": {
+            "$ref": "#/definitions/DbmProcessExperienceHierarchyStageV1"
+          },
+          "title": "stages"
+        }
+      },
+      "additionalProperties": false,
+      "required": [
+        "currentStageId",
+        "displayMode",
+        "displayName",
+        "id",
+        "stages"
+      ]
+    },
+    "DbmMainProcessDisplayModeV1": {
+      "title": "DbmMainProcessDisplayModeV1",
+      "enum": [
+        "collapsed",
+        "expanded"
+      ],
+      "type": "string"
+    },
+    "DbmProcessExperienceHierarchyStageV1": {
+      "title": "DbmProcessExperienceHierarchyStageV1",
+      "type": "object",
+      "properties": {
+        "id": {
+          "type": "string",
+          "title": "id"
+        },
+        "displayName": {
+          "type": "string",
+          "title": "displayName"
+        },
+        "stageType": {
+          "$ref": "#/definitions/DbmStageTypeV1",
+          "title": "stageType"
+        },
+        "stageCategory": {
+          "$ref": "#/definitions/DbmStageCategoryV1",
+          "title": "stageCategory"
+        },
+        "stageKindId": {
+          "type": "string",
+          "title": "stageKindId"
+        },
+        "childProcessRefs": {
+          "type": "array",
+          "items": {
+            "$ref": "#/definitions/DbmProcessExperienceChildProcessRefV1"
+          },
+          "title": "childProcessRefs"
+        }
+      },
+      "additionalProperties": false,
+      "required": [
+        "childProcessRefs",
+        "displayName",
+        "id",
+        "stageCategory",
+        "stageKindId",
+        "stageType"
+      ]
+    },
+    "DbmStageCategoryV1": {
+      "title": "DbmStageCategoryV1",
+      "enum": [
+        "decision",
+        "end",
+        "milestone",
+        "start",
+        "system",
+        "work"
+      ],
+      "type": "string"
+    },
+    "DbmProcessExperienceChildProcessRefV1": {
+      "title": "DbmProcessExperienceChildProcessRefV1",
+      "type": "object",
+      "properties": {
+        "id": {
+          "type": "string",
+          "title": "id"
+        },
+        "processId": {
+          "type": "string",
+          "title": "processId"
+        },
+        "displayName": {
+          "type": "string",
+          "title": "displayName"
+        },
+        "activationRuleId": {
+          "type": [
+            "null",
+            "string"
+          ],
+          "title": "activationRuleId"
+        },
+        "blocksParent": {
+          "type": "boolean",
+          "title": "blocksParent"
+        }
+      },
+      "additionalProperties": false,
+      "required": [
+        "activationRuleId",
+        "blocksParent",
+        "displayName",
+        "id",
+        "processId"
+      ]
+    },
+    "DbmProcessExperienceActiveProcessV1": {
+      "title": "DbmProcessExperienceActiveProcessV1",
+      "type": "object",
+      "properties": {
+        "id": {
+          "type": "string",
+          "title": "id"
+        },
+        "displayName": {
+          "type": "string",
+          "title": "displayName"
+        },
+        "role": {
+          "$ref": "#/definitions/DbmProcessRoleV1",
+          "title": "role"
+        },
+        "stages": {
+          "type": "array",
+          "items": {
+            "$ref": "#/definitions/DbmProcessExperienceStageV1"
+          },
+          "title": "stages"
+        },
+        "steps": {
+          "type": "array",
+          "items": {
+            "$ref": "#/definitions/DbmProcessExperienceStepV1"
+          },
+          "title": "steps"
+        },
+        "transitions": {
+          "type": "array",
+          "items": {
+            "$ref": "#/definitions/DbmProcessExperienceTransitionV1"
+          },
+          "title": "transitions"
+        },
+        "parentLink": {
+          "anyOf": [
+            {
+              "$ref": "#/definitions/DbmProcessExperienceParentLinkV1"
+            },
+            {
+              "type": "null"
+            }
+          ],
+          "title": "parentLink"
+        }
+      },
+      "additionalProperties": false,
+      "required": [
+        "displayName",
+        "id",
+        "parentLink",
+        "role",
+        "stages",
+        "steps",
+        "transitions"
+      ]
+    },
+    "DbmProcessRoleV1": {
+      "title": "DbmProcessRoleV1",
+      "enum": [
+        "main",
+        "sub-process"
+      ],
+      "type": "string"
+    },
+    "DbmProcessExperienceParentLinkV1": {
+      "title": "DbmProcessExperienceParentLinkV1",
+      "type": "object",
+      "properties": {
+        "parentProcessId": {
+          "type": "string",
+          "title": "parentProcessId"
+        },
+        "parentStageId": {
+          "type": "string",
+          "title": "parentStageId"
+        },
+        "childProcessRefId": {
+          "type": "string",
+          "title": "childProcessRefId"
+        },
+        "blocksParent": {
+          "type": "boolean",
+          "title": "blocksParent"
+        },
+        "displayName": {
+          "type": "string",
+          "title": "displayName"
+        },
+        "activationRuleId": {
+          "type": [
+            "null",
+            "string"
+          ],
+          "title": "activationRuleId"
+        }
+      },
+      "additionalProperties": false,
+      "required": [
+        "activationRuleId",
+        "blocksParent",
+        "childProcessRefId",
+        "displayName",
+        "parentProcessId",
+        "parentStageId"
+      ]
+    },
+    "DbmProcessExperienceBlockedParentStageV1": {
+      "title": "DbmProcessExperienceBlockedParentStageV1",
+      "type": "object",
+      "properties": {
+        "parentProcessId": {
+          "type": "string",
+          "title": "parentProcessId"
+        },
+        "parentStageId": {
+          "type": "string",
+          "title": "parentStageId"
+        },
+        "parentStageDisplayName": {
+          "type": "string",
+          "title": "parentStageDisplayName"
+        },
+        "childProcessId": {
+          "type": "string",
+          "title": "childProcessId"
+        },
+        "childProcessDisplayName": {
+          "type": "string",
+          "title": "childProcessDisplayName"
+        },
+        "childProcessRefId": {
+          "type": "string",
+          "title": "childProcessRefId"
+        },
+        "label": {
+          "type": "string",
+          "title": "label"
+        }
+      },
+      "additionalProperties": false,
+      "required": [
+        "childProcessDisplayName",
+        "childProcessId",
+        "childProcessRefId",
+        "label",
+        "parentProcessId",
+        "parentStageDisplayName",
+        "parentStageId"
+      ]
+    },
+    "DbmProcessExperienceHierarchyV1": {
+      "title": "DbmProcessExperienceHierarchyV1",
+      "type": "object",
+      "properties": {
+        "processes": {
+          "type": "array",
+          "items": {
+            "$ref": "#/definitions/DbmProcessExperienceHierarchyProcessV1"
+          },
+          "title": "processes"
+        }
+      },
+      "additionalProperties": false,
+      "required": [
+        "processes"
+      ]
+    },
+    "DbmProcessExperienceHierarchyProcessV1": {
+      "title": "DbmProcessExperienceHierarchyProcessV1",
+      "type": "object",
+      "properties": {
+        "id": {
+          "type": "string",
+          "title": "id"
+        },
+        "displayName": {
+          "type": "string",
+          "title": "displayName"
+        },
+        "role": {
+          "$ref": "#/definitions/DbmProcessRoleV1",
+          "title": "role"
+        },
+        "displayMode": {
+          "$ref": "#/definitions/DbmMainProcessDisplayModeV1",
+          "title": "displayMode"
+        },
+        "stages": {
+          "type": "array",
+          "items": {
+            "$ref": "#/definitions/DbmProcessExperienceHierarchyStageV1"
+          },
+          "title": "stages"
+        }
+      },
+      "additionalProperties": false,
+      "required": [
+        "displayMode",
+        "displayName",
+        "id",
+        "role",
+        "stages"
       ]
     }
   },

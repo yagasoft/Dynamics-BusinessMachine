@@ -114,6 +114,57 @@ function portalActionHelper(actionId: typeof portalActionOrder[number]): string 
   }
 }
 
+function renderHierarchyContext(snapshot: DbmProcessExperienceSnapshotV1, isModelDriven: boolean) {
+  if (!snapshot.rootProcess) {
+    return null;
+  }
+
+  const isCollapsed = snapshot.rootProcess.displayMode === 'collapsed';
+  const parentBarLabel = isCollapsed ? 'Slim parent process bar' : 'Parent process bar';
+
+  return (
+    <section
+      aria-label={parentBarLabel}
+      style={isCollapsed || isModelDriven ? hierarchyParentBarCompactStyle : hierarchyParentBarStyle}
+    >
+      <div style={hierarchyParentHeaderStyle}>
+        <div style={hierarchyParentTitleStackStyle}>
+          <span style={hierarchyLabelStyle}>Parent process</span>
+          <strong style={hierarchyParentTitleStyle}>{snapshot.rootProcess.displayName}</strong>
+        </div>
+        {snapshot.blockedParentStage ? (
+          <span style={hierarchyBlockedPillStyle}>{snapshot.blockedParentStage.label}</span>
+        ) : null}
+      </div>
+      <div style={hierarchyStageStripStyle}>
+        {snapshot.rootProcess.stages.map((stage) => {
+          const isCurrentParentStage = stage.id === snapshot.rootProcess?.currentStageId;
+          return (
+            <button
+              key={stage.id}
+              type="button"
+              style={isCurrentParentStage ? hierarchyStageCurrentStyle : hierarchyStageStyle}
+              aria-current={isCurrentParentStage ? 'step' : undefined}
+            >
+              <span style={hierarchyStageKindStyle}>{isCurrentParentStage ? 'Parent stage' : stage.stageType}</span>
+              <strong style={hierarchyStageLabelStyle}>{stage.displayName}</strong>
+            </button>
+          );
+        })}
+      </div>
+      {snapshot.activeProcess && snapshot.activeProcess.id !== snapshot.rootProcess.id ? (
+        <div style={hierarchyActiveChildStyle}>
+          <span style={hierarchyLabelStyle}>Active child process</span>
+          <strong>{snapshot.activeProcess.displayName}</strong>
+          {snapshot.activeProcess.parentLink?.blocksParent ? (
+            <span style={hierarchyChildHelperStyle}>Blocks parent stage until completion</span>
+          ) : null}
+        </div>
+      ) : null}
+    </section>
+  );
+}
+
 export function ProcessExperienceSurface(props: ProcessExperienceSurfaceProps) {
   const snapshot = props.snapshot;
   const portalShell = props.portalShell ?? null;
@@ -411,6 +462,8 @@ export function ProcessExperienceSurface(props: ProcessExperienceSurfaceProps) {
         </div>
       ) : null}
 
+      {renderHierarchyContext(snapshot, isModelDriven)}
+
       {snapshot.projection.message ? <div style={resolvedProjectionNoticeStyle}>{renderProjectionCallToAction(snapshot, props)}</div> : null}
 
       <div style={resolvedJourneyTrackerShellStyle}>
@@ -640,6 +693,116 @@ const surfaceShellStyle = {
   background: 'linear-gradient(180deg, #fffdfa 0%, #f5efe6 100%)',
   border: '1px solid #ece2d2',
   color: '#10233f'
+} as const;
+
+const hierarchyParentBarStyle = {
+  display: 'grid',
+  gap: '0.85rem',
+  padding: '0.95rem',
+  borderRadius: '1rem',
+  background: '#f8fbff',
+  border: '1px solid #cfe0f5'
+} as const;
+
+const hierarchyParentBarCompactStyle = {
+  ...hierarchyParentBarStyle,
+  gap: '0.55rem',
+  padding: '0.68rem',
+  borderRadius: '0.78rem'
+} as const;
+
+const hierarchyParentHeaderStyle = {
+  display: 'flex',
+  justifyContent: 'space-between',
+  gap: '0.75rem',
+  alignItems: 'center',
+  flexWrap: 'wrap'
+} as const;
+
+const hierarchyParentTitleStackStyle = {
+  display: 'grid',
+  gap: '0.18rem'
+} as const;
+
+const hierarchyLabelStyle = {
+  fontSize: '0.72rem',
+  textTransform: 'uppercase',
+  letterSpacing: '0.08em',
+  color: '#386085',
+  fontWeight: 800
+} as const;
+
+const hierarchyParentTitleStyle = {
+  fontSize: '0.98rem',
+  lineHeight: 1.16
+} as const;
+
+const hierarchyBlockedPillStyle = {
+  padding: '0.36rem 0.62rem',
+  borderRadius: '999px',
+  background: '#fff4df',
+  border: '1px solid #ebb767',
+  color: '#875000',
+  fontSize: '0.76rem',
+  fontWeight: 800
+} as const;
+
+const hierarchyStageStripStyle = {
+  display: 'flex',
+  gap: '0.52rem',
+  overflowX: 'auto',
+  paddingBottom: '0.05rem'
+} as const;
+
+const hierarchyStageStyle = {
+  display: 'grid',
+  gap: '0.12rem',
+  minWidth: '120px',
+  padding: '0.46rem 0.58rem',
+  borderRadius: '0.65rem',
+  border: '1px solid #d5dfeb',
+  background: '#ffffff',
+  color: '#253247',
+  textAlign: 'left',
+  cursor: 'default'
+} as const;
+
+const hierarchyStageCurrentStyle = {
+  ...hierarchyStageStyle,
+  borderColor: '#e59f42',
+  background: '#fff8ed',
+  boxShadow: '0 8px 18px rgba(197, 121, 28, 0.13)'
+} as const;
+
+const hierarchyStageKindStyle = {
+  fontSize: '0.64rem',
+  textTransform: 'uppercase',
+  letterSpacing: '0.06em',
+  color: '#64748b',
+  fontWeight: 800
+} as const;
+
+const hierarchyStageLabelStyle = {
+  fontSize: '0.78rem',
+  lineHeight: 1.16
+} as const;
+
+const hierarchyActiveChildStyle = {
+  display: 'flex',
+  gap: '0.5rem',
+  alignItems: 'center',
+  flexWrap: 'wrap',
+  padding: '0.58rem 0.68rem',
+  borderRadius: '0.78rem',
+  background: '#f0fdf7',
+  border: '1px solid #b6e3c6',
+  color: '#153d2a'
+} as const;
+
+const hierarchyChildHelperStyle = {
+  fontSize: '0.74rem',
+  color: '#2f6f4c',
+  fontWeight: 700
 } as const;
 
 const compactSurfaceShellStyle = {

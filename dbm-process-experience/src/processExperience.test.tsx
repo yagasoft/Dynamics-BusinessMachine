@@ -1,11 +1,17 @@
 import { cleanup, render, screen, within } from '@testing-library/react';
 import userEvent from '@testing-library/user-event';
 import { afterEach, expect, test, vi } from 'vitest';
-import type { DbmProcessExperienceSnapshotV1 } from 'dbm-contract';
+import { readFileSync } from 'node:fs';
+import { fileURLToPath } from 'node:url';
+import path from 'node:path';
+import type { DbmModelV1, DbmProcessExperienceSnapshotV1 } from 'dbm-contract';
 import { ProcessExperienceSurface } from './ProcessExperienceSurface';
-import { buildRuntimeProcessExperienceSnapshot } from './runtime-snapshot';
+import { buildProcessPortfolioExperienceSnapshot, buildRuntimeProcessExperienceSnapshot } from './runtime-snapshot';
 import { approvalRequestRuntimeModel, buildApprovalRequestSnapshot } from './test-fixtures/approvalRequestFixture';
 import type { DbmProcessExperienceRuntimeModelV1 } from './types';
+
+const __dirname = path.dirname(fileURLToPath(import.meta.url));
+const repoRoot = path.resolve(__dirname, '../..');
 
 const genericTerminalRuntimeModel: DbmProcessExperienceRuntimeModelV1 = {
   packageId: 'dbm-case-assignment',
@@ -90,6 +96,102 @@ const genericTerminalRuntimeModel: DbmProcessExperienceRuntimeModelV1 = {
 
 afterEach(() => {
   cleanup();
+});
+
+function loadContractFixture(relativePath: string): DbmModelV1 {
+  return JSON.parse(readFileSync(path.join(repoRoot, 'dbm-contract', 'fixtures', relativePath), 'utf8')) as DbmModelV1;
+}
+
+test('buildProcessPortfolioExperienceSnapshot renders the root parent and first blocking child process', () => {
+  const model = loadContractFixture('valid/generic-process-matrix/employee-onboarding.model.json');
+  const snapshot = buildProcessPortfolioExperienceSnapshot(
+    model,
+    {
+      stageId: 'preparation',
+      stepId: 'provision-access-step',
+      formStateId: null,
+      internalStatusId: 'preparing',
+      portalStatusId: null
+    },
+    {
+      currentFormId: 'starter-form'
+    }
+  );
+
+  expect(snapshot.processId).toBe('it-readiness');
+  expect(snapshot.rootProcess?.id).toBe('onboarding-main');
+  expect(snapshot.rootProcess?.displayName).toBe('Onboarding timeline');
+  expect(snapshot.rootProcess?.currentStageId).toBe('preparation');
+  expect(snapshot.blockedParentStage).toMatchObject({
+    parentProcessId: 'onboarding-main',
+    parentStageId: 'preparation',
+    childProcessId: 'it-readiness',
+    childProcessRefId: 'spawn-it-readiness'
+  });
+  expect(snapshot.activeProcess?.id).toBe('it-readiness');
+  expect(snapshot.activeProcess?.parentLink).toMatchObject({
+    parentProcessId: 'onboarding-main',
+    parentStageId: 'preparation',
+    childProcessRefId: 'spawn-it-readiness',
+    blocksParent: true
+  });
+  expect(snapshot.activeProcess?.stages.map((stage) => stage.id)).toEqual(['prepare-access']);
+  expect(snapshot.hierarchy?.processes.map((process) => process.id)).toContain('access-review');
+});
+
+test('ProcessExperienceSurface renders a parent process bar and active child workspace for model-driven forms', () => {
+  const model = loadContractFixture('valid/generic-process-matrix/employee-onboarding.model.json');
+  const snapshot = buildProcessPortfolioExperienceSnapshot(
+    model,
+    {
+      stageId: 'preparation',
+      stepId: 'provision-access-step',
+      formStateId: null,
+      internalStatusId: 'preparing',
+      portalStatusId: null
+    },
+    {
+      currentFormId: 'starter-form'
+    }
+  );
+
+  render(<ProcessExperienceSurface snapshot={snapshot} mode="model-driven-section" />);
+
+  expect(screen.getByText('Parent process')).toBeTruthy();
+  expect(screen.getByText('Onboarding timeline')).toBeTruthy();
+  expect(screen.getByText('Parent stage awaiting child completion')).toBeTruthy();
+  expect(screen.getByText('Preparation')).toBeTruthy();
+  expect(screen.getByText('Active child process')).toBeTruthy();
+  expect(screen.getByText('IT readiness')).toBeTruthy();
+  expect(screen.getAllByText('Prepare access').length).toBeGreaterThan(0);
+  expect(screen.queryByText(/React Flow/i)).toBeNull();
+  expect(screen.queryByText(/designer graph/i)).toBeNull();
+  expect(screen.queryByText(/drag/i)).toBeNull();
+  expect(JSON.stringify(snapshot)).not.toMatch(/reactFlow|nodes|edges/i);
+});
+
+test('ProcessExperienceSurface renders a slim parent bar for collapsed main processes', () => {
+  const model = loadContractFixture('valid/generic-process-matrix/document-lifecycle.model.json');
+  const snapshot = buildProcessPortfolioExperienceSnapshot(
+    model,
+    {
+      stageId: 'quality-check',
+      stepId: 'quality-check-step',
+      formStateId: null,
+      internalStatusId: 'checking',
+      portalStatusId: null
+    },
+    {
+      currentFormId: 'document-form'
+    }
+  );
+
+  render(<ProcessExperienceSurface snapshot={snapshot} mode="model-driven-section" />);
+
+  const parentBar = screen.getByLabelText('Slim parent process bar');
+  expect(parentBar).toBeTruthy();
+  expect(within(parentBar).getByText('Document lifecycle')).toBeTruthy();
+  expect(within(parentBar).getByText('Quality check')).toBeTruthy();
 });
 
 test('buildRuntimeProcessExperienceSnapshot collapses hidden stages for portal projection and surfaces cross-form handoff', () => {

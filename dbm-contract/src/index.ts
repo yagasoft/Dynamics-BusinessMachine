@@ -1046,6 +1046,72 @@ export interface DbmProcessExperienceProjectionV1 {
   message: string | null;
 }
 
+export interface DbmProcessExperienceChildProcessRefV1 {
+  id: string;
+  processId: string;
+  displayName: string;
+  activationRuleId: string | null;
+  blocksParent: boolean;
+}
+
+export interface DbmProcessExperienceHierarchyStageV1 {
+  id: string;
+  displayName: string;
+  stageType: DbmStageTypeV1;
+  stageCategory: DbmStageCategoryV1;
+  stageKindId: string;
+  childProcessRefs: DbmProcessExperienceChildProcessRefV1[];
+}
+
+export interface DbmProcessExperienceHierarchyProcessV1 {
+  id: string;
+  displayName: string;
+  role: DbmProcessRoleV1;
+  displayMode: DbmMainProcessDisplayModeV1;
+  stages: DbmProcessExperienceHierarchyStageV1[];
+}
+
+export interface DbmProcessExperienceRootProcessV1 {
+  id: string;
+  displayName: string;
+  displayMode: DbmMainProcessDisplayModeV1;
+  currentStageId: string;
+  stages: DbmProcessExperienceHierarchyStageV1[];
+}
+
+export interface DbmProcessExperienceParentLinkV1 {
+  parentProcessId: string;
+  parentStageId: string;
+  childProcessRefId: string;
+  blocksParent: boolean;
+  displayName: string;
+  activationRuleId: string | null;
+}
+
+export interface DbmProcessExperienceActiveProcessV1 {
+  id: string;
+  displayName: string;
+  role: DbmProcessRoleV1;
+  stages: DbmProcessExperienceStageV1[];
+  steps: DbmProcessExperienceStepV1[];
+  transitions: DbmProcessExperienceTransitionV1[];
+  parentLink: DbmProcessExperienceParentLinkV1 | null;
+}
+
+export interface DbmProcessExperienceBlockedParentStageV1 {
+  parentProcessId: string;
+  parentStageId: string;
+  parentStageDisplayName: string;
+  childProcessId: string;
+  childProcessDisplayName: string;
+  childProcessRefId: string;
+  label: string;
+}
+
+export interface DbmProcessExperienceHierarchyV1 {
+  processes: DbmProcessExperienceHierarchyProcessV1[];
+}
+
 export interface DbmProcessExperienceSnapshotV1 {
   schemaVersion: DbmProcessExperienceSnapshotSchemaVersionV1;
   packageId: string;
@@ -1063,4 +1129,8 @@ export interface DbmProcessExperienceSnapshotV1 {
   steps: DbmProcessExperienceStepV1[];
   transitions: DbmProcessExperienceTransitionV1[];
   projection: DbmProcessExperienceProjectionV1;
+  rootProcess?: DbmProcessExperienceRootProcessV1;
+  activeProcess?: DbmProcessExperienceActiveProcessV1;
+  blockedParentStage?: DbmProcessExperienceBlockedParentStageV1 | null;
+  hierarchy?: DbmProcessExperienceHierarchyV1;
 }

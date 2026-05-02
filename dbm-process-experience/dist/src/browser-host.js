@@ -1,7 +1,7 @@
 import { jsx as _jsx } from "react/jsx-runtime";
 import { createRoot } from 'react-dom/client';
 import { ProcessExperienceSurface } from './ProcessExperienceSurface';
-import { buildRuntimeProcessExperienceSnapshot } from './runtime-snapshot';
+import { buildProcessPortfolioExperienceSnapshot, buildRuntimeProcessExperienceSnapshot } from './runtime-snapshot';
 const roots = new WeakMap();
 function getRoot(target) {
     const existing = roots.get(target);
@@ -29,6 +29,7 @@ export function registerBrowserHost() {
     globalScope.DBM.ProcessExperienceHost = {
         render,
         unmount,
+        buildProcessPortfolioExperienceSnapshot,
         buildRuntimeProcessExperienceSnapshot
     };
 }
