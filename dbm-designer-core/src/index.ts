@@ -42,3 +42,28 @@ export type {
   UpdateNodeCommand
 } from './types';
 export { validateDocument } from './validate';
+export {
+  PROCESS_PORTFOLIO_NODE_ID,
+  PROCESS_PORTFOLIO_PROCESSES_NODE_ID,
+  actorNodeId,
+  notificationNodeId,
+  outcomeNodeId,
+  processActorsNodeId,
+  processNodeId,
+  processNotificationsNodeId,
+  processOutcomesNodeId,
+  processStagesNodeId,
+  processStatusesNodeId,
+  processStepTransitionsNodeId,
+  processTasksNodeId,
+  processTransitionsNodeId,
+  processVariablesNodeId,
+  stageNodeId,
+  stageStepsNodeId,
+  statusNodeId,
+  stepNodeId,
+  stepTransitionNodeId,
+  taskNodeId,
+  transitionNodeId
+} from './node-ids';
+export { findProcess, orderedProcesses, resolveMainProcess } from './portfolio';

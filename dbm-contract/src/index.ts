@@ -479,6 +479,7 @@ export type DbmProcessPortfolioValidationIssueCodeV1 =
   | 'main-process-duplicate'
   | 'sub-process-role-invalid'
   | 'stage-span-anchor-not-found'
+  | 'stage-span-anchor-ambiguous'
   | 'stage-span-fraction-out-of-range'
   | 'stage-span-reversed';
 
@@ -581,6 +582,11 @@ export function validateProcessPortfolioModelV1(model: DbmModelV1): DbmProcessPo
     ));
   }
 
+  const mainStageIdCounts = new Map<string, number>();
+  mainProcess.stages.forEach((stage) => {
+    mainStageIdCounts.set(stage.id, (mainStageIdCounts.get(stage.id) ?? 0) + 1);
+  });
+  const ambiguousMainStageIds = new Set(Array.from(mainStageIdCounts.entries()).filter(([, count]) => count > 1).map(([stageId]) => stageId));
   const mainStageIndex = new Map(mainProcess.stages.map((stage, index) => [stage.id, index]));
 
   model.processPortfolio.processes.forEach((process, processIndex) => {
@@ -608,7 +614,13 @@ export function validateProcessPortfolioModelV1(model: DbmModelV1): DbmProcessPo
           ));
         }
 
-        if (!mainStageIndex.has(anchor.stageId)) {
+        if (ambiguousMainStageIds.has(anchor.stageId)) {
+          issues.push(createValidationIssue(
+            'stage-span-anchor-ambiguous',
+            `${spanPath}/${anchorName}/stageId`,
+            'stageSpan anchor stageId must resolve to exactly one stage in the main process timeline.'
+          ));
+        } else if (!mainStageIndex.has(anchor.stageId)) {
           issues.push(createValidationIssue(
             'stage-span-anchor-not-found',
             `${spanPath}/${anchorName}/stageId`,
@@ -731,6 +743,7 @@ export interface DbmDesignerPreviewStateV1 {
 }
 
 export interface DbmDesignerGraphSemanticRefV1 {
+  processId?: string;
   actorId?: string;
   stageId?: string;
   stepId?: string;

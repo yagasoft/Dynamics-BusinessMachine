@@ -1,32 +1,62 @@
 import type { DbmDesignerWorkspaceV1, DbmModelV1 } from 'dbm-contract';
 import { DOCUMENT_NODE_ID, stageNodeId } from './node-ids';
 import { buildDesignerGraphDocument } from './graph-document';
+import { resolveMainProcess } from './portfolio';
 import { buildTree, indexTree } from './tree';
 import type { DesignerDocument, DesignerModelPackage } from './types';
 import { validateDocument } from './validate';
 
 function resolveDefaultPreviewStageId(model: DbmModelV1): string | null {
-  return model.process.stages.find((stage) => stage.stageType === 'start')?.id ?? model.process.stages[0]?.id ?? null;
+  const mainProcess = safeMainProcess(model);
+  return mainProcess.stages.find((stage) => stage.stageCategory === 'start')?.id ?? mainProcess.stages[0]?.id ?? null;
 }
 
 function resolveDefaultPreviewStepId(model: DbmModelV1, stageId: string | null): string | null {
+  const mainProcess = safeMainProcess(model);
   if (!stageId) {
-    return model.process.steps[0]?.id ?? null;
+    return mainProcess.steps[0]?.id ?? null;
   }
 
-  const stage = model.process.stages.find((candidate) => candidate.id === stageId);
+  const stage = mainProcess.stages.find((candidate) => candidate.id === stageId);
   if (!stage) {
-    return model.process.steps[0]?.id ?? null;
+    return mainProcess.steps[0]?.id ?? null;
   }
 
   return stage.defaultStepId
     ?? stage.stepIds[0]
-    ?? model.process.steps.find((step) => step.stageId === stageId)?.id
-    ?? model.process.steps[0]?.id
+    ?? mainProcess.steps.find((step) => step.stageId === stageId)?.id
+    ?? mainProcess.steps[0]?.id
     ?? null;
 }
 
+function safeMainProcess(model: DbmModelV1) {
+  try {
+    return resolveMainProcess(model);
+  } catch {
+    return model.processPortfolio.processes[0] ?? {
+      id: model.processPortfolio.mainProcessId,
+      displayName: model.processPortfolio.mainProcessId || 'Missing main process',
+      role: 'main' as const,
+      processTypeId: 'missing',
+      mainDisplayMode: 'expanded' as const,
+      statusId: '',
+      portalStatusId: null,
+      actors: [],
+      variables: [],
+      statuses: [],
+      tasks: [],
+      notifications: [],
+      stages: [],
+      steps: [],
+      transitions: [],
+      stepTransitions: [],
+      outcomes: []
+    };
+  }
+}
+
 export function createDefaultWorkspace(model: DbmModelV1): DbmDesignerWorkspaceV1 {
+  const mainProcess = safeMainProcess(model);
   const stageId = resolveDefaultPreviewStageId(model);
 
   return {
@@ -39,12 +69,12 @@ export function createDefaultWorkspace(model: DbmModelV1): DbmDesignerWorkspaceV
       zoom: 1
     },
     nodePositions: {},
-    collapsedNodeIds: model.process.stages.map((stage) => stageNodeId(stage.id)),
+    collapsedNodeIds: mainProcess.stages.map((stage) => stageNodeId(mainProcess.id, stage.id)),
     selectionNodeId: DOCUMENT_NODE_ID,
     panels: {
       catalog: { open: true, size: 280 },
-      inspector: { open: false, size: 360 },
-      preview: { open: true, size: 340 },
+      inspector: { open: true, size: 360 },
+      preview: { open: true, size: 420 },
       diagnostics: { open: false, size: 260 }
     },
     preview: {
@@ -61,11 +91,12 @@ function normalizeWorkspace(
   selectionId: string | null,
   index: Record<string, unknown>
 ): DbmDesignerWorkspaceV1 {
+  const mainProcess = safeMainProcess(model);
   const baseWorkspace = workspace ? structuredClone(workspace) : createDefaultWorkspace(model);
-  const previewStageId = model.process.stages.some((stage) => stage.id === baseWorkspace.preview?.stageId)
+  const previewStageId = mainProcess.stages.some((stage) => stage.id === baseWorkspace.preview?.stageId)
     ? baseWorkspace.preview.stageId
     : resolveDefaultPreviewStageId(model);
-  const previewStepId = model.process.steps.some((step) => step.id === baseWorkspace.preview?.stepId && step.stageId === previewStageId)
+  const previewStepId = mainProcess.steps.some((step) => step.id === baseWorkspace.preview?.stepId && step.stageId === previewStageId)
     ? baseWorkspace.preview.stepId
     : resolveDefaultPreviewStepId(model, previewStageId);
   const effectiveSelectionId = selectionId && index[selectionId] ? selectionId : baseWorkspace.selectionNodeId;

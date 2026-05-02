@@ -203,6 +203,16 @@ test('R1.1 whole-stage and fractional stageSpan anchors validate against the mai
   );
 });
 
+test('R1.3 process portfolio validation rejects ambiguous main-stage span anchors', () => {
+  const model = loadJson(path.join(projectRoot, 'fixtures', 'valid', 'generic-process-matrix', 'employee-onboarding.model.json'));
+  const mainProcess = model.processPortfolio.processes.find((process) => process.id === model.processPortfolio.mainProcessId);
+  mainProcess.stages[1].id = mainProcess.stages[0].id;
+
+  const issues = validateProcessPortfolioModelV1(model);
+
+  assert.equal(issues.some((issue) => issue.code === 'stage-span-anchor-ambiguous'), true);
+});
+
 test('R1.1 collapsed main-process projection preserves business-user process status', () => {
   const model = loadJson(path.join(projectRoot, 'fixtures', 'valid', 'process-portfolio-r1-1.model.json'));
   const projection = createProcessPortfolioProjectionV1(model, {

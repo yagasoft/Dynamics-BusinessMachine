@@ -61,13 +61,22 @@ Must include:
 Output:
 - designer support for main process and sub-process lane authoring
 
+Status:
+- implemented as a `processPortfolio`-native designer foundation with `dbm-designer-core` commands and a React Flow Timeline Studio shell
+- AntV X6 is not selected for this slice; it remains a possible future spike only if a concrete React Flow blocker appears
+
 Must include:
 - add/edit/reorder processes and sub-processes
 - add/edit/reorder stages
 - visual span editing against the main-process timeline
 - conditional visibility editing
 - stage feature hook placeholders for later releases
-- validation for invalid spans, missing main process, and ambiguous stage anchors
+- validation for invalid spans, missing main process, duplicate main process roles, invalid process roles, and ambiguous stage anchors
+
+Implementation boundary:
+- React Flow is the canvas and interaction layer only; saved DBM packages remain canonical `processPortfolio` model/workspace JSON and must not contain React Flow graph JSON.
+- Stage JavaScript editing, notification WYSIWYG, routing, SLA/KPI configuration, DBMScript execution, action execution, portal runtime, and full rendered form runtime remain placeholders or later-release work.
+- Approval/request assets are historical or prototype references only, not active R1.3 contract proof.
 
 ### R1.4 Rendered form experience
 

@@ -1,131 +1,126 @@
-import type { DesignerDocument } from 'dbm-designer-core';
+import type { CSSProperties } from 'react';
 import type { DbmProcessExperienceSnapshotV1 } from 'dbm-contract';
-import { ProcessPreview } from './processPreview';
+import type { DesignerDocument } from 'dbm-designer-core';
+import { resolveMainProcess } from 'dbm-designer-core';
 
 interface PreviewDockProps {
   document: DesignerDocument | null;
-  snapshot: DbmProcessExperienceSnapshotV1 | null;
-  onPreviewStageChange(stageId: string | null): void;
-  onPreviewStepChange(stepId: string | null): void;
-  onPreviewModeChange(mode: 'internal' | 'portal'): void;
+  snapshot?: DbmProcessExperienceSnapshotV1 | null;
+  onPreviewStageChange?(stageId: string | null): void;
+  onPreviewStepChange?(stepId: string | null): void;
+  onPreviewModeChange?(mode: 'internal' | 'portal'): void;
+}
+
+function safeMainProcess(document: DesignerDocument | null) {
+  if (!document) {
+    return null;
+  }
+
+  try {
+    return resolveMainProcess(document);
+  } catch {
+    return document.model.processPortfolio.processes[0] ?? null;
+  }
 }
 
 export function PreviewDock({
   document,
   snapshot,
-  onPreviewModeChange,
   onPreviewStageChange,
-  onPreviewStepChange
+  onPreviewStepChange,
+  onPreviewModeChange
 }: PreviewDockProps) {
-  const workspace = document?.workspace;
+  const mainProcess = safeMainProcess(document);
+
+  if (!document || !mainProcess) {
+    return null;
+  }
 
   return (
-    <div data-testid="preview-dock-panel" style={dockStyle}>
-      <div style={eyebrowStyle}>Live Preview</div>
-      {workspace && document ? (
-        <div style={controlsStyle}>
-          <label style={fieldStyle}>
-            <span>Audience</span>
-            <select
-              style={inputStyle}
-              value={workspace.preview.mode}
-              onChange={(event) => onPreviewModeChange(event.target.value as 'internal' | 'portal')}
-            >
-              <option value="internal">internal</option>
-              <option value="portal">portal</option>
-            </select>
-          </label>
-
-          <label style={fieldStyle}>
-            <span>Stage</span>
-            <select
-              style={inputStyle}
-              value={workspace.preview.stageId ?? ''}
-              onChange={(event) => onPreviewStageChange(event.target.value || null)}
-            >
-              {document.model.process.stages.map((stage) => (
-                <option key={stage.id} value={stage.id}>
-                  {stage.displayName}
-                </option>
-              ))}
-            </select>
-          </label>
-
-          <label style={fieldStyle}>
-            <span>Step</span>
-            <select
-              style={inputStyle}
-              value={workspace.preview.stepId ?? ''}
-              onChange={(event) => onPreviewStepChange(event.target.value || null)}
-            >
-              {document.model.process.steps
-                .filter((step) => step.stageId === workspace.preview.stageId)
-                .map((step) => (
-                  <option key={step.id} value={step.id}>
-                    {step.displayName}
-                  </option>
-                ))}
-            </select>
-          </label>
-        </div>
-      ) : null}
-
-      <div style={previewShellStyle}>
-        <ProcessPreview snapshot={snapshot} />
+    <section style={panelStyle}>
+      <div style={eyebrowStyle}>Preview placeholder</div>
+      <h2 style={headingStyle}>Portfolio preview</h2>
+      <p style={copyStyle}>
+        R1.3 keeps full rendered form runtime out of scope. This dock reflects the selected process portfolio without invoking portal, routing or action execution.
+      </p>
+      <div style={chipRowStyle}>
+        <button type="button" style={chipStyle} onClick={() => onPreviewModeChange?.('internal')}>Internal</button>
+        <button type="button" style={chipStyle} onClick={() => onPreviewModeChange?.('portal')}>Portal</button>
       </div>
-    </div>
+      <div style={stageListStyle}>
+        {mainProcess.stages.map((stage) => (
+          <button
+            key={stage.id}
+            type="button"
+            style={stageButtonStyle}
+            onClick={() => {
+              onPreviewStageChange?.(stage.id);
+              onPreviewStepChange?.(stage.defaultStepId);
+            }}
+          >
+            {stage.displayName}
+          </button>
+        ))}
+      </div>
+      {snapshot ? <p style={copyStyle}>Snapshot stages: {snapshot.stages.length}</p> : null}
+    </section>
   );
 }
 
-const dockStyle = {
-  width: '100%',
-  maxWidth: '100%',
-  minWidth: 0,
-  boxSizing: 'border-box',
+const panelStyle: CSSProperties = {
   display: 'grid',
-  gap: '0.8rem',
-  padding: '1rem',
-  borderRadius: '1rem',
-  background: 'rgba(255,255,255,0.94)',
-  border: '1px solid rgba(214, 211, 209, 0.96)',
-  boxShadow: '0 24px 54px rgba(15, 23, 42, 0.16)',
-  backdropFilter: 'blur(14px)',
-  pointerEvents: 'auto',
-  overflow: 'hidden'
-} as const;
+  gap: 10,
+  padding: 14,
+  border: '1px solid #cbd5e1',
+  borderRadius: 8,
+  background: '#ffffff'
+};
 
-const eyebrowStyle = {
-  fontSize: '0.72rem',
+const eyebrowStyle: CSSProperties = {
+  color: '#64748b',
+  fontSize: 12,
+  fontWeight: 800,
   textTransform: 'uppercase',
-  letterSpacing: '0.12em',
-  color: '#64748b'
-} as const;
+  letterSpacing: 0
+};
 
-const controlsStyle = {
+const headingStyle: CSSProperties = {
+  margin: 0,
+  fontSize: 18
+};
+
+const copyStyle: CSSProperties = {
+  margin: 0,
+  color: '#64748b',
+  lineHeight: 1.5,
+  fontSize: 14
+};
+
+const chipRowStyle: CSSProperties = {
+  display: 'flex',
+  flexWrap: 'wrap',
+  gap: 8
+};
+
+const chipStyle: CSSProperties = {
+  border: '1px solid #cbd5e1',
+  borderRadius: 8,
+  padding: '7px 10px',
+  background: '#f8fafc',
+  cursor: 'pointer'
+};
+
+const stageListStyle: CSSProperties = {
   display: 'grid',
-  gap: '0.75rem',
-  gridTemplateColumns: 'repeat(auto-fit, minmax(120px, 1fr))',
-  minWidth: 0
-} as const;
+  gap: 8
+};
 
-const fieldStyle = {
-  display: 'grid',
-  gap: '0.3rem',
-  fontSize: '0.84rem',
-  color: '#334155',
-  minWidth: 0
-} as const;
-
-const inputStyle = {
-  padding: '0.64rem 0.76rem',
-  borderRadius: '0.82rem',
-  border: '1px solid #d6d3d1',
-  background: '#fff'
-} as const;
-
-const previewShellStyle = {
-  maxHeight: '360px',
-  overflow: 'auto',
-  paddingRight: '0.25rem',
-  minWidth: 0
-} as const;
+const stageButtonStyle: CSSProperties = {
+  border: '1px solid #dbeafe',
+  borderRadius: 8,
+  padding: 9,
+  background: '#eff6ff',
+  color: '#1d4ed8',
+  textAlign: 'left',
+  cursor: 'pointer'
+};

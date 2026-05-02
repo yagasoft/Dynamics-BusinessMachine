@@ -3,6 +3,7 @@ import type {
   DbmDesignerWorkspaceV1,
   DbmModelV1,
   DbmProcessExperienceAudienceV1,
+  DbmProcessV1,
   DbmStageV1,
   DbmSubjectHandoffV1,
   DbmStepV1
@@ -11,6 +12,7 @@ import type {
 export type DesignerNodeKind =
   | 'document'
   | 'package'
+  | 'process-portfolio'
   | 'process'
   | 'collection'
   | 'actor'
@@ -95,16 +97,19 @@ export interface DesignerCommandResult {
 export type DesignerClipboardPayload =
   | {
       kind: 'stage';
+      processId: string;
       stage: DbmStageV1;
       steps: DbmStepV1[];
     }
   | {
       kind: 'step';
+      processId: string;
       step: DbmStepV1;
     };
 
 export interface AddNodeCommand {
   kind:
+    | 'process'
     | 'actor'
     | 'variable'
     | 'status'
@@ -154,17 +159,25 @@ export type DesignerGraphConnectionTarget =
 
 export type DesignerGraphIntent =
   | {
+      kind: 'add-process';
+      targetIndex?: number;
+      process?: DbmProcessV1;
+    }
+  | {
       kind: 'add-stage';
+      processId: string;
       targetIndex?: number;
       actorId?: string;
       preferredPosition?: { x: number; y: number };
     }
   | {
       kind: 'add-outcome';
+      processId: string;
       targetIndex?: number;
     }
   | {
       kind: 'add-step';
+      processId: string;
       stageId: string;
       targetIndex?: number;
     }
@@ -174,51 +187,43 @@ export type DesignerGraphIntent =
       label: string;
     }
   | {
+      kind: 'update-process';
+      processId: string;
+      value: Partial<Pick<DbmProcessV1, 'displayName' | 'processTypeId' | 'mainDisplayMode' | 'statusId' | 'portalStatusId' | 'renderOrder' | 'subProcessVisibility'>>;
+    }
+  | {
       kind: 'update-stage';
+      processId: string;
       stageId: string;
-      value: Partial<
-        Pick<
-          DbmStageV1,
-          'displayName'
-          | 'stageType'
-          | 'actorId'
-          | 'formId'
-          | 'portalVisibility'
-        >
-      >;
+      value: Partial<Pick<DbmStageV1, 'displayName' | 'stageCategory' | 'stageKindId' | 'scope' | 'stageSpan' | 'actorId' | 'formId' | 'portalVisibility' | 'statusId' | 'portalStatusId'>>;
     }
   | {
       kind: 'rebind-stage-form';
+      processId: string;
       stageId: string;
       formId: string | null;
     }
   | {
       kind: 'update-stage-outcomes';
+      processId: string;
       stageId: string;
       outcomeIds: string[];
     }
   | {
       kind: 'update-step';
+      processId: string;
       stepId: string;
-      value: Partial<
-        Pick<
-          DbmStepV1,
-          'displayName'
-          | 'stepType'
-          | 'ownerActorId'
-          | 'internalStatusId'
-          | 'portalStatusId'
-          | 'formStateId'
-        >
-      >;
+      value: Partial<Pick<DbmStepV1, 'displayName' | 'workCategory' | 'workKindId' | 'ownerActorId' | 'internalStatusId' | 'portalStatusId' | 'formStateId'>>;
     }
   | {
       kind: 'update-transition-handoff';
+      processId: string;
       transitionId: string;
       subjectHandoff: DbmSubjectHandoffV1 | null;
     }
   | {
       kind: 'update-step-transition-handoff';
+      processId: string;
       stepTransitionId: string;
       subjectHandoff: DbmSubjectHandoffV1 | null;
     }
@@ -227,24 +232,33 @@ export type DesignerGraphIntent =
       nodeId: string;
     }
   | {
+      kind: 'move-process';
+      processId: string;
+      targetIndex: number;
+    }
+  | {
       kind: 'move-stage';
+      processId: string;
       stageId: string;
       targetIndex: number;
     }
   | {
       kind: 'move-step';
+      processId: string;
       stepId: string;
       targetStageId: string;
       targetIndex: number;
     }
   | {
       kind: 'create-stage-transition';
+      processId: string;
       fromStageId: string;
       toStageId: string;
       outcomeId: string;
     }
   | {
       kind: 'create-step-transition';
+      processId: string;
       fromStepId: string;
       target: DesignerGraphConnectionTarget;
     }

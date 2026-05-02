@@ -1,44 +1,20 @@
 import Ajv from 'ajv';
 import type {
-  DbmArtifactV1,
-  DbmEntityV1,
-  DbmFormEntityBindingV1,
   DbmDesignerGraphDocumentV1,
   DbmDesignerWorkspaceV1,
   DbmModelV1,
-  DbmRuleV1,
-  DbmStatusV1,
-  DbmStepTransitionV1
+  DbmProcessPortfolioValidationIssueV1
 } from 'dbm-contract';
 import graphDocumentSchema from '../../dbm-contract/schema/dbm-designer-graph-document-v1.schema.json';
 import modelSchema from '../../dbm-contract/schema/dbm-model-v1.schema.json';
 import workspaceSchema from '../../dbm-contract/schema/dbm-designer-workspace-v1.schema.json';
 import { buildDesignerGraphDocument, isStableDesignerGraphNodeId, validateDesignerGraphDocument } from './graph-document';
 import {
-  actorNodeId,
-  artifactNodeId,
-  elementNodeId,
-  entityNodeId,
-  fieldNodeId,
-  formEntityBindingNodeId,
-  formNodeId,
-  formStateNodeId,
-  notificationNodeId,
-  outcomeNodeId,
-  PACKAGE_NODE_ID,
-  PROCESS_NODE_ID,
-  regionNodeId,
-  relationshipNodeId,
-  RUNTIME_NODE_ID,
-  ruleNodeId,
-  stageNodeId,
-  statusNodeId,
-  stepNodeId,
-  stepTransitionNodeId,
-  taskNodeId,
-  transitionNodeId,
-  variableNodeId
+  PROCESS_PORTFOLIO_NODE_ID,
+  processNodeId,
+  stageNodeId
 } from './node-ids';
+import { resolveMainProcess } from './portfolio';
 import type { DesignerDocument, DesignerIssue } from './types';
 
 const ajv = new Ajv({
@@ -51,13 +27,7 @@ const validateWorkspaceSchema = ajv.compile(workspaceSchema as object);
 const validateGraphDocumentSchema = ajv.compile(graphDocumentSchema as object);
 
 function issue(level: DesignerIssue['level'], code: string, message: string, path: string, nodeId?: string): DesignerIssue {
-  return {
-    level,
-    code,
-    message,
-    path,
-    nodeId
-  };
+  return { level, code, message, path, nodeId };
 }
 
 function addSchemaIssues(
@@ -73,9 +43,7 @@ function addSchemaIssues(
 
   (errors ?? []).forEach((error) => {
     const instancePath = error.instancePath || '/';
-    const normalizedPath = instancePath === '/'
-      ? (pathPrefix || '/')
-      : `${pathPrefix}${instancePath}`;
+    const normalizedPath = instancePath === '/' ? (pathPrefix || '/') : `${pathPrefix}${instancePath}`;
     issues.push(issue('error', code, `${normalizedPath} ${error.message ?? 'is invalid'}`.trim(), normalizedPath));
   });
 }
@@ -89,631 +57,238 @@ function addDuplicateIdIssues(
 ): void {
   const seen = new Set<string>();
   const duplicates = new Set<string>();
-
   ids.forEach((id) => {
     if (seen.has(id)) {
       duplicates.add(id);
       return;
     }
-
     seen.add(id);
   });
-
   duplicates.forEach((duplicate) => {
     issues.push(issue('error', code, `Duplicate identifier '${duplicate}' is not allowed.`, `${pathPrefix}/${duplicate}`, nodeIdFactory(duplicate)));
   });
 }
 
-function addMissingRuleIssues(
-  issues: DesignerIssue[],
-  ruleIds: Set<string>,
-  ids: string[],
-  code: string,
-  messagePrefix: string,
-  path: string,
-  nodeId: string
-): void {
-  ids.forEach((ruleId) => {
-    if (!ruleIds.has(ruleId)) {
-      issues.push(issue('error', code, `${messagePrefix} references missing rule '${ruleId}'.`, path, nodeId));
+function mapPortfolioIssue(model: DbmModelV1, portfolioIssue: DbmProcessPortfolioValidationIssueV1): DesignerIssue {
+  const processMatch = /^\/processPortfolio\/processes\/(?<processIndex>\d+)/.exec(portfolioIssue.path);
+  const processIndex = processMatch?.groups?.processIndex ? Number(processMatch.groups.processIndex) : null;
+  const process = processIndex === null ? null : model.processPortfolio.processes[processIndex] ?? null;
+  return issue(
+    'error',
+    portfolioIssue.code,
+    portfolioIssue.message,
+    portfolioIssue.path,
+    process ? processNodeId(process.id) : PROCESS_PORTFOLIO_NODE_ID
+  );
+}
+
+function createPortfolioIssue(code: DbmProcessPortfolioValidationIssueV1['code'], path: string, message: string): DbmProcessPortfolioValidationIssueV1 {
+  return { code, path, message };
+}
+
+function validatePortfolioModel(model: DbmModelV1): DbmProcessPortfolioValidationIssueV1[] {
+  const issues: DbmProcessPortfolioValidationIssueV1[] = [];
+  const mainProcess = model.processPortfolio.processes.find((process) => process.id === model.processPortfolio.mainProcessId);
+
+  if (!mainProcess) {
+    issues.push(createPortfolioIssue(
+      'main-process-not-found',
+      '/processPortfolio/mainProcessId',
+      'processPortfolio.mainProcessId must resolve to a process in processPortfolio.processes.'
+    ));
+    return issues;
+  }
+
+  if (mainProcess.role !== 'main') {
+    issues.push(createPortfolioIssue(
+      'main-process-role-invalid',
+      `/processPortfolio/processes/${model.processPortfolio.processes.indexOf(mainProcess)}/role`,
+      'The process identified by processPortfolio.mainProcessId must have role main.'
+    ));
+  }
+
+  const mainRoleProcesses = model.processPortfolio.processes.filter((process) => process.role === 'main');
+  if (mainRoleProcesses.length !== 1) {
+    issues.push(createPortfolioIssue(
+      'main-process-duplicate',
+      '/processPortfolio/processes',
+      'Exactly one process must have role main.'
+    ));
+  }
+
+  const mainStageIndex = new Map(mainProcess.stages.map((stage, index) => [stage.id, index]));
+  model.processPortfolio.processes.forEach((process, processIndex) => {
+    if (process.id !== mainProcess.id && process.role !== 'sub-process') {
+      issues.push(createPortfolioIssue(
+        'sub-process-role-invalid',
+        `/processPortfolio/processes/${processIndex}/role`,
+        'Every non-main process in the portfolio must have role sub-process.'
+      ));
     }
+
+    process.stages.forEach((stage, stageIndex) => {
+      const spanPath = `/processPortfolio/processes/${processIndex}/stages/${stageIndex}/stageSpan`;
+      const anchors = [
+        ['start', stage.stageSpan.start],
+        ['end', stage.stageSpan.end]
+      ] as const;
+
+      anchors.forEach(([anchorName, anchor]) => {
+        if (anchor.fraction < 0 || anchor.fraction > 1) {
+          issues.push(createPortfolioIssue(
+            'stage-span-fraction-out-of-range',
+            `${spanPath}/${anchorName}/fraction`,
+            'stageSpan anchor fraction must be between 0 and 1.'
+          ));
+        }
+        if (!mainStageIndex.has(anchor.stageId)) {
+          issues.push(createPortfolioIssue(
+            'stage-span-anchor-not-found',
+            `${spanPath}/${anchorName}/stageId`,
+            'stageSpan anchor stageId must resolve to a stage in the main process timeline.'
+          ));
+        }
+      });
+
+      const start = mainStageIndex.has(stage.stageSpan.start.stageId) ? (mainStageIndex.get(stage.stageSpan.start.stageId) ?? 0) + stage.stageSpan.start.fraction : null;
+      const end = mainStageIndex.has(stage.stageSpan.end.stageId) ? (mainStageIndex.get(stage.stageSpan.end.stageId) ?? 0) + stage.stageSpan.end.fraction : null;
+      if (start !== null && end !== null && start > end) {
+        issues.push(createPortfolioIssue(
+          'stage-span-reversed',
+          spanPath,
+          'stageSpan start anchor must not appear after the end anchor on the main process timeline.'
+        ));
+      }
+    });
+  });
+
+  return issues;
+}
+
+function addAmbiguousMainStageAnchorIssues(model: DbmModelV1, issues: DesignerIssue[]): void {
+  let mainProcess;
+  try {
+    mainProcess = resolveMainProcess(model);
+  } catch {
+    return;
+  }
+
+  const counts = new Map<string, number>();
+  mainProcess.stages.forEach((stage) => {
+    counts.set(stage.id, (counts.get(stage.id) ?? 0) + 1);
+  });
+
+  const ambiguousStageIds = new Set([...counts.entries()].filter(([, count]) => count > 1).map(([stageId]) => stageId));
+  if (ambiguousStageIds.size === 0) {
+    return;
+  }
+
+  model.processPortfolio.processes.forEach((process, processIndex) => {
+    process.stages.forEach((stage, stageIndex) => {
+      const anchors = [
+        ['start', stage.stageSpan.start.stageId],
+        ['end', stage.stageSpan.end.stageId]
+      ] as const;
+      anchors.forEach(([anchorName, stageId]) => {
+        if (!ambiguousStageIds.has(stageId)) {
+          return;
+        }
+        issues.push(issue(
+          'error',
+          'stage-span-anchor-ambiguous',
+          `stageSpan ${anchorName} anchor '${stageId}' matches more than one main-process stage.`,
+          `/processPortfolio/processes/${processIndex}/stages/${stageIndex}/stageSpan/${anchorName}/stageId`,
+          stageNodeId(process.id, stage.id)
+        ));
+      });
+    });
   });
 }
 
-function findArtifact(artifacts: DbmArtifactV1[], artifactId: string): DbmArtifactV1 | undefined {
-  return artifacts.find((artifact) => artifact.id === artifactId);
-}
+function validateProcessSemantics(model: DbmModelV1): DesignerIssue[] {
+  const issues: DesignerIssue[] = [];
+  addDuplicateIdIssues(issues, model.processPortfolio.processes.map((process) => process.id), 'duplicate-process-id', '/processPortfolio/processes', processNodeId);
 
-function findRule(rules: DbmRuleV1[], ruleId: string): DbmRuleV1 | undefined {
-  return rules.find((rule) => rule.id === ruleId);
-}
+  model.processPortfolio.processes.forEach((process) => {
+    addDuplicateIdIssues(issues, process.actors.map((actor) => actor.id), 'duplicate-actor-id', `/processPortfolio/processes/${process.id}/actors`, (id) => `actor:${process.id}:${id}`);
+    addDuplicateIdIssues(issues, process.statuses.map((status) => status.id), 'duplicate-status-id', `/processPortfolio/processes/${process.id}/statuses`, (id) => `status:${process.id}:${id}`);
+    addDuplicateIdIssues(issues, process.stages.map((stage) => stage.id), 'duplicate-stage-id', `/processPortfolio/processes/${process.id}/stages`, (id) => stageNodeId(process.id, id));
+    addDuplicateIdIssues(issues, process.steps.map((step) => step.id), 'duplicate-step-id', `/processPortfolio/processes/${process.id}/steps`, (id) => `step:${process.id}:${id}`);
+    addDuplicateIdIssues(issues, process.transitions.map((transition) => transition.id), 'duplicate-transition-id', `/processPortfolio/processes/${process.id}/transitions`, (id) => `transition:${process.id}:${id}`);
+    addDuplicateIdIssues(issues, process.outcomes.map((outcome) => outcome.id), 'duplicate-outcome-id', `/processPortfolio/processes/${process.id}/outcomes`, (id) => `outcome:${process.id}:${id}`);
 
-function findFieldEntity(entities: DbmEntityV1[], entityId: string, fieldId: string): DbmEntityV1 | undefined {
-  return entities.find((entity) => entity.id === entityId && entity.fields.some((field) => field.id === fieldId));
-}
+    const actorIds = new Set(process.actors.map((actor) => actor.id));
+    const statusIds = new Set(process.statuses.map((status) => status.id));
+    const stageIds = new Set(process.stages.map((stage) => stage.id));
+    const stepIds = new Set(process.steps.map((step) => step.id));
+    const outcomeIds = new Set(process.outcomes.map((outcome) => outcome.id));
 
-function isPortalVisibleStatus(status: DbmStatusV1): boolean {
-  return status.audience === 'portal' || status.audience === 'shared';
-}
+    process.stages.forEach((stage) => {
+      if (stage.actorId && !actorIds.has(stage.actorId)) {
+        issues.push(issue('error', 'missing-stage-actor', `Stage '${stage.id}' references missing actor '${stage.actorId}'.`, `/processPortfolio/processes/${process.id}/stages/${stage.id}/actorId`, stageNodeId(process.id, stage.id)));
+      }
+      if (stage.statusId && !statusIds.has(stage.statusId)) {
+        issues.push(issue('error', 'missing-stage-status', `Stage '${stage.id}' references missing status '${stage.statusId}'.`, `/processPortfolio/processes/${process.id}/stages/${stage.id}/statusId`, stageNodeId(process.id, stage.id)));
+      }
+      stage.stepIds.forEach((stepId) => {
+        if (!stepIds.has(stepId)) {
+          issues.push(issue('error', 'missing-stage-step-reference', `Stage '${stage.id}' references missing step '${stepId}'.`, `/processPortfolio/processes/${process.id}/stages/${stage.id}/stepIds`, stageNodeId(process.id, stage.id)));
+        }
+      });
+      stage.allowedOutcomeIds.forEach((outcomeId) => {
+        if (!outcomeIds.has(outcomeId)) {
+          issues.push(issue('error', 'missing-stage-outcome-reference', `Stage '${stage.id}' references missing outcome '${outcomeId}'.`, `/processPortfolio/processes/${process.id}/stages/${stage.id}/allowedOutcomeIds`, stageNodeId(process.id, stage.id)));
+        }
+      });
+    });
 
-function isInternalStatus(status: DbmStatusV1): boolean {
-  return status.audience === 'internal' || status.audience === 'shared';
-}
+    process.steps.forEach((step) => {
+      if (!stageIds.has(step.stageId)) {
+        issues.push(issue('error', 'missing-step-stage', `Step '${step.id}' references missing stage '${step.stageId}'.`, `/processPortfolio/processes/${process.id}/steps/${step.id}/stageId`, `step:${process.id}:${step.id}`));
+      }
+      if (step.ownerActorId && !actorIds.has(step.ownerActorId)) {
+        issues.push(issue('error', 'missing-step-owner', `Step '${step.id}' references missing owner actor '${step.ownerActorId}'.`, `/processPortfolio/processes/${process.id}/steps/${step.id}/ownerActorId`, `step:${process.id}:${step.id}`));
+      }
+    });
 
-function getStagePrimaryEntityId(
-  stageId: string,
-  stageMap: Map<string, DbmModelV1['process']['stages'][number]>,
-  formMap: Map<string, DbmModelV1['forms'][number]>
-): string | null {
-  const stage = stageMap.get(stageId);
-  if (!stage?.formId) {
-    return null;
-  }
+    process.transitions.forEach((transition) => {
+      if (!stageIds.has(transition.fromStageId)) {
+        issues.push(issue('error', 'missing-transition-source', `Transition '${transition.id}' references missing source stage '${transition.fromStageId}'.`, `/processPortfolio/processes/${process.id}/transitions/${transition.id}/fromStageId`, `transition:${process.id}:${transition.id}`));
+      }
+      if (!stageIds.has(transition.toStageId)) {
+        issues.push(issue('error', 'missing-transition-target', `Transition '${transition.id}' references missing target stage '${transition.toStageId}'.`, `/processPortfolio/processes/${process.id}/transitions/${transition.id}/toStageId`, `transition:${process.id}:${transition.id}`));
+      }
+      if (!outcomeIds.has(transition.outcomeId)) {
+        issues.push(issue('error', 'missing-transition-outcome', `Transition '${transition.id}' references missing outcome '${transition.outcomeId}'.`, `/processPortfolio/processes/${process.id}/transitions/${transition.id}/outcomeId`, `transition:${process.id}:${transition.id}`));
+      }
+    });
+  });
 
-  const form = formMap.get(stage.formId);
-  const primaryBinding = form?.entityBindings.find((binding) => binding.id === form.primaryEntityBindingId);
-  return primaryBinding?.entityId ?? null;
-}
-
-function validateSubjectHandoff(
-  issues: DesignerIssue[],
-  options: {
-    sourceEntityId: string | null;
-    targetEntityId: string | null;
-    handoff: DbmModelV1['process']['transitions'][number]['subjectHandoff'] | DbmModelV1['process']['stepTransitions'][number]['subjectHandoff'];
-    relationshipMap: Map<string, DbmModelV1['metadata']['relationships'][number]>;
-    path: string;
-    nodeId: string;
-    label: string;
-  }
-): void {
-  const { sourceEntityId, targetEntityId, handoff, relationshipMap, path, nodeId, label } = options;
-  if (!sourceEntityId || !targetEntityId) {
-    return;
-  }
-
-  const requiresHandoff = sourceEntityId !== targetEntityId;
-  if (!requiresHandoff) {
-    if (handoff) {
-      issues.push(
-        issue(
-          'error',
-          'subject-handoff-forbidden',
-          `${label} must not declare subjectHandoff when source and target stages use the same primary entity.`,
-          path,
-          nodeId
-        )
-      );
-    }
-    return;
-  }
-
-  if (!handoff) {
-    issues.push(
-      issue(
-        'error',
-        'missing-subject-handoff',
-        `${label} must declare subjectHandoff when moving between different primary entities.`,
-        path,
-        nodeId
-      )
-    );
-    return;
-  }
-
-  if (handoff.strategy === 'reuse-current-primary') {
-    issues.push(
-      issue(
-        'error',
-        'invalid-subject-handoff-strategy',
-        `${label} cannot use 'reuse-current-primary' when source and target stages use different primary entities.`,
-        `${path}/strategy`,
-        nodeId
-      )
-    );
-  }
-
-  if (!handoff.relationshipId) {
-    issues.push(
-      issue(
-        'error',
-        'missing-subject-handoff-relationship',
-        `${label} must reference a relationshipId for cross-entity handoff.`,
-        `${path}/relationshipId`,
-        nodeId
-      )
-    );
-    return;
-  }
-
-  const relationship = relationshipMap.get(handoff.relationshipId);
-  if (!relationship) {
-    issues.push(
-      issue(
-        'error',
-        'missing-subject-handoff-relationship-reference',
-        `${label} references missing relationship '${handoff.relationshipId}'.`,
-        `${path}/relationshipId`,
-        nodeId
-      )
-    );
-    return;
-  }
-
-  const relationshipEntityIds = new Set([relationship.fromEntityId, relationship.toEntityId]);
-  if (!relationshipEntityIds.has(sourceEntityId) || !relationshipEntityIds.has(targetEntityId)) {
-    issues.push(
-      issue(
-        'error',
-        'subject-handoff-relationship-entity-mismatch',
-        `${label} uses relationship '${handoff.relationshipId}' that does not connect entities '${sourceEntityId}' and '${targetEntityId}'.`,
-        `${path}/relationshipId`,
-        nodeId
-      )
-    );
-  }
-}
-
-function validateStepTransitionTarget(
-  transition: DbmStepTransitionV1,
-  stepIds: Set<string>,
-  stageIds: Set<string>,
-  outcomeIds: Set<string>
-): { valid: boolean; message?: string } {
-  if ('stepId' in transition.target) {
-    return stepIds.has(transition.target.stepId)
-      ? { valid: true }
-      : { valid: false, message: `missing target step '${transition.target.stepId}'` };
-  }
-
-  if ('stageId' in transition.target) {
-    return stageIds.has(transition.target.stageId)
-      ? { valid: true }
-      : { valid: false, message: `missing target stage '${transition.target.stageId}'` };
-  }
-
-  return outcomeIds.has(transition.target.outcomeId)
-    ? { valid: true }
-    : { valid: false, message: `missing target outcome '${transition.target.outcomeId}'` };
+  addAmbiguousMainStageAnchorIssues(model, issues);
+  return issues;
 }
 
 export function validateModel(model: DbmModelV1): DesignerIssue[] {
   const issues: DesignerIssue[] = [];
   const schemaValid = validateSchema(model);
   addSchemaIssues(issues, schemaValid, validateSchema.errors, 'schema-invalid', '');
-
-  if (model.package.entryProcessId !== model.process.id) {
-    issues.push(issue('error', 'package-entry-process-mismatch', 'package.entryProcessId must match process.id.', '/package/entryProcessId', PACKAGE_NODE_ID));
-  }
-
-  if (!model.process.scenarioType.trim()) {
-    issues.push(issue('error', 'missing-scenario-type', 'process.scenarioType must be a non-empty descriptive string.', '/process/scenarioType', PROCESS_NODE_ID));
-  }
+  validatePortfolioModel(model).forEach((portfolioIssue) => issues.push(mapPortfolioIssue(model, portfolioIssue)));
+  issues.push(...validateProcessSemantics(model));
 
   model.package.processUiSurfaces.forEach((surface) => {
     if (!model.package.supportedHosts.includes(surface)) {
-      issues.push(issue('error', 'invalid-process-ui-surface', `package.processUiSurfaces contains '${surface}', which is not listed in package.supportedHosts.`, '/package/processUiSurfaces', PACKAGE_NODE_ID));
+      issues.push(issue('error', 'invalid-process-ui-surface', `package.processUiSurfaces contains '${surface}', which is not listed in package.supportedHosts.`, '/package/processUiSurfaces'));
     }
-  });
-
-  addDuplicateIdIssues(issues, model.process.actors.map((actor) => actor.id), 'duplicate-actor-id', '/process/actors', actorNodeId);
-  addDuplicateIdIssues(issues, model.process.variables.map((variable) => variable.id), 'duplicate-variable-id', '/process/variables', variableNodeId);
-  addDuplicateIdIssues(issues, model.process.statuses.map((status) => status.id), 'duplicate-status-id', '/process/statuses', statusNodeId);
-  addDuplicateIdIssues(issues, model.process.tasks.map((task) => task.id), 'duplicate-task-id', '/process/tasks', taskNodeId);
-  addDuplicateIdIssues(issues, model.process.notifications.map((notification) => notification.id), 'duplicate-notification-id', '/process/notifications', notificationNodeId);
-  addDuplicateIdIssues(issues, model.process.stages.map((stage) => stage.id), 'duplicate-stage-id', '/process/stages', stageNodeId);
-  addDuplicateIdIssues(issues, model.process.steps.map((step) => step.id), 'duplicate-step-id', '/process/steps', stepNodeId);
-  addDuplicateIdIssues(issues, model.process.transitions.map((transition) => transition.id), 'duplicate-transition-id', '/process/transitions', transitionNodeId);
-  addDuplicateIdIssues(issues, model.process.stepTransitions.map((transition) => transition.id), 'duplicate-step-transition-id', '/process/stepTransitions', stepTransitionNodeId);
-  addDuplicateIdIssues(issues, model.process.outcomes.map((outcome) => outcome.id), 'duplicate-outcome-id', '/process/outcomes', outcomeNodeId);
-  addDuplicateIdIssues(issues, model.forms.map((form) => form.id), 'duplicate-form-id', '/forms', formNodeId);
-  addDuplicateIdIssues(issues, model.rules.map((rule) => rule.id), 'duplicate-rule-id', '/rules', ruleNodeId);
-  addDuplicateIdIssues(issues, model.artifacts.map((artifact) => artifact.id), 'duplicate-artifact-id', '/artifacts', artifactNodeId);
-  addDuplicateIdIssues(issues, model.metadata.entities.map((entity) => entity.id), 'duplicate-entity-id', '/metadata/entities', entityNodeId);
-  addDuplicateIdIssues(issues, model.metadata.relationships.map((relationship) => relationship.id), 'duplicate-relationship-id', '/metadata/relationships', relationshipNodeId);
-
-  const actorIds = new Set(model.process.actors.map((actor) => actor.id));
-  const variableIds = new Set(model.process.variables.map((variable) => variable.id));
-  const statusMap = new Map(model.process.statuses.map((status) => [status.id, status]));
-  const taskIds = new Set(model.process.tasks.map((task) => task.id));
-  const notificationIds = new Set(model.process.notifications.map((notification) => notification.id));
-  const stageMap = new Map(model.process.stages.map((stage) => [stage.id, stage]));
-  const stepMap = new Map(model.process.steps.map((step) => [step.id, step]));
-  const stageIds = new Set(stageMap.keys());
-  const stepIds = new Set(stepMap.keys());
-  const formMap = new Map(model.forms.map((form) => [form.id, form]));
-  const formIds = new Set(formMap.keys());
-  const entityMap = new Map(model.metadata.entities.map((entity) => [entity.id, entity]));
-  const entityIds = new Set(entityMap.keys());
-  const relationshipMap = new Map(model.metadata.relationships.map((relationship) => [relationship.id, relationship]));
-  const ruleIds = new Set(model.rules.map((rule) => rule.id));
-  const outcomeIds = new Set(model.process.outcomes.map((outcome) => outcome.id));
-  const startStages = model.process.stages.filter((stage) => stage.stageType === 'start');
-  const formStateOwners = new Map<string, string>();
-  const formStateNodeIds = new Map<string, string>();
-
-  if (startStages.length !== 1) {
-    issues.push(issue('error', 'invalid-start-stage-count', 'Exactly one start stage is required.', '/process/stages', PROCESS_NODE_ID));
-  }
-
-  model.metadata.entities.forEach((entity) => {
-    addDuplicateIdIssues(issues, entity.fields.map((field) => field.id), 'duplicate-field-id', `/metadata/entities/${entity.id}/fields`, (fieldId) => fieldNodeId(entity.id, fieldId));
-
-    if (!entity.fields.some((field) => field.id === entity.primaryKeyFieldId)) {
-      issues.push(issue('error', 'missing-primary-key-field', `Entity '${entity.id}' primary key '${entity.primaryKeyFieldId}' was not found in its fields.`, `/metadata/entities/${entity.id}/primaryKeyFieldId`, entityNodeId(entity.id)));
-    }
-  });
-
-  model.forms.forEach((form) => {
-    addDuplicateIdIssues(issues, form.entityBindings.map((binding) => binding.id), 'duplicate-form-entity-binding-id', `/forms/${form.id}/entityBindings`, (bindingId) => formEntityBindingNodeId(form.id, bindingId));
-    addDuplicateIdIssues(issues, form.layout.regions.map((region) => region.id), 'duplicate-region-id', `/forms/${form.id}/layout/regions`, (regionId) => regionNodeId(form.id, regionId));
-    addDuplicateIdIssues(issues, form.elements.map((element) => element.id), 'duplicate-element-id', `/forms/${form.id}/elements`, (elementId) => elementNodeId(form.id, elementId));
-    addDuplicateIdIssues(issues, form.formStates.map((state) => state.id), 'duplicate-form-state-id', `/forms/${form.id}/formStates`, (stateId) => formStateNodeId(form.id, stateId));
-
-    if (!form.entityBindings.some((binding) => binding.id === form.primaryEntityBindingId)) {
-      issues.push(issue('error', 'missing-primary-entity-binding', `Form '${form.id}' primaryEntityBindingId '${form.primaryEntityBindingId}' was not found.`, `/forms/${form.id}/primaryEntityBindingId`, formNodeId(form.id)));
-    }
-
-    const primaryBinding = form.entityBindings.find((binding) => binding.id === form.primaryEntityBindingId);
-    if (primaryBinding && primaryBinding.role !== 'primary') {
-      issues.push(issue('error', 'invalid-primary-entity-binding-role', `Form '${form.id}' primaryEntityBindingId must reference a binding with role 'primary'.`, `/forms/${form.id}/primaryEntityBindingId`, formNodeId(form.id)));
-    }
-
-    form.formStates.forEach((state) => {
-      if (formStateOwners.has(state.id)) {
-        issues.push(issue('error', 'duplicate-global-form-state-id', `Form state '${state.id}' must be globally unique across forms.`, `/forms/${form.id}/formStates/${state.id}`, formStateNodeId(form.id, state.id)));
-      } else {
-        formStateOwners.set(state.id, form.id);
-        formStateNodeIds.set(state.id, formStateNodeId(form.id, state.id));
-      }
-    });
-  });
-
-  model.process.stages.forEach((stage) => {
-    if (!actorIds.has(stage.actorId)) {
-      issues.push(issue('error', 'missing-stage-actor', `Stage '${stage.id}' references missing actor '${stage.actorId}'.`, `/process/stages/${stage.id}/actorId`, stageNodeId(stage.id)));
-    }
-
-    if (stage.stageType !== 'end' && stage.stepIds.length === 0) {
-      issues.push(issue('error', 'missing-stage-steps', `Stage '${stage.id}' must include at least one step.`, `/process/stages/${stage.id}/stepIds`, stageNodeId(stage.id)));
-    }
-
-    if (stage.stageType !== 'end' && !stage.defaultStepId) {
-      issues.push(issue('error', 'missing-stage-default-step', `Stage '${stage.id}' must define defaultStepId.`, `/process/stages/${stage.id}/defaultStepId`, stageNodeId(stage.id)));
-    }
-
-    if (stage.defaultStepId && !stage.stepIds.includes(stage.defaultStepId)) {
-      issues.push(issue('error', 'invalid-stage-default-step', `Stage '${stage.id}' defaultStepId '${stage.defaultStepId}' is not listed in stepIds.`, `/process/stages/${stage.id}/defaultStepId`, stageNodeId(stage.id)));
-    }
-
-    if ((stage.stageType === 'start' || stage.stageType === 'task' || stage.stageType === 'approval' || stage.stepIds.length > 0) && !stage.formId && stage.stageType !== 'end') {
-      issues.push(issue('error', 'missing-stage-form', `Stage '${stage.id}' requires a formId.`, `/process/stages/${stage.id}/formId`, stageNodeId(stage.id)));
-    }
-
-    if (stage.formId && !formIds.has(stage.formId)) {
-      issues.push(issue('error', 'missing-stage-form-reference', `Stage '${stage.id}' references missing form '${stage.formId}'.`, `/process/stages/${stage.id}/formId`, stageNodeId(stage.id)));
-    }
-
-    const stageStepIds = new Set<string>();
-    stage.stepIds.forEach((stepId) => {
-      if (stageStepIds.has(stepId)) {
-        issues.push(issue('error', 'duplicate-stage-step-membership', `Stage '${stage.id}' references step '${stepId}' more than once.`, `/process/stages/${stage.id}/stepIds`, stageNodeId(stage.id)));
-        return;
-      }
-
-      stageStepIds.add(stepId);
-      const step = stepMap.get(stepId);
-      if (!step) {
-        issues.push(issue('error', 'missing-stage-step-reference', `Stage '${stage.id}' references missing step '${stepId}'.`, `/process/stages/${stage.id}/stepIds`, stageNodeId(stage.id)));
-        return;
-      }
-
-      if (step.stageId !== stage.id) {
-        issues.push(issue('error', 'step-stage-mismatch', `Step '${step.id}' is listed under stage '${stage.id}' but belongs to stage '${step.stageId}'.`, `/process/stages/${stage.id}/stepIds`, stageNodeId(stage.id)));
-      }
-    });
-
-    stage.allowedOutcomeIds.forEach((outcomeId) => {
-      if (!outcomeIds.has(outcomeId)) {
-        issues.push(issue('error', 'missing-stage-outcome-reference', `Stage '${stage.id}' references missing outcome '${outcomeId}'.`, `/process/stages/${stage.id}/allowedOutcomeIds`, stageNodeId(stage.id)));
-      }
-    });
-
-    addMissingRuleIssues(issues, ruleIds, stage.entryRuleIds, 'missing-stage-rule-reference', `Stage '${stage.id}'`, `/process/stages/${stage.id}/entryRuleIds`, stageNodeId(stage.id));
-    addMissingRuleIssues(issues, ruleIds, stage.exitRuleIds, 'missing-stage-rule-reference', `Stage '${stage.id}'`, `/process/stages/${stage.id}/exitRuleIds`, stageNodeId(stage.id));
-  });
-
-  model.process.steps.forEach((step) => {
-    const stage = stageMap.get(step.stageId);
-    if (!stage) {
-      issues.push(issue('error', 'missing-step-stage', `Step '${step.id}' references missing stage '${step.stageId}'.`, `/process/steps/${step.id}/stageId`, stepNodeId(step.id)));
-    } else if (!stage.stepIds.includes(step.id)) {
-      issues.push(issue('error', 'step-not-linked-from-stage', `Step '${step.id}' belongs to stage '${stage.id}' but is not listed in stage.stepIds.`, `/process/steps/${step.id}/stageId`, stepNodeId(step.id)));
-    }
-
-    if (!actorIds.has(step.ownerActorId)) {
-      issues.push(issue('error', 'missing-step-owner', `Step '${step.id}' references missing owner actor '${step.ownerActorId}'.`, `/process/steps/${step.id}/ownerActorId`, stepNodeId(step.id)));
-    }
-
-    if (step.taskId && !taskIds.has(step.taskId)) {
-      issues.push(issue('error', 'missing-step-task', `Step '${step.id}' references missing task '${step.taskId}'.`, `/process/steps/${step.id}/taskId`, stepNodeId(step.id)));
-    }
-
-    if (step.notificationId && !notificationIds.has(step.notificationId)) {
-      issues.push(issue('error', 'missing-step-notification', `Step '${step.id}' references missing notification '${step.notificationId}'.`, `/process/steps/${step.id}/notificationId`, stepNodeId(step.id)));
-    }
-
-    const internalStatus = statusMap.get(step.internalStatusId);
-    if (!internalStatus) {
-      issues.push(issue('error', 'missing-step-internal-status', `Step '${step.id}' references missing internal status '${step.internalStatusId}'.`, `/process/steps/${step.id}/internalStatusId`, stepNodeId(step.id)));
-    } else if (!isInternalStatus(internalStatus)) {
-      issues.push(issue('error', 'invalid-step-internal-status', `Step '${step.id}' internalStatusId must reference an internal or shared status.`, `/process/steps/${step.id}/internalStatusId`, stepNodeId(step.id)));
-    }
-
-    if (step.portalStatusId) {
-      const portalStatus = statusMap.get(step.portalStatusId);
-      if (!portalStatus) {
-        issues.push(issue('error', 'missing-step-portal-status', `Step '${step.id}' references missing portal status '${step.portalStatusId}'.`, `/process/steps/${step.id}/portalStatusId`, stepNodeId(step.id)));
-      } else if (!isPortalVisibleStatus(portalStatus)) {
-        issues.push(issue('error', 'invalid-step-portal-status', `Step '${step.id}' portalStatusId must reference a portal or shared status.`, `/process/steps/${step.id}/portalStatusId`, stepNodeId(step.id)));
-      }
-    }
-
-    if (step.formStateId) {
-      const owningFormId = formStateOwners.get(step.formStateId);
-      if (!owningFormId) {
-        issues.push(issue('error', 'missing-step-form-state', `Step '${step.id}' references missing form state '${step.formStateId}'.`, `/process/steps/${step.id}/formStateId`, stepNodeId(step.id)));
-      } else if (stage?.formId !== owningFormId) {
-        issues.push(issue('error', 'step-form-state-form-mismatch', `Step '${step.id}' formStateId '${step.formStateId}' must belong to stage form '${stage?.formId ?? '(none)'}'.`, `/process/steps/${step.id}/formStateId`, stepNodeId(step.id)));
-      }
-    }
-
-    addMissingRuleIssues(issues, ruleIds, step.entryRuleIds, 'missing-step-rule-reference', `Step '${step.id}'`, `/process/steps/${step.id}/entryRuleIds`, stepNodeId(step.id));
-    addMissingRuleIssues(issues, ruleIds, step.exitRuleIds, 'missing-step-rule-reference', `Step '${step.id}'`, `/process/steps/${step.id}/exitRuleIds`, stepNodeId(step.id));
-  });
-
-  model.process.transitions.forEach((transition) => {
-    if (!stageIds.has(transition.fromStageId)) {
-      issues.push(issue('error', 'missing-transition-source', `Transition '${transition.id}' references missing source stage '${transition.fromStageId}'.`, `/process/transitions/${transition.id}/fromStageId`, transitionNodeId(transition.id)));
-    }
-
-    if (!stageIds.has(transition.toStageId)) {
-      issues.push(issue('error', 'missing-transition-target', `Transition '${transition.id}' references missing target stage '${transition.toStageId}'.`, `/process/transitions/${transition.id}/toStageId`, transitionNodeId(transition.id)));
-    }
-
-    if (!outcomeIds.has(transition.outcomeId)) {
-      issues.push(issue('error', 'missing-transition-outcome', `Transition '${transition.id}' references missing outcome '${transition.outcomeId}'.`, `/process/transitions/${transition.id}/outcomeId`, transitionNodeId(transition.id)));
-    }
-
-    const guardRule = findRule(model.rules, transition.guardRuleId);
-    if (!guardRule) {
-      issues.push(issue('error', 'missing-transition-guard', `Transition '${transition.id}' references missing guard rule '${transition.guardRuleId}'.`, `/process/transitions/${transition.id}/guardRuleId`, transitionNodeId(transition.id)));
-    } else if (guardRule.ruleType !== 'condition' && guardRule.ruleType !== 'validation') {
-      issues.push(issue('warning', 'non-condition-transition-guard', `Transition '${transition.id}' uses '${guardRule.ruleType}' as its guard rule. Condition or validation rules are preferred.`, `/process/transitions/${transition.id}/guardRuleId`, transitionNodeId(transition.id)));
-    }
-
-    validateSubjectHandoff(issues, {
-      sourceEntityId: getStagePrimaryEntityId(transition.fromStageId, stageMap, formMap),
-      targetEntityId: getStagePrimaryEntityId(transition.toStageId, stageMap, formMap),
-      handoff: transition.subjectHandoff,
-      relationshipMap,
-      path: `/process/transitions/${transition.id}/subjectHandoff`,
-      nodeId: transitionNodeId(transition.id),
-      label: `Transition '${transition.id}'`
-    });
-  });
-
-  model.process.stepTransitions.forEach((transition) => {
-    if (!stepIds.has(transition.fromStepId)) {
-      issues.push(issue('error', 'missing-step-transition-source', `Step transition '${transition.id}' references missing step '${transition.fromStepId}'.`, `/process/stepTransitions/${transition.id}/fromStepId`, stepTransitionNodeId(transition.id)));
-    }
-
-    const targetCheck = validateStepTransitionTarget(transition, stepIds, stageIds, outcomeIds);
-    if (!targetCheck.valid) {
-      issues.push(issue('error', 'missing-step-transition-target', `Step transition '${transition.id}' references ${targetCheck.message}.`, `/process/stepTransitions/${transition.id}/target`, stepTransitionNodeId(transition.id)));
-    }
-
-    const guardRule = findRule(model.rules, transition.guardRuleId);
-    if (!guardRule) {
-      issues.push(issue('error', 'missing-step-transition-guard', `Step transition '${transition.id}' references missing guard rule '${transition.guardRuleId}'.`, `/process/stepTransitions/${transition.id}/guardRuleId`, stepTransitionNodeId(transition.id)));
-    } else if (guardRule.ruleType !== 'condition' && guardRule.ruleType !== 'validation') {
-      issues.push(issue('warning', 'non-condition-step-transition-guard', `Step transition '${transition.id}' uses '${guardRule.ruleType}' as its guard rule. Condition or validation rules are preferred.`, `/process/stepTransitions/${transition.id}/guardRuleId`, stepTransitionNodeId(transition.id)));
-    }
-
-    const sourceStageId = stepMap.get(transition.fromStepId)?.stageId ?? null;
-    const targetStageId =
-      'stageId' in transition.target
-        ? transition.target.stageId
-        : 'stepId' in transition.target
-          ? stepMap.get(transition.target.stepId)?.stageId ?? null
-          : null;
-
-    if (sourceStageId && targetStageId) {
-      validateSubjectHandoff(issues, {
-        sourceEntityId: getStagePrimaryEntityId(sourceStageId, stageMap, formMap),
-        targetEntityId: getStagePrimaryEntityId(targetStageId, stageMap, formMap),
-        handoff: transition.subjectHandoff,
-        relationshipMap,
-        path: `/process/stepTransitions/${transition.id}/subjectHandoff`,
-        nodeId: stepTransitionNodeId(transition.id),
-        label: `Step transition '${transition.id}'`
-      });
-    } else if ('outcomeId' in transition.target && transition.subjectHandoff) {
-      issues.push(
-        issue(
-          'error',
-          'subject-handoff-forbidden',
-          `Step transition '${transition.id}' must not declare subjectHandoff when targeting an outcome.`,
-          `/process/stepTransitions/${transition.id}/subjectHandoff`,
-          stepTransitionNodeId(transition.id)
-        )
-      );
-    }
-  });
-
-  model.process.stages.forEach((stage) => {
-    const stageTargetIds = new Set(
-      model.process.transitions
-        .filter((transition) => transition.fromStageId === stage.id)
-        .map((transition) => transition.toStageId)
-    );
-    const stepTargetStageIds = new Set<string>();
-
-    model.process.stepTransitions
-      .filter((transition) => stepMap.get(transition.fromStepId)?.stageId === stage.id)
-      .forEach((transition) => {
-        if ('stageId' in transition.target && transition.target.stageId !== stage.id) {
-          stepTargetStageIds.add(transition.target.stageId);
-          return;
-        }
-
-        if ('stepId' in transition.target) {
-          const targetStep = stepMap.get(transition.target.stepId);
-          if (targetStep && targetStep.stageId !== stage.id) {
-            stepTargetStageIds.add(targetStep.stageId);
-          }
-        }
-      });
-
-    const duplicatedTargets = [...stageTargetIds].filter((targetStageId) => stepTargetStageIds.has(targetStageId));
-    if (duplicatedTargets.length > 0) {
-      const labels = duplicatedTargets
-        .map((targetStageId) => stageMap.get(targetStageId)?.displayName ?? targetStageId)
-        .join(', ');
-      issues.push(
-        issue(
-          'warning',
-          'duplicate-cross-stage-routing',
-          `Stage '${stage.id}' defines both stage and step routing to ${labels}. Prefer one emphasized cross-stage path per source stage for readability.`,
-          `/process/stages/${stage.id}`,
-          stageNodeId(stage.id)
-        )
-      );
-    }
-  });
-
-  model.forms.forEach((form) => {
-    const regionIds = new Set(form.layout.regions.map((region) => region.id));
-    const bindingMap = new Map(form.entityBindings.map((binding) => [binding.id, binding]));
-
-    form.entityBindings.forEach((binding) => {
-      if (!entityIds.has(binding.entityId)) {
-        issues.push(issue('error', 'missing-form-entity-binding-entity', `Form '${form.id}' binding '${binding.id}' references missing entity '${binding.entityId}'.`, `/forms/${form.id}/entityBindings/${binding.id}/entityId`, formEntityBindingNodeId(form.id, binding.id)));
-      }
-
-      if (binding.role === 'primary' && binding.relationshipId) {
-        issues.push(issue('error', 'invalid-primary-form-binding-relationship', `Form '${form.id}' primary binding '${binding.id}' must not specify relationshipId.`, `/forms/${form.id}/entityBindings/${binding.id}/relationshipId`, formEntityBindingNodeId(form.id, binding.id)));
-      }
-
-      if (binding.role === 'related') {
-        if (!binding.relationshipId) {
-          issues.push(issue('error', 'missing-related-form-binding-relationship', `Form '${form.id}' related binding '${binding.id}' requires relationshipId.`, `/forms/${form.id}/entityBindings/${binding.id}/relationshipId`, formEntityBindingNodeId(form.id, binding.id)));
-        } else {
-          const relationship = relationshipMap.get(binding.relationshipId);
-          if (!relationship) {
-            issues.push(issue('error', 'missing-form-binding-relationship', `Form '${form.id}' binding '${binding.id}' references missing relationship '${binding.relationshipId}'.`, `/forms/${form.id}/entityBindings/${binding.id}/relationshipId`, formEntityBindingNodeId(form.id, binding.id)));
-          } else if (relationship.fromEntityId !== binding.entityId && relationship.toEntityId !== binding.entityId) {
-            issues.push(issue('error', 'form-binding-relationship-entity-mismatch', `Form '${form.id}' binding '${binding.id}' uses relationship '${binding.relationshipId}' that does not include entity '${binding.entityId}'.`, `/forms/${form.id}/entityBindings/${binding.id}/relationshipId`, formEntityBindingNodeId(form.id, binding.id)));
-          }
-        }
-      }
-    });
-
-    form.elements.forEach((element) => {
-      if (!regionIds.has(element.regionId)) {
-        issues.push(issue('error', 'missing-element-region', `Element '${element.id}' references missing region '${element.regionId}'.`, `/forms/${form.id}/elements/${element.id}/regionId`, elementNodeId(form.id, element.id)));
-      }
-
-      if ('entityBindingId' in element.binding) {
-        const entityBinding = bindingMap.get(element.binding.entityBindingId);
-        if (!entityBinding) {
-          issues.push(issue('error', 'missing-element-entity-binding', `Element '${element.id}' references missing entity binding '${element.binding.entityBindingId}'.`, `/forms/${form.id}/elements/${element.id}/binding/entityBindingId`, elementNodeId(form.id, element.id)));
-        } else if (!findFieldEntity(model.metadata.entities, entityBinding.entityId, element.binding.fieldId)) {
-          issues.push(issue('error', 'missing-element-field-binding', `Element '${element.id}' references missing field '${element.binding.fieldId}' on entity '${entityBinding.entityId}'.`, `/forms/${form.id}/elements/${element.id}/binding/fieldId`, elementNodeId(form.id, element.id)));
-        }
-      }
-
-      if ('variableId' in element.binding && !variableIds.has(element.binding.variableId)) {
-        issues.push(issue('error', 'missing-element-variable-binding', `Element '${element.id}' references missing variable '${element.binding.variableId}'.`, `/forms/${form.id}/elements/${element.id}/binding/variableId`, elementNodeId(form.id, element.id)));
-      }
-
-      addMissingRuleIssues(issues, ruleIds, element.behavior.requiredRuleIds, 'missing-element-rule-reference', `Element '${element.id}'`, `/forms/${form.id}/elements/${element.id}/behavior/requiredRuleIds`, elementNodeId(form.id, element.id));
-      addMissingRuleIssues(issues, ruleIds, element.behavior.visibleRuleIds, 'missing-element-rule-reference', `Element '${element.id}'`, `/forms/${form.id}/elements/${element.id}/behavior/visibleRuleIds`, elementNodeId(form.id, element.id));
-      addMissingRuleIssues(issues, ruleIds, element.behavior.editableRuleIds, 'missing-element-rule-reference', `Element '${element.id}'`, `/forms/${form.id}/elements/${element.id}/behavior/editableRuleIds`, elementNodeId(form.id, element.id));
-    });
-
-    form.formStates.forEach((state) => {
-      addMissingRuleIssues(issues, ruleIds, state.activationRuleIds, 'missing-form-state-rule-reference', `Form state '${state.id}'`, `/forms/${form.id}/formStates/${state.id}/activationRuleIds`, formStateNodeId(form.id, state.id));
-
-      state.visibleEntityBindingIds.forEach((bindingId) => {
-        if (!bindingMap.has(bindingId)) {
-          issues.push(issue('error', 'missing-form-state-entity-binding', `Form state '${state.id}' references missing entity binding '${bindingId}'.`, `/forms/${form.id}/formStates/${state.id}/visibleEntityBindingIds`, formStateNodeId(form.id, state.id)));
-        }
-      });
-
-      const behaviorIds = new Set<string>();
-      state.elementBehaviors.forEach((behavior) => {
-        if (behaviorIds.has(behavior.elementId)) {
-          issues.push(issue('error', 'duplicate-form-state-element-behavior', `Form state '${state.id}' references element '${behavior.elementId}' more than once.`, `/forms/${form.id}/formStates/${state.id}/elementBehaviors`, formStateNodeId(form.id, state.id)));
-          return;
-        }
-        behaviorIds.add(behavior.elementId);
-
-        if (!form.elements.some((element) => element.id === behavior.elementId)) {
-          issues.push(issue('error', 'missing-form-state-element', `Form state '${state.id}' references missing element '${behavior.elementId}'.`, `/forms/${form.id}/formStates/${state.id}/elementBehaviors`, formStateNodeId(form.id, state.id)));
-        }
-
-        addMissingRuleIssues(issues, ruleIds, behavior.requiredRuleIds, 'missing-form-state-rule-reference', `Form state '${state.id}'`, `/forms/${form.id}/formStates/${state.id}/elementBehaviors`, formStateNodeId(form.id, state.id));
-        addMissingRuleIssues(issues, ruleIds, behavior.visibleRuleIds, 'missing-form-state-rule-reference', `Form state '${state.id}'`, `/forms/${form.id}/formStates/${state.id}/elementBehaviors`, formStateNodeId(form.id, state.id));
-        addMissingRuleIssues(issues, ruleIds, behavior.editableRuleIds, 'missing-form-state-rule-reference', `Form state '${state.id}'`, `/forms/${form.id}/formStates/${state.id}/elementBehaviors`, formStateNodeId(form.id, state.id));
-      });
-    });
-  });
-
-  model.metadata.relationships.forEach((relationship) => {
-    if (!entityIds.has(relationship.fromEntityId)) {
-      issues.push(issue('error', 'missing-relationship-source', `Relationship '${relationship.id}' references missing entity '${relationship.fromEntityId}'.`, `/metadata/relationships/${relationship.id}/fromEntityId`, relationshipNodeId(relationship.id)));
-    }
-
-    if (!entityIds.has(relationship.toEntityId)) {
-      issues.push(issue('error', 'missing-relationship-target', `Relationship '${relationship.id}' references missing entity '${relationship.toEntityId}'.`, `/metadata/relationships/${relationship.id}/toEntityId`, relationshipNodeId(relationship.id)));
-    }
-  });
-
-  model.rules.forEach((rule) => {
-    if (rule.language !== 'javascript-artifact-v1') {
-      return;
-    }
-
-    const artifactMatch = /^artifact:(?<artifactId>[a-z0-9-]+)$/i.exec(rule.body.trim());
-    if (!artifactMatch?.groups?.artifactId) {
-      issues.push(issue('error', 'invalid-artifact-rule-body', `Rule '${rule.id}' must use 'artifact:<artifact-id>' syntax.`, `/rules/${rule.id}/body`, ruleNodeId(rule.id)));
-      return;
-    }
-
-    if (!findArtifact(model.artifacts, artifactMatch.groups.artifactId)) {
-      issues.push(issue('error', 'missing-rule-artifact', `Rule '${rule.id}' references missing artifact '${artifactMatch.groups.artifactId}'.`, `/rules/${rule.id}/body`, ruleNodeId(rule.id)));
-    }
-  });
-
-  model.artifacts.forEach((artifact) => {
-    artifact.runtimeTargets.forEach((target) => {
-      if (!model.package.supportedRuntimes.includes(target)) {
-        issues.push(issue('warning', 'artifact-runtime-outside-package', `Artifact '${artifact.id}' targets '${target}', which is not listed in package.supportedRuntimes.`, `/artifacts/${artifact.id}/runtimeTargets`, artifactNodeId(artifact.id)));
-      }
-    });
   });
 
   if (model.runtime.requestContract.schemaVersion !== 'dbm.runtime.request/v1') {
-    issues.push(issue('error', 'invalid-runtime-request-version', 'runtime.requestContract.schemaVersion must remain dbm.runtime.request/v1.', '/runtime/requestContract/schemaVersion', RUNTIME_NODE_ID));
+    issues.push(issue('error', 'invalid-runtime-request-version', 'runtime.requestContract.schemaVersion must remain dbm.runtime.request/v1.', '/runtime/requestContract/schemaVersion'));
   }
-
   if (model.runtime.resultContract.schemaVersion !== 'dbm.runtime.result/v1') {
-    issues.push(issue('error', 'invalid-runtime-result-version', 'runtime.resultContract.schemaVersion must remain dbm.runtime.result/v1.', '/runtime/resultContract/schemaVersion', RUNTIME_NODE_ID));
+    issues.push(issue('error', 'invalid-runtime-result-version', 'runtime.resultContract.schemaVersion must remain dbm.runtime.result/v1.', '/runtime/resultContract/schemaVersion'));
   }
-
   if (model.runtime.ownership.azure.responsibilities.length !== 1 || model.runtime.ownership.azure.responsibilities[0] !== 'support-services-only') {
-    issues.push(issue('error', 'invalid-azure-ownership', 'Azure ownership must remain support-services-only in R1.2.1.', '/runtime/ownership/azure', RUNTIME_NODE_ID));
+    issues.push(issue('error', 'invalid-azure-ownership', 'Azure ownership must remain support-services-only in R1.3.', '/runtime/ownership/azure'));
   }
 
   return issues;
@@ -731,27 +306,19 @@ const librarySpecificGraphKeys = new Set([
   'selectable'
 ]);
 
-function validateNoLibrarySpecificKeys(
-  issues: DesignerIssue[],
-  value: unknown,
-  path: string,
-  code: string
-): void {
+function validateNoLibrarySpecificKeys(issues: DesignerIssue[], value: unknown, path: string, code: string): void {
   if (!value || typeof value !== 'object') {
     return;
   }
-
   if (Array.isArray(value)) {
     value.forEach((entry, index) => validateNoLibrarySpecificKeys(issues, entry, `${path}/${index}`, code));
     return;
   }
-
   Object.entries(value).forEach(([key, entry]) => {
     const nextPath = path === '/' ? `/${key}` : `${path}/${key}`;
     if (librarySpecificGraphKeys.has(key)) {
       issues.push(issue('error', code, `Library-specific key '${key}' is not allowed in persisted DBM designer contracts.`, nextPath));
     }
-
     validateNoLibrarySpecificKeys(issues, entry, nextPath, code);
   });
 }
@@ -767,7 +334,6 @@ function validateWorkspace(workspace: DbmDesignerWorkspaceV1, graph: DbmDesigner
       issues.push(issue('error', 'workspace-graph-node-id-invalid', `Workspace nodePositions key '${nodeId}' is not a DBM-owned stable graph node identifier.`, `/workspace/nodePositions/${nodeId}`));
       return;
     }
-
     if (!graphNodeIds.has(nodeId)) {
       issues.push(issue('error', 'workspace-graph-node-id-missing', `Workspace nodePositions key '${nodeId}' does not exist in the derived graph document.`, `/workspace/nodePositions/${nodeId}`));
     }

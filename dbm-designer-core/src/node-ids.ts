@@ -1,15 +1,7 @@
 export const DOCUMENT_NODE_ID = 'document:root';
 export const PACKAGE_NODE_ID = 'section:package';
-export const PROCESS_NODE_ID = 'section:process';
-export const PROCESS_ACTORS_NODE_ID = 'collection:process:actors';
-export const PROCESS_VARIABLES_NODE_ID = 'collection:process:variables';
-export const PROCESS_STATUSES_NODE_ID = 'collection:process:statuses';
-export const PROCESS_TASKS_NODE_ID = 'collection:process:tasks';
-export const PROCESS_NOTIFICATIONS_NODE_ID = 'collection:process:notifications';
-export const PROCESS_STAGES_NODE_ID = 'collection:process:stages';
-export const PROCESS_TRANSITIONS_NODE_ID = 'collection:process:transitions';
-export const PROCESS_STEP_TRANSITIONS_NODE_ID = 'collection:process:step-transitions';
-export const PROCESS_OUTCOMES_NODE_ID = 'collection:process:outcomes';
+export const PROCESS_PORTFOLIO_NODE_ID = 'section:process-portfolio';
+export const PROCESS_PORTFOLIO_PROCESSES_NODE_ID = 'collection:process-portfolio:processes';
 export const FORMS_NODE_ID = 'section:forms';
 export const METADATA_NODE_ID = 'section:metadata';
 export const METADATA_ENTITIES_NODE_ID = 'collection:metadata:entities';
@@ -22,17 +14,29 @@ export const RUNTIME_RESULT_CONTRACT_NODE_ID = 'runtime:result-contract';
 export const RUNTIME_OWNERSHIP_NODE_ID = 'runtime:ownership';
 export const ARTIFACTS_NODE_ID = 'section:artifacts';
 
-export const actorNodeId = (id: string): string => `actor:${id}`;
-export const variableNodeId = (id: string): string => `variable:${id}`;
-export const statusNodeId = (id: string): string => `status:${id}`;
-export const taskNodeId = (id: string): string => `task:${id}`;
-export const notificationNodeId = (id: string): string => `notification:${id}`;
-export const stageNodeId = (id: string): string => `stage:${id}`;
-export const stageStepsNodeId = (stageId: string): string => `collection:stage:${stageId}:steps`;
-export const stepNodeId = (id: string): string => `step:${id}`;
-export const transitionNodeId = (id: string): string => `transition:${id}`;
-export const stepTransitionNodeId = (id: string): string => `step-transition:${id}`;
-export const outcomeNodeId = (id: string): string => `outcome:${id}`;
+export const processNodeId = (processId: string): string => `process:${processId}`;
+export const processActorsNodeId = (processId: string): string => `collection:process:${processId}:actors`;
+export const processVariablesNodeId = (processId: string): string => `collection:process:${processId}:variables`;
+export const processStatusesNodeId = (processId: string): string => `collection:process:${processId}:statuses`;
+export const processTasksNodeId = (processId: string): string => `collection:process:${processId}:tasks`;
+export const processNotificationsNodeId = (processId: string): string => `collection:process:${processId}:notifications`;
+export const processStagesNodeId = (processId: string): string => `collection:process:${processId}:stages`;
+export const processTransitionsNodeId = (processId: string): string => `collection:process:${processId}:transitions`;
+export const processStepTransitionsNodeId = (processId: string): string => `collection:process:${processId}:step-transitions`;
+export const processOutcomesNodeId = (processId: string): string => `collection:process:${processId}:outcomes`;
+
+export const actorNodeId = (processId: string, id: string): string => `actor:${processId}:${id}`;
+export const variableNodeId = (processId: string, id: string): string => `variable:${processId}:${id}`;
+export const statusNodeId = (processId: string, id: string): string => `status:${processId}:${id}`;
+export const taskNodeId = (processId: string, id: string): string => `task:${processId}:${id}`;
+export const notificationNodeId = (processId: string, id: string): string => `notification:${processId}:${id}`;
+export const stageNodeId = (processId: string, id: string): string => `stage:${processId}:${id}`;
+export const stageStepsNodeId = (processId: string, stageId: string): string => `collection:stage:${processId}:${stageId}:steps`;
+export const stepNodeId = (processId: string, id: string): string => `step:${processId}:${id}`;
+export const transitionNodeId = (processId: string, id: string): string => `transition:${processId}:${id}`;
+export const stepTransitionNodeId = (processId: string, id: string): string => `step-transition:${processId}:${id}`;
+export const outcomeNodeId = (processId: string, id: string): string => `outcome:${processId}:${id}`;
+
 export const formNodeId = (id: string): string => `form:${id}`;
 export const formEntityBindingsNodeId = (formId: string): string => `collection:form:${formId}:entity-bindings`;
 export const formEntityBindingNodeId = (formId: string, bindingId: string): string => `form-entity-binding:${formId}:${bindingId}`;
@@ -48,3 +52,31 @@ export const fieldNodeId = (entityId: string, fieldId: string): string => `field
 export const relationshipNodeId = (id: string): string => `relationship:${id}`;
 export const ruleNodeId = (id: string): string => `rule:${id}`;
 export const artifactNodeId = (id: string): string => `artifact:${id}`;
+
+export function parseProcessScopedNodeId(nodeId: string, prefix: string): { processId: string; id: string } | null {
+  const marker = `${prefix}:`;
+  if (!nodeId.startsWith(marker)) {
+    return null;
+  }
+
+  const remainder = nodeId.slice(marker.length);
+  const separatorIndex = remainder.indexOf(':');
+  if (separatorIndex < 0) {
+    return null;
+  }
+
+  return {
+    processId: remainder.slice(0, separatorIndex),
+    id: remainder.slice(separatorIndex + 1)
+  };
+}
+
+export function parseProcessIdFromCollectionNodeId(nodeId: string, collection: string): string | null {
+  const prefix = 'collection:process:';
+  const suffix = `:${collection}`;
+  if (!nodeId.startsWith(prefix) || !nodeId.endsWith(suffix)) {
+    return null;
+  }
+
+  return nodeId.slice(prefix.length, -suffix.length);
+}

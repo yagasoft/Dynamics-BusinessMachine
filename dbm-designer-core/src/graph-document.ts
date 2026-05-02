@@ -7,17 +7,18 @@ import type {
   DbmDesignerGraphPortV1,
   DbmModelV1,
   DbmOutcomeV1,
+  DbmProcessV1,
   DbmStageV1,
   DbmStepV1,
   DbmStepTransitionV1
 } from 'dbm-contract';
 import {
   outcomeNodeId,
-  PROCESS_OUTCOMES_NODE_ID,
-  PROCESS_STAGES_NODE_ID,
-  PROCESS_STEP_TRANSITIONS_NODE_ID,
-  PROCESS_TRANSITIONS_NODE_ID,
-  RULES_NODE_ID,
+  parseProcessScopedNodeId,
+  processOutcomesNodeId,
+  processStagesNodeId,
+  processStepTransitionsNodeId,
+  processTransitionsNodeId,
   stageNodeId,
   stageStepsNodeId,
   stepNodeId,
@@ -25,82 +26,67 @@ import {
   transitionNodeId
 } from './node-ids';
 import { addNode, moveNode, removeNode, updateNode } from './commands';
+import {
+  defaultStageSpanForMainStage,
+  defaultStageSpanForSubProcess,
+  findProcess,
+  resolveMainProcess,
+  uniqueId
+} from './portfolio';
 import type {
-  DesignerCommand,
   DesignerClipboardPayload,
+  DesignerCommand,
   DesignerCommandResult,
+  DesignerDocument,
   DesignerGraphConnectionTarget,
   DesignerGraphIntent,
-  DesignerIssue,
-  DesignerDocument
+  DesignerIssue
 } from './types';
 
-function issue(
-  level: DesignerIssue['level'],
-  code: string,
-  message: string,
-  path: string,
-  nodeId?: string
-): DesignerIssue {
-  return {
-    level,
-    code,
-    message,
-    path,
-    nodeId
-  };
+function issue(level: DesignerIssue['level'], code: string, message: string, path: string, nodeId?: string): DesignerIssue {
+  return { level, code, message, path, nodeId };
 }
 
-export function graphActorGroupId(actorId: string): string {
-  return `group:actor:${actorId}`;
+export function graphActorGroupId(processId: string, actorId: string): string {
+  return `group:actor:${processId}:${actorId}`;
 }
 
-export function graphStageInPortId(stageId: string): string {
-  return `port:stage:${stageId}:in`;
+export function graphStageInPortId(processId: string, stageId: string): string {
+  return `port:stage:${processId}:${stageId}:in`;
 }
 
-export function graphStageOutcomePortId(stageId: string, outcomeId: string): string {
-  return `port:stage:${stageId}:outcome:${outcomeId}`;
+export function graphStageOutcomePortId(processId: string, stageId: string, outcomeId: string): string {
+  return `port:stage:${processId}:${stageId}:outcome:${outcomeId}`;
 }
 
-export function graphStepInPortId(stepId: string): string {
-  return `port:step:${stepId}:in`;
+export function graphStepInPortId(processId: string, stepId: string): string {
+  return `port:step:${processId}:${stepId}:in`;
 }
 
-export function graphStepOutPortId(stepId: string): string {
-  return `port:step:${stepId}:out`;
+export function graphStepOutPortId(processId: string, stepId: string): string {
+  return `port:step:${processId}:${stepId}:out`;
 }
 
-export function graphOutcomeInPortId(outcomeId: string): string {
-  return `port:outcome:${outcomeId}:in`;
+export function graphOutcomeInPortId(processId: string, outcomeId: string): string {
+  return `port:outcome:${processId}:${outcomeId}:in`;
 }
 
 export function isStableDesignerGraphNodeId(nodeId: string): boolean {
   return nodeId.startsWith('stage:') || nodeId.startsWith('step:') || nodeId.startsWith('outcome:');
 }
 
-function uniqueId(existingIds: string[], prefix: string): string {
-  let counter = 1;
-  let candidate = prefix;
-  while (existingIds.includes(candidate)) {
-    counter += 1;
-    candidate = `${prefix}-${counter}`;
-  }
-  return candidate;
-}
-
-function buildStagePorts(model: DbmModelV1, stageId: string): DbmDesignerGraphPortV1[] {
-  const outcomeMap = new Map(model.process.outcomes.map((outcome) => [outcome.id, outcome]));
+function buildStagePorts(process: DbmProcessV1, stageId: string): DbmDesignerGraphPortV1[] {
+  const outcomeMap = new Map(process.outcomes.map((outcome) => [outcome.id, outcome]));
   const outcomeIds = new Set<string>();
-  const stage = model.process.stages.find((entry) => entry.id === stageId);
+  const stage = process.stages.find((entry) => entry.id === stageId);
   stage?.allowedOutcomeIds.forEach((outcomeId) => outcomeIds.add(outcomeId));
-  model.process.transitions
+  process.transitions
     .filter((transition) => transition.fromStageId === stageId)
     .forEach((transition) => outcomeIds.add(transition.outcomeId));
 
   return [
     {
-      id: graphStageInPortId(stageId),
+      id: graphStageInPortId(process.id, stageId),
       label: null,
       direction: 'in',
       role: 'primary-in'
@@ -108,7 +94,7 @@ function buildStagePorts(model: DbmModelV1, stageId: string): DbmDesignerGraphPo
     ...[...outcomeIds]
       .sort((left, right) => left.localeCompare(right))
       .map((outcomeId) => ({
-        id: graphStageOutcomePortId(stageId, outcomeId),
+        id: graphStageOutcomePortId(process.id, stageId, outcomeId),
         label: outcomeMap.get(outcomeId)?.displayName ?? outcomeId,
         direction: 'out' as const,
         role: 'outcome' as const
@@ -116,16 +102,16 @@ function buildStagePorts(model: DbmModelV1, stageId: string): DbmDesignerGraphPo
   ];
 }
 
-function buildStepPorts(stepId: string): DbmDesignerGraphPortV1[] {
+function buildStepPorts(processId: string, stepId: string): DbmDesignerGraphPortV1[] {
   return [
     {
-      id: graphStepInPortId(stepId),
+      id: graphStepInPortId(processId, stepId),
       label: null,
       direction: 'in',
       role: 'primary-in'
     },
     {
-      id: graphStepOutPortId(stepId),
+      id: graphStepOutPortId(processId, stepId),
       label: null,
       direction: 'out',
       role: 'primary-out'
@@ -133,10 +119,10 @@ function buildStepPorts(stepId: string): DbmDesignerGraphPortV1[] {
   ];
 }
 
-function buildOutcomePorts(outcomeId: string): DbmDesignerGraphPortV1[] {
+function buildOutcomePorts(processId: string, outcomeId: string): DbmDesignerGraphPortV1[] {
   return [
     {
-      id: graphOutcomeInPortId(outcomeId),
+      id: graphOutcomeInPortId(processId, outcomeId),
       label: null,
       direction: 'in',
       role: 'primary-in'
@@ -144,24 +130,24 @@ function buildOutcomePorts(outcomeId: string): DbmDesignerGraphPortV1[] {
   ];
 }
 
-function resolveStepTransitionTarget(transition: DbmStepTransitionV1): { targetNodeId: string; targetPortId: string; outcomeId?: string } {
+function resolveStepTransitionTarget(process: DbmProcessV1, transition: DbmStepTransitionV1): { targetNodeId: string; targetPortId: string; outcomeId?: string } {
   if ('stepId' in transition.target) {
     return {
-      targetNodeId: stepNodeId(transition.target.stepId),
-      targetPortId: graphStepInPortId(transition.target.stepId)
+      targetNodeId: stepNodeId(process.id, transition.target.stepId),
+      targetPortId: graphStepInPortId(process.id, transition.target.stepId)
     };
   }
 
   if ('stageId' in transition.target) {
     return {
-      targetNodeId: stageNodeId(transition.target.stageId),
-      targetPortId: graphStageInPortId(transition.target.stageId)
+      targetNodeId: stageNodeId(process.id, transition.target.stageId),
+      targetPortId: graphStageInPortId(process.id, transition.target.stageId)
     };
   }
 
   return {
-    targetNodeId: outcomeNodeId(transition.target.outcomeId),
-    targetPortId: graphOutcomeInPortId(transition.target.outcomeId),
+    targetNodeId: outcomeNodeId(process.id, transition.target.outcomeId),
+    targetPortId: graphOutcomeInPortId(process.id, transition.target.outcomeId),
     outcomeId: transition.target.outcomeId
   };
 }
@@ -170,119 +156,128 @@ function outcomeLabel(outcome: DbmOutcomeV1 | undefined): string | null {
   return outcome?.displayName ?? null;
 }
 
-export function buildDesignerGraphDocument(model: DbmModelV1): DbmDesignerGraphDocumentV1 {
-  const outcomeMap = new Map(model.process.outcomes.map((outcome) => [outcome.id, outcome]));
-
-  const groups: DbmDesignerGraphGroupV1[] = model.process.actors.map((actor) => ({
-    id: graphActorGroupId(actor.id),
+function buildProcessGroups(process: DbmProcessV1): DbmDesignerGraphGroupV1[] {
+  return process.actors.map((actor) => ({
+    id: graphActorGroupId(process.id, actor.id),
     kind: 'actor-lane',
-    label: actor.displayName,
+    label: `${process.displayName} / ${actor.displayName}`,
     parentGroupId: null,
     semanticRef: {
+      processId: process.id,
       actorId: actor.id
     }
   }));
+}
 
-  const nodes: DbmDesignerGraphNodeV1[] = [
-    ...model.process.stages.map((stage) => ({
-      id: stageNodeId(stage.id),
+function buildProcessNodes(process: DbmProcessV1): DbmDesignerGraphNodeV1[] {
+  return [
+    ...process.stages.map((stage) => ({
+      id: stageNodeId(process.id, stage.id),
       kind: 'stage' as DbmDesignerGraphNodeKindV1,
       label: stage.displayName,
       parentNodeId: null,
-      groupId: stage.actorId ? graphActorGroupId(stage.actorId) : null,
+      groupId: stage.actorId ? graphActorGroupId(process.id, stage.actorId) : null,
       semanticRef: {
+        processId: process.id,
         stageId: stage.id,
         actorId: stage.actorId
       },
-      ports: buildStagePorts(model, stage.id)
+      ports: buildStagePorts(process, stage.id)
     })),
-    ...model.process.steps.map((step) => ({
-      id: stepNodeId(step.id),
+    ...process.steps.map((step) => ({
+      id: stepNodeId(process.id, step.id),
       kind: 'step' as DbmDesignerGraphNodeKindV1,
       label: step.displayName,
-      parentNodeId: stageNodeId(step.stageId),
+      parentNodeId: stageNodeId(process.id, step.stageId),
       groupId: null,
       semanticRef: {
+        processId: process.id,
         stageId: step.stageId,
         stepId: step.id
       },
-      ports: buildStepPorts(step.id)
+      ports: buildStepPorts(process.id, step.id)
     })),
-    ...model.process.outcomes.map((outcome) => ({
-      id: outcomeNodeId(outcome.id),
+    ...process.outcomes.map((outcome) => ({
+      id: outcomeNodeId(process.id, outcome.id),
       kind: 'outcome' as DbmDesignerGraphNodeKindV1,
       label: outcome.displayName,
       parentNodeId: null,
       groupId: null,
       semanticRef: {
+        processId: process.id,
         outcomeId: outcome.id
       },
-      ports: buildOutcomePorts(outcome.id)
+      ports: buildOutcomePorts(process.id, outcome.id)
     }))
   ];
+}
 
-  const edges: DbmDesignerGraphEdgeV1[] = [
-    ...model.process.transitions.map((transition) => ({
-      id: transitionNodeId(transition.id),
+function buildProcessEdges(process: DbmProcessV1): DbmDesignerGraphEdgeV1[] {
+  const outcomeMap = new Map(process.outcomes.map((outcome) => [outcome.id, outcome]));
+  return [
+    ...process.transitions.map((transition) => ({
+      id: transitionNodeId(process.id, transition.id),
       kind: 'stage-transition' as const,
       label: outcomeLabel(outcomeMap.get(transition.outcomeId)),
-      sourceNodeId: stageNodeId(transition.fromStageId),
-      sourcePortId: graphStageOutcomePortId(transition.fromStageId, transition.outcomeId),
-      targetNodeId: stageNodeId(transition.toStageId),
-      targetPortId: graphStageInPortId(transition.toStageId),
+      sourceNodeId: stageNodeId(process.id, transition.fromStageId),
+      sourcePortId: graphStageOutcomePortId(process.id, transition.fromStageId, transition.outcomeId),
+      targetNodeId: stageNodeId(process.id, transition.toStageId),
+      targetPortId: graphStageInPortId(process.id, transition.toStageId),
       semanticRef: {
+        processId: process.id,
         transitionId: transition.id,
         outcomeId: transition.outcomeId
       }
     })),
-    ...model.process.stepTransitions.map((transition) => {
-      const target = resolveStepTransitionTarget(transition);
-
+    ...process.stepTransitions.map((transition) => {
+      const target = resolveStepTransitionTarget(process, transition);
       return {
-        id: stepTransitionNodeId(transition.id),
+        id: stepTransitionNodeId(process.id, transition.id),
         kind: 'step-transition' as const,
         label: target.outcomeId ? outcomeLabel(outcomeMap.get(target.outcomeId)) : null,
-        sourceNodeId: stepNodeId(transition.fromStepId),
-        sourcePortId: graphStepOutPortId(transition.fromStepId),
+        sourceNodeId: stepNodeId(process.id, transition.fromStepId),
+        sourcePortId: graphStepOutPortId(process.id, transition.fromStepId),
         targetNodeId: target.targetNodeId,
         targetPortId: target.targetPortId,
         semanticRef: {
+          processId: process.id,
           stepTransitionId: transition.id,
           outcomeId: target.outcomeId
         }
       };
     })
   ];
+}
 
+export function buildDesignerGraphDocument(model: DbmModelV1): DbmDesignerGraphDocumentV1 {
+  const mainProcess = (() => {
+    try {
+      return resolveMainProcess(model);
+    } catch {
+      return model.processPortfolio.processes[0] ?? null;
+    }
+  })();
   return {
     schemaVersion: 'dbm.designer.graph-document/v1',
     packageId: model.package.id,
     packageVersion: model.package.version,
-    processId: model.process.id,
-    groups,
-    nodes,
-    edges
+    processId: mainProcess?.id ?? model.processPortfolio.mainProcessId,
+    groups: model.processPortfolio.processes.flatMap((process) => buildProcessGroups(process)),
+    nodes: model.processPortfolio.processes.flatMap((process) => buildProcessNodes(process)),
+    edges: model.processPortfolio.processes.flatMap((process) => buildProcessEdges(process))
   };
 }
 
-function addDuplicateIdIssues(
-  issues: DesignerIssue[],
-  ids: string[],
-  code: string,
-  pathPrefix: string
-): void {
+function addDuplicateIdIssues(issues: DesignerIssue[], ids: string[], code: string, pathPrefix: string): void {
   const seen = new Set<string>();
   const duplicates = new Set<string>();
-
   ids.forEach((id) => {
     if (seen.has(id)) {
       duplicates.add(id);
       return;
     }
-
     seen.add(id);
   });
-
   duplicates.forEach((duplicate) => {
     issues.push(issue('error', code, `Duplicate identifier '${duplicate}' is not allowed.`, `${pathPrefix}/${duplicate}`, duplicate));
   });
@@ -302,9 +297,8 @@ export function validateDesignerGraphDocument(graph: DbmDesignerGraphDocumentV1)
     if (group.parentGroupId && !groupIds.has(group.parentGroupId)) {
       issues.push(issue('error', 'missing-graph-parent-group', `Group '${group.id}' references missing parent group '${group.parentGroupId}'.`, `/graph/groups/${group.id}`, group.id));
     }
-
-    if (group.kind === 'actor-lane' && !group.semanticRef.actorId) {
-      issues.push(issue('error', 'missing-graph-group-actor-ref', `Group '${group.id}' must reference actorId.`, `/graph/groups/${group.id}/semanticRef`, group.id));
+    if (group.kind === 'actor-lane' && (!group.semanticRef.actorId || !group.semanticRef.processId)) {
+      issues.push(issue('error', 'missing-graph-group-actor-ref', `Group '${group.id}' must reference processId and actorId.`, `/graph/groups/${group.id}/semanticRef`, group.id));
     }
   });
 
@@ -312,31 +306,25 @@ export function validateDesignerGraphDocument(graph: DbmDesignerGraphDocumentV1)
     if (node.parentNodeId && !nodeMap.has(node.parentNodeId)) {
       issues.push(issue('error', 'missing-graph-parent-node', `Node '${node.id}' references missing parent node '${node.parentNodeId}'.`, `/graph/nodes/${node.id}/parentNodeId`, node.id));
     }
-
     if (node.groupId && !groupIds.has(node.groupId)) {
       issues.push(issue('error', 'missing-graph-node-group', `Node '${node.id}' references missing group '${node.groupId}'.`, `/graph/nodes/${node.id}/groupId`, node.id));
     }
-
-    if (node.kind === 'stage' && !node.semanticRef.stageId) {
-      issues.push(issue('error', 'missing-graph-stage-ref', `Stage node '${node.id}' must reference stageId.`, `/graph/nodes/${node.id}/semanticRef`, node.id));
+    if (node.kind === 'stage' && (!node.semanticRef.processId || !node.semanticRef.stageId)) {
+      issues.push(issue('error', 'missing-graph-stage-ref', `Stage node '${node.id}' must reference processId and stageId.`, `/graph/nodes/${node.id}/semanticRef`, node.id));
     }
-
-    if (node.kind === 'step' && (!node.semanticRef.stageId || !node.semanticRef.stepId)) {
-      issues.push(issue('error', 'missing-graph-step-ref', `Step node '${node.id}' must reference both stageId and stepId.`, `/graph/nodes/${node.id}/semanticRef`, node.id));
+    if (node.kind === 'step' && (!node.semanticRef.processId || !node.semanticRef.stageId || !node.semanticRef.stepId)) {
+      issues.push(issue('error', 'missing-graph-step-ref', `Step node '${node.id}' must reference processId, stageId, and stepId.`, `/graph/nodes/${node.id}/semanticRef`, node.id));
     }
-
-    if (node.kind === 'outcome' && !node.semanticRef.outcomeId) {
-      issues.push(issue('error', 'missing-graph-outcome-ref', `Outcome node '${node.id}' must reference outcomeId.`, `/graph/nodes/${node.id}/semanticRef`, node.id));
+    if (node.kind === 'outcome' && (!node.semanticRef.processId || !node.semanticRef.outcomeId)) {
+      issues.push(issue('error', 'missing-graph-outcome-ref', `Outcome node '${node.id}' must reference processId and outcomeId.`, `/graph/nodes/${node.id}/semanticRef`, node.id));
     }
 
     addDuplicateIdIssues(issues, node.ports.map((port) => port.id), 'duplicate-graph-port-id', `/graph/nodes/${node.id}/ports`);
-
     node.ports.forEach((port) => {
       if (portOwners.has(port.id)) {
         issues.push(issue('error', 'duplicate-graph-port-id-global', `Port '${port.id}' is already owned by node '${portOwners.get(port.id)}'.`, `/graph/nodes/${node.id}/ports/${port.id}`, node.id));
         return;
       }
-
       portOwners.set(port.id, node.id);
     });
   });
@@ -344,77 +332,41 @@ export function validateDesignerGraphDocument(graph: DbmDesignerGraphDocumentV1)
   graph.edges.forEach((edge) => {
     const sourceNode = nodeMap.get(edge.sourceNodeId);
     const targetNode = nodeMap.get(edge.targetNodeId);
-
     if (!sourceNode) {
       issues.push(issue('error', 'missing-graph-edge-source-node', `Edge '${edge.id}' references missing source node '${edge.sourceNodeId}'.`, `/graph/edges/${edge.id}/sourceNodeId`, edge.id));
     }
-
     if (!targetNode) {
       issues.push(issue('error', 'missing-graph-edge-target-node', `Edge '${edge.id}' references missing target node '${edge.targetNodeId}'.`, `/graph/edges/${edge.id}/targetNodeId`, edge.id));
     }
-
     if (sourceNode && !sourceNode.ports.some((port) => port.id === edge.sourcePortId)) {
       issues.push(issue('error', 'missing-graph-edge-source-port', `Edge '${edge.id}' references missing source port '${edge.sourcePortId}'.`, `/graph/edges/${edge.id}/sourcePortId`, edge.id));
     }
-
     if (targetNode && !targetNode.ports.some((port) => port.id === edge.targetPortId)) {
       issues.push(issue('error', 'missing-graph-edge-target-port', `Edge '${edge.id}' references missing target port '${edge.targetPortId}'.`, `/graph/edges/${edge.id}/targetPortId`, edge.id));
     }
-
-    if (edge.kind === 'stage-transition' && !edge.semanticRef.transitionId) {
-      issues.push(issue('error', 'missing-graph-transition-ref', `Stage transition edge '${edge.id}' must reference transitionId.`, `/graph/edges/${edge.id}/semanticRef`, edge.id));
+    if (edge.kind === 'stage-transition' && (!edge.semanticRef.processId || !edge.semanticRef.transitionId)) {
+      issues.push(issue('error', 'missing-graph-transition-ref', `Stage transition edge '${edge.id}' must reference processId and transitionId.`, `/graph/edges/${edge.id}/semanticRef`, edge.id));
     }
-
-    if (edge.kind === 'step-transition' && !edge.semanticRef.stepTransitionId) {
-      issues.push(issue('error', 'missing-graph-step-transition-ref', `Step transition edge '${edge.id}' must reference stepTransitionId.`, `/graph/edges/${edge.id}/semanticRef`, edge.id));
+    if (edge.kind === 'step-transition' && (!edge.semanticRef.processId || !edge.semanticRef.stepTransitionId)) {
+      issues.push(issue('error', 'missing-graph-step-transition-ref', `Step transition edge '${edge.id}' must reference processId and stepTransitionId.`, `/graph/edges/${edge.id}/semanticRef`, edge.id));
     }
   });
 
   return issues;
 }
 
-function parseGraphNodeIntentNodeId(nodeId: string): 'stage' | 'step' | 'outcome' | 'transition' | 'step-transition' | null {
-  if (nodeId.startsWith('stage:')) {
-    return 'stage';
-  }
-
-  if (nodeId.startsWith('step:')) {
-    return 'step';
-  }
-
-  if (nodeId.startsWith('outcome:')) {
-    return 'outcome';
-  }
-
-  if (nodeId.startsWith('transition:')) {
-    return 'transition';
-  }
-
-  if (nodeId.startsWith('step-transition:')) {
-    return 'step-transition';
-  }
-
-  return null;
-}
-
-function createDefaultTransitionRule(
-  document: DesignerDocument,
-  prefix: string,
-  displayName: string
-): { ruleId: string; command: DesignerCommand } {
-  const existingRuleIds = document.model.rules.map((rule) => rule.id);
-  const ruleId = uniqueId(existingRuleIds, prefix);
-
+function createDefaultRule(document: DesignerDocument, prefix: string, displayName: string, scope: 'transition' | 'step-transition'): { ruleId: string; command: DesignerCommand } {
+  const ruleId = uniqueId(document.model.rules.map((rule) => rule.id), prefix);
   return {
     ruleId,
     command: {
       kind: 'rule',
-      parentId: RULES_NODE_ID,
+      parentId: 'section:rules',
       value: {
         id: ruleId,
         displayName,
         ruleType: 'condition',
-        scope: 'transition',
+        scope,
         language: 'dbm-expression-v1',
         body: 'true'
       }
@@ -422,108 +374,70 @@ function createDefaultTransitionRule(
   };
 }
 
-function createDefaultStepTransitionRule(
-  document: DesignerDocument,
-  prefix: string,
-  displayName: string
-): { ruleId: string; command: DesignerCommand } {
-  const existingRuleIds = document.model.rules.map((rule) => rule.id);
-  const ruleId = uniqueId(existingRuleIds, prefix);
+function buildNewStage(document: DesignerDocument, processId: string, actorId?: string): DbmStageV1 {
+  const process = findProcess(document.model, processId);
+  if (!process) {
+    throw new Error(`Cannot add stage. Process '${processId}' was not found.`);
+  }
 
-  return {
-    ruleId,
-    command: {
-      kind: 'rule',
-      parentId: RULES_NODE_ID,
-      value: {
-        id: ruleId,
-        displayName,
-        ruleType: 'condition',
-        scope: 'step-transition',
-        language: 'dbm-expression-v1',
-        body: 'true'
-      }
-    }
-  };
-}
-
-function buildNewStage(document: DesignerDocument, actorId?: string) {
-  const existingStageIds = document.model.process.stages.map((stage) => stage.id);
-  const id = uniqueId(existingStageIds, 'stage');
-  const fallbackActorId = actorId
-    ?? document.model.process.actors[0]?.id
-    ?? '';
-  const defaultFormId = document.model.forms[0]?.id ?? null;
-  const firstOutcomeId = document.model.process.outcomes[0]?.id;
-
+  const id = uniqueId(process.stages.map((stage) => stage.id), 'stage');
   return {
     id,
-    displayName: `New Stage ${document.model.process.stages.length + 1}`,
-    stageType: 'task',
-    actorId: fallbackActorId,
-    formId: defaultFormId,
-    portalVisibility: 'visible',
+    displayName: `New stage ${process.stages.length + 1}`,
+    stageCategory: 'work',
+    stageKindId: 'work',
+    scope: 'back-office',
+    stageSpan: process.id === document.model.processPortfolio.mainProcessId ? defaultStageSpanForMainStage(id) : defaultStageSpanForSubProcess(document.model),
+    actorId: actorId ?? process.actors[0]?.id ?? '',
+    formId: document.model.forms[0]?.id ?? null,
+    portalVisibility: 'hidden',
+    statusId: process.statuses[0]?.id ?? '',
+    portalStatusId: null,
     stepIds: [],
     defaultStepId: null,
     entryRuleIds: [],
     exitRuleIds: [],
-    allowedOutcomeIds: firstOutcomeId ? [firstOutcomeId] : []
+    allowedOutcomeIds: process.outcomes[0]?.id ? [process.outcomes[0].id] : []
   };
 }
 
-function buildNewStep(document: DesignerDocument, stageId: string) {
-  const stage = document.model.process.stages.find((entry) => entry.id === stageId);
-  if (!stage) {
-    throw new Error(`Cannot add step. Stage '${stageId}' was not found.`);
+function buildNewStep(document: DesignerDocument, processId: string, stageId: string): DbmStepV1 {
+  const process = findProcess(document.model, processId);
+  const stage = process?.stages.find((entry) => entry.id === stageId);
+  if (!process || !stage) {
+    throw new Error(`Cannot add step. Stage '${stageId}' was not found in process '${processId}'.`);
   }
 
-  const existingStepIds = document.model.process.steps.map((step) => step.id);
-  const id = uniqueId(existingStepIds, 'step');
-  const form = stage.formId
-    ? document.model.forms.find((entry) => entry.id === stage.formId)
-    : null;
-
+  const id = uniqueId(process.steps.map((step) => step.id), 'step');
   return {
     id,
     stageId,
-    displayName: `New Step ${stage.stepIds.length + 1}`,
-    stepType: 'review',
-    ownerActorId: stage.actorId || document.model.process.actors[0]?.id || '',
-    notificationId: document.model.process.notifications[0]?.id ?? null,
-    taskId: document.model.process.tasks[0]?.id ?? null,
-    internalStatusId: document.model.process.statuses.find((status) => status.audience !== 'portal')?.id ?? document.model.process.statuses[0]?.id ?? '',
-    portalStatusId: document.model.process.statuses.find((status) => status.audience !== 'internal')?.id ?? null,
-    formStateId: form?.formStates[0]?.id ?? null,
+    displayName: `New step ${stage.stepIds.length + 1}`,
+    workCategory: 'work',
+    workKindId: 'work',
+    ownerActorId: stage.actorId || process.actors[0]?.id || '',
+    notificationId: process.notifications[0]?.id ?? null,
+    taskId: process.tasks[0]?.id ?? null,
+    internalStatusId: process.statuses.find((status) => status.audience !== 'portal')?.id ?? process.statuses[0]?.id ?? '',
+    portalStatusId: process.statuses.find((status) => status.audience !== 'internal')?.id ?? null,
+    formStateId: null,
     entryRuleIds: [],
     exitRuleIds: []
   };
 }
 
-function normalizeStageOutcomeId(document: DesignerDocument, fromStageId: string, outcomeId: string): DesignerCommand[] {
-  const stage = document.model.process.stages.find((entry) => entry.id === fromStageId);
-  if (!stage || stage.allowedOutcomeIds.includes(outcomeId)) {
-    return [];
+function buildNewOutcome(document: DesignerDocument, processId: string): DbmOutcomeV1 {
+  const process = findProcess(document.model, processId);
+  if (!process) {
+    throw new Error(`Cannot add outcome. Process '${processId}' was not found.`);
   }
-
-  return [
-    {
-      nodeId: stageNodeId(fromStageId),
-      value: {
-        allowedOutcomeIds: [...stage.allowedOutcomeIds, outcomeId]
-      }
-    }
-  ];
+  const id = uniqueId(process.outcomes.map((outcome) => outcome.id), 'outcome');
+  return { id, displayName: `New outcome ${process.outcomes.length + 1}` };
 }
 
 function buildTransitionTargetLabel(target: DesignerGraphConnectionTarget): string {
-  if ('stepId' in target) {
-    return target.stepId;
-  }
-
-  if ('stageId' in target) {
-    return target.stageId;
-  }
-
+  if ('stepId' in target) return target.stepId;
+  if ('stageId' in target) return target.stageId;
   return target.outcomeId;
 }
 
@@ -531,19 +445,12 @@ function buildCopyDisplayName(label: string): string {
   return label.endsWith(' Copy') ? `${label} 2` : `${label} Copy`;
 }
 
-function cloneStageForPaste(document: DesignerDocument, stage: DbmStageV1, steps: DbmStepV1[]): {
-  stage: DbmStageV1;
-  steps: DbmStepV1[];
-} {
-  const existingStageIds = document.model.process.stages.map((entry) => entry.id);
-  const existingStepIds = document.model.process.steps.map((entry) => entry.id);
-  const nextStageId = uniqueId(existingStageIds, `${stage.id}-copy`);
+function cloneStageForPaste(process: DbmProcessV1, stage: DbmStageV1, steps: DbmStepV1[]): { stage: DbmStageV1; steps: DbmStepV1[] } {
+  const nextStageId = uniqueId(process.stages.map((entry) => entry.id), `${stage.id}-copy`);
   const stepIdMap = new Map<string, string>();
-
   steps.forEach((step) => {
-    stepIdMap.set(step.id, uniqueId([...existingStepIds, ...stepIdMap.values()], `${step.id}-copy`));
+    stepIdMap.set(step.id, uniqueId([...process.steps.map((entry) => entry.id), ...stepIdMap.values()], `${step.id}-copy`));
   });
-
   return {
     stage: {
       ...structuredClone(stage),
@@ -560,269 +467,129 @@ function cloneStageForPaste(document: DesignerDocument, stage: DbmStageV1, steps
   };
 }
 
-function buildNewOutcome(document: DesignerDocument) {
-  const existingOutcomeIds = document.model.process.outcomes.map((outcome) => outcome.id);
-  const id = uniqueId(existingOutcomeIds, 'outcome');
-
-  return {
-    id,
-    displayName: `New Outcome ${document.model.process.outcomes.length + 1}`
-  };
-}
-
-function cloneStepForPaste(document: DesignerDocument, step: DbmStepV1): DbmStepV1 {
-  const existingStepIds = document.model.process.steps.map((entry) => entry.id);
+function cloneStepForPaste(process: DbmProcessV1, step: DbmStepV1): DbmStepV1 {
   return {
     ...structuredClone(step),
-    id: uniqueId(existingStepIds, `${step.id}-copy`),
+    id: uniqueId(process.steps.map((entry) => entry.id), `${step.id}-copy`),
     displayName: buildCopyDisplayName(step.displayName)
   };
 }
 
-export function buildDesignerClipboardPayload(
-  document: DesignerDocument,
-  selectionId: string | null = document.selectionId
-): DesignerClipboardPayload | null {
+export function buildDesignerClipboardPayload(document: DesignerDocument, selectionId: string | null = document.selectionId): DesignerClipboardPayload | null {
   if (!selectionId) {
     return null;
   }
 
-  if (selectionId.startsWith('stage:')) {
-    const stageId = selectionId.slice('stage:'.length);
-    const stage = document.model.process.stages.find((entry) => entry.id === stageId);
-    if (!stage) {
+  const stageSelection = parseProcessScopedNodeId(selectionId, 'stage');
+  if (stageSelection) {
+    const process = findProcess(document.model, stageSelection.processId);
+    const stage = process?.stages.find((entry) => entry.id === stageSelection.id);
+    if (!process || !stage) {
       return null;
     }
-
     return {
       kind: 'stage',
+      processId: process.id,
       stage: structuredClone(stage),
-      steps: stage.stepIds
-        .map((stepId) => document.model.process.steps.find((entry) => entry.id === stepId))
-        .filter((step): step is DbmStepV1 => !!step)
-        .map((step) => structuredClone(step))
+      steps: stage.stepIds.map((stepId) => process.steps.find((entry) => entry.id === stepId)).filter((step): step is DbmStepV1 => !!step).map((step) => structuredClone(step))
     };
   }
 
-  if (selectionId.startsWith('step:')) {
-    const stepId = selectionId.slice('step:'.length);
-    const step = document.model.process.steps.find((entry) => entry.id === stepId);
-    return step
-      ? {
-          kind: 'step',
-          step: structuredClone(step)
-        }
-      : null;
+  const stepSelection = parseProcessScopedNodeId(selectionId, 'step');
+  if (stepSelection) {
+    const process = findProcess(document.model, stepSelection.processId);
+    const step = process?.steps.find((entry) => entry.id === stepSelection.id);
+    return process && step ? { kind: 'step', processId: process.id, step: structuredClone(step) } : null;
   }
 
   return null;
 }
 
-export function pasteDesignerClipboardPayload(
-  document: DesignerDocument,
-  payload: DesignerClipboardPayload
-): DesignerCommandResult {
+export function pasteDesignerClipboardPayload(document: DesignerDocument, payload: DesignerClipboardPayload): DesignerCommandResult {
+  const process = findProcess(document.model, payload.processId);
+  if (!process) {
+    return { document, affectedNodeId: document.selectionId, issues: document.issues };
+  }
+
   if (payload.kind === 'stage') {
-    const sourceStageIndex = document.model.process.stages.findIndex((entry) => entry.id === payload.stage.id);
-    const insertIndex = sourceStageIndex >= 0 ? sourceStageIndex + 1 : document.model.process.stages.length;
-    const duplicated = cloneStageForPaste(document, payload.stage, payload.steps);
-    const commands: DesignerCommand[] = [
-      {
-        kind: 'stage',
-        parentId: PROCESS_STAGES_NODE_ID,
-        index: insertIndex,
-        value: duplicated.stage
-      },
-      ...duplicated.steps.map((step, index) => ({
-        kind: 'step' as const,
-        parentId: stageStepsNodeId(duplicated.stage.id),
+    const sourceStageIndex = process.stages.findIndex((entry) => entry.id === payload.stage.id);
+    const duplicated = cloneStageForPaste(process, payload.stage, payload.steps);
+    let result: DesignerCommandResult = { document, affectedNodeId: document.selectionId, issues: document.issues };
+    result = addNode(result.document, {
+      kind: 'stage',
+      parentId: processStagesNodeId(process.id),
+      index: sourceStageIndex >= 0 ? sourceStageIndex + 1 : process.stages.length,
+      value: duplicated.stage
+    });
+    duplicated.steps.forEach((step, index) => {
+      result = addNode(result.document, {
+        kind: 'step',
+        parentId: stageStepsNodeId(process.id, duplicated.stage.id),
         index,
         value: step
-      }))
-    ];
-
-    let currentResult: DesignerCommandResult = {
-      document,
-      affectedNodeId: document.selectionId,
-      issues: document.issues
-    };
-
-    commands.forEach((command) => {
-      currentResult = applyDesignerCommand(currentResult.document, command);
+      });
     });
-
-    return {
-      ...currentResult,
-      affectedNodeId: stageNodeId(duplicated.stage.id)
-    };
+    return { ...result, affectedNodeId: stageNodeId(process.id, duplicated.stage.id) };
   }
 
-  const selectionId = document.selectionId;
-  const fallbackStageId =
-    selectionId?.startsWith('stage:')
-      ? selectionId.slice('stage:'.length)
-      : selectionId?.startsWith('step:')
-        ? document.model.process.steps.find((entry) => entry.id === selectionId.slice('step:'.length))?.stageId
-        : document.workspace.preview.stageId;
-  const targetStageId = document.model.process.stages.some((entry) => entry.id === payload.step.stageId)
-    ? payload.step.stageId
-    : fallbackStageId;
-
-  if (!targetStageId) {
-    return {
-      document,
-      affectedNodeId: document.selectionId,
-      issues: document.issues
-    };
-  }
-
-  const stage = document.model.process.stages.find((entry) => entry.id === targetStageId);
-  const sourceStepIndex = stage?.stepIds.findIndex((stepId) => stepId === payload.step.id) ?? -1;
-  const duplicatedStep = cloneStepForPaste(document, {
-    ...payload.step,
-    stageId: targetStageId
-  });
-  const result = applyDesignerCommand(document, {
+  const duplicatedStep = cloneStepForPaste(process, payload.step);
+  const result = addNode(document, {
     kind: 'step',
-    parentId: stageStepsNodeId(targetStageId),
-    index: sourceStepIndex >= 0 ? sourceStepIndex + 1 : stage?.stepIds.length ?? 0,
+    parentId: stageStepsNodeId(process.id, duplicatedStep.stageId),
     value: duplicatedStep
   });
-
-  return {
-    ...result,
-    affectedNodeId: stepNodeId(duplicatedStep.id)
-  };
+  return { ...result, affectedNodeId: stepNodeId(process.id, duplicatedStep.id) };
 }
 
 export function translateGraphIntentToCommands(intent: DesignerGraphIntent, document: DesignerDocument): DesignerCommand[] {
   switch (intent.kind) {
+    case 'add-process':
+      return [{ kind: 'process', parentId: 'collection:process-portfolio:processes', index: intent.targetIndex, value: intent.process }];
     case 'add-stage':
-      return [
-        {
-          kind: 'stage',
-          parentId: PROCESS_STAGES_NODE_ID,
-          index: intent.targetIndex,
-          value: buildNewStage(document, intent.actorId)
-        }
-      ];
-
+      return [{ kind: 'stage', parentId: processStagesNodeId(intent.processId), index: intent.targetIndex, value: buildNewStage(document, intent.processId, intent.actorId) }];
     case 'add-outcome':
-      return [
-        {
-          kind: 'outcome',
-          parentId: PROCESS_OUTCOMES_NODE_ID,
-          index: intent.targetIndex,
-          value: buildNewOutcome(document)
-        }
-      ];
-
+      return [{ kind: 'outcome', parentId: processOutcomesNodeId(intent.processId), index: intent.targetIndex, value: buildNewOutcome(document, intent.processId) }];
     case 'add-step':
-      return [
-        {
-          kind: 'step',
-          parentId: stageStepsNodeId(intent.stageId),
-          index: intent.targetIndex,
-          value: buildNewStep(document, intent.stageId)
-        }
-      ];
-
-    case 'rename-node': {
-      const nodeKind = parseGraphNodeIntentNodeId(intent.nodeId);
-      if (!nodeKind || nodeKind === 'transition' || nodeKind === 'step-transition') {
-        throw new Error(`Graph intent 'rename-node' does not support '${intent.nodeId}'.`);
-      }
-
-      return [
-        {
-          nodeId: intent.nodeId,
-          value: {
-            displayName: intent.label
-          }
-        }
-      ];
-    }
-
+      return [{ kind: 'step', parentId: stageStepsNodeId(intent.processId, intent.stageId), index: intent.targetIndex, value: buildNewStep(document, intent.processId, intent.stageId) }];
+    case 'rename-node':
+      return [{ nodeId: intent.nodeId, value: { displayName: intent.label } }];
+    case 'update-process':
+      return [{ nodeId: `process:${intent.processId}`, value: intent.value }];
     case 'update-stage':
-      return [
-        {
-          nodeId: stageNodeId(intent.stageId),
-          value: intent.value
-        }
-      ];
-
+      return [{ nodeId: stageNodeId(intent.processId, intent.stageId), value: intent.value }];
     case 'rebind-stage-form': {
-      const nextForm = intent.formId
-        ? document.model.forms.find((form) => form.id === intent.formId)
-        : null;
-      const nextFormStateId = nextForm?.formStates[0]?.id ?? null;
-      const stage = document.model.process.stages.find((entry) => entry.id === intent.stageId);
-
+      const process = findProcess(document.model, intent.processId);
+      const stage = process?.stages.find((entry) => entry.id === intent.stageId);
       return [
-        {
-          nodeId: stageNodeId(intent.stageId),
-          value: {
-            formId: intent.formId
-          }
-        },
-        ...(stage?.stepIds ?? []).map((stepId) => ({
-          nodeId: stepNodeId(stepId),
-          value: {
-            formStateId: nextFormStateId
-          }
-        }))
+        { nodeId: stageNodeId(intent.processId, intent.stageId), value: { formId: intent.formId } },
+        ...(stage?.stepIds ?? []).map((stepId) => ({ nodeId: stepNodeId(intent.processId, stepId), value: { formStateId: null } }))
       ];
     }
-
     case 'update-stage-outcomes':
-      return [
-        {
-          nodeId: stageNodeId(intent.stageId),
-          value: {
-            allowedOutcomeIds: [...new Set(intent.outcomeIds)]
-          }
-        }
-      ];
-
+      return [{ nodeId: stageNodeId(intent.processId, intent.stageId), value: { allowedOutcomeIds: [...new Set(intent.outcomeIds)] } }];
     case 'update-step':
-      return [
-        {
-          nodeId: stepNodeId(intent.stepId),
-          value: intent.value
-        }
-      ];
-
+      return [{ nodeId: stepNodeId(intent.processId, intent.stepId), value: intent.value }];
     case 'update-transition-handoff':
-      return [
-        {
-          nodeId: transitionNodeId(intent.transitionId),
-          value: {
-            subjectHandoff: intent.subjectHandoff
-          }
-        }
-      ];
-
+      return [{ nodeId: transitionNodeId(intent.processId, intent.transitionId), value: { subjectHandoff: intent.subjectHandoff } }];
     case 'update-step-transition-handoff':
-      return [
-        {
-          nodeId: stepTransitionNodeId(intent.stepTransitionId),
-          value: {
-            subjectHandoff: intent.subjectHandoff
-          }
-        }
-      ];
-
+      return [{ nodeId: stepTransitionNodeId(intent.processId, intent.stepTransitionId), value: { subjectHandoff: intent.subjectHandoff } }];
+    case 'remove-node':
+      return [{ nodeId: intent.nodeId }];
+    case 'move-process':
+      return [{ nodeId: `process:${intent.processId}`, targetIndex: intent.targetIndex }];
+    case 'move-stage':
+      return [{ nodeId: stageNodeId(intent.processId, intent.stageId), targetIndex: intent.targetIndex }];
+    case 'move-step':
+      return [{ nodeId: stepNodeId(intent.processId, intent.stepId), targetIndex: intent.targetIndex, targetParentId: stageStepsNodeId(intent.processId, intent.targetStageId) }];
     case 'create-stage-transition': {
-      const rule = createDefaultTransitionRule(document, 'transition-guard', `Guard ${intent.fromStageId} to ${intent.toStageId}`);
-
+      const rule = createDefaultRule(document, 'transition-guard', `Guard ${intent.fromStageId} to ${intent.toStageId}`, 'transition');
       return [
-        ...normalizeStageOutcomeId(document, intent.fromStageId, intent.outcomeId),
         rule.command,
         {
           kind: 'transition',
-          parentId: PROCESS_TRANSITIONS_NODE_ID,
+          parentId: processTransitionsNodeId(intent.processId),
           value: {
-            id: uniqueId(document.model.process.transitions.map((transition) => transition.id), 'transition'),
+            id: uniqueId(findProcess(document.model, intent.processId)?.transitions.map((transition) => transition.id) ?? [], 'transition'),
             fromStageId: intent.fromStageId,
             toStageId: intent.toStageId,
             outcomeId: intent.outcomeId,
@@ -831,21 +598,15 @@ export function translateGraphIntentToCommands(intent: DesignerGraphIntent, docu
         }
       ];
     }
-
     case 'create-step-transition': {
-      const rule = createDefaultStepTransitionRule(
-        document,
-        'step-transition-guard',
-        `Guard ${intent.fromStepId} to ${buildTransitionTargetLabel(intent.target)}`
-      );
-
+      const rule = createDefaultRule(document, 'step-transition-guard', `Guard ${intent.fromStepId} to ${buildTransitionTargetLabel(intent.target)}`, 'step-transition');
       return [
         rule.command,
         {
           kind: 'step-transition',
-          parentId: PROCESS_STEP_TRANSITIONS_NODE_ID,
+          parentId: processStepTransitionsNodeId(intent.processId),
           value: {
-            id: uniqueId(document.model.process.stepTransitions.map((transition) => transition.id), 'step-transition'),
+            id: uniqueId(findProcess(document.model, intent.processId)?.stepTransitions.map((transition) => transition.id) ?? [], 'step-transition'),
             fromStepId: intent.fromStepId,
             guardRuleId: rule.ruleId,
             target: intent.target
@@ -853,38 +614,8 @@ export function translateGraphIntentToCommands(intent: DesignerGraphIntent, docu
         }
       ];
     }
-
-    case 'remove-node':
-      return [
-        {
-          nodeId: intent.nodeId
-        }
-      ];
-
     case 'remove-edge':
-      return [
-        {
-          nodeId: intent.edgeId
-        }
-      ];
-
-    case 'move-stage':
-      return [
-        {
-          nodeId: stageNodeId(intent.stageId),
-          targetIndex: intent.targetIndex
-        }
-      ];
-
-    case 'move-step':
-      return [
-        {
-          nodeId: stepNodeId(intent.stepId),
-          targetIndex: intent.targetIndex,
-          targetParentId: stageStepsNodeId(intent.targetStageId)
-        }
-      ];
-
+      return [{ nodeId: intent.edgeId }];
     default:
       return [];
   }
@@ -894,37 +625,23 @@ function applyDesignerCommand(document: DesignerDocument, command: DesignerComma
   if ('kind' in command && 'parentId' in command) {
     return addNode(document, command);
   }
-
   if ('targetIndex' in command) {
     return moveNode(document, command);
   }
-
   if ('value' in command) {
     return updateNode(document, command);
   }
-
   return removeNode(document, command);
 }
 
 export function applyGraphIntent(document: DesignerDocument, intent: DesignerGraphIntent): DesignerCommandResult {
   const commands = translateGraphIntentToCommands(intent, document);
   if (commands.length === 0) {
-    return {
-      document,
-      affectedNodeId: document.selectionId,
-      issues: document.issues
-    };
+    return { document, affectedNodeId: document.selectionId, issues: document.issues };
   }
-
-  let currentResult: DesignerCommandResult = {
-    document,
-    affectedNodeId: document.selectionId,
-    issues: document.issues
-  };
-
+  let currentResult: DesignerCommandResult = { document, affectedNodeId: document.selectionId, issues: document.issues };
   commands.forEach((command) => {
     currentResult = applyDesignerCommand(currentResult.document, command);
   });
-
   return currentResult;
 }

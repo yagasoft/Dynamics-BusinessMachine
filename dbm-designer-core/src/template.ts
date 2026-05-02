@@ -1,5 +1,5 @@
 import type { DbmEntityV1, DbmFormV1, DbmModelV1, DbmRelationshipV1 } from 'dbm-contract';
-import approvalRequestTemplate from '../../docs/architecture/examples/approval-request-v1.model.json';
+import genericProcessTemplate from '../../dbm-contract/fixtures/valid/generic-process-matrix/employee-onboarding.model.json';
 
 export interface BlankExistingFormStarterOptions {
   packageId: string;
@@ -15,7 +15,7 @@ export interface BlankExistingFormStarterOptions {
 }
 
 export function createApprovalRequestTemplate(): DbmModelV1 {
-  return structuredClone(approvalRequestTemplate as DbmModelV1);
+  return structuredClone(genericProcessTemplate as DbmModelV1);
 }
 
 export function createBlankExistingFormTemplate(options: BlankExistingFormStarterOptions): DbmModelV1 {
@@ -48,21 +48,29 @@ export function createBlankExistingFormTemplate(options: BlankExistingFormStarte
         artifactRoot: `artifacts/${options.packageId}`
       }
     },
-    process: {
+    processPortfolio: {
+      mainProcessId: `${options.packageId}-process`,
+      processes: [{
       id: `${options.packageId}-process`,
       displayName: options.displayName,
-      scenarioType: 'custom',
+      role: 'main',
+      processTypeId: 'existing-form',
+      mainDisplayMode: 'expanded',
+      statusId: 'draft',
+      portalStatusId: 'draft',
       actors: [
         {
           id: 'requester',
           displayName: options.currentUserActorDisplayName?.trim() || 'Current User',
-          actorType: 'requester',
+          actorCategory: 'person',
+          roleKey: 'requester',
           source: 'current-user'
         },
         {
           id: 'platform',
           displayName: options.systemActorDisplayName?.trim() || 'Platform',
-          actorType: 'system',
+          actorCategory: 'system',
+          roleKey: 'platform',
           source: 'system'
         }
       ],
@@ -88,17 +96,25 @@ export function createBlankExistingFormTemplate(options: BlankExistingFormStarte
         }
       ],
       tasks: [
-        { id: 'capture-data', displayName: 'Capture Data', taskType: 'data-entry', instructions: 'Complete the required form information.' }
+        { id: 'capture-data', displayName: 'Capture Data', workCategory: 'work', workKindId: 'data-entry', instructions: 'Complete the required form information.' }
       ],
       notifications: [],
       stages: [
         {
           id: 'start-stage',
           displayName: 'Start',
-          stageType: 'start',
+          stageCategory: 'start',
+          stageKindId: 'data-capture',
+          scope: 'shared',
+          stageSpan: {
+            start: { stageId: 'start-stage', fraction: 0 },
+            end: { stageId: 'start-stage', fraction: 1 }
+          },
           actorId: 'requester',
           formId: options.primaryForm.id,
           portalVisibility: 'visible',
+          statusId: 'draft',
+          portalStatusId: 'draft',
           stepIds: ['capture-data'],
           defaultStepId: 'capture-data',
           entryRuleIds: [],
@@ -108,10 +124,18 @@ export function createBlankExistingFormTemplate(options: BlankExistingFormStarte
         {
           id: 'complete-stage',
           displayName: 'Complete',
-          stageType: 'end',
+          stageCategory: 'end',
+          stageKindId: 'complete',
+          scope: 'shared',
+          stageSpan: {
+            start: { stageId: 'complete-stage', fraction: 0 },
+            end: { stageId: 'complete-stage', fraction: 1 }
+          },
           actorId: 'platform',
           formId: null,
           portalVisibility: 'visible',
+          statusId: 'complete',
+          portalStatusId: 'complete',
           stepIds: [],
           defaultStepId: null,
           entryRuleIds: [],
@@ -124,7 +148,8 @@ export function createBlankExistingFormTemplate(options: BlankExistingFormStarte
           id: 'capture-data',
           stageId: 'start-stage',
           displayName: 'Capture Data',
-          stepType: 'data-entry',
+          workCategory: 'work',
+          workKindId: 'data-entry',
           ownerActorId: 'requester',
           notificationId: null,
           taskId: 'capture-data',
@@ -148,6 +173,7 @@ export function createBlankExistingFormTemplate(options: BlankExistingFormStarte
       outcomes: [
         { id: 'submit', displayName: 'Submit' }
       ]
+      }]
     },
     forms: [structuredClone(options.primaryForm)],
     metadata: {

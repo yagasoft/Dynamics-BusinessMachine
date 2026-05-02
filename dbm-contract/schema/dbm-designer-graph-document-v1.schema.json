@@ -97,6 +97,10 @@
       "title": "DbmDesignerGraphSemanticRefV1",
       "type": "object",
       "properties": {
+        "processId": {
+          "type": "string",
+          "title": "processId"
+        },
         "actorId": {
           "type": "string",
           "title": "actorId"

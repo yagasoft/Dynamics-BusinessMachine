@@ -1,4 +1,5 @@
 import type { DesignerDocument, DesignerIssue } from 'dbm-designer-core';
+import { PROCESS_PORTFOLIO_NODE_ID, processNodeId, stageNodeId } from 'dbm-designer-core';
 
 export interface IssueDecorationSummary {
   level: DesignerIssue['level'];
@@ -6,90 +7,70 @@ export interface IssueDecorationSummary {
   issues: DesignerIssue[];
 }
 
-const directGraphTargetPrefixes = ['stage:', 'step:', 'outcome:', 'transition:', 'step-transition:'] as const;
-
-function levelRank(level: DesignerIssue['level']): number {
-  switch (level) {
-    case 'error':
-      return 3;
-    case 'warning':
-      return 2;
-    case 'info':
-      return 1;
+function addTarget(targets: string[], targetId: string | null | undefined) {
+  if (targetId && !targets.includes(targetId)) {
+    targets.push(targetId);
   }
 }
 
-function parseFormStateNodeId(nodeId: string): { formId: string; stateId: string } | null {
-  const match = /^form-state:([^:]+):(.+)$/.exec(nodeId);
-  if (!match) {
+function processTargetFromPath(document: DesignerDocument, path: string): string | null {
+  const match = /\/processPortfolio\/processes\/(?<processRef>[^/]+)/.exec(path);
+  const processRef = match?.groups?.processRef;
+  if (!processRef) {
     return null;
   }
 
-  return {
-    formId: match[1],
-    stateId: match[2]
-  };
+  const byId = document.model.processPortfolio.processes.find((process) => process.id === processRef);
+  if (byId) {
+    return processNodeId(byId.id);
+  }
+
+  const index = Number(processRef);
+  const byIndex = Number.isInteger(index) ? document.model.processPortfolio.processes[index] : null;
+  return byIndex ? processNodeId(byIndex.id) : null;
+}
+
+function stageTargetFromPath(document: DesignerDocument, path: string): string | null {
+  const match = /\/processPortfolio\/processes\/(?<processRef>[^/]+)\/stages\/(?<stageRef>[^/]+)/.exec(path);
+  const processRef = match?.groups?.processRef;
+  const stageRef = match?.groups?.stageRef;
+  if (!processRef || !stageRef) {
+    return null;
+  }
+
+  const process = document.model.processPortfolio.processes.find((entry) => entry.id === processRef)
+    ?? document.model.processPortfolio.processes[Number(processRef)];
+  const stage = process?.stages.find((entry) => entry.id === stageRef) ?? process?.stages[Number(stageRef)];
+  return process && stage ? stageNodeId(process.id, stage.id) : null;
 }
 
 export function resolveIssueTargetIds(document: DesignerDocument, issue: DesignerIssue): string[] {
-  if (!issue.nodeId) {
-    return [];
+  const targets: string[] = [];
+  addTarget(targets, issue.nodeId);
+  addTarget(targets, stageTargetFromPath(document, issue.path));
+  addTarget(targets, processTargetFromPath(document, issue.path));
+  if (issue.path.startsWith('/processPortfolio')) {
+    addTarget(targets, PROCESS_PORTFOLIO_NODE_ID);
   }
 
-  if (directGraphTargetPrefixes.some((prefix) => issue.nodeId?.startsWith(prefix))) {
-    return [issue.nodeId];
-  }
-
-  const formStateRef = parseFormStateNodeId(issue.nodeId);
-  if (formStateRef) {
-    const stepTargets = document.model.process.steps
-      .filter((step) => {
-        if (step.formStateId !== formStateRef.stateId) {
-          return false;
-        }
-
-        const stage = document.model.process.stages.find((candidate) => candidate.id === step.stageId);
-        return stage?.formId === formStateRef.formId;
-      })
-      .map((step) => `step:${step.id}`);
-
-    if (stepTargets.length > 0) {
-      return stepTargets;
-    }
-
-    return document.model.process.stages
-      .filter((stage) => stage.formId === formStateRef.formId)
-      .map((stage) => `stage:${stage.id}`);
-  }
-
-  return [];
+  return targets;
 }
 
 export function resolveIssueNavigationTargetId(document: DesignerDocument, issue: DesignerIssue): string | null {
-  return resolveIssueTargetIds(document, issue)[0] ?? issue.nodeId ?? null;
+  return resolveIssueTargetIds(document, issue)[0] ?? null;
 }
 
 export function buildIssueDecorationMap(document: DesignerDocument): Record<string, IssueDecorationSummary> {
   const summaries: Record<string, IssueDecorationSummary> = {};
-
   document.issues.forEach((issue) => {
-    const targetIds = resolveIssueTargetIds(document, issue);
-    targetIds.forEach((targetId) => {
-      const existing = summaries[targetId];
-      if (!existing) {
-        summaries[targetId] = {
-          level: issue.level,
-          count: 1,
-          issues: [issue]
-        };
-        return;
+    resolveIssueTargetIds(document, issue).forEach((targetId) => {
+      const summary = summaries[targetId] ?? { level: issue.level, count: 0, issues: [] };
+      summary.count += 1;
+      summary.issues.push(issue);
+      if (issue.level === 'error' || (issue.level === 'warning' && summary.level === 'info')) {
+        summary.level = issue.level;
       }
-
-      existing.count += 1;
-      existing.issues.push(issue);
-      if (levelRank(issue.level) > levelRank(existing.level)) {
-        existing.level = issue.level;
-      }
+      summaries[targetId] = summary;
     });
   });
 
