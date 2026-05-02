@@ -17,7 +17,7 @@ This document defines the active DBM release ladder after the process-first prod
 | Release | Name | Goal |
 | --- | --- | --- |
 | `R0` | Engineering foundation and governance | Keep the repo, delivery rules, branch policy, documentation discipline, and verification harness strong enough to support the reset. |
-| `R1` | Process/stage designer and actual form render | Define process portfolios, main process timelines, sub-process lanes, stage spans, and actual model-driven form rendering for business users. |
+| `R1` | Process/stage designer and actual form render | Define process portfolios, nested parent/child process hierarchies, stage-owned child process links, and actual model-driven form rendering for business users. |
 | `R2` | DBMScript and action foundation | Rebuild the JavaScript-first action and DBMScript foundation that later stages, templates, buttons, notifications, and backend execution will use. |
 | `R3` | Back-office runtime | Execute processes inside Dataverse and model-driven forms, including transitions, statuses, process instances, form behaviour, and action triggers. |
 | `R4` | Back-office operations | Add routing, tasks, notifications, SLA/KPI, validations, history, jobs, custom messages, and operator/support surfaces. |
@@ -45,18 +45,18 @@ The new product model is a process portfolio rather than a single-process-only c
 
 Minimum reset concepts:
 
-- `mainProcessId`: identifies the main process that anchors the full business cycle and is always visible on the rendered form.
-- `processes[]`: contains the main process and any number of sub-processes.
+- `mainProcessId`: identifies the root process that anchors the full business cycle and is always visible on the rendered form.
+- `processes[]`: contains the root process and reusable child process definitions.
 - `processTypeId`: a user-defined process type identifier, not a built-in domain enum.
 - `actorCategory` and `roleKey`: broad actor category plus user-defined role key for the process.
 - `stageCategory` and `stageKindId`: broad stage category plus user-defined stage kind.
 - `workCategory` and `workKindId`: broad task or step category plus user-defined work kind.
-- `subProcessVisibility`: defines when a sub-process appears for the rendered form or portal projection, such as status, owner, role, or audience conditions.
-- `stageSpan`: defines where each stage appears on the main-process timeline. A span may cover a full main stage, several main stages, or fractional main-stage spans.
+- `subProcessVisibility`: defines when a child process appears for the rendered form or portal projection, such as status, owner, role, or audience conditions.
+- `childProcessRefs[]`: defines stage-owned child process links, including the target process definition, activation rule, and whether the parent stage waits for child completion.
 - Stage feature hooks: entry/exit conditions, branching, previous-stage transitions, notifications, routing, SLA/KPI, tasks, validations, actions, status, and portal status.
 - Notifications: modelled as table row templates plus send actions, not as a separate hard-coded notification subsystem.
 - DBMScript/action vNext: JavaScript first, with DBMScript language/runtime contract, DBM Object composition, browser/model-driven/server execution planning, TypeScript, richer transpilation, and richer editor modes deferred until the JS foundation is proven.
-- Runtime vNext: process sessions, process instance per row/user/role/owner where configured, record-level and user-level switching, manual show Next transitions, automatic transition, parallel branches, condition timing, and XRM/form-context helpers are explicit roadmap concepts.
+- Runtime vNext: process sessions, child process instance spawning, parent-stage locking, child completion, process instance per row/user/role/owner where configured, record-level and user-level switching, manual show Next transitions, automatic transition, parallel branches, condition timing, and XRM/form-context helpers are explicit roadmap concepts.
 
 ## Release summaries
 
@@ -68,7 +68,7 @@ Details: [release-0-engineering-foundation.md](release-0-engineering-foundation.
 
 ### Release 1
 
-`R1` starts the product again around process and stage design. It proves the main process, stacked sub-processes, stage spans, conditional visibility, collapsed main-process display, generic user-defined process vocabulary, and an actual model-driven rendered form experience.
+`R1` starts the product again around process and stage design. It proves the root process, nested child process definitions, stage-owned child process links, conditional visibility, collapsed main-process display, generic user-defined process vocabulary, and an actual model-driven rendered form experience.
 
 Details: [release-1-process-stage-designer-and-form-render.md](release-1-process-stage-designer-and-form-render.md)
 
@@ -80,7 +80,7 @@ Details: [release-2-dbmscript-and-action-foundation.md](release-2-dbmscript-and-
 
 ### Release 3
 
-`R3` turns the designed process into a back-office runtime in Dataverse/model-driven forms. It owns process sessions, scoped process instances, process switching, transition evaluation, status persistence, form behaviour, action triggers, and scoped execution.
+`R3` turns the designed process into a back-office runtime in Dataverse/model-driven forms. It owns process sessions, scoped process instances, child process spawning, parent-stage locking, child completion, process switching, transition evaluation, status persistence, form behaviour, action triggers, and scoped execution.
 
 Details: [release-3-back-office-runtime.md](release-3-back-office-runtime.md)
 
@@ -123,7 +123,7 @@ Details: [release-9-ai-assisted-platform.md](release-9-ai-assisted-platform.md)
 ## Release-specific acceptance scenarios
 
 - `R0`: repo governance, docs, branch policy, delivery posture, and verification remain enforceable.
-- `R1`: a user can define a process portfolio with a visible main process, conditional sub-processes, fractional stage spans, collapsed main-process display, and actual model-driven form rendering. Portal behaviour is defined only as a projection contract.
+- `R1`: a user can define a process portfolio with a visible root process, nested child process definitions, stage-owned child process links, collapsed main-process display, and actual model-driven form rendering. Portal behaviour is defined only as a projection contract.
 - `R2`: a user can define JavaScript-first DBMScript actions, trigger hooks, templates, dependencies, and outputs that can be tested without relying on the later runtime.
 - `R3`: a business user can move through a back-office process on model-driven forms, with process state, stage transitions, statuses, form behaviour, and action triggers persisted by DBM.
 - `R4`: operators can route work, manage tasks, use notifications, track SLA/KPI behaviour, inspect history, and support running instances.

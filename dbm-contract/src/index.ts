@@ -188,14 +188,12 @@ export interface DbmNotificationDefinitionV1 {
   templateRef: string;
 }
 
-export interface DbmStageSpanAnchorV1 {
-  stageId: string;
-  fraction: number;
-}
-
-export interface DbmStageSpanV1 {
-  start: DbmStageSpanAnchorV1;
-  end: DbmStageSpanAnchorV1;
+export interface DbmChildProcessRefV1 {
+  id: string;
+  processId: string;
+  displayName: string;
+  activationRuleId: string | null;
+  blocksParent: boolean;
 }
 
 export interface DbmStageV1 {
@@ -204,7 +202,7 @@ export interface DbmStageV1 {
   stageCategory: DbmStageCategoryV1;
   stageKindId: string;
   scope: DbmStageScopeV1;
-  stageSpan: DbmStageSpanV1;
+  childProcessRefs: DbmChildProcessRefV1[];
   actorId: string;
   formId: string | null;
   portalVisibility: DbmStagePortalVisibilityV1;
@@ -478,10 +476,10 @@ export type DbmProcessPortfolioValidationIssueCodeV1 =
   | 'main-process-role-invalid'
   | 'main-process-duplicate'
   | 'sub-process-role-invalid'
-  | 'stage-span-anchor-not-found'
-  | 'stage-span-anchor-ambiguous'
-  | 'stage-span-fraction-out-of-range'
-  | 'stage-span-reversed';
+  | 'child-process-target-not-found'
+  | 'duplicate-child-process-ref'
+  | 'child-process-blocking-invalid'
+  | 'child-process-cycle';
 
 export interface DbmProcessPortfolioValidationIssueV1 {
   code: DbmProcessPortfolioValidationIssueCodeV1;
@@ -501,7 +499,7 @@ export interface DbmProcessPortfolioProjectionStageV1 {
   stageCategory: DbmStageCategoryV1;
   stageKindId: string;
   scope: DbmStageScopeV1;
-  stageSpan: DbmStageSpanV1;
+  childProcessRefs: DbmChildProcessRefV1[];
   portalVisibility: DbmStagePortalVisibilityV1;
   statusId: string;
   portalStatusId: string | null;
@@ -540,21 +538,10 @@ function findMainProcess(model: DbmModelV1): DbmProcessV1 | undefined {
   return model.processPortfolio.processes.find((process) => process.id === model.processPortfolio.mainProcessId);
 }
 
-function resolveTimelinePosition(
-  anchor: DbmStageSpanAnchorV1,
-  mainStageIndex: Map<string, number>
-): number | null {
-  const stageIndex = mainStageIndex.get(anchor.stageId);
-  if (stageIndex === undefined) {
-    return null;
-  }
-
-  return stageIndex + anchor.fraction;
-}
-
 export function validateProcessPortfolioModelV1(model: DbmModelV1): DbmProcessPortfolioValidationIssueV1[] {
   const issues: DbmProcessPortfolioValidationIssueV1[] = [];
   const mainProcess = findMainProcess(model);
+  const processById = new Map(model.processPortfolio.processes.map((process) => [process.id, process]));
 
   if (!mainProcess) {
     issues.push(createValidationIssue(
@@ -582,13 +569,6 @@ export function validateProcessPortfolioModelV1(model: DbmModelV1): DbmProcessPo
     ));
   }
 
-  const mainStageIdCounts = new Map<string, number>();
-  mainProcess.stages.forEach((stage) => {
-    mainStageIdCounts.set(stage.id, (mainStageIdCounts.get(stage.id) ?? 0) + 1);
-  });
-  const ambiguousMainStageIds = new Set(Array.from(mainStageIdCounts.entries()).filter(([, count]) => count > 1).map(([stageId]) => stageId));
-  const mainStageIndex = new Map(mainProcess.stages.map((stage, index) => [stage.id, index]));
-
   model.processPortfolio.processes.forEach((process, processIndex) => {
     if (process.id !== mainProcess.id && process.role !== 'sub-process') {
       issues.push(createValidationIssue(
@@ -599,46 +579,83 @@ export function validateProcessPortfolioModelV1(model: DbmModelV1): DbmProcessPo
     }
 
     process.stages.forEach((stage, stageIndex) => {
-      const spanPath = `/processPortfolio/processes/${processIndex}/stages/${stageIndex}/stageSpan`;
-      const anchors: Array<[string, DbmStageSpanAnchorV1]> = [
-        ['start', stage.stageSpan.start],
-        ['end', stage.stageSpan.end]
-      ];
-
-      for (const [anchorName, anchor] of anchors) {
-        if (anchor.fraction < 0 || anchor.fraction > 1) {
+      const childRefs = (stage as DbmStageV1 & { childProcessRefs?: DbmChildProcessRefV1[] }).childProcessRefs ?? [];
+      const seenRefIds = new Set<string>();
+      childRefs.forEach((ref, refIndex) => {
+        const refPath = `/processPortfolio/processes/${processIndex}/stages/${stageIndex}/childProcessRefs/${refIndex}`;
+        if (seenRefIds.has(ref.id)) {
           issues.push(createValidationIssue(
-            'stage-span-fraction-out-of-range',
-            `${spanPath}/${anchorName}/fraction`,
-            'stageSpan anchor fraction must be between 0 and 1.'
+            'duplicate-child-process-ref',
+            `${refPath}/id`,
+            `Child process reference '${ref.id}' is duplicated within stage '${stage.id}'.`
+          ));
+        }
+        seenRefIds.add(ref.id);
+
+        if (!processById.has(ref.processId)) {
+          issues.push(createValidationIssue(
+            'child-process-target-not-found',
+            `${refPath}/processId`,
+            `Child process reference '${ref.id}' targets missing process '${ref.processId}'.`
           ));
         }
 
-        if (ambiguousMainStageIds.has(anchor.stageId)) {
+        if (typeof ref.blocksParent !== 'boolean') {
           issues.push(createValidationIssue(
-            'stage-span-anchor-ambiguous',
-            `${spanPath}/${anchorName}/stageId`,
-            'stageSpan anchor stageId must resolve to exactly one stage in the main process timeline.'
-          ));
-        } else if (!mainStageIndex.has(anchor.stageId)) {
-          issues.push(createValidationIssue(
-            'stage-span-anchor-not-found',
-            `${spanPath}/${anchorName}/stageId`,
-            'stageSpan anchor stageId must resolve to a stage in the main process timeline.'
+            'child-process-blocking-invalid',
+            `${refPath}/blocksParent`,
+            `Child process reference '${ref.id}' must declare blocksParent as a boolean.`
           ));
         }
-      }
-
-      const startPosition = resolveTimelinePosition(stage.stageSpan.start, mainStageIndex);
-      const endPosition = resolveTimelinePosition(stage.stageSpan.end, mainStageIndex);
-      if (startPosition !== null && endPosition !== null && startPosition > endPosition) {
-        issues.push(createValidationIssue(
-          'stage-span-reversed',
-          spanPath,
-          'stageSpan start anchor must not appear after the end anchor on the main process timeline.'
-        ));
-      }
+      });
     });
+  });
+
+  const cycleIssueKeys = new Set<string>();
+  const visited = new Set<string>();
+  const visiting = new Set<string>();
+
+  function visit(process: DbmProcessV1, stack: string[]): void {
+    if (visited.has(process.id)) {
+      return;
+    }
+
+    visiting.add(process.id);
+    const processIndex = model.processPortfolio.processes.indexOf(process);
+    process.stages.forEach((stage, stageIndex) => {
+      const childRefs = (stage as DbmStageV1 & { childProcessRefs?: DbmChildProcessRefV1[] }).childProcessRefs ?? [];
+      childRefs.forEach((ref, refIndex) => {
+        const target = processById.get(ref.processId);
+        if (!target) {
+          return;
+        }
+
+        const refPath = `/processPortfolio/processes/${processIndex}/stages/${stageIndex}/childProcessRefs/${refIndex}/processId`;
+        if (visiting.has(target.id)) {
+          const cycleKey = [...stack, target.id].join('>');
+          if (!cycleIssueKeys.has(cycleKey)) {
+            cycleIssueKeys.add(cycleKey);
+            issues.push(createValidationIssue(
+              'child-process-cycle',
+              refPath,
+              `Child process reference '${ref.id}' creates a circular process hierarchy.`
+            ));
+          }
+          return;
+        }
+
+        visit(target, [...stack, target.id]);
+      });
+    });
+
+    visiting.delete(process.id);
+    visited.add(process.id);
+  }
+
+  model.processPortfolio.processes.forEach((process) => {
+    if (!visited.has(process.id)) {
+      visit(process, [process.id]);
+    }
   });
 
   return issues;
@@ -679,7 +696,7 @@ function projectProcess(
       stageCategory: stage.stageCategory,
       stageKindId: stage.stageKindId,
       scope: stage.scope,
-      stageSpan: stage.stageSpan,
+      childProcessRefs: stage.childProcessRefs.map((ref) => ({ ...ref })),
       portalVisibility: stage.portalVisibility,
       statusId: stage.statusId,
       portalStatusId: stage.portalStatusId

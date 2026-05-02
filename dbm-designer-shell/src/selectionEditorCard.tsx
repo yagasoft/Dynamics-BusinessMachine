@@ -25,7 +25,7 @@ export function SelectionEditorCard({ document }: SelectionEditorCardProps) {
       <div style={eyebrowStyle}>Selection editor</div>
       <h2 style={headingStyle}>Portfolio-native authoring</h2>
       <p style={copyStyle}>
-        The active model contains {processCount} process(es) and {stageCount} stage(s). Detailed edits now flow through Timeline Studio controls and process-aware designer-core commands.
+        The active model contains {processCount} process(es) and {stageCount} stage(s). Detailed edits now flow through Hierarchy Studio controls and process-aware designer-core commands.
       </p>
     </section>
   );

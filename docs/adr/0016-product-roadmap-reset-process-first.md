@@ -36,12 +36,13 @@ The old `R1` through `R3.1` roadmap therefore cannot remain the active release l
 
 The product model becomes a process portfolio:
 
-- `mainProcessId` identifies the main process.
-- `processes[]` contains the main process and all sub-processes.
-- The main process is always visible on the rendered form and portal projection.
-- Sub-processes render below the main process.
-- `subProcessVisibility` controls whether a sub-process is visible for a given audience and condition.
-- `stageSpan` is first-class and can cover one main stage, multiple main stages, or fractional main-stage spans.
+- `mainProcessId` identifies the root process.
+- `processes[]` contains the root process and reusable child process definitions.
+- The root process is always visible on the rendered form and portal projection.
+- Child processes render under the parent stage that owns them.
+- `subProcessVisibility` controls whether a child process is visible for a given audience and condition.
+- `childProcessRefs[]` is first-class and declares stage-owned child process links, including whether the parent stage waits for child completion.
+- Runtime spawning, parent locking, child completion, return-state handling, and process-instance persistence belong to `R3`.
 - Stage feature hooks include entry/exit conditions, branching, notifications, routing, SLA/KPI, tasks, validations, actions, status, and portal status.
 - Notifications are table row templates plus send actions, not a hard-coded notification subsystem.
 - DBMScript/action vNext is JavaScript first.

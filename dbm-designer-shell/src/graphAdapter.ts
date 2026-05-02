@@ -8,30 +8,32 @@ export interface DesignerGraphAdapter<TGraph, TIntent> {
   fromLibraryIntent(intent: TIntent): DesignerGraphIntent;
 }
 
-export type TimelineNodeKind = 'main-timeline' | 'sub-process-lane' | 'stage-span';
+export type HierarchyNodeKind = 'parent-process' | 'child-process' | 'parent-stage' | 'child-process-stage';
 
-export interface TimelineNodeData extends Record<string, unknown> {
-  kind: TimelineNodeKind;
+export interface HierarchyNodeData extends Record<string, unknown> {
+  kind: HierarchyNodeKind;
   processId: string;
   label: string;
   role: 'main' | 'sub-process';
   stageId?: string;
   stageCategory?: string;
   stageKindId?: string;
-  spanLabel?: string;
+  depth: number;
+  blockedByChild?: boolean;
 }
 
-export interface TimelineEdgeData extends Record<string, unknown> {
-  kind: 'stage-sequence' | 'span-reference';
+export interface HierarchyEdgeData extends Record<string, unknown> {
+  kind: 'stage-sequence' | 'child-process-link';
   processId: string;
+  childProcessId?: string;
 }
 
-export type TimelineFlowNode = Node<TimelineNodeData>;
-export type TimelineFlowEdge = Edge<TimelineEdgeData>;
+export type HierarchyFlowNode = Node<HierarchyNodeData>;
+export type HierarchyFlowEdge = Edge<HierarchyEdgeData>;
 
-export interface TimelineFlowGraphDocument {
-  nodes: TimelineFlowNode[];
-  edges: TimelineFlowEdge[];
+export interface HierarchyFlowGraphDocument {
+  nodes: HierarchyFlowNode[];
+  edges: HierarchyFlowEdge[];
 }
 
 export type XyFlowLibraryIntent =
@@ -45,159 +47,150 @@ export type XyFlowLibraryIntent =
       stageId: string;
     };
 
-const laneGapY = 138;
-const mainY = 48;
-const laneStartY = 188;
+const processGapY = 168;
 const stageGapX = 190;
-const stageStartX = 240;
+const stageStartX = 260;
 
-function stageSpanLabel(stageSpan: { start: { stageId: string; fraction: number }; end: { stageId: string; fraction: number } }): string {
-  return `${stageSpan.start.stageId} ${stageSpan.start.fraction} -> ${stageSpan.end.stageId} ${stageSpan.end.fraction}`;
+function childProcessIds(document: DesignerDocument): Set<string> {
+  return new Set(document.model.processPortfolio.processes.flatMap((process) =>
+    process.stages.flatMap((stage) => stage.childProcessRefs.map((ref) => ref.processId))
+  ));
 }
 
-function buildTimelineGraph(document: DesignerDocument): TimelineFlowGraphDocument {
+function processWidth(stageCount: number): number {
+  return Math.max(700, stageCount * stageGapX + 310);
+}
+
+function buildHierarchyGraph(document: DesignerDocument): HierarchyFlowGraphDocument {
   const mainProcess = resolveMainProcess(document);
-  const processes = orderedProcesses(document.model);
-  const nodes: TimelineFlowNode[] = [];
-  const edges: TimelineFlowEdge[] = [];
+  const processMap = new Map(orderedProcesses(document.model).map((process) => [process.id, process]));
+  const linkedChildProcessIds = childProcessIds(document);
+  const rendered = new Set<string>();
+  const nodes: HierarchyFlowNode[] = [];
+  const edges: HierarchyFlowEdge[] = [];
+  let row = 0;
 
-  nodes.push({
-    id: `timeline:${mainProcess.id}`,
-    type: 'default',
-    position: { x: 32, y: mainY },
-    data: {
-      kind: 'main-timeline',
-      processId: mainProcess.id,
-      label: mainProcess.displayName,
-      role: 'main'
-    },
-    draggable: false,
-    selectable: true,
-    style: {
-      width: Math.max(620, mainProcess.stages.length * stageGapX + 260),
-      minHeight: 84,
-      border: '1px solid #94a3b8',
-      background: '#f8fafc',
-      borderRadius: 8,
-      padding: 12
+  function renderProcess(processId: string, depth: number): void {
+    const process = processMap.get(processId);
+    if (!process || rendered.has(process.id)) {
+      return;
     }
-  });
 
-  mainProcess.stages.forEach((stage, index) => {
-    const nodeId = `stage:${mainProcess.id}:${stage.id}`;
+    rendered.add(process.id);
+    const y = 28 + row * processGapY;
+    row += 1;
+    const processNodeId = `hierarchy:${process.id}`;
+    const isParent = process.id === mainProcess.id || depth === 0;
+
     nodes.push({
-      id: nodeId,
+      id: processNodeId,
       type: 'default',
-      position: { x: stageStartX + index * stageGapX, y: mainY + 18 },
+      position: { x: 28 + depth * 72, y },
       data: {
-        kind: 'stage-span',
-        processId: mainProcess.id,
-        stageId: stage.id,
-        label: stage.displayName,
-        role: 'main',
-        stageCategory: stage.stageCategory,
-        stageKindId: stage.stageKindId,
-        spanLabel: stageSpanLabel(stage.stageSpan)
+        kind: isParent ? 'parent-process' : 'child-process',
+        processId: process.id,
+        label: process.displayName,
+        role: process.role,
+        depth
       },
+      draggable: false,
+      selectable: true,
       style: {
-        width: 150,
-        minHeight: 50,
-        border: '1px solid #2563eb',
-        background: '#eff6ff',
-        borderRadius: 6,
-        fontSize: 12
+        width: processWidth(process.stages.length),
+        minHeight: 112,
+        border: isParent ? '1px solid #0f172a' : '1px solid #64748b',
+        background: isParent ? '#f8fafc' : '#ffffff',
+        borderRadius: 8,
+        padding: 12,
+        fontWeight: 800
       }
     });
 
-    const nextStage = mainProcess.stages[index + 1];
-    if (nextStage) {
-      edges.push({
-        id: `stage-sequence:${mainProcess.id}:${stage.id}:${nextStage.id}`,
-        source: nodeId,
-        target: `stage:${mainProcess.id}:${nextStage.id}`,
-        data: {
-          kind: 'stage-sequence',
-          processId: mainProcess.id
-        }
-      });
-    }
-  });
-
-  processes
-    .filter((process) => process.id !== mainProcess.id)
-    .forEach((process, processIndex) => {
-      const y = laneStartY + processIndex * laneGapY;
+    process.stages.forEach((stage, index) => {
+      const nodeId = `stage:${process.id}:${stage.id}`;
+      const blocksChild = stage.childProcessRefs.some((ref) => ref.blocksParent);
       nodes.push({
-        id: `timeline:${process.id}`,
+        id: nodeId,
         type: 'default',
-        position: { x: 32, y },
+        position: { x: 28 + depth * 72 + stageStartX + index * stageGapX, y: y + 36 },
         data: {
-          kind: 'sub-process-lane',
+          kind: isParent ? 'parent-stage' : 'child-process-stage',
           processId: process.id,
-          label: process.displayName,
-          role: 'sub-process'
+          stageId: stage.id,
+          label: stage.displayName,
+          role: process.role,
+          stageCategory: stage.stageCategory,
+          stageKindId: stage.stageKindId,
+          depth,
+          blockedByChild: blocksChild
         },
-        draggable: false,
-        selectable: true,
         style: {
-          width: Math.max(620, mainProcess.stages.length * stageGapX + 260),
-          minHeight: 90,
-          border: '1px solid #cbd5e1',
-          background: '#ffffff',
-          borderRadius: 8,
-          padding: 12
+          width: 160,
+          minHeight: 54,
+          border: blocksChild ? '1px solid #b45309' : isParent ? '1px solid #2563eb' : '1px solid #16a34a',
+          background: blocksChild ? '#fffbeb' : isParent ? '#eff6ff' : '#f0fdf4',
+          borderRadius: 6,
+          fontSize: 12,
+          zIndex: 2
         }
       });
 
-      process.stages.forEach((stage, stageIndex) => {
-        const nodeId = `stage:${process.id}:${stage.id}`;
-        nodes.push({
-          id: nodeId,
-          type: 'default',
-          position: { x: stageStartX + stageIndex * stageGapX, y: y + 22 },
+      const nextStage = process.stages[index + 1];
+      if (nextStage) {
+        edges.push({
+          id: `stage-sequence:${process.id}:${stage.id}:${nextStage.id}`,
+          source: nodeId,
+          target: `stage:${process.id}:${nextStage.id}`,
+          type: 'step',
+          zIndex: 1000,
           data: {
-            kind: 'stage-span',
-            processId: process.id,
-            stageId: stage.id,
-            label: stage.displayName,
-            role: 'sub-process',
-            stageCategory: stage.stageCategory,
-            stageKindId: stage.stageKindId,
-            spanLabel: stageSpanLabel(stage.stageSpan)
-          },
-          style: {
-            width: 170,
-            minHeight: 52,
-            border: '1px solid #16a34a',
-            background: '#f0fdf4',
-            borderRadius: 6,
-            fontSize: 12
+            kind: 'stage-sequence',
+            processId: process.id
           }
         });
+      }
 
+      stage.childProcessRefs.forEach((ref) => {
+        const child = processMap.get(ref.processId);
+        if (!child) {
+          return;
+        }
+
+        renderProcess(child.id, depth + 1);
         edges.push({
-          id: `span-reference:${process.id}:${stage.id}`,
+          id: `child-process:${process.id}:${stage.id}:${ref.id}`,
           source: nodeId,
-          target: `stage:${mainProcess.id}:${stage.stageSpan.start.stageId}`,
+          target: `hierarchy:${child.id}`,
+          type: 'step',
+          zIndex: 1000,
           data: {
-            kind: 'span-reference',
-            processId: process.id
+            kind: 'child-process-link',
+            processId: process.id,
+            childProcessId: child.id
           },
           style: {
-            strokeDasharray: '6 5',
-            opacity: 0.55
-          }
+            stroke: ref.blocksParent ? '#b45309' : '#64748b',
+            strokeWidth: 2
+          },
+          label: ref.blocksParent ? 'blocks parent stage' : 'child process'
         });
       });
     });
+  }
+
+  renderProcess(mainProcess.id, 0);
+
+  orderedProcesses(document.model)
+    .filter((process) => process.id !== mainProcess.id && !linkedChildProcessIds.has(process.id))
+    .forEach((process) => renderProcess(process.id, 1));
 
   return { nodes, edges };
 }
 
-export const xyflowGraphAdapter: DesignerGraphAdapter<TimelineFlowGraphDocument, XyFlowLibraryIntent> = {
-  name: 'xyflow-timeline-studio',
+export const xyflowGraphAdapter: DesignerGraphAdapter<HierarchyFlowGraphDocument, XyFlowLibraryIntent> = {
+  name: 'xyflow-hierarchy-studio',
   toLibraryGraph(document) {
-    return buildTimelineGraph(document);
+    return buildHierarchyGraph(document);
   },
   fromLibraryIntent(intent) {
     switch (intent.kind) {

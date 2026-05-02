@@ -8,14 +8,15 @@ function loadDocument() {
   return loadModel(structuredClone(employeeOnboarding as DbmModelV1));
 }
 
-describe('xyflowGraphAdapter Timeline Studio mapping', () => {
-  it('maps the generic process matrix into main timeline and sub-process lane nodes', () => {
+describe('xyflowGraphAdapter hierarchy studio mapping', () => {
+  it('maps the generic process matrix into parent and child process hierarchy nodes', () => {
     const document = loadDocument();
     const flowGraph = xyflowGraphAdapter.toLibraryGraph(document);
 
-    expect(flowGraph.nodes.some((node) => node.data.kind === 'main-timeline' && node.data.processId === 'onboarding-main')).toBe(true);
-    expect(flowGraph.nodes.some((node) => node.data.kind === 'sub-process-lane' && node.data.processId === 'it-readiness')).toBe(true);
-    expect(flowGraph.nodes.some((node) => node.data.kind === 'stage-span' && node.data.processId === 'it-readiness' && node.data.stageId === 'prepare-access')).toBe(true);
+    expect(flowGraph.nodes.some((node) => node.data.kind === 'parent-process' && node.data.processId === 'onboarding-main')).toBe(true);
+    expect(flowGraph.nodes.some((node) => node.data.kind === 'child-process' && node.data.processId === 'it-readiness')).toBe(true);
+    expect(flowGraph.nodes.some((node) => node.data.kind === 'child-process-stage' && node.data.processId === 'it-readiness' && node.data.stageId === 'prepare-access')).toBe(true);
+    expect(flowGraph.edges.some((edge) => edge.data?.kind === 'child-process-link' && edge.data.childProcessId === 'access-review')).toBe(true);
   });
 
   it('keeps React Flow state out of the canonical model', () => {

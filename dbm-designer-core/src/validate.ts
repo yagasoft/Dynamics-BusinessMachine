@@ -5,6 +5,7 @@ import type {
   DbmModelV1,
   DbmProcessPortfolioValidationIssueV1
 } from 'dbm-contract';
+import { validateProcessPortfolioModelV1 } from '../../dbm-contract/dist/index.js';
 import graphDocumentSchema from '../../dbm-contract/schema/dbm-designer-graph-document-v1.schema.json';
 import modelSchema from '../../dbm-contract/schema/dbm-model-v1.schema.json';
 import workspaceSchema from '../../dbm-contract/schema/dbm-designer-workspace-v1.schema.json';
@@ -14,7 +15,6 @@ import {
   processNodeId,
   stageNodeId
 } from './node-ids';
-import { resolveMainProcess } from './portfolio';
 import type { DesignerDocument, DesignerIssue } from './types';
 
 const ajv = new Ajv({
@@ -70,6 +70,19 @@ function addDuplicateIdIssues(
 }
 
 function mapPortfolioIssue(model: DbmModelV1, portfolioIssue: DbmProcessPortfolioValidationIssueV1): DesignerIssue {
+  const stageMatch = /^\/processPortfolio\/processes\/(?<processIndex>\d+)\/stages\/(?<stageIndex>\d+)/.exec(portfolioIssue.path);
+  if (stageMatch?.groups) {
+    const process = model.processPortfolio.processes[Number(stageMatch.groups.processIndex)] ?? null;
+    const stage = process?.stages[Number(stageMatch.groups.stageIndex)] ?? null;
+    return issue(
+      'error',
+      portfolioIssue.code,
+      portfolioIssue.message,
+      portfolioIssue.path,
+      process && stage ? stageNodeId(process.id, stage.id) : PROCESS_PORTFOLIO_NODE_ID
+    );
+  }
+
   const processMatch = /^\/processPortfolio\/processes\/(?<processIndex>\d+)/.exec(portfolioIssue.path);
   const processIndex = processMatch?.groups?.processIndex ? Number(processMatch.groups.processIndex) : null;
   const process = processIndex === null ? null : model.processPortfolio.processes[processIndex] ?? null;
@@ -80,129 +93,6 @@ function mapPortfolioIssue(model: DbmModelV1, portfolioIssue: DbmProcessPortfoli
     portfolioIssue.path,
     process ? processNodeId(process.id) : PROCESS_PORTFOLIO_NODE_ID
   );
-}
-
-function createPortfolioIssue(code: DbmProcessPortfolioValidationIssueV1['code'], path: string, message: string): DbmProcessPortfolioValidationIssueV1 {
-  return { code, path, message };
-}
-
-function validatePortfolioModel(model: DbmModelV1): DbmProcessPortfolioValidationIssueV1[] {
-  const issues: DbmProcessPortfolioValidationIssueV1[] = [];
-  const mainProcess = model.processPortfolio.processes.find((process) => process.id === model.processPortfolio.mainProcessId);
-
-  if (!mainProcess) {
-    issues.push(createPortfolioIssue(
-      'main-process-not-found',
-      '/processPortfolio/mainProcessId',
-      'processPortfolio.mainProcessId must resolve to a process in processPortfolio.processes.'
-    ));
-    return issues;
-  }
-
-  if (mainProcess.role !== 'main') {
-    issues.push(createPortfolioIssue(
-      'main-process-role-invalid',
-      `/processPortfolio/processes/${model.processPortfolio.processes.indexOf(mainProcess)}/role`,
-      'The process identified by processPortfolio.mainProcessId must have role main.'
-    ));
-  }
-
-  const mainRoleProcesses = model.processPortfolio.processes.filter((process) => process.role === 'main');
-  if (mainRoleProcesses.length !== 1) {
-    issues.push(createPortfolioIssue(
-      'main-process-duplicate',
-      '/processPortfolio/processes',
-      'Exactly one process must have role main.'
-    ));
-  }
-
-  const mainStageIndex = new Map(mainProcess.stages.map((stage, index) => [stage.id, index]));
-  model.processPortfolio.processes.forEach((process, processIndex) => {
-    if (process.id !== mainProcess.id && process.role !== 'sub-process') {
-      issues.push(createPortfolioIssue(
-        'sub-process-role-invalid',
-        `/processPortfolio/processes/${processIndex}/role`,
-        'Every non-main process in the portfolio must have role sub-process.'
-      ));
-    }
-
-    process.stages.forEach((stage, stageIndex) => {
-      const spanPath = `/processPortfolio/processes/${processIndex}/stages/${stageIndex}/stageSpan`;
-      const anchors = [
-        ['start', stage.stageSpan.start],
-        ['end', stage.stageSpan.end]
-      ] as const;
-
-      anchors.forEach(([anchorName, anchor]) => {
-        if (anchor.fraction < 0 || anchor.fraction > 1) {
-          issues.push(createPortfolioIssue(
-            'stage-span-fraction-out-of-range',
-            `${spanPath}/${anchorName}/fraction`,
-            'stageSpan anchor fraction must be between 0 and 1.'
-          ));
-        }
-        if (!mainStageIndex.has(anchor.stageId)) {
-          issues.push(createPortfolioIssue(
-            'stage-span-anchor-not-found',
-            `${spanPath}/${anchorName}/stageId`,
-            'stageSpan anchor stageId must resolve to a stage in the main process timeline.'
-          ));
-        }
-      });
-
-      const start = mainStageIndex.has(stage.stageSpan.start.stageId) ? (mainStageIndex.get(stage.stageSpan.start.stageId) ?? 0) + stage.stageSpan.start.fraction : null;
-      const end = mainStageIndex.has(stage.stageSpan.end.stageId) ? (mainStageIndex.get(stage.stageSpan.end.stageId) ?? 0) + stage.stageSpan.end.fraction : null;
-      if (start !== null && end !== null && start > end) {
-        issues.push(createPortfolioIssue(
-          'stage-span-reversed',
-          spanPath,
-          'stageSpan start anchor must not appear after the end anchor on the main process timeline.'
-        ));
-      }
-    });
-  });
-
-  return issues;
-}
-
-function addAmbiguousMainStageAnchorIssues(model: DbmModelV1, issues: DesignerIssue[]): void {
-  let mainProcess;
-  try {
-    mainProcess = resolveMainProcess(model);
-  } catch {
-    return;
-  }
-
-  const counts = new Map<string, number>();
-  mainProcess.stages.forEach((stage) => {
-    counts.set(stage.id, (counts.get(stage.id) ?? 0) + 1);
-  });
-
-  const ambiguousStageIds = new Set([...counts.entries()].filter(([, count]) => count > 1).map(([stageId]) => stageId));
-  if (ambiguousStageIds.size === 0) {
-    return;
-  }
-
-  model.processPortfolio.processes.forEach((process, processIndex) => {
-    process.stages.forEach((stage, stageIndex) => {
-      const anchors = [
-        ['start', stage.stageSpan.start.stageId],
-        ['end', stage.stageSpan.end.stageId]
-      ] as const;
-      anchors.forEach(([anchorName, stageId]) => {
-        if (!ambiguousStageIds.has(stageId)) {
-          return;
-        }
-        issues.push(issue(
-          'error',
-          'stage-span-anchor-ambiguous',
-          `stageSpan ${anchorName} anchor '${stageId}' matches more than one main-process stage.`,
-          `/processPortfolio/processes/${processIndex}/stages/${stageIndex}/stageSpan/${anchorName}/stageId`,
-          stageNodeId(process.id, stage.id)
-        ));
-      });
-    });
-  });
 }
 
 function validateProcessSemantics(model: DbmModelV1): DesignerIssue[] {
@@ -264,7 +154,6 @@ function validateProcessSemantics(model: DbmModelV1): DesignerIssue[] {
     });
   });
 
-  addAmbiguousMainStageAnchorIssues(model, issues);
   return issues;
 }
 
@@ -272,7 +161,7 @@ export function validateModel(model: DbmModelV1): DesignerIssue[] {
   const issues: DesignerIssue[] = [];
   const schemaValid = validateSchema(model);
   addSchemaIssues(issues, schemaValid, validateSchema.errors, 'schema-invalid', '');
-  validatePortfolioModel(model).forEach((portfolioIssue) => issues.push(mapPortfolioIssue(model, portfolioIssue)));
+  validateProcessPortfolioModelV1(model).forEach((portfolioIssue) => issues.push(mapPortfolioIssue(model, portfolioIssue)));
   issues.push(...validateProcessSemantics(model));
 
   model.package.processUiSurfaces.forEach((surface) => {

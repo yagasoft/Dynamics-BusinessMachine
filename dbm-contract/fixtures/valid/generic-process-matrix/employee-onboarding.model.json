@@ -10,9 +10,16 @@
       "prefix": "dbm"
     },
     "entryProcessId": "legacy-entry-not-authoritative",
-    "supportedHosts": ["model-driven"],
-    "supportedRuntimes": ["pcf", "dataverse"],
-    "processUiSurfaces": ["model-driven"],
+    "supportedHosts": [
+      "model-driven"
+    ],
+    "supportedRuntimes": [
+      "pcf",
+      "dataverse"
+    ],
+    "processUiSurfaces": [
+      "model-driven"
+    ],
     "exposesPortalState": false,
     "ownsGeneratedDataverseArtifacts": true,
     "compatibility": {
@@ -38,22 +45,79 @@
         "statusId": "preparing",
         "portalStatusId": null,
         "actors": [
-          { "id": "people-team", "displayName": "People operations", "actorCategory": "team", "roleKey": "people-operations", "source": "field-binding" },
-          { "id": "new-starter", "displayName": "New starter", "actorCategory": "person", "roleKey": "new-starter", "source": "field-binding" },
-          { "id": "it-team", "displayName": "IT", "actorCategory": "team", "roleKey": "technology-operations", "source": "rule-derived" },
-          { "id": "platform", "displayName": "Platform", "actorCategory": "system", "roleKey": "platform", "source": "system" }
+          {
+            "id": "people-team",
+            "displayName": "People operations",
+            "actorCategory": "team",
+            "roleKey": "people-operations",
+            "source": "field-binding"
+          },
+          {
+            "id": "new-starter",
+            "displayName": "New starter",
+            "actorCategory": "person",
+            "roleKey": "new-starter",
+            "source": "field-binding"
+          },
+          {
+            "id": "it-team",
+            "displayName": "IT",
+            "actorCategory": "team",
+            "roleKey": "technology-operations",
+            "source": "rule-derived"
+          },
+          {
+            "id": "platform",
+            "displayName": "Platform",
+            "actorCategory": "system",
+            "roleKey": "platform",
+            "source": "system"
+          }
         ],
         "variables": [
-          { "id": "start-date", "dataType": "date", "scope": "process", "defaultValue": null, "persistence": "persisted" }
+          {
+            "id": "start-date",
+            "dataType": "date",
+            "scope": "process",
+            "defaultValue": null,
+            "persistence": "persisted"
+          }
         ],
         "statuses": [
-          { "id": "preparing", "displayName": "Preparing", "audience": "internal", "kind": "progress" },
-          { "id": "day-one", "displayName": "Day one", "audience": "internal", "kind": "progress" },
-          { "id": "ready", "displayName": "Ready", "audience": "internal", "kind": "terminal" }
+          {
+            "id": "preparing",
+            "displayName": "Preparing",
+            "audience": "internal",
+            "kind": "progress"
+          },
+          {
+            "id": "day-one",
+            "displayName": "Day one",
+            "audience": "internal",
+            "kind": "progress"
+          },
+          {
+            "id": "ready",
+            "displayName": "Ready",
+            "audience": "internal",
+            "kind": "terminal"
+          }
         ],
         "tasks": [
-          { "id": "prepare-workspace-task", "displayName": "Prepare workspace", "workCategory": "work", "workKindId": "prepare-workspace", "instructions": "Coordinate the workspace before day one." },
-          { "id": "provision-access-task", "displayName": "Provision access", "workCategory": "work", "workKindId": "provision-access", "instructions": "Prepare system access." }
+          {
+            "id": "prepare-workspace-task",
+            "displayName": "Prepare workspace",
+            "workCategory": "work",
+            "workKindId": "prepare-workspace",
+            "instructions": "Coordinate the workspace before day one."
+          },
+          {
+            "id": "provision-access-task",
+            "displayName": "Provision access",
+            "workCategory": "work",
+            "workKindId": "provision-access",
+            "instructions": "Prepare system access."
+          }
         ],
         "notifications": [],
         "stages": [
@@ -63,20 +127,23 @@
             "stageCategory": "start",
             "stageKindId": "employment-confirmed",
             "scope": "back-office",
-            "stageSpan": {
-              "start": { "stageId": "offer-accepted", "fraction": 0 },
-              "end": { "stageId": "offer-accepted", "fraction": 1 }
-            },
             "actorId": "people-team",
             "formId": "starter-form",
             "portalVisibility": "hidden",
             "statusId": "preparing",
             "portalStatusId": null,
-            "stepIds": ["prepare-workspace-step"],
+            "stepIds": [
+              "prepare-workspace-step"
+            ],
             "defaultStepId": "prepare-workspace-step",
             "entryRuleIds": [],
-            "exitRuleIds": ["starter-record-ready"],
-            "allowedOutcomeIds": ["begin-preparation"]
+            "exitRuleIds": [
+              "starter-record-ready"
+            ],
+            "allowedOutcomeIds": [
+              "begin-preparation"
+            ],
+            "childProcessRefs": []
           },
           {
             "id": "preparation",
@@ -84,20 +151,31 @@
             "stageCategory": "work",
             "stageKindId": "readiness-work",
             "scope": "back-office",
-            "stageSpan": {
-              "start": { "stageId": "preparation", "fraction": 0 },
-              "end": { "stageId": "preparation", "fraction": 1 }
-            },
             "actorId": "people-team",
             "formId": "starter-form",
             "portalVisibility": "hidden",
             "statusId": "preparing",
             "portalStatusId": null,
-            "stepIds": ["provision-access-step"],
+            "stepIds": [
+              "provision-access-step"
+            ],
             "defaultStepId": "provision-access-step",
             "entryRuleIds": [],
-            "exitRuleIds": ["readiness-complete"],
-            "allowedOutcomeIds": ["start-employment"]
+            "exitRuleIds": [
+              "readiness-complete"
+            ],
+            "allowedOutcomeIds": [
+              "start-employment"
+            ],
+            "childProcessRefs": [
+              {
+                "id": "spawn-it-readiness",
+                "processId": "it-readiness",
+                "displayName": "IT readiness",
+                "activationRuleId": "show-it-readiness",
+                "blocksParent": true
+              }
+            ]
           },
           {
             "id": "first-day",
@@ -105,10 +183,6 @@
             "stageCategory": "milestone",
             "stageKindId": "employment-start",
             "scope": "back-office",
-            "stageSpan": {
-              "start": { "stageId": "first-day", "fraction": 0 },
-              "end": { "stageId": "first-day", "fraction": 1 }
-            },
             "actorId": "new-starter",
             "formId": "starter-form",
             "portalVisibility": "hidden",
@@ -117,8 +191,13 @@
             "stepIds": [],
             "defaultStepId": null,
             "entryRuleIds": [],
-            "exitRuleIds": ["starter-live"],
-            "allowedOutcomeIds": ["complete-onboarding"]
+            "exitRuleIds": [
+              "starter-live"
+            ],
+            "allowedOutcomeIds": [
+              "complete-onboarding"
+            ],
+            "childProcessRefs": []
           },
           {
             "id": "onboarding-complete",
@@ -126,10 +205,6 @@
             "stageCategory": "end",
             "stageKindId": "employment-ready",
             "scope": "back-office",
-            "stageSpan": {
-              "start": { "stageId": "onboarding-complete", "fraction": 0 },
-              "end": { "stageId": "onboarding-complete", "fraction": 1 }
-            },
             "actorId": "platform",
             "formId": null,
             "portalVisibility": "hidden",
@@ -139,7 +214,8 @@
             "defaultStepId": null,
             "entryRuleIds": [],
             "exitRuleIds": [],
-            "allowedOutcomeIds": []
+            "allowedOutcomeIds": [],
+            "childProcessRefs": []
           }
         ],
         "steps": [
@@ -156,7 +232,9 @@
             "portalStatusId": null,
             "formStateId": null,
             "entryRuleIds": [],
-            "exitRuleIds": ["starter-record-ready"]
+            "exitRuleIds": [
+              "starter-record-ready"
+            ]
           },
           {
             "id": "provision-access-step",
@@ -171,19 +249,48 @@
             "portalStatusId": null,
             "formStateId": null,
             "entryRuleIds": [],
-            "exitRuleIds": ["readiness-complete"]
+            "exitRuleIds": [
+              "readiness-complete"
+            ]
           }
         ],
         "transitions": [
-          { "id": "begin-preparation", "fromStageId": "offer-accepted", "toStageId": "preparation", "outcomeId": "begin-preparation", "guardRuleId": "starter-record-ready" },
-          { "id": "start-employment", "fromStageId": "preparation", "toStageId": "first-day", "outcomeId": "start-employment", "guardRuleId": "readiness-complete" },
-          { "id": "complete-onboarding", "fromStageId": "first-day", "toStageId": "onboarding-complete", "outcomeId": "complete-onboarding", "guardRuleId": "starter-live" }
+          {
+            "id": "begin-preparation",
+            "fromStageId": "offer-accepted",
+            "toStageId": "preparation",
+            "outcomeId": "begin-preparation",
+            "guardRuleId": "starter-record-ready"
+          },
+          {
+            "id": "start-employment",
+            "fromStageId": "preparation",
+            "toStageId": "first-day",
+            "outcomeId": "start-employment",
+            "guardRuleId": "readiness-complete"
+          },
+          {
+            "id": "complete-onboarding",
+            "fromStageId": "first-day",
+            "toStageId": "onboarding-complete",
+            "outcomeId": "complete-onboarding",
+            "guardRuleId": "starter-live"
+          }
         ],
         "stepTransitions": [],
         "outcomes": [
-          { "id": "begin-preparation", "displayName": "Begin preparation" },
-          { "id": "start-employment", "displayName": "Start employment" },
-          { "id": "complete-onboarding", "displayName": "Complete onboarding" }
+          {
+            "id": "begin-preparation",
+            "displayName": "Begin preparation"
+          },
+          {
+            "id": "start-employment",
+            "displayName": "Start employment"
+          },
+          {
+            "id": "complete-onboarding",
+            "displayName": "Complete onboarding"
+          }
         ]
       },
       {
@@ -196,14 +303,29 @@
         "portalStatusId": null,
         "renderOrder": 1,
         "subProcessVisibility": [
-          { "audience": "form", "ruleId": "show-it-readiness", "visibleWhen": true }
+          {
+            "audience": "form",
+            "ruleId": "show-it-readiness",
+            "visibleWhen": true
+          }
         ],
         "actors": [
-          { "id": "it-team", "displayName": "IT", "actorCategory": "team", "roleKey": "technology-operations", "source": "field-binding" }
+          {
+            "id": "it-team",
+            "displayName": "IT",
+            "actorCategory": "team",
+            "roleKey": "technology-operations",
+            "source": "field-binding"
+          }
         ],
         "variables": [],
         "statuses": [
-          { "id": "preparing", "displayName": "Preparing", "audience": "internal", "kind": "progress" }
+          {
+            "id": "preparing",
+            "displayName": "Preparing",
+            "audience": "internal",
+            "kind": "progress"
+          }
         ],
         "tasks": [],
         "notifications": [],
@@ -214,10 +336,6 @@
             "stageCategory": "work",
             "stageKindId": "system-access",
             "scope": "back-office",
-            "stageSpan": {
-              "start": { "stageId": "offer-accepted", "fraction": 0.25 },
-              "end": { "stageId": "preparation", "fraction": 0.75 }
-            },
             "actorId": "it-team",
             "formId": "starter-form",
             "portalVisibility": "hidden",
@@ -227,7 +345,16 @@
             "defaultStepId": null,
             "entryRuleIds": [],
             "exitRuleIds": [],
-            "allowedOutcomeIds": []
+            "allowedOutcomeIds": [],
+            "childProcessRefs": [
+              {
+                "id": "spawn-access-review",
+                "processId": "access-review",
+                "displayName": "Access review",
+                "activationRuleId": null,
+                "blocksParent": true
+              }
+            ]
           }
         ],
         "steps": [],
@@ -245,14 +372,29 @@
         "portalStatusId": null,
         "renderOrder": 2,
         "subProcessVisibility": [
-          { "audience": "form", "ruleId": "show-facilities-readiness", "visibleWhen": true }
+          {
+            "audience": "form",
+            "ruleId": "show-facilities-readiness",
+            "visibleWhen": true
+          }
         ],
         "actors": [
-          { "id": "facilities-team", "displayName": "Facilities", "actorCategory": "team", "roleKey": "facilities", "source": "field-binding" }
+          {
+            "id": "facilities-team",
+            "displayName": "Facilities",
+            "actorCategory": "team",
+            "roleKey": "facilities",
+            "source": "field-binding"
+          }
         ],
         "variables": [],
         "statuses": [
-          { "id": "preparing", "displayName": "Preparing", "audience": "internal", "kind": "progress" }
+          {
+            "id": "preparing",
+            "displayName": "Preparing",
+            "audience": "internal",
+            "kind": "progress"
+          }
         ],
         "tasks": [],
         "notifications": [],
@@ -263,10 +405,6 @@
             "stageCategory": "work",
             "stageKindId": "location-readiness",
             "scope": "back-office",
-            "stageSpan": {
-              "start": { "stageId": "preparation", "fraction": 0 },
-              "end": { "stageId": "first-day", "fraction": 0.5 }
-            },
             "actorId": "facilities-team",
             "formId": "starter-form",
             "portalVisibility": "hidden",
@@ -276,33 +414,190 @@
             "defaultStepId": null,
             "entryRuleIds": [],
             "exitRuleIds": [],
-            "allowedOutcomeIds": []
+            "allowedOutcomeIds": [],
+            "childProcessRefs": []
           }
         ],
         "steps": [],
         "transitions": [],
         "stepTransitions": [],
         "outcomes": []
+      },
+      {
+        "id": "access-review",
+        "displayName": "Access review",
+        "role": "sub-process",
+        "processTypeId": "access-review",
+        "mainDisplayMode": "expanded",
+        "statusId": "preparing",
+        "portalStatusId": null,
+        "renderOrder": 3,
+        "subProcessVisibility": [],
+        "actors": [
+          {
+            "id": "it-team",
+            "displayName": "IT",
+            "actorCategory": "team",
+            "roleKey": "technology-operations",
+            "source": "field-binding"
+          }
+        ],
+        "variables": [],
+        "statuses": [
+          {
+            "id": "preparing",
+            "displayName": "Preparing",
+            "audience": "internal",
+            "kind": "progress"
+          },
+          {
+            "id": "completed",
+            "displayName": "Completed",
+            "audience": "internal",
+            "kind": "terminal"
+          }
+        ],
+        "tasks": [],
+        "notifications": [],
+        "stages": [
+          {
+            "id": "verify-access",
+            "displayName": "Verify access",
+            "stageCategory": "decision",
+            "stageKindId": "access-review",
+            "scope": "back-office",
+            "childProcessRefs": [],
+            "actorId": "it-team",
+            "formId": "starter-form",
+            "portalVisibility": "hidden",
+            "statusId": "preparing",
+            "portalStatusId": null,
+            "stepIds": [],
+            "defaultStepId": null,
+            "entryRuleIds": [],
+            "exitRuleIds": [],
+            "allowedOutcomeIds": [
+              "complete-access-review"
+            ]
+          },
+          {
+            "id": "access-review-complete",
+            "displayName": "Access review complete",
+            "stageCategory": "end",
+            "stageKindId": "completed",
+            "scope": "back-office",
+            "childProcessRefs": [],
+            "actorId": "it-team",
+            "formId": null,
+            "portalVisibility": "hidden",
+            "statusId": "completed",
+            "portalStatusId": null,
+            "stepIds": [],
+            "defaultStepId": null,
+            "entryRuleIds": [],
+            "exitRuleIds": [],
+            "allowedOutcomeIds": []
+          }
+        ],
+        "steps": [],
+        "transitions": [
+          {
+            "id": "complete-access-review",
+            "fromStageId": "verify-access",
+            "toStageId": "access-review-complete",
+            "outcomeId": "complete-access-review",
+            "guardRuleId": "readiness-complete"
+          }
+        ],
+        "stepTransitions": [],
+        "outcomes": [
+          {
+            "id": "complete-access-review",
+            "displayName": "Complete access review"
+          }
+        ]
       }
     ]
   },
   "forms": [],
-  "metadata": { "entities": [], "relationships": [] },
+  "metadata": {
+    "entities": [],
+    "relationships": []
+  },
   "rules": [
-    { "id": "starter-record-ready", "displayName": "Starter record ready", "ruleType": "condition", "scope": "transition", "language": "dbm-expression-v1", "body": "true" },
-    { "id": "readiness-complete", "displayName": "Readiness complete", "ruleType": "condition", "scope": "transition", "language": "dbm-expression-v1", "body": "true" },
-    { "id": "starter-live", "displayName": "Starter live", "ruleType": "condition", "scope": "transition", "language": "dbm-expression-v1", "body": "true" },
-    { "id": "show-it-readiness", "displayName": "Show IT readiness", "ruleType": "condition", "scope": "process", "language": "dbm-expression-v1", "body": "true" },
-    { "id": "show-facilities-readiness", "displayName": "Show facilities readiness", "ruleType": "condition", "scope": "process", "language": "dbm-expression-v1", "body": "true" }
+    {
+      "id": "starter-record-ready",
+      "displayName": "Starter record ready",
+      "ruleType": "condition",
+      "scope": "transition",
+      "language": "dbm-expression-v1",
+      "body": "true"
+    },
+    {
+      "id": "readiness-complete",
+      "displayName": "Readiness complete",
+      "ruleType": "condition",
+      "scope": "transition",
+      "language": "dbm-expression-v1",
+      "body": "true"
+    },
+    {
+      "id": "starter-live",
+      "displayName": "Starter live",
+      "ruleType": "condition",
+      "scope": "transition",
+      "language": "dbm-expression-v1",
+      "body": "true"
+    },
+    {
+      "id": "show-it-readiness",
+      "displayName": "Show IT readiness",
+      "ruleType": "condition",
+      "scope": "process",
+      "language": "dbm-expression-v1",
+      "body": "true"
+    },
+    {
+      "id": "show-facilities-readiness",
+      "displayName": "Show facilities readiness",
+      "ruleType": "condition",
+      "scope": "process",
+      "language": "dbm-expression-v1",
+      "body": "true"
+    }
   ],
   "runtime": {
-    "capabilities": ["render-form"],
-    "requestContract": { "schemaVersion": "dbm.runtime.request/v1", "operations": ["load-form"] },
-    "resultContract": { "schemaVersion": "dbm.runtime.result/v1", "statuses": ["ok"] },
+    "capabilities": [
+      "render-form"
+    ],
+    "requestContract": {
+      "schemaVersion": "dbm.runtime.request/v1",
+      "operations": [
+        "load-form"
+      ]
+    },
+    "resultContract": {
+      "schemaVersion": "dbm.runtime.result/v1",
+      "statuses": [
+        "ok"
+      ]
+    },
     "ownership": {
-      "pcf": { "responsibilities": ["form-rendering"] },
-      "dataverse": { "responsibilities": ["authoritative-persistence"] },
-      "azure": { "responsibilities": ["support-services-only"] }
+      "pcf": {
+        "responsibilities": [
+          "form-rendering"
+        ]
+      },
+      "dataverse": {
+        "responsibilities": [
+          "authoritative-persistence"
+        ]
+      },
+      "azure": {
+        "responsibilities": [
+          "support-services-only"
+        ]
+      }
     }
   },
   "artifacts": []

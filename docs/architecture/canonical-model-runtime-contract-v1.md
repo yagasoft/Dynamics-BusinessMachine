@@ -6,7 +6,7 @@ This document records the reset target for the DBM canonical model after [ADR-00
 
 - Status: Reset architecture target
 - First product release: `R1`
-- Current executable status: prototype/reference implementation exists, but the active contract must be rebuilt through TDD
+- Current executable status: process hierarchy contract and designer foundation are active through TDD
 
 ## Purpose
 
@@ -14,9 +14,11 @@ DBM needs one portable contract that can describe a complete business cycle from
 
 The model must support:
 
-- one visible main process
-- any number of sub-processes
-- stages with whole-stage, multi-stage, and fractional spans against the main-process timeline
+- one visible root process
+- reusable child process definitions under any stage
+- nested process hierarchies where a child process can itself own deeper child processes
+- parent process context while a child process is active
+- blocked/awaiting-child status for parent stages
 - stage feature hooks
 - actual rendered form projection for business users
 - portal projection contract for portal users
@@ -50,7 +52,6 @@ The reset keeps a JSON-based package envelope, but the process section becomes a
 
 - `mainProcessId`
 - `processes[]`
-- global actors, statuses, portal statuses, variables, and shared rule references where useful
 - portfolio-level validation rules
 
 Each process owns:
@@ -63,17 +64,19 @@ Each process owns:
 - actors with `actorCategory` and user-defined `roleKey`
 - task and step work definitions with `workCategory` and user-defined `workKindId`
 - stages
-- visibility rules if it is a sub-process
-- rendered order below the main process
+- visibility rules if it is a child process
+- rendered order where a flat list is needed for previews or projections
 
-`processPortfolio.mainProcessId` is the canonical main-process authority. `package.entryProcessId` may remain in package metadata for compatibility, but it must not override the process identified by `processPortfolio.mainProcessId`.
+`processPortfolio.mainProcessId` is the canonical root-process authority. `package.entryProcessId` may remain in package metadata for compatibility, but it must not override the process identified by `processPortfolio.mainProcessId`.
+
+Child processes remain reusable definitions in `processPortfolio.processes[]`. A stage links to a child process definition rather than embedding it inline.
 
 Sub-process visibility uses audience-specific rules:
 
 - `form` for the rendered model-driven form projection
 - `portal` for the portal projection contract
 
-The same sub-process can therefore be visible in the rendered form and hidden from the portal projection, or the reverse, depending on the projection audience and rule result.
+The same child process can therefore be visible in the rendered form and hidden from the portal projection, or the reverse, depending on the projection audience and rule result.
 
 ## Stage contract
 
@@ -83,7 +86,7 @@ Each stage owns:
 - broad stage category through `stageCategory`
 - user-defined stage kind through `stageKindId`
 - scope: portal, back office, or shared
-- `stageSpan`
+- `childProcessRefs[]`
 - entry conditions
 - exit conditions
 - branching and convergence hooks
@@ -97,14 +100,25 @@ Each stage owns:
 - internal status
 - portal status
 
-`stageSpan` is first-class. It must support:
+Each child process reference stores:
 
-- start and end at full main stages
-- start and end inside a main stage by fractional position
-- spans across several main stages
-- validation that a sub-process stage resolves to a visible position on the main-process timeline
+- stable reference ID
+- target `processId`
+- display name for the authoring and rendered-form surfaces
+- optional activation rule
+- `blocksParent`, declaring whether the parent stage waits for the child process
 
-Each `stageSpan` anchor stores a `stageId` and numeric `fraction`. `fraction` `0` means the start of the referenced main-process stage, and `fraction` `1` means the end of that stage. Stage scope is one of `portal`, `back-office`, or `shared`.
+R1 records blocking intent only. R3 owns runtime spawning, parent-stage locking, child completion, return-state handling, and process-instance persistence.
+
+Executable validation must reject:
+
+- unresolved `mainProcessId`
+- duplicate or invalid main-process roles
+- invalid non-main process roles
+- child process links to missing process definitions
+- duplicate child refs on the same stage
+- circular child process references
+- invalid blocking configuration
 
 ## Generic vocabulary contract
 
@@ -127,9 +141,9 @@ The active proof is the generic fixture matrix in `dbm-contract/fixtures/valid/g
 
 ## Executable contract helpers
 
-The R1.1 contract package exposes only minimal executable helpers:
+The R1 contract package exposes only minimal executable helpers:
 
-- `validateProcessPortfolioModelV1(model)` validates process-portfolio references that JSON Schema cannot prove, including a resolvable `mainProcessId` and stage-span anchors against the main-process timeline.
+- `validateProcessPortfolioModelV1(model)` validates process-portfolio references that JSON Schema cannot prove, including a resolvable `mainProcessId`, child process target references, duplicate child refs, circular child references, and child-link blocking configuration.
 - `createProcessPortfolioProjectionV1(model, context)` creates a contract-only projection for `form` or `portal`.
 
 The projection helper always includes the main process from `processPortfolio.mainProcessId`. It evaluates sub-process visibility separately for the requested audience. When the main process is projected as `collapsed`, the projection must still carry business-user status and portal status identifiers.
@@ -142,9 +156,11 @@ The rendered form is the final business-user process presentation, not the desig
 
 R1 must support:
 
-- main process always visible
-- sub-processes below the main process
-- conditional sub-process visibility
+- parent process context always visible
+- current parent stage visible for perspective
+- active child process as the working surface under the parent stage
+- blocked/awaiting-child status for blocking child process links
+- conditional child process visibility
 - collapsed main-process slim bar
 - arrows for previous-stage transitions where relevant
 - business-user-safe labels and statuses
@@ -156,20 +172,21 @@ Portal projection is contract-only in `R1`.
 It must define:
 
 - which main-process status is visible to the portal user
-- which sub-processes are visible to the portal user
+- which child processes are visible to the portal user
 - how internal statuses map to portal statuses
 - how hidden internal stages stay hidden
 - which future portal actions can be exposed safely
 
 Actual portal rendering and runtime belong to `R5`.
 
-## R1.1 exclusions
+## R1 exclusions
 
-R1.1 does not implement:
+R1 does not implement:
 
 - portal runtime or portal rendering
 - DBMScript or action runtime
 - back-office transition runtime
+- runtime spawning, parent-stage locking, child completion, return-state handling, or process-instance persistence
 - routing
 - SLA/KPI execution
 - task execution
@@ -201,13 +218,16 @@ R3 owns the first back-office runtime implementation.
 The contract must allow:
 
 - process instance creation
+- child process instance spawning from a parent stage
+- parent-stage blocking while required child process instances are active
+- child completion and parent-stage return-state handling
 - process sessions
 - row, user, role, and owner scope
 - process instance per row, user, role, or owner where configured
 - record-level and user-level process switching
 - stage transition persistence
 - show Next transition mode and automatic transition mode
-- parallel branches and convergence
+- parallel branches and convergence inside a process
 - expression, FetchXML, and action-backed condition references
 - backend condition evaluation on load and save
 - form behaviour runtime

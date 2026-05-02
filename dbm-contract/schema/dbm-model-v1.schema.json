@@ -721,9 +721,12 @@
           "$ref": "#/definitions/DbmStageScopeV1",
           "title": "scope"
         },
-        "stageSpan": {
-          "$ref": "#/definitions/DbmStageSpanV1",
-          "title": "stageSpan"
+        "childProcessRefs": {
+          "type": "array",
+          "items": {
+            "$ref": "#/definitions/DbmChildProcessRefV1"
+          },
+          "title": "childProcessRefs"
         },
         "actorId": {
           "type": "string",
@@ -791,6 +794,7 @@
       "required": [
         "actorId",
         "allowedOutcomeIds",
+        "childProcessRefs",
         "defaultStepId",
         "displayName",
         "entryRuleIds",
@@ -802,7 +806,6 @@
         "scope",
         "stageCategory",
         "stageKindId",
-        "stageSpan",
         "statusId",
         "stepIds"
       ]
@@ -828,42 +831,41 @@
       ],
       "type": "string"
     },
-    "DbmStageSpanV1": {
-      "title": "DbmStageSpanV1",
+    "DbmChildProcessRefV1": {
+      "title": "DbmChildProcessRefV1",
       "type": "object",
       "properties": {
-        "start": {
-          "$ref": "#/definitions/DbmStageSpanAnchorV1",
-          "title": "start"
-        },
-        "end": {
-          "$ref": "#/definitions/DbmStageSpanAnchorV1",
-          "title": "end"
-        }
-      },
-      "additionalProperties": false,
-      "required": [
-        "end",
-        "start"
-      ]
-    },
-    "DbmStageSpanAnchorV1": {
-      "title": "DbmStageSpanAnchorV1",
-      "type": "object",
-      "properties": {
-        "stageId": {
+        "id": {
           "type": "string",
-          "title": "stageId"
+          "title": "id"
         },
-        "fraction": {
-          "type": "number",
-          "title": "fraction"
+        "processId": {
+          "type": "string",
+          "title": "processId"
+        },
+        "displayName": {
+          "type": "string",
+          "title": "displayName"
+        },
+        "activationRuleId": {
+          "type": [
+            "null",
+            "string"
+          ],
+          "title": "activationRuleId"
+        },
+        "blocksParent": {
+          "type": "boolean",
+          "title": "blocksParent"
         }
       },
       "additionalProperties": false,
       "required": [
-        "fraction",
-        "stageId"
+        "activationRuleId",
+        "blocksParent",
+        "displayName",
+        "id",
+        "processId"
       ]
     },
     "DbmStagePortalVisibilityV1": {

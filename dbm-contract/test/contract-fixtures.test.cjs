@@ -184,33 +184,83 @@ test('R1.1 sub-process visibility is evaluated separately for form and portal au
   assert.deepEqual(portalProjection.subProcesses.map((process) => process.id), ['portal-follow-up']);
 });
 
-test('R1.1 whole-stage and fractional stageSpan anchors validate against the main timeline', () => {
+test('R1.1 active contract rejects historical flat stageSpan data', () => {
+  const validateModel = compileSchema('dbm-model-v1.schema.json');
   const model = loadJson(path.join(projectRoot, 'fixtures', 'valid', 'process-portfolio-r1-1.model.json'));
 
-  assert.deepEqual(validateProcessPortfolioModelV1(model), []);
+  model.processPortfolio.processes[0].stages[0].stageSpan = {
+    start: { stageId: 'approval-draft', fraction: 0 },
+    end: { stageId: 'approval-draft', fraction: 1 }
+  };
 
-  model.processPortfolio.processes[1].stages[0].stageSpan.start.fraction = 1.5;
-  assert.equal(
-    validateProcessPortfolioModelV1(model).some((issue) => issue.code === 'stage-span-fraction-out-of-range'),
-    true
-  );
-
-  model.processPortfolio.processes[1].stages[0].stageSpan.start.fraction = 0.5;
-  model.processPortfolio.processes[1].stages[0].stageSpan.end.stageId = 'missing-stage';
-  assert.equal(
-    validateProcessPortfolioModelV1(model).some((issue) => issue.code === 'stage-span-anchor-not-found'),
-    true
+  expectInvalid(
+    validateModel,
+    model,
+    'historical stageSpan model',
+    (error) => error.keyword === 'additionalProperties' && error.params?.additionalProperty === 'stageSpan'
   );
 });
 
-test('R1.3 process portfolio validation rejects ambiguous main-stage span anchors', () => {
-  const model = loadJson(path.join(projectRoot, 'fixtures', 'valid', 'generic-process-matrix', 'employee-onboarding.model.json'));
-  const mainProcess = model.processPortfolio.processes.find((process) => process.id === model.processPortfolio.mainProcessId);
-  mainProcess.stages[1].id = mainProcess.stages[0].id;
+test('R1.1 stage-owned child process references validate nested process hierarchy', () => {
+  const model = loadJson(path.join(genericMatrixRoot, 'employee-onboarding.model.json'));
+  const rootProcess = model.processPortfolio.processes.find((process) => process.id === model.processPortfolio.mainProcessId);
+  const preparationStage = rootProcess.stages.find((stage) => stage.id === 'preparation');
+  const itProcess = model.processPortfolio.processes.find((process) => process.id === 'it-readiness');
+  const accessStage = itProcess.stages.find((stage) => stage.id === 'prepare-access');
 
-  const issues = validateProcessPortfolioModelV1(model);
+  assert.deepEqual(validateProcessPortfolioModelV1(model), []);
+  assert.deepEqual(preparationStage.childProcessRefs, [
+    {
+      id: 'spawn-it-readiness',
+      processId: 'it-readiness',
+      displayName: 'IT readiness',
+      activationRuleId: 'show-it-readiness',
+      blocksParent: true
+    }
+  ]);
+  assert.deepEqual(accessStage.childProcessRefs, [
+    {
+      id: 'spawn-access-review',
+      processId: 'access-review',
+      displayName: 'Access review',
+      activationRuleId: null,
+      blocksParent: true
+    }
+  ]);
+});
 
-  assert.equal(issues.some((issue) => issue.code === 'stage-span-anchor-ambiguous'), true);
+test('R1.1 hierarchy validation rejects missing, duplicate, circular, and invalid child process refs', () => {
+  const model = loadJson(path.join(genericMatrixRoot, 'employee-onboarding.model.json'));
+  const rootProcess = model.processPortfolio.processes.find((process) => process.id === model.processPortfolio.mainProcessId);
+  const preparationStage = rootProcess.stages.find((stage) => stage.id === 'preparation');
+
+  preparationStage.childProcessRefs.push({
+    id: 'missing-child',
+    processId: 'missing-process',
+    displayName: 'Missing child',
+    activationRuleId: null,
+    blocksParent: true
+  });
+  assert.equal(validateProcessPortfolioModelV1(model).some((issue) => issue.code === 'child-process-target-not-found'), true);
+
+  preparationStage.childProcessRefs.at(-1).processId = 'facilities-readiness';
+  preparationStage.childProcessRefs.at(-1).id = 'spawn-it-readiness';
+  assert.equal(validateProcessPortfolioModelV1(model).some((issue) => issue.code === 'duplicate-child-process-ref'), true);
+
+  preparationStage.childProcessRefs.at(-1).id = 'spawn-facilities-readiness';
+  preparationStage.childProcessRefs.at(-1).blocksParent = 'yes';
+  assert.equal(validateProcessPortfolioModelV1(model).some((issue) => issue.code === 'child-process-blocking-invalid'), true);
+
+  preparationStage.childProcessRefs.at(-1).blocksParent = true;
+  const accessReview = model.processPortfolio.processes.find((process) => process.id === 'access-review');
+  accessReview.stages[0].childProcessRefs.push({
+    id: 'cycle-to-root',
+    processId: 'onboarding-main',
+    displayName: 'Cycle to root',
+    activationRuleId: null,
+    blocksParent: true
+  });
+  assert.equal(validateProcessPortfolioModelV1(model).some((issue) => issue.code === 'child-process-cycle'), true);
 });
 
 test('R1.1 collapsed main-process projection preserves business-user process status', () => {

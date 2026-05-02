@@ -27,8 +27,6 @@ import {
 } from './node-ids';
 import { addNode, moveNode, removeNode, updateNode } from './commands';
 import {
-  defaultStageSpanForMainStage,
-  defaultStageSpanForSubProcess,
   findProcess,
   resolveMainProcess,
   uniqueId
@@ -387,7 +385,7 @@ function buildNewStage(document: DesignerDocument, processId: string, actorId?: 
     stageCategory: 'work',
     stageKindId: 'work',
     scope: 'back-office',
-    stageSpan: process.id === document.model.processPortfolio.mainProcessId ? defaultStageSpanForMainStage(id) : defaultStageSpanForSubProcess(document.model),
+    childProcessRefs: [],
     actorId: actorId ?? process.actors[0]?.id ?? '',
     formId: document.model.forms[0]?.id ?? null,
     portalVisibility: 'hidden',
@@ -398,6 +396,38 @@ function buildNewStage(document: DesignerDocument, processId: string, actorId?: 
     entryRuleIds: [],
     exitRuleIds: [],
     allowedOutcomeIds: process.outcomes[0]?.id ? [process.outcomes[0].id] : []
+  };
+}
+
+function buildNewChildProcess(document: DesignerDocument, parentProcessId: string, parentStageId: string): DbmProcessV1 {
+  const parentProcess = findProcess(document.model, parentProcessId);
+  const parentStage = parentProcess?.stages.find((stage) => stage.id === parentStageId);
+  const mainProcess = resolveMainProcess(document.model);
+  const id = uniqueId(document.model.processPortfolio.processes.map((process) => process.id), 'child-process');
+  const inheritedActor = parentStage?.actorId
+    ? parentProcess?.actors.find((actor) => actor.id === parentStage.actorId)
+    : undefined;
+
+  return {
+    id,
+    displayName: 'New child process',
+    role: 'sub-process',
+    processTypeId: 'child-process',
+    mainDisplayMode: 'expanded',
+    statusId: parentStage?.statusId ?? mainProcess.statusId,
+    portalStatusId: parentStage?.portalStatusId ?? null,
+    renderOrder: document.model.processPortfolio.processes.length,
+    subProcessVisibility: [],
+    actors: inheritedActor ? [structuredClone(inheritedActor)] : mainProcess.actors.slice(0, 1).map((actor) => structuredClone(actor)),
+    variables: [],
+    statuses: parentProcess?.statuses.slice(0, 1).map((status) => structuredClone(status)) ?? mainProcess.statuses.slice(0, 1).map((status) => structuredClone(status)),
+    tasks: [],
+    notifications: [],
+    stages: [],
+    steps: [],
+    transitions: [],
+    stepTransitions: [],
+    outcomes: []
   };
 }
 
@@ -545,6 +575,13 @@ export function translateGraphIntentToCommands(intent: DesignerGraphIntent, docu
   switch (intent.kind) {
     case 'add-process':
       return [{ kind: 'process', parentId: 'collection:process-portfolio:processes', index: intent.targetIndex, value: intent.process }];
+    case 'add-child-process':
+      return [{
+        kind: 'process',
+        parentId: stageNodeId(intent.parentProcessId, intent.parentStageId),
+        index: intent.targetIndex,
+        value: intent.process ?? buildNewChildProcess(document, intent.parentProcessId, intent.parentStageId)
+      }];
     case 'add-stage':
       return [{ kind: 'stage', parentId: processStagesNodeId(intent.processId), index: intent.targetIndex, value: buildNewStage(document, intent.processId, intent.actorId) }];
     case 'add-outcome':

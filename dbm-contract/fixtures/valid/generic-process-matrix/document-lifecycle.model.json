@@ -10,9 +10,16 @@
       "prefix": "dbm"
     },
     "entryProcessId": "legacy-entry-not-authoritative",
-    "supportedHosts": ["model-driven"],
-    "supportedRuntimes": ["pcf", "dataverse"],
-    "processUiSurfaces": ["model-driven"],
+    "supportedHosts": [
+      "model-driven"
+    ],
+    "supportedRuntimes": [
+      "pcf",
+      "dataverse"
+    ],
+    "processUiSurfaces": [
+      "model-driven"
+    ],
     "exposesPortalState": false,
     "ownsGeneratedDataverseArtifacts": true,
     "compatibility": {
@@ -38,22 +45,78 @@
         "statusId": "drafting",
         "portalStatusId": null,
         "actors": [
-          { "id": "author", "displayName": "Author", "actorCategory": "person", "roleKey": "document-author", "source": "field-binding" },
-          { "id": "content-team", "displayName": "Content team", "actorCategory": "team", "roleKey": "content-quality", "source": "field-binding" },
-          { "id": "platform", "displayName": "Platform", "actorCategory": "system", "roleKey": "platform", "source": "system" }
+          {
+            "id": "author",
+            "displayName": "Author",
+            "actorCategory": "person",
+            "roleKey": "document-author",
+            "source": "field-binding"
+          },
+          {
+            "id": "content-team",
+            "displayName": "Content team",
+            "actorCategory": "team",
+            "roleKey": "content-quality",
+            "source": "field-binding"
+          },
+          {
+            "id": "platform",
+            "displayName": "Platform",
+            "actorCategory": "system",
+            "roleKey": "platform",
+            "source": "system"
+          }
         ],
         "variables": [
-          { "id": "document-version", "dataType": "string", "scope": "process", "defaultValue": "0.1", "persistence": "persisted" }
+          {
+            "id": "document-version",
+            "dataType": "string",
+            "scope": "process",
+            "defaultValue": "0.1",
+            "persistence": "persisted"
+          }
         ],
         "statuses": [
-          { "id": "drafting", "displayName": "Drafting", "audience": "internal", "kind": "progress" },
-          { "id": "checking", "displayName": "Checking", "audience": "internal", "kind": "decision" },
-          { "id": "revising", "displayName": "Revising", "audience": "internal", "kind": "progress" },
-          { "id": "published", "displayName": "Published", "audience": "internal", "kind": "terminal" }
+          {
+            "id": "drafting",
+            "displayName": "Drafting",
+            "audience": "internal",
+            "kind": "progress"
+          },
+          {
+            "id": "checking",
+            "displayName": "Checking",
+            "audience": "internal",
+            "kind": "decision"
+          },
+          {
+            "id": "revising",
+            "displayName": "Revising",
+            "audience": "internal",
+            "kind": "progress"
+          },
+          {
+            "id": "published",
+            "displayName": "Published",
+            "audience": "internal",
+            "kind": "terminal"
+          }
         ],
         "tasks": [
-          { "id": "draft-content-task", "displayName": "Draft content", "workCategory": "data", "workKindId": "draft-content", "instructions": "Create the document content." },
-          { "id": "quality-check-task", "displayName": "Quality check", "workCategory": "decision", "workKindId": "quality-check", "instructions": "Decide whether the document can move forward." }
+          {
+            "id": "draft-content-task",
+            "displayName": "Draft content",
+            "workCategory": "data",
+            "workKindId": "draft-content",
+            "instructions": "Create the document content."
+          },
+          {
+            "id": "quality-check-task",
+            "displayName": "Quality check",
+            "workCategory": "decision",
+            "workKindId": "quality-check",
+            "instructions": "Decide whether the document can move forward."
+          }
         ],
         "notifications": [],
         "stages": [
@@ -63,20 +126,23 @@
             "stageCategory": "start",
             "stageKindId": "drafting",
             "scope": "back-office",
-            "stageSpan": {
-              "start": { "stageId": "draft", "fraction": 0 },
-              "end": { "stageId": "draft", "fraction": 1 }
-            },
             "actorId": "author",
             "formId": "document-form",
             "portalVisibility": "hidden",
             "statusId": "drafting",
             "portalStatusId": null,
-            "stepIds": ["draft-content-step"],
+            "stepIds": [
+              "draft-content-step"
+            ],
             "defaultStepId": "draft-content-step",
             "entryRuleIds": [],
-            "exitRuleIds": ["draft-ready"],
-            "allowedOutcomeIds": ["send-for-check"]
+            "exitRuleIds": [
+              "draft-ready"
+            ],
+            "allowedOutcomeIds": [
+              "send-for-check"
+            ],
+            "childProcessRefs": []
           },
           {
             "id": "quality-check",
@@ -84,20 +150,22 @@
             "stageCategory": "decision",
             "stageKindId": "content-quality-check",
             "scope": "back-office",
-            "stageSpan": {
-              "start": { "stageId": "quality-check", "fraction": 0 },
-              "end": { "stageId": "quality-check", "fraction": 1 }
-            },
             "actorId": "content-team",
             "formId": "document-form",
             "portalVisibility": "hidden",
             "statusId": "checking",
             "portalStatusId": null,
-            "stepIds": ["quality-check-step"],
+            "stepIds": [
+              "quality-check-step"
+            ],
             "defaultStepId": "quality-check-step",
             "entryRuleIds": [],
             "exitRuleIds": [],
-            "allowedOutcomeIds": ["revise", "publish"]
+            "allowedOutcomeIds": [
+              "revise",
+              "publish"
+            ],
+            "childProcessRefs": []
           },
           {
             "id": "revise",
@@ -105,10 +173,6 @@
             "stageCategory": "work",
             "stageKindId": "rework",
             "scope": "back-office",
-            "stageSpan": {
-              "start": { "stageId": "quality-check", "fraction": 0.5 },
-              "end": { "stageId": "quality-check", "fraction": 1 }
-            },
             "actorId": "author",
             "formId": "document-form",
             "portalVisibility": "hidden",
@@ -117,8 +181,13 @@
             "stepIds": [],
             "defaultStepId": null,
             "entryRuleIds": [],
-            "exitRuleIds": ["revision-complete"],
-            "allowedOutcomeIds": ["return-to-check"]
+            "exitRuleIds": [
+              "revision-complete"
+            ],
+            "allowedOutcomeIds": [
+              "return-to-check"
+            ],
+            "childProcessRefs": []
           },
           {
             "id": "publish",
@@ -126,10 +195,6 @@
             "stageCategory": "end",
             "stageKindId": "publication",
             "scope": "back-office",
-            "stageSpan": {
-              "start": { "stageId": "publish", "fraction": 0 },
-              "end": { "stageId": "publish", "fraction": 1 }
-            },
             "actorId": "platform",
             "formId": null,
             "portalVisibility": "hidden",
@@ -139,7 +204,8 @@
             "defaultStepId": null,
             "entryRuleIds": [],
             "exitRuleIds": [],
-            "allowedOutcomeIds": []
+            "allowedOutcomeIds": [],
+            "childProcessRefs": []
           }
         ],
         "steps": [
@@ -156,7 +222,9 @@
             "portalStatusId": null,
             "formStateId": null,
             "entryRuleIds": [],
-            "exitRuleIds": ["draft-ready"]
+            "exitRuleIds": [
+              "draft-ready"
+            ]
           },
           {
             "id": "quality-check-step",
@@ -175,39 +243,137 @@
           }
         ],
         "transitions": [
-          { "id": "send-for-check", "fromStageId": "draft", "toStageId": "quality-check", "outcomeId": "send-for-check", "guardRuleId": "draft-ready" },
-          { "id": "send-to-revise", "fromStageId": "quality-check", "toStageId": "revise", "outcomeId": "revise", "guardRuleId": "changes-needed" },
-          { "id": "return-to-check", "fromStageId": "revise", "toStageId": "quality-check", "outcomeId": "return-to-check", "guardRuleId": "revision-complete" },
-          { "id": "publish-document", "fromStageId": "quality-check", "toStageId": "publish", "outcomeId": "publish", "guardRuleId": "content-ready" }
+          {
+            "id": "send-for-check",
+            "fromStageId": "draft",
+            "toStageId": "quality-check",
+            "outcomeId": "send-for-check",
+            "guardRuleId": "draft-ready"
+          },
+          {
+            "id": "send-to-revise",
+            "fromStageId": "quality-check",
+            "toStageId": "revise",
+            "outcomeId": "revise",
+            "guardRuleId": "changes-needed"
+          },
+          {
+            "id": "return-to-check",
+            "fromStageId": "revise",
+            "toStageId": "quality-check",
+            "outcomeId": "return-to-check",
+            "guardRuleId": "revision-complete"
+          },
+          {
+            "id": "publish-document",
+            "fromStageId": "quality-check",
+            "toStageId": "publish",
+            "outcomeId": "publish",
+            "guardRuleId": "content-ready"
+          }
         ],
         "stepTransitions": [
-          { "id": "quality-step-rework-hook", "fromStepId": "quality-check-step", "guardRuleId": "changes-needed", "target": { "stageId": "revise" } }
+          {
+            "id": "quality-step-rework-hook",
+            "fromStepId": "quality-check-step",
+            "guardRuleId": "changes-needed",
+            "target": {
+              "stageId": "revise"
+            }
+          }
         ],
         "outcomes": [
-          { "id": "send-for-check", "displayName": "Send for check" },
-          { "id": "revise", "displayName": "Revise" },
-          { "id": "return-to-check", "displayName": "Return to check" },
-          { "id": "publish", "displayName": "Publish" }
+          {
+            "id": "send-for-check",
+            "displayName": "Send for check"
+          },
+          {
+            "id": "revise",
+            "displayName": "Revise"
+          },
+          {
+            "id": "return-to-check",
+            "displayName": "Return to check"
+          },
+          {
+            "id": "publish",
+            "displayName": "Publish"
+          }
         ]
       }
     ]
   },
   "forms": [],
-  "metadata": { "entities": [], "relationships": [] },
+  "metadata": {
+    "entities": [],
+    "relationships": []
+  },
   "rules": [
-    { "id": "draft-ready", "displayName": "Draft ready", "ruleType": "condition", "scope": "transition", "language": "dbm-expression-v1", "body": "true" },
-    { "id": "changes-needed", "displayName": "Changes needed", "ruleType": "condition", "scope": "transition", "language": "dbm-expression-v1", "body": "true" },
-    { "id": "revision-complete", "displayName": "Revision complete", "ruleType": "condition", "scope": "transition", "language": "dbm-expression-v1", "body": "true" },
-    { "id": "content-ready", "displayName": "Content ready", "ruleType": "condition", "scope": "transition", "language": "dbm-expression-v1", "body": "true" }
+    {
+      "id": "draft-ready",
+      "displayName": "Draft ready",
+      "ruleType": "condition",
+      "scope": "transition",
+      "language": "dbm-expression-v1",
+      "body": "true"
+    },
+    {
+      "id": "changes-needed",
+      "displayName": "Changes needed",
+      "ruleType": "condition",
+      "scope": "transition",
+      "language": "dbm-expression-v1",
+      "body": "true"
+    },
+    {
+      "id": "revision-complete",
+      "displayName": "Revision complete",
+      "ruleType": "condition",
+      "scope": "transition",
+      "language": "dbm-expression-v1",
+      "body": "true"
+    },
+    {
+      "id": "content-ready",
+      "displayName": "Content ready",
+      "ruleType": "condition",
+      "scope": "transition",
+      "language": "dbm-expression-v1",
+      "body": "true"
+    }
   ],
   "runtime": {
-    "capabilities": ["render-form"],
-    "requestContract": { "schemaVersion": "dbm.runtime.request/v1", "operations": ["load-form"] },
-    "resultContract": { "schemaVersion": "dbm.runtime.result/v1", "statuses": ["ok"] },
+    "capabilities": [
+      "render-form"
+    ],
+    "requestContract": {
+      "schemaVersion": "dbm.runtime.request/v1",
+      "operations": [
+        "load-form"
+      ]
+    },
+    "resultContract": {
+      "schemaVersion": "dbm.runtime.result/v1",
+      "statuses": [
+        "ok"
+      ]
+    },
     "ownership": {
-      "pcf": { "responsibilities": ["form-rendering"] },
-      "dataverse": { "responsibilities": ["authoritative-persistence"] },
-      "azure": { "responsibilities": ["support-services-only"] }
+      "pcf": {
+        "responsibilities": [
+          "form-rendering"
+        ]
+      },
+      "dataverse": {
+        "responsibilities": [
+          "authoritative-persistence"
+        ]
+      },
+      "azure": {
+        "responsibilities": [
+          "support-services-only"
+        ]
+      }
     }
   },
   "artifacts": []

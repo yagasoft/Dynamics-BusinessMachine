@@ -9,7 +9,7 @@ interface GraphCanvasProps {
   onSelectionChange?(selectionId: string | null): void;
 }
 
-const FLOW_STYLE_ELEMENT_ID = 'dbm-xyflow-timeline-styles';
+const FLOW_STYLE_ELEMENT_ID = 'dbm-xyflow-hierarchy-styles';
 
 function ensureFlowRuntime() {
   if (typeof document !== 'undefined' && !document.getElementById(FLOW_STYLE_ELEMENT_ID)) {
@@ -39,13 +39,13 @@ function ensureFlowRuntime() {
   }
 }
 
-function TimelineFlow({ document, onSelectionChange }: GraphCanvasProps) {
+function HierarchyFlow({ document, onSelectionChange }: GraphCanvasProps) {
   const graph = useMemo(() => {
     return document ? xyflowGraphAdapter.toLibraryGraph(document) : { nodes: [], edges: [] };
   }, [document]);
 
   return (
-    <div data-testid="timeline-graph-canvas" style={canvasShellStyle}>
+    <div data-testid="hierarchy-graph-canvas" style={canvasShellStyle}>
       <ReactFlow
         nodes={graph.nodes}
         edges={graph.edges}
@@ -55,6 +55,7 @@ function TimelineFlow({ document, onSelectionChange }: GraphCanvasProps) {
         elementsSelectable
         minZoom={0.5}
         maxZoom={1.6}
+        defaultEdgeOptions={{ type: 'step', zIndex: 1000 }}
         onNodeClick={(_, node) => onSelectionChange?.(node.id)}
         onPaneClick={() => onSelectionChange?.(null)}
       >
@@ -70,7 +71,7 @@ export function GraphCanvas(props: GraphCanvasProps) {
 
   return (
     <ReactFlowProvider>
-      <TimelineFlow {...props} />
+      <HierarchyFlow {...props} />
     </ReactFlowProvider>
   );
 }

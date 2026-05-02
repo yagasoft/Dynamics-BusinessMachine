@@ -10,9 +10,16 @@
       "prefix": "dbm"
     },
     "entryProcessId": "legacy-entry-not-authoritative",
-    "supportedHosts": ["model-driven"],
-    "supportedRuntimes": ["pcf", "dataverse"],
-    "processUiSurfaces": ["model-driven"],
+    "supportedHosts": [
+      "model-driven"
+    ],
+    "supportedRuntimes": [
+      "pcf",
+      "dataverse"
+    ],
+    "processUiSurfaces": [
+      "model-driven"
+    ],
     "exposesPortalState": true,
     "ownsGeneratedDataverseArtifacts": true,
     "compatibility": {
@@ -38,23 +45,85 @@
         "statusId": "scheduled",
         "portalStatusId": "scheduled",
         "actors": [
-          { "id": "scheduler", "displayName": "Scheduler", "actorCategory": "team", "roleKey": "inspection-scheduling", "source": "field-binding" },
-          { "id": "inspector", "displayName": "Inspector", "actorCategory": "person", "roleKey": "field-inspector", "source": "field-binding" },
-          { "id": "customer", "displayName": "Customer", "actorCategory": "external", "roleKey": "customer", "source": "current-user" },
-          { "id": "platform", "displayName": "Platform", "actorCategory": "system", "roleKey": "platform", "source": "system" }
+          {
+            "id": "scheduler",
+            "displayName": "Scheduler",
+            "actorCategory": "team",
+            "roleKey": "inspection-scheduling",
+            "source": "field-binding"
+          },
+          {
+            "id": "inspector",
+            "displayName": "Inspector",
+            "actorCategory": "person",
+            "roleKey": "field-inspector",
+            "source": "field-binding"
+          },
+          {
+            "id": "customer",
+            "displayName": "Customer",
+            "actorCategory": "external",
+            "roleKey": "customer",
+            "source": "current-user"
+          },
+          {
+            "id": "platform",
+            "displayName": "Platform",
+            "actorCategory": "system",
+            "roleKey": "platform",
+            "source": "system"
+          }
         ],
         "variables": [
-          { "id": "visit-date", "dataType": "date", "scope": "process", "defaultValue": null, "persistence": "persisted" }
+          {
+            "id": "visit-date",
+            "dataType": "date",
+            "scope": "process",
+            "defaultValue": null,
+            "persistence": "persisted"
+          }
         ],
         "statuses": [
-          { "id": "scheduled", "displayName": "Scheduled", "audience": "shared", "kind": "progress" },
-          { "id": "in-field", "displayName": "In field", "audience": "internal", "kind": "progress" },
-          { "id": "evidence-captured", "displayName": "Evidence captured", "audience": "internal", "kind": "progress" },
-          { "id": "closed", "displayName": "Closed", "audience": "shared", "kind": "terminal" }
+          {
+            "id": "scheduled",
+            "displayName": "Scheduled",
+            "audience": "shared",
+            "kind": "progress"
+          },
+          {
+            "id": "in-field",
+            "displayName": "In field",
+            "audience": "internal",
+            "kind": "progress"
+          },
+          {
+            "id": "evidence-captured",
+            "displayName": "Evidence captured",
+            "audience": "internal",
+            "kind": "progress"
+          },
+          {
+            "id": "closed",
+            "displayName": "Closed",
+            "audience": "shared",
+            "kind": "terminal"
+          }
         ],
         "tasks": [
-          { "id": "schedule-visit-task", "displayName": "Schedule visit", "workCategory": "work", "workKindId": "schedule-visit", "instructions": "Schedule the field visit." },
-          { "id": "capture-evidence-task", "displayName": "Capture evidence", "workCategory": "data", "workKindId": "capture-evidence", "instructions": "Capture field evidence." }
+          {
+            "id": "schedule-visit-task",
+            "displayName": "Schedule visit",
+            "workCategory": "work",
+            "workKindId": "schedule-visit",
+            "instructions": "Schedule the field visit."
+          },
+          {
+            "id": "capture-evidence-task",
+            "displayName": "Capture evidence",
+            "workCategory": "data",
+            "workKindId": "capture-evidence",
+            "instructions": "Capture field evidence."
+          }
         ],
         "notifications": [],
         "stages": [
@@ -64,20 +133,23 @@
             "stageCategory": "start",
             "stageKindId": "schedule-visit",
             "scope": "back-office",
-            "stageSpan": {
-              "start": { "stageId": "scheduling", "fraction": 0 },
-              "end": { "stageId": "scheduling", "fraction": 1 }
-            },
             "actorId": "scheduler",
             "formId": "inspection-form",
             "portalVisibility": "visible",
             "statusId": "scheduled",
             "portalStatusId": "scheduled",
-            "stepIds": ["schedule-visit-step"],
+            "stepIds": [
+              "schedule-visit-step"
+            ],
             "defaultStepId": "schedule-visit-step",
             "entryRuleIds": [],
-            "exitRuleIds": ["visit-scheduled"],
-            "allowedOutcomeIds": ["start-visit"]
+            "exitRuleIds": [
+              "visit-scheduled"
+            ],
+            "allowedOutcomeIds": [
+              "start-visit"
+            ],
+            "childProcessRefs": []
           },
           {
             "id": "visit",
@@ -85,20 +157,23 @@
             "stageCategory": "work",
             "stageKindId": "field-visit",
             "scope": "back-office",
-            "stageSpan": {
-              "start": { "stageId": "visit", "fraction": 0 },
-              "end": { "stageId": "visit", "fraction": 1 }
-            },
             "actorId": "inspector",
             "formId": "inspection-form",
             "portalVisibility": "hidden",
             "statusId": "in-field",
             "portalStatusId": "scheduled",
-            "stepIds": ["capture-evidence-step"],
+            "stepIds": [
+              "capture-evidence-step"
+            ],
             "defaultStepId": "capture-evidence-step",
             "entryRuleIds": [],
-            "exitRuleIds": ["evidence-captured"],
-            "allowedOutcomeIds": ["assess-evidence"]
+            "exitRuleIds": [
+              "evidence-captured"
+            ],
+            "allowedOutcomeIds": [
+              "assess-evidence"
+            ],
+            "childProcessRefs": []
           },
           {
             "id": "assessment",
@@ -106,10 +181,6 @@
             "stageCategory": "decision",
             "stageKindId": "inspection-assessment",
             "scope": "back-office",
-            "stageSpan": {
-              "start": { "stageId": "assessment", "fraction": 0 },
-              "end": { "stageId": "assessment", "fraction": 1 }
-            },
             "actorId": "inspector",
             "formId": "inspection-form",
             "portalVisibility": "hidden",
@@ -118,8 +189,13 @@
             "stepIds": [],
             "defaultStepId": null,
             "entryRuleIds": [],
-            "exitRuleIds": ["assessment-complete"],
-            "allowedOutcomeIds": ["close-inspection"]
+            "exitRuleIds": [
+              "assessment-complete"
+            ],
+            "allowedOutcomeIds": [
+              "close-inspection"
+            ],
+            "childProcessRefs": []
           },
           {
             "id": "closure",
@@ -127,10 +203,6 @@
             "stageCategory": "end",
             "stageKindId": "inspection-closure",
             "scope": "shared",
-            "stageSpan": {
-              "start": { "stageId": "closure", "fraction": 0 },
-              "end": { "stageId": "closure", "fraction": 1 }
-            },
             "actorId": "platform",
             "formId": null,
             "portalVisibility": "visible",
@@ -140,7 +212,8 @@
             "defaultStepId": null,
             "entryRuleIds": [],
             "exitRuleIds": [],
-            "allowedOutcomeIds": []
+            "allowedOutcomeIds": [],
+            "childProcessRefs": []
           }
         ],
         "steps": [
@@ -157,7 +230,9 @@
             "portalStatusId": "scheduled",
             "formStateId": null,
             "entryRuleIds": [],
-            "exitRuleIds": ["visit-scheduled"]
+            "exitRuleIds": [
+              "visit-scheduled"
+            ]
           },
           {
             "id": "capture-evidence-step",
@@ -172,19 +247,48 @@
             "portalStatusId": "scheduled",
             "formStateId": null,
             "entryRuleIds": [],
-            "exitRuleIds": ["evidence-captured"]
+            "exitRuleIds": [
+              "evidence-captured"
+            ]
           }
         ],
         "transitions": [
-          { "id": "start-visit", "fromStageId": "scheduling", "toStageId": "visit", "outcomeId": "start-visit", "guardRuleId": "visit-scheduled" },
-          { "id": "assess-evidence", "fromStageId": "visit", "toStageId": "assessment", "outcomeId": "assess-evidence", "guardRuleId": "evidence-captured" },
-          { "id": "close-inspection", "fromStageId": "assessment", "toStageId": "closure", "outcomeId": "close-inspection", "guardRuleId": "assessment-complete" }
+          {
+            "id": "start-visit",
+            "fromStageId": "scheduling",
+            "toStageId": "visit",
+            "outcomeId": "start-visit",
+            "guardRuleId": "visit-scheduled"
+          },
+          {
+            "id": "assess-evidence",
+            "fromStageId": "visit",
+            "toStageId": "assessment",
+            "outcomeId": "assess-evidence",
+            "guardRuleId": "evidence-captured"
+          },
+          {
+            "id": "close-inspection",
+            "fromStageId": "assessment",
+            "toStageId": "closure",
+            "outcomeId": "close-inspection",
+            "guardRuleId": "assessment-complete"
+          }
         ],
         "stepTransitions": [],
         "outcomes": [
-          { "id": "start-visit", "displayName": "Start visit" },
-          { "id": "assess-evidence", "displayName": "Assess evidence" },
-          { "id": "close-inspection", "displayName": "Close inspection" }
+          {
+            "id": "start-visit",
+            "displayName": "Start visit"
+          },
+          {
+            "id": "assess-evidence",
+            "displayName": "Assess evidence"
+          },
+          {
+            "id": "close-inspection",
+            "displayName": "Close inspection"
+          }
         ]
       },
       {
@@ -197,16 +301,40 @@
         "portalStatusId": "scheduled",
         "renderOrder": 1,
         "subProcessVisibility": [
-          { "audience": "portal", "ruleId": "show-portal-status", "visibleWhen": true },
-          { "audience": "form", "ruleId": "show-portal-status-on-form", "visibleWhen": true }
+          {
+            "audience": "portal",
+            "ruleId": "show-portal-status",
+            "visibleWhen": true
+          },
+          {
+            "audience": "form",
+            "ruleId": "show-portal-status-on-form",
+            "visibleWhen": true
+          }
         ],
         "actors": [
-          { "id": "customer", "displayName": "Customer", "actorCategory": "external", "roleKey": "customer", "source": "current-user" }
+          {
+            "id": "customer",
+            "displayName": "Customer",
+            "actorCategory": "external",
+            "roleKey": "customer",
+            "source": "current-user"
+          }
         ],
         "variables": [],
         "statuses": [
-          { "id": "scheduled", "displayName": "Scheduled", "audience": "shared", "kind": "progress" },
-          { "id": "closed", "displayName": "Closed", "audience": "shared", "kind": "terminal" }
+          {
+            "id": "scheduled",
+            "displayName": "Scheduled",
+            "audience": "shared",
+            "kind": "progress"
+          },
+          {
+            "id": "closed",
+            "displayName": "Closed",
+            "audience": "shared",
+            "kind": "terminal"
+          }
         ],
         "tasks": [],
         "notifications": [],
@@ -217,10 +345,6 @@
             "stageCategory": "milestone",
             "stageKindId": "portal-status",
             "scope": "portal",
-            "stageSpan": {
-              "start": { "stageId": "scheduling", "fraction": 0.5 },
-              "end": { "stageId": "closure", "fraction": 0.25 }
-            },
             "actorId": "customer",
             "formId": null,
             "portalVisibility": "visible",
@@ -230,7 +354,8 @@
             "defaultStepId": null,
             "entryRuleIds": [],
             "exitRuleIds": [],
-            "allowedOutcomeIds": []
+            "allowedOutcomeIds": [],
+            "childProcessRefs": []
           }
         ],
         "steps": [],
@@ -241,22 +366,84 @@
     ]
   },
   "forms": [],
-  "metadata": { "entities": [], "relationships": [] },
+  "metadata": {
+    "entities": [],
+    "relationships": []
+  },
   "rules": [
-    { "id": "visit-scheduled", "displayName": "Visit scheduled", "ruleType": "condition", "scope": "transition", "language": "dbm-expression-v1", "body": "true" },
-    { "id": "evidence-captured", "displayName": "Evidence captured", "ruleType": "condition", "scope": "transition", "language": "dbm-expression-v1", "body": "true" },
-    { "id": "assessment-complete", "displayName": "Assessment complete", "ruleType": "condition", "scope": "transition", "language": "dbm-expression-v1", "body": "true" },
-    { "id": "show-portal-status", "displayName": "Show portal status", "ruleType": "condition", "scope": "process", "language": "dbm-expression-v1", "body": "true" },
-    { "id": "show-portal-status-on-form", "displayName": "Show portal status on form", "ruleType": "condition", "scope": "process", "language": "dbm-expression-v1", "body": "true" }
+    {
+      "id": "visit-scheduled",
+      "displayName": "Visit scheduled",
+      "ruleType": "condition",
+      "scope": "transition",
+      "language": "dbm-expression-v1",
+      "body": "true"
+    },
+    {
+      "id": "evidence-captured",
+      "displayName": "Evidence captured",
+      "ruleType": "condition",
+      "scope": "transition",
+      "language": "dbm-expression-v1",
+      "body": "true"
+    },
+    {
+      "id": "assessment-complete",
+      "displayName": "Assessment complete",
+      "ruleType": "condition",
+      "scope": "transition",
+      "language": "dbm-expression-v1",
+      "body": "true"
+    },
+    {
+      "id": "show-portal-status",
+      "displayName": "Show portal status",
+      "ruleType": "condition",
+      "scope": "process",
+      "language": "dbm-expression-v1",
+      "body": "true"
+    },
+    {
+      "id": "show-portal-status-on-form",
+      "displayName": "Show portal status on form",
+      "ruleType": "condition",
+      "scope": "process",
+      "language": "dbm-expression-v1",
+      "body": "true"
+    }
   ],
   "runtime": {
-    "capabilities": ["render-form"],
-    "requestContract": { "schemaVersion": "dbm.runtime.request/v1", "operations": ["load-form"] },
-    "resultContract": { "schemaVersion": "dbm.runtime.result/v1", "statuses": ["ok"] },
+    "capabilities": [
+      "render-form"
+    ],
+    "requestContract": {
+      "schemaVersion": "dbm.runtime.request/v1",
+      "operations": [
+        "load-form"
+      ]
+    },
+    "resultContract": {
+      "schemaVersion": "dbm.runtime.result/v1",
+      "statuses": [
+        "ok"
+      ]
+    },
     "ownership": {
-      "pcf": { "responsibilities": ["form-rendering"] },
-      "dataverse": { "responsibilities": ["authoritative-persistence"] },
-      "azure": { "responsibilities": ["support-services-only"] }
+      "pcf": {
+        "responsibilities": [
+          "form-rendering"
+        ]
+      },
+      "dataverse": {
+        "responsibilities": [
+          "authoritative-persistence"
+        ]
+      },
+      "azure": {
+        "responsibilities": [
+          "support-services-only"
+        ]
+      }
     }
   },
   "artifacts": []

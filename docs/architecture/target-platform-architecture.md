@@ -8,9 +8,9 @@ DBM should let a user design a complete business cycle from portal to back offic
 
 The product is centred on a process portfolio:
 
-- one main process that drives the full lifecycle
-- any number of stacked sub-processes
-- stage spans that align to the main-process timeline, including fractional spans
+- one root process that drives the full lifecycle
+- reusable child process definitions under any stage
+- stage-owned child process links with blocked/awaiting-child semantics
 - a rendered form experience for business users
 - a portal-safe projection for portal users
 - JavaScript-first action logic through DBMScript
@@ -20,7 +20,7 @@ The product is centred on a process portfolio:
 
 ### 1. Process portfolio
 
-The process portfolio is the authoritative product model. It owns `mainProcessId`, `processes[]`, `subProcessVisibility`, stage spans, stage feature hooks, status, portal status, and process-to-form rendering semantics.
+The process portfolio is the authoritative product model. It owns `mainProcessId`, `processes[]`, `subProcessVisibility`, `childProcessRefs[]`, stage feature hooks, status, portal status, and process-to-form rendering semantics.
 
 ### 2. Designer core
 
@@ -28,7 +28,7 @@ The designer core owns validation, editing behaviour, serialization, and model c
 
 ### 3. Rendered form experience
 
-The rendered form is the business-user surface. It is distinct from the designer. In `R1`, DBM must prove actual model-driven form render of the main process and visible sub-processes.
+The rendered form is the business-user surface. It is distinct from the designer. In `R1`, DBM must prove actual model-driven form render of the parent process context and active child process surface.
 
 ### 4. Portal projection
 
@@ -40,7 +40,7 @@ DBMScript is the JavaScript-first action substrate. It owns scripts, actions, te
 
 ### 6. Back-office runtime
 
-The back-office runtime owns process instances, stage transitions, status persistence, form behaviour, owner/user/role scope, and action trigger execution in model-driven/Dataverse contexts.
+The back-office runtime owns process instances, child process spawning, parent-stage locking, child completion, stage transitions, status persistence, form behaviour, owner/user/role scope, and action trigger execution in model-driven/Dataverse contexts.
 
 ### 7. Operations layer
 
@@ -95,9 +95,9 @@ flowchart TB
 
 - The designer remains the primary authoring surface.
 - The rendered form is not the designer.
-- The main process is always visible on rendered form and portal projection surfaces.
-- Sub-processes render below the main process and can be conditional.
-- Stage spans are semantic, not merely visual.
+- The root process is always visible on rendered form and portal projection surfaces.
+- Child processes render under the parent stage that owns them and can be conditional.
+- Stage-owned child process links are semantic, not merely visual.
 - DBMScript starts with JavaScript first.
 - Actual portal runtime starts after back-office runtime.
 - Current implementation is reference material unless it fits the reset architecture and passes current tests.

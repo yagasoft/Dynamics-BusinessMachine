@@ -95,13 +95,14 @@ foreach ($oldActiveName in @('Builder Platform MVP', 'Designer And Process Exper
     Assert-NotContains $releasePlan "| `$oldActiveName` |" "Release plan must not keep old release ladder names as active rows."
 }
 
-foreach ($requiredConcept in @('mainProcessId', 'processes[]', 'subProcessVisibility', 'stageSpan', 'fractional main-stage spans')) {
+foreach ($requiredConcept in @('mainProcessId', 'processes[]', 'subProcessVisibility', 'childProcessRefs[]', 'parent-stage locking')) {
     Assert-Contains $releasePlan $requiredConcept "Release plan must define $requiredConcept as part of the reset model/interface direction."
 }
 
 Assert-Contains 'docs\roadmap\release-1-process-stage-designer-and-form-render.md' 'actual model-driven form render' 'R1 must prove actual model-driven form rendering.'
 Assert-Contains 'docs\roadmap\release-1-process-stage-designer-and-form-render.md' 'Portal is contract-only in R1' 'R1 must keep portal to a projection contract only.'
-Assert-Contains 'docs\roadmap\release-1-process-stage-designer-and-form-render.md' 'fractional main-stage span' 'R1 must support fractional main-stage spans.'
+Assert-Contains 'docs\roadmap\release-1-process-stage-designer-and-form-render.md' 'childProcessRefs[]' 'R1 must support stage-owned child process links.'
+Assert-Contains 'docs\roadmap\release-1-process-stage-designer-and-form-render.md' 'blocked/awaiting-child status' 'R1 must show parent stages awaiting child completion.'
 Assert-Contains 'docs\roadmap\release-1-process-stage-designer-and-form-render.md' 'first implementation tests' 'R1 must name the first executable implementation tests after the roadmap reset.'
 Assert-Contains 'docs\roadmap\release-1-process-stage-designer-and-form-render.md' 'R1.2 Generic process design contract' 'R1 must include a generic process design contract slice after the R1.1 portfolio foundation.'
 Assert-Contains 'docs\roadmap\release-1-process-stage-designer-and-form-render.md' 'user-defined process type' 'R1.2 must make process type user-defined rather than approval/request-led.'
@@ -148,6 +149,15 @@ Assert-Contains 'docs\architecture\canonical-model-runtime-contract-v1.md' 'proc
 Assert-Contains 'docs\architecture\canonical-model-runtime-contract-v1.md' 'actorCategory' 'Canonical contract docs must replace approval/request actor types with generic actor categories.'
 Assert-Contains 'docs\architecture\canonical-model-runtime-contract-v1.md' 'stageKindId' 'Canonical contract docs must support user-defined stage kinds.'
 Assert-Contains 'docs\architecture\canonical-model-runtime-contract-v1.md' 'workKindId' 'Canonical contract docs must support user-defined work kinds.'
+foreach ($activeHierarchyDoc in @(
+    'docs\roadmap\release-1-process-stage-designer-and-form-render.md',
+    'docs\roadmap\release-plan.md',
+    'docs\architecture\canonical-model-runtime-contract-v1.md',
+    'docs\architecture\examples\README.md'
+)) {
+    Assert-NotContains $activeHierarchyDoc 'stageSpan' "Active hierarchy docs must not describe stageSpan as active authority: $activeHierarchyDoc"
+    Assert-NotContains $activeHierarchyDoc 'fractional main-stage' "Active hierarchy docs must not describe fractional main-stage spans as active authority: $activeHierarchyDoc"
+}
 Assert-Contains 'docs\architecture\examples\README.md' 'approval-request-v1.model.json is historical/prototype reference' 'Approval/request example must be marked as reference only where retained.'
 Assert-NotContains 'eng\scripts\Invoke-DataverseSynthesis.ps1' 'approval-request-v1.model.json' 'Active Dataverse synthesis default model path must not point at the retired approval/request example.'
 Assert-NotContains 'eng\scripts\Invoke-DataversePackaging.ps1' 'approval-request-v1.model.json' 'Active Dataverse packaging default model path must not point at the retired approval/request example.'

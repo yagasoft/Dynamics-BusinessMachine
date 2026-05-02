@@ -5,7 +5,6 @@ import type {
   DbmProcessPortfolioProjectionAudienceV1,
   DbmProcessV1,
   DbmStageCategoryV1,
-  DbmStageSpanV1,
   DbmStageV1,
   DbmSubProcessVisibilityRuleV1
 } from 'dbm-contract';
@@ -58,15 +57,15 @@ function safeMainProcess(document: DesignerDocument | null): DbmProcessV1 | null
   }
 }
 
-function createSubProcess(document: DesignerDocument): DbmProcessV1 {
+function createChildProcess(document: DesignerDocument, prefix: 'sub-process' | 'child-process' = 'sub-process'): DbmProcessV1 {
   const main = safeMainProcess(document);
-  const id = uniqueId(document.model.processPortfolio.processes.map((process) => process.id), 'sub-process');
+  const id = uniqueId(document.model.processPortfolio.processes.map((process) => process.id), prefix);
   const actorId = uniqueId([], `${id}-owner`);
   const defaultRule = document.model.rules.find((rule) => rule.scope === 'process')?.id ?? null;
 
   return {
     id,
-    displayName: 'New sub-process',
+    displayName: 'New child process',
     role: 'sub-process',
     processTypeId: id,
     mainDisplayMode: 'expanded',
@@ -77,7 +76,7 @@ function createSubProcess(document: DesignerDocument): DbmProcessV1 {
     actors: [
       {
         id: actorId,
-        displayName: 'Sub-process owner',
+        displayName: 'Child process owner',
         actorCategory: 'team',
         roleKey: id,
         source: 'field-binding'
@@ -95,16 +94,8 @@ function createSubProcess(document: DesignerDocument): DbmProcessV1 {
   };
 }
 
-function stageSpanValue(stage: DbmStageV1 | null): DbmStageSpanV1 | null {
-  return stage?.stageSpan ?? null;
-}
-
-function formatFraction(value: number): string {
-  return Number.isFinite(value) ? String(value) : '0';
-}
-
 function processOptionLabel(process: DbmProcessV1, mainProcessId: string | null): string {
-  return `${process.displayName} - ${process.id}${process.id === mainProcessId ? ' - main' : ''}`;
+  return `${process.displayName} - ${process.id}${process.id === mainProcessId ? ' - parent process' : ''}`;
 }
 
 function stageOptionLabel(stage: DbmStageV1): string {
@@ -156,8 +147,6 @@ export function DesignerShell({ repository }: DesignerShellProps) {
   const [document, setDocument] = useState<DesignerDocument | null>(null);
   const [selectedProcessId, setSelectedProcessId] = useState<string | null>(null);
   const [selectedStageId, setSelectedStageId] = useState<string | null>(null);
-  const [spanStartFractionDraft, setSpanStartFractionDraft] = useState('0');
-  const [spanEndFractionDraft, setSpanEndFractionDraft] = useState('1');
   const [status, setStatus] = useState('Loading packages...');
   const [busy, setBusy] = useState(true);
 
@@ -206,11 +195,6 @@ export function DesignerShell({ repository }: DesignerShellProps) {
   const selectedStage = useMemo(() => resolveSelectedStage(selectedProcess, selectedStageId), [selectedProcess, selectedStageId]);
   const processRules = document?.model.rules.filter((rule) => rule.scope === 'process') ?? [];
 
-  useEffect(() => {
-    setSpanStartFractionDraft(formatFraction(selectedStage?.stageSpan.start.fraction ?? 0));
-    setSpanEndFractionDraft(formatFraction(selectedStage?.stageSpan.end.fraction ?? 1));
-  }, [selectedProcess?.id, selectedStage?.id]);
-
   function applyIntent(intent: DesignerGraphIntent, nextSelection?: { processId?: string | null; stageId?: string | null }) {
     if (!document) {
       return null;
@@ -255,20 +239,49 @@ export function DesignerShell({ repository }: DesignerShellProps) {
     void loadSelectedPackage();
   }
 
-  function handleAddSubProcess() {
+  function handleAddChildProcess(prefix: 'sub-process' | 'child-process' = 'sub-process') {
     if (!document) {
       return;
     }
 
-    const process = createSubProcess(document);
+    const parentProcess = selectedProcess ?? mainProcess;
+    const parentStage = selectedStage ?? parentProcess?.stages[0] ?? null;
+    if (!parentProcess || !parentStage) {
+      setStatus('Select a parent stage before adding a child process.');
+      return;
+    }
+
+    const process = createChildProcess(document, prefix);
     applyIntent(
       {
-        kind: 'add-process',
+        kind: 'add-child-process',
+        parentProcessId: parentProcess.id,
+        parentStageId: parentStage.id,
         process
       },
       {
         processId: process.id,
         stageId: null
+      }
+    );
+  }
+
+  function handleAddChildProcessUnderSelectedStage() {
+    if (!document || !selectedProcess || !selectedStage) {
+      return;
+    }
+
+    const process = createChildProcess(document, 'child-process');
+    applyIntent(
+      {
+        kind: 'add-child-process',
+        parentProcessId: selectedProcess.id,
+        parentStageId: selectedStage.id,
+        process
+      },
+      {
+        processId: selectedProcess.id,
+        stageId: selectedStage.id
       }
     );
   }
@@ -305,7 +318,7 @@ export function DesignerShell({ repository }: DesignerShellProps) {
     });
   }
 
-  function updateStage(value: Partial<Pick<DbmStageV1, 'displayName' | 'stageCategory' | 'stageKindId' | 'scope' | 'stageSpan' | 'portalVisibility'>>) {
+  function updateStage(value: Partial<Pick<DbmStageV1, 'displayName' | 'stageCategory' | 'stageKindId' | 'scope' | 'childProcessRefs' | 'portalVisibility'>>) {
     if (!selectedProcess || !selectedStage) {
       return;
     }
@@ -316,34 +329,6 @@ export function DesignerShell({ repository }: DesignerShellProps) {
       stageId: selectedStage.id,
       value
     });
-  }
-
-  function updateStageSpan(anchor: 'start' | 'end', key: 'stageId' | 'fraction', value: string) {
-    const currentSpan = stageSpanValue(selectedStage);
-    if (!currentSpan) {
-      return;
-    }
-
-    const nextSpan: DbmStageSpanV1 = structuredClone(currentSpan);
-    if (key === 'fraction') {
-      const parsedValue = Number(value);
-      if (!Number.isFinite(parsedValue)) {
-        return;
-      }
-      nextSpan[anchor].fraction = parsedValue;
-    } else {
-      nextSpan[anchor].stageId = value;
-    }
-    updateStage({ stageSpan: nextSpan });
-  }
-
-  function updateStageSpanFraction(anchor: 'start' | 'end', value: string) {
-    if (anchor === 'start') {
-      setSpanStartFractionDraft(value);
-    } else {
-      setSpanEndFractionDraft(value);
-    }
-    updateStageSpan(anchor, 'fraction', value);
   }
 
   function handleMoveProcess(delta: number) {
@@ -386,8 +371,8 @@ export function DesignerShell({ repository }: DesignerShellProps) {
       return;
     }
 
-    if (selectionId.startsWith('timeline:')) {
-      const processId = selectionId.slice('timeline:'.length);
+    if (selectionId.startsWith('hierarchy:')) {
+      const processId = selectionId.slice('hierarchy:'.length);
       const process = processes.find((entry) => entry.id === processId);
       setSelectedProcessId(process?.id ?? selectedProcessId);
       setSelectedStageId(process?.stages[0]?.id ?? null);
@@ -433,7 +418,7 @@ export function DesignerShell({ repository }: DesignerShellProps) {
       <header style={headerStyle}>
         <div>
           <p style={eyebrowStyle}>R1.3 designer authoring foundation</p>
-          <h1 style={titleStyle}>Timeline Studio</h1>
+          <h1 style={titleStyle}>Hierarchy Studio</h1>
         </div>
         <div style={toolbarStyle}>
           <select
@@ -467,12 +452,16 @@ export function DesignerShell({ repository }: DesignerShellProps) {
         <div style={canvasPanelStyle}>
           <div style={sectionHeadingRowStyle}>
             <div>
-              <h2 style={sectionTitleStyle}>Process timeline</h2>
-              <p style={sectionCopyStyle}>Main stages form the timeline; sub-process stages author spans against that main-process anchor.</p>
+              <h2 style={sectionTitleStyle}>Process hierarchy</h2>
+              <p style={sectionCopyStyle}>Parent process stages provide context; child processes sit under the parent stage that can block until child completion.</p>
+              <div style={legendStyle}>
+                <span>Parent process</span>
+                <span>Child process</span>
+              </div>
             </div>
             <div style={buttonRowStyle}>
-              <button type="button" style={secondaryButtonStyle} onClick={handleAddSubProcess} disabled={!document || busy}>
-                Add sub-process
+              <button type="button" style={secondaryButtonStyle} onClick={() => handleAddChildProcess()} disabled={!document || busy}>
+                Add child process
               </button>
               <button type="button" style={secondaryButtonStyle} onClick={handleAddStage} disabled={!selectedProcess || busy}>
                 Add stage
@@ -494,8 +483,8 @@ export function DesignerShell({ repository }: DesignerShellProps) {
                   setSelectedStageId(process.stages[0]?.id ?? null);
                 }}
               >
-                <span style={laneRoleStyle}>{process.role === 'main' ? 'Main process' : 'Sub-process'}</span>
-                <span style={laneLabelStyle}>{process.id === mainProcess?.id ? `Main: ${process.displayName}` : `Lane: ${process.displayName}`}</span>
+                <span style={laneRoleStyle}>{process.role === 'main' ? 'Parent process definition' : 'Child process definition'}</span>
+                <span style={laneLabelStyle}>{process.id === mainProcess?.id ? `Parent: ${process.displayName}` : `Child: ${process.displayName}`}</span>
                 <span style={laneMetaStyle}>{process.stages.length} stage(s)</span>
               </button>
             ))}
@@ -552,7 +541,7 @@ export function DesignerShell({ repository }: DesignerShellProps) {
           </section>
 
           <section style={cardStyle}>
-            <h2 style={sectionTitleStyle}>Stage authoring</h2>
+            <h2 style={sectionTitleStyle}>{selectedProcess?.role === 'main' ? 'Parent stage' : 'Child process stage'}</h2>
             <label style={fieldStyle}>
               <span>Selected stage</span>
               <select
@@ -608,61 +597,28 @@ export function DesignerShell({ repository }: DesignerShellProps) {
               <button type="button" style={iconButtonStyle} onClick={() => handleMoveStage(1)} disabled={!selectedStage}>
                 Move right
               </button>
+              <button type="button" style={secondaryButtonStyle} onClick={handleAddChildProcessUnderSelectedStage} disabled={!selectedStage || busy}>
+                Add child process under selected stage
+              </button>
             </div>
           </section>
 
           <section style={cardStyle}>
-            <h2 style={sectionTitleStyle}>Stage span</h2>
-            <label style={fieldStyle}>
-              <span>Span start anchor</span>
-              <select
-                value={selectedStage?.stageSpan.start.stageId ?? ''}
-                onChange={(event) => updateStageSpan('start', 'stageId', event.target.value)}
-                style={inputStyle}
-                disabled={!selectedStage}
-              >
-                {(mainProcess?.stages ?? []).map((stage) => (
-                  <option key={stage.id} value={stage.id}>
-                    {stageOptionLabel(stage)}
-                  </option>
+            <h2 style={sectionTitleStyle}>Child process links</h2>
+            <p style={sectionCopyStyle}>Parent stage blocked until child process completion</p>
+            {selectedStage?.childProcessRefs.length ? (
+              <div style={hookListStyle}>
+                {selectedStage.childProcessRefs.map((ref) => (
+                  <div key={ref.id} style={hookItemStyle}>
+                    <strong>{ref.displayName}</strong>
+                    <span>{ref.processId}</span>
+                    <span>{ref.blocksParent ? 'Parent stage blocked until child process completion' : 'Parent stage can continue while child process runs'}</span>
+                  </div>
                 ))}
-              </select>
-            </label>
-            <label style={fieldStyle}>
-              <span>Span start fraction</span>
-              <input
-                inputMode="decimal"
-                value={spanStartFractionDraft}
-                onChange={(event) => updateStageSpanFraction('start', event.target.value)}
-                style={inputStyle}
-                disabled={!selectedStage}
-              />
-            </label>
-            <label style={fieldStyle}>
-              <span>Span end anchor</span>
-              <select
-                value={selectedStage?.stageSpan.end.stageId ?? ''}
-                onChange={(event) => updateStageSpan('end', 'stageId', event.target.value)}
-                style={inputStyle}
-                disabled={!selectedStage}
-              >
-                {(mainProcess?.stages ?? []).map((stage) => (
-                  <option key={stage.id} value={stage.id}>
-                    {stageOptionLabel(stage)}
-                  </option>
-                ))}
-              </select>
-            </label>
-            <label style={fieldStyle}>
-              <span>Span end fraction</span>
-              <input
-                inputMode="decimal"
-                value={spanEndFractionDraft}
-                onChange={(event) => updateStageSpanFraction('end', event.target.value)}
-                style={inputStyle}
-                disabled={!selectedStage}
-              />
-            </label>
+              </div>
+            ) : (
+              <p style={sectionCopyStyle}>No child process links on this stage.</p>
+            )}
           </section>
 
           <section style={cardStyle}>
@@ -678,10 +634,10 @@ export function DesignerShell({ repository }: DesignerShellProps) {
                 <option value="">Always visible</option>
                 {processRules.flatMap((rule) => [
                   <option key={`${rule.id}:true`} value={`${rule.id}:true`}>
-                    {rule.displayName} shows lane
+                    {rule.displayName} shows child process
                   </option>,
                   <option key={`${rule.id}:false`} value={`${rule.id}:false`}>
-                    {rule.displayName} hides lane
+                    {rule.displayName} hides child process
                   </option>
                 ])}
               </select>
@@ -697,10 +653,10 @@ export function DesignerShell({ repository }: DesignerShellProps) {
                 <option value="">Always visible</option>
                 {processRules.flatMap((rule) => [
                   <option key={`${rule.id}:portal:true`} value={`${rule.id}:true`}>
-                    {rule.displayName} shows lane
+                    {rule.displayName} shows child process
                   </option>,
                   <option key={`${rule.id}:portal:false`} value={`${rule.id}:false`}>
-                    {rule.displayName} hides lane
+                    {rule.displayName} hides child process
                   </option>
                 ])}
               </select>
@@ -915,6 +871,16 @@ const laneListStyle: CSSProperties = {
   display: 'grid',
   gridTemplateColumns: 'repeat(auto-fit, minmax(180px, 1fr))',
   gap: 10
+};
+
+const legendStyle: CSSProperties = {
+  display: 'flex',
+  gap: 8,
+  flexWrap: 'wrap',
+  marginTop: 8,
+  color: '#334155',
+  fontSize: 13,
+  fontWeight: 800
 };
 
 const laneButtonStyle: CSSProperties = {

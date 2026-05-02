@@ -16,10 +16,10 @@ These principles are standing constraints for the process-first DBM reset.
 - Process-first reset.
 - The designer is the primary authoring surface.
 - The rendered form is the business-user surface and is not the designer.
-- The product is about processes, sub-processes, and stages.
-- The main process is always visible on the rendered form and portal projection.
-- Sub-processes appear below the main process and may be conditional.
-- Stage spans are first-class and may cover a full main stage, multiple main stages, or a fractional main-stage span.
+- The product is about parent processes, child processes, and stages.
+- The root process is always visible on the rendered form and portal projection.
+- Child processes sit under the stage that owns them and may be conditional.
+- Stage-owned child process links are first-class and can block the parent stage until child completion.
 - DBM owns the rendered process experience.
 - Native Dataverse BPF may be generated later only as optional downstream integration.
 - Portal is contract-only in `R1`; actual portal runtime starts in `R5`.

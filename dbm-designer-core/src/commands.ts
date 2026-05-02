@@ -73,8 +73,6 @@ import {
 } from './node-ids';
 import { createDocument } from './model';
 import {
-  defaultStageSpanForMainStage,
-  defaultStageSpanForSubProcess,
   findProcess,
   insertAt,
   moveWithin,
@@ -224,7 +222,7 @@ function defaultStage(model: DesignerDocument['model'], process: DbmProcessV1): 
     stageCategory: 'work',
     stageKindId: 'work',
     scope: 'back-office',
-    stageSpan: process.id === model.processPortfolio.mainProcessId ? defaultStageSpanForMainStage(id) : defaultStageSpanForSubProcess(model),
+    childProcessRefs: [],
     actorId: process.actors[0]?.id ?? '',
     formId: model.forms[0]?.id ?? null,
     portalVisibility: 'hidden',
@@ -322,6 +320,26 @@ function attachStepToStage(stage: DbmStageV1, stepId: string, index?: number): v
   }
 }
 
+function attachChildProcessToStage(model: DesignerDocument['model'], stage: DbmStageV1, process: DbmProcessV1): void {
+  stage.childProcessRefs ??= [];
+  if (stage.childProcessRefs.some((ref) => ref.processId === process.id)) {
+    return;
+  }
+
+  const id = uniqueId(stage.childProcessRefs.map((ref) => ref.id), `spawn-${process.id}`);
+  stage.childProcessRefs.push({
+    id,
+    processId: process.id,
+    displayName: process.displayName,
+    activationRuleId: null,
+    blocksParent: true
+  });
+
+  if (process.role === 'sub-process' && process.renderOrder === undefined) {
+    process.renderOrder = model.processPortfolio.processes.length;
+  }
+}
+
 function defaultForm(model: DesignerDocument['model']): DbmFormV1 {
   const id = uniqueId(model.forms.map((form) => form.id), 'form');
   const entityId = model.metadata.entities[0]?.id ?? '';
@@ -402,7 +420,11 @@ export function addNode(document: DesignerDocument, command: AddNodeCommand): De
 
   if (command.kind === 'process') {
     const process = (command.value as DbmProcessV1 | undefined) ?? defaultProcess(model);
+    const parent = findStageByParentId(model, command.parentId);
     insertAt(model.processPortfolio.processes, process, command.index);
+    if (parent) {
+      attachChildProcessToStage(model, parent.stage, process);
+    }
     return rebuild(document, model, processNodeId(process.id));
   }
 
@@ -689,6 +711,11 @@ export function removeNode(document: DesignerDocument, command: RemoveNodeComman
   const processIndex = model.processPortfolio.processes.findIndex((process) => processNodeId(process.id) === command.nodeId);
   if (processIndex >= 0) {
     const [process] = model.processPortfolio.processes.splice(processIndex, 1);
+    model.processPortfolio.processes.forEach((candidate) => {
+      candidate.stages.forEach((stage) => {
+        stage.childProcessRefs = stage.childProcessRefs.filter((ref) => ref.processId !== process.id);
+      });
+    });
     if (model.processPortfolio.mainProcessId === process.id) {
       model.processPortfolio.mainProcessId = model.processPortfolio.processes.find((entry) => entry.role === 'main')?.id ?? model.processPortfolio.processes[0]?.id ?? '';
     }

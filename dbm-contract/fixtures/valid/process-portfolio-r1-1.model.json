@@ -10,9 +10,16 @@
       "prefix": "dbm"
     },
     "entryProcessId": "legacy-entry-not-authoritative",
-    "supportedHosts": ["model-driven"],
-    "supportedRuntimes": ["pcf", "dataverse"],
-    "processUiSurfaces": ["model-driven"],
+    "supportedHosts": [
+      "model-driven"
+    ],
+    "supportedRuntimes": [
+      "pcf",
+      "dataverse"
+    ],
+    "processUiSurfaces": [
+      "model-driven"
+    ],
     "exposesPortalState": true,
     "ownsGeneratedDataverseArtifacts": true,
     "compatibility": {
@@ -38,18 +45,63 @@
         "statusId": "under-review",
         "portalStatusId": "under-review",
         "actors": [
-          { "id": "requester", "displayName": "Requester", "actorCategory": "person", "roleKey": "requester", "source": "current-user" },
-          { "id": "manager", "displayName": "Manager", "actorCategory": "team", "roleKey": "approver", "source": "field-binding" },
-          { "id": "platform", "displayName": "Platform", "actorCategory": "system", "roleKey": "system", "source": "system" }
+          {
+            "id": "requester",
+            "displayName": "Requester",
+            "actorCategory": "person",
+            "roleKey": "requester",
+            "source": "current-user"
+          },
+          {
+            "id": "manager",
+            "displayName": "Manager",
+            "actorCategory": "team",
+            "roleKey": "approver",
+            "source": "field-binding"
+          },
+          {
+            "id": "platform",
+            "displayName": "Platform",
+            "actorCategory": "system",
+            "roleKey": "system",
+            "source": "system"
+          }
         ],
         "variables": [
-          { "id": "request-status", "dataType": "choice", "scope": "process", "defaultValue": "draft", "persistence": "persisted" },
-          { "id": "portal-status", "dataType": "choice", "scope": "process", "defaultValue": "draft", "persistence": "persisted" }
+          {
+            "id": "request-status",
+            "dataType": "choice",
+            "scope": "process",
+            "defaultValue": "draft",
+            "persistence": "persisted"
+          },
+          {
+            "id": "portal-status",
+            "dataType": "choice",
+            "scope": "process",
+            "defaultValue": "draft",
+            "persistence": "persisted"
+          }
         ],
         "statuses": [
-          { "id": "draft", "displayName": "Draft", "audience": "shared", "kind": "progress" },
-          { "id": "under-review", "displayName": "Under Review", "audience": "shared", "kind": "progress" },
-          { "id": "approved", "displayName": "Approved", "audience": "shared", "kind": "terminal" }
+          {
+            "id": "draft",
+            "displayName": "Draft",
+            "audience": "shared",
+            "kind": "progress"
+          },
+          {
+            "id": "under-review",
+            "displayName": "Under Review",
+            "audience": "shared",
+            "kind": "progress"
+          },
+          {
+            "id": "approved",
+            "displayName": "Approved",
+            "audience": "shared",
+            "kind": "terminal"
+          }
         ],
         "tasks": [],
         "notifications": [],
@@ -57,52 +109,55 @@
           {
             "id": "draft-request",
             "displayName": "Draft Request",
-            "stageCategory": "start", "stageKindId": "start",
+            "stageCategory": "start",
+            "stageKindId": "start",
             "scope": "portal",
-            "stageSpan": {
-              "start": { "stageId": "draft-request", "fraction": 0 },
-              "end": { "stageId": "draft-request", "fraction": 1 }
-            },
             "actorId": "requester",
             "formId": "request-form",
             "portalVisibility": "visible",
             "statusId": "draft",
             "portalStatusId": "draft",
-            "stepIds": ["capture-request"],
+            "stepIds": [
+              "capture-request"
+            ],
             "defaultStepId": "capture-request",
             "entryRuleIds": [],
-            "exitRuleIds": ["request-ready"],
-            "allowedOutcomeIds": ["submit"]
+            "exitRuleIds": [
+              "request-ready"
+            ],
+            "allowedOutcomeIds": [
+              "submit"
+            ],
+            "childProcessRefs": []
           },
           {
             "id": "review-request",
             "displayName": "Review Request",
-            "stageCategory": "decision", "stageKindId": "approval",
+            "stageCategory": "decision",
+            "stageKindId": "approval",
             "scope": "back-office",
-            "stageSpan": {
-              "start": { "stageId": "review-request", "fraction": 0 },
-              "end": { "stageId": "review-request", "fraction": 1 }
-            },
             "actorId": "manager",
             "formId": "review-form",
             "portalVisibility": "hidden",
             "statusId": "under-review",
             "portalStatusId": "under-review",
-            "stepIds": ["choose-decision"],
+            "stepIds": [
+              "choose-decision"
+            ],
             "defaultStepId": "choose-decision",
             "entryRuleIds": [],
             "exitRuleIds": [],
-            "allowedOutcomeIds": ["approve"]
+            "allowedOutcomeIds": [
+              "approve"
+            ],
+            "childProcessRefs": []
           },
           {
             "id": "resolution",
             "displayName": "Resolution",
-            "stageCategory": "end", "stageKindId": "end",
+            "stageCategory": "end",
+            "stageKindId": "end",
             "scope": "shared",
-            "stageSpan": {
-              "start": { "stageId": "resolution", "fraction": 0 },
-              "end": { "stageId": "resolution", "fraction": 1 }
-            },
             "actorId": "platform",
             "formId": null,
             "portalVisibility": "visible",
@@ -112,7 +167,8 @@
             "defaultStepId": null,
             "entryRuleIds": [],
             "exitRuleIds": [],
-            "allowedOutcomeIds": []
+            "allowedOutcomeIds": [],
+            "childProcessRefs": []
           }
         ],
         "steps": [
@@ -120,7 +176,8 @@
             "id": "capture-request",
             "stageId": "draft-request",
             "displayName": "Capture Request",
-            "workCategory": "data", "workKindId": "data-entry",
+            "workCategory": "data",
+            "workKindId": "data-entry",
             "ownerActorId": "requester",
             "notificationId": null,
             "taskId": null,
@@ -128,13 +185,16 @@
             "portalStatusId": "draft",
             "formStateId": "request-edit-state",
             "entryRuleIds": [],
-            "exitRuleIds": ["request-ready"]
+            "exitRuleIds": [
+              "request-ready"
+            ]
           },
           {
             "id": "choose-decision",
             "stageId": "review-request",
             "displayName": "Choose Decision",
-            "workCategory": "decision", "workKindId": "approval",
+            "workCategory": "decision",
+            "workKindId": "approval",
             "ownerActorId": "manager",
             "notificationId": null,
             "taskId": null,
@@ -146,13 +206,31 @@
           }
         ],
         "transitions": [
-          { "id": "submit-request", "fromStageId": "draft-request", "toStageId": "review-request", "outcomeId": "submit", "guardRuleId": "request-ready" },
-          { "id": "approve-request", "fromStageId": "review-request", "toStageId": "resolution", "outcomeId": "approve", "guardRuleId": "approval-complete" }
+          {
+            "id": "submit-request",
+            "fromStageId": "draft-request",
+            "toStageId": "review-request",
+            "outcomeId": "submit",
+            "guardRuleId": "request-ready"
+          },
+          {
+            "id": "approve-request",
+            "fromStageId": "review-request",
+            "toStageId": "resolution",
+            "outcomeId": "approve",
+            "guardRuleId": "approval-complete"
+          }
         ],
         "stepTransitions": [],
         "outcomes": [
-          { "id": "submit", "displayName": "Submit" },
-          { "id": "approve", "displayName": "Approve" }
+          {
+            "id": "submit",
+            "displayName": "Submit"
+          },
+          {
+            "id": "approve",
+            "displayName": "Approve"
+          }
         ]
       },
       {
@@ -165,15 +243,34 @@
         "portalStatusId": "under-review",
         "renderOrder": 1,
         "subProcessVisibility": [
-          { "audience": "form", "ruleId": "show-internal-screening-on-form", "visibleWhen": true },
-          { "audience": "portal", "ruleId": "show-internal-screening-on-portal", "visibleWhen": true }
+          {
+            "audience": "form",
+            "ruleId": "show-internal-screening-on-form",
+            "visibleWhen": true
+          },
+          {
+            "audience": "portal",
+            "ruleId": "show-internal-screening-on-portal",
+            "visibleWhen": true
+          }
         ],
         "actors": [
-          { "id": "manager", "displayName": "Manager", "actorCategory": "team", "roleKey": "approver", "source": "field-binding" }
+          {
+            "id": "manager",
+            "displayName": "Manager",
+            "actorCategory": "team",
+            "roleKey": "approver",
+            "source": "field-binding"
+          }
         ],
         "variables": [],
         "statuses": [
-          { "id": "under-review", "displayName": "Under Review", "audience": "shared", "kind": "progress" }
+          {
+            "id": "under-review",
+            "displayName": "Under Review",
+            "audience": "shared",
+            "kind": "progress"
+          }
         ],
         "tasks": [],
         "notifications": [],
@@ -181,22 +278,22 @@
           {
             "id": "screen-supporting-details",
             "displayName": "Screen Supporting Details",
-            "stageCategory": "work", "stageKindId": "task",
+            "stageCategory": "work",
+            "stageKindId": "task",
             "scope": "back-office",
-            "stageSpan": {
-              "start": { "stageId": "draft-request", "fraction": 0.5 },
-              "end": { "stageId": "review-request", "fraction": 0.5 }
-            },
             "actorId": "manager",
             "formId": "request-form",
             "portalVisibility": "hidden",
             "statusId": "under-review",
             "portalStatusId": "under-review",
-            "stepIds": ["screen-request"],
+            "stepIds": [
+              "screen-request"
+            ],
             "defaultStepId": "screen-request",
             "entryRuleIds": [],
             "exitRuleIds": [],
-            "allowedOutcomeIds": []
+            "allowedOutcomeIds": [],
+            "childProcessRefs": []
           }
         ],
         "steps": [
@@ -204,7 +301,8 @@
             "id": "screen-request",
             "stageId": "screen-supporting-details",
             "displayName": "Screen Request",
-            "workCategory": "work", "workKindId": "review",
+            "workCategory": "work",
+            "workKindId": "review",
             "ownerActorId": "manager",
             "notificationId": null,
             "taskId": null,
@@ -229,15 +327,34 @@
         "portalStatusId": "under-review",
         "renderOrder": 2,
         "subProcessVisibility": [
-          { "audience": "form", "ruleId": "show-portal-follow-up-on-form", "visibleWhen": true },
-          { "audience": "portal", "ruleId": "show-portal-follow-up-on-portal", "visibleWhen": true }
+          {
+            "audience": "form",
+            "ruleId": "show-portal-follow-up-on-form",
+            "visibleWhen": true
+          },
+          {
+            "audience": "portal",
+            "ruleId": "show-portal-follow-up-on-portal",
+            "visibleWhen": true
+          }
         ],
         "actors": [
-          { "id": "requester", "displayName": "Requester", "actorCategory": "person", "roleKey": "requester", "source": "current-user" }
+          {
+            "id": "requester",
+            "displayName": "Requester",
+            "actorCategory": "person",
+            "roleKey": "requester",
+            "source": "current-user"
+          }
         ],
         "variables": [],
         "statuses": [
-          { "id": "under-review", "displayName": "Under Review", "audience": "shared", "kind": "progress" }
+          {
+            "id": "under-review",
+            "displayName": "Under Review",
+            "audience": "shared",
+            "kind": "progress"
+          }
         ],
         "tasks": [],
         "notifications": [],
@@ -245,22 +362,22 @@
           {
             "id": "provide-portal-details",
             "displayName": "Provide Portal Details",
-            "stageCategory": "work", "stageKindId": "task",
+            "stageCategory": "work",
+            "stageKindId": "task",
             "scope": "portal",
-            "stageSpan": {
-              "start": { "stageId": "review-request", "fraction": 0 },
-              "end": { "stageId": "review-request", "fraction": 1 }
-            },
             "actorId": "requester",
             "formId": "request-form",
             "portalVisibility": "visible",
             "statusId": "under-review",
             "portalStatusId": "under-review",
-            "stepIds": ["provide-details"],
+            "stepIds": [
+              "provide-details"
+            ],
             "defaultStepId": "provide-details",
             "entryRuleIds": [],
             "exitRuleIds": [],
-            "allowedOutcomeIds": []
+            "allowedOutcomeIds": [],
+            "childProcessRefs": []
           }
         ],
         "steps": [
@@ -268,7 +385,8 @@
             "id": "provide-details",
             "stageId": "provide-portal-details",
             "displayName": "Provide Details",
-            "workCategory": "data", "workKindId": "data-entry",
+            "workCategory": "data",
+            "workKindId": "data-entry",
             "ownerActorId": "requester",
             "notificationId": null,
             "taskId": null,
@@ -291,27 +409,87 @@
     "relationships": []
   },
   "rules": [
-    { "id": "show-internal-screening-on-form", "displayName": "Show Internal Screening On Form", "ruleType": "condition", "scope": "process", "language": "dbm-expression-v1", "body": "true" },
-    { "id": "show-internal-screening-on-portal", "displayName": "Show Internal Screening On Portal", "ruleType": "condition", "scope": "process", "language": "dbm-expression-v1", "body": "false" },
-    { "id": "show-portal-follow-up-on-form", "displayName": "Show Portal Follow-up On Form", "ruleType": "condition", "scope": "process", "language": "dbm-expression-v1", "body": "false" },
-    { "id": "show-portal-follow-up-on-portal", "displayName": "Show Portal Follow-up On Portal", "ruleType": "condition", "scope": "process", "language": "dbm-expression-v1", "body": "true" },
-    { "id": "request-ready", "displayName": "Request Ready", "ruleType": "condition", "scope": "transition", "language": "dbm-expression-v1", "body": "true" },
-    { "id": "approval-complete", "displayName": "Approval Complete", "ruleType": "validation", "scope": "transition", "language": "dbm-expression-v1", "body": "true" }
+    {
+      "id": "show-internal-screening-on-form",
+      "displayName": "Show Internal Screening On Form",
+      "ruleType": "condition",
+      "scope": "process",
+      "language": "dbm-expression-v1",
+      "body": "true"
+    },
+    {
+      "id": "show-internal-screening-on-portal",
+      "displayName": "Show Internal Screening On Portal",
+      "ruleType": "condition",
+      "scope": "process",
+      "language": "dbm-expression-v1",
+      "body": "false"
+    },
+    {
+      "id": "show-portal-follow-up-on-form",
+      "displayName": "Show Portal Follow-up On Form",
+      "ruleType": "condition",
+      "scope": "process",
+      "language": "dbm-expression-v1",
+      "body": "false"
+    },
+    {
+      "id": "show-portal-follow-up-on-portal",
+      "displayName": "Show Portal Follow-up On Portal",
+      "ruleType": "condition",
+      "scope": "process",
+      "language": "dbm-expression-v1",
+      "body": "true"
+    },
+    {
+      "id": "request-ready",
+      "displayName": "Request Ready",
+      "ruleType": "condition",
+      "scope": "transition",
+      "language": "dbm-expression-v1",
+      "body": "true"
+    },
+    {
+      "id": "approval-complete",
+      "displayName": "Approval Complete",
+      "ruleType": "validation",
+      "scope": "transition",
+      "language": "dbm-expression-v1",
+      "body": "true"
+    }
   ],
   "runtime": {
-    "capabilities": ["render-form"],
+    "capabilities": [
+      "render-form"
+    ],
     "requestContract": {
       "schemaVersion": "dbm.runtime.request/v1",
-      "operations": ["load-form"]
+      "operations": [
+        "load-form"
+      ]
     },
     "resultContract": {
       "schemaVersion": "dbm.runtime.result/v1",
-      "statuses": ["ok"]
+      "statuses": [
+        "ok"
+      ]
     },
     "ownership": {
-      "pcf": { "responsibilities": ["form-rendering"] },
-      "dataverse": { "responsibilities": ["authoritative-persistence"] },
-      "azure": { "responsibilities": ["support-services-only"] }
+      "pcf": {
+        "responsibilities": [
+          "form-rendering"
+        ]
+      },
+      "dataverse": {
+        "responsibilities": [
+          "authoritative-persistence"
+        ]
+      },
+      "azure": {
+        "responsibilities": [
+          "support-services-only"
+        ]
+      }
     }
   },
   "artifacts": []

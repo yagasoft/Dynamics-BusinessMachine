@@ -42,11 +42,15 @@ function createRepository(record: DbmHostModelPackageRecord, onSave = vi.fn()): 
   };
 }
 
-describe('DesignerShell Timeline Studio', () => {
-  it('renders main and sub-process lanes with hook placeholders', async () => {
+describe('DesignerShell hierarchy studio', () => {
+  it('renders parent and child process hierarchy with hook placeholders', async () => {
     render(<DesignerShell repository={createRepository(createRecord())} />);
 
-    expect(await screen.findByText('Timeline Studio')).toBeTruthy();
+    expect(await screen.findByText('Hierarchy Studio')).toBeTruthy();
+    expect(screen.getByText('Parent process')).toBeTruthy();
+    expect(screen.getByText('Child process')).toBeTruthy();
+    expect(screen.getByText('Parent stage')).toBeTruthy();
+    expect(screen.getByText('Parent stage blocked until child process completion')).toBeTruthy();
     expect(screen.getByText('Onboarding timeline')).toBeTruthy();
     expect(screen.getByText('IT readiness')).toBeTruthy();
     expect(screen.getByText('Stage hooks')).toBeTruthy();
@@ -60,8 +64,8 @@ describe('DesignerShell Timeline Studio', () => {
     const saveSpy = vi.fn();
     render(<DesignerShell repository={createRepository(createRecord(), saveSpy)} />);
 
-    await screen.findByText('Timeline Studio');
-    await user.click(screen.getByRole('button', { name: 'Add sub-process' }));
+    await screen.findByText('Hierarchy Studio');
+    await user.click(screen.getByRole('button', { name: 'Add child process' }));
     await user.click(screen.getByRole('button', { name: 'Add stage' }));
     await user.click(screen.getByRole('button', { name: 'Save package' }));
 
@@ -73,18 +77,22 @@ describe('DesignerShell Timeline Studio', () => {
     expect(addedProcess?.role).toBe('sub-process');
     expect(addedProcess?.stages[0]?.stageCategory).toBe('work');
     expect(addedProcess?.stages[0]?.stageKindId).toBe('work');
+    expect(
+      saved.processPortfolio.processes
+        .find((process) => process.id === 'onboarding-main')
+        ?.stages.some((stage) => stage.childProcessRefs?.some((ref) => ref.processId === 'sub-process'))
+    ).toBe(true);
   });
 
-  it('round-trips span and visibility edits', async () => {
+  it('round-trips child process link and visibility edits', async () => {
     const user = userEvent.setup();
     const saveSpy = vi.fn();
     render(<DesignerShell repository={createRepository(createRecord(), saveSpy)} />);
 
-    await screen.findByText('Timeline Studio');
+    await screen.findByText('Hierarchy Studio');
     await user.selectOptions(screen.getByLabelText('Selected process'), 'it-readiness');
     await user.selectOptions(screen.getByLabelText('Selected stage'), 'prepare-access');
-    await user.clear(screen.getByLabelText('Span start fraction'));
-    await user.type(screen.getByLabelText('Span start fraction'), '0.4');
+    await user.click(screen.getByRole('button', { name: 'Add child process under selected stage' }));
     await user.selectOptions(screen.getByLabelText('Portal visibility rule'), 'show-it-readiness:false');
     await user.click(screen.getByRole('button', { name: 'Save package' }));
 
@@ -93,7 +101,8 @@ describe('DesignerShell Timeline Studio', () => {
     const process = saved.processPortfolio.processes.find((entry) => entry.id === 'it-readiness');
     const stage = process?.stages.find((entry) => entry.id === 'prepare-access');
 
-    expect(stage?.stageSpan.start.fraction).toBe(0.4);
+    expect(stage?.childProcessRefs?.at(-1)?.processId).toBe('child-process');
+    expect(stage?.childProcessRefs?.at(-1)?.blocksParent).toBe(true);
     expect(process?.subProcessVisibility).toContainEqual({
       audience: 'portal',
       ruleId: 'show-it-readiness',

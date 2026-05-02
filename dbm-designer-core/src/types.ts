@@ -164,6 +164,13 @@ export type DesignerGraphIntent =
       process?: DbmProcessV1;
     }
   | {
+      kind: 'add-child-process';
+      parentProcessId: string;
+      parentStageId: string;
+      targetIndex?: number;
+      process?: DbmProcessV1;
+    }
+  | {
       kind: 'add-stage';
       processId: string;
       targetIndex?: number;
@@ -195,7 +202,7 @@ export type DesignerGraphIntent =
       kind: 'update-stage';
       processId: string;
       stageId: string;
-      value: Partial<Pick<DbmStageV1, 'displayName' | 'stageCategory' | 'stageKindId' | 'scope' | 'stageSpan' | 'actorId' | 'formId' | 'portalVisibility' | 'statusId' | 'portalStatusId'>>;
+      value: Partial<Pick<DbmStageV1, 'displayName' | 'stageCategory' | 'stageKindId' | 'scope' | 'childProcessRefs' | 'actorId' | 'formId' | 'portalVisibility' | 'statusId' | 'portalStatusId'>>;
     }
   | {
       kind: 'rebind-stage-form';

@@ -1,4 +1,4 @@
-import type { DbmModelV1, DbmProcessV1, DbmStageSpanV1, DbmStageV1 } from 'dbm-contract';
+import type { DbmModelV1, DbmProcessV1, DbmStageV1 } from 'dbm-contract';
 
 type ModelSource = DbmModelV1 | { model: DbmModelV1 };
 
@@ -66,33 +66,13 @@ export function moveWithin<T>(items: T[], currentIndex: number, targetIndex: num
   items.splice(boundedTarget, 0, item);
 }
 
-export function defaultStageSpanForMainStage(stageId: string): DbmStageSpanV1 {
-  return {
-    start: { stageId, fraction: 0 },
-    end: { stageId, fraction: 1 }
-  };
-}
-
-export function defaultStageSpanForSubProcess(model: DbmModelV1): DbmStageSpanV1 {
-  const mainProcess = resolveMainProcess(model);
-  const startStageId = mainProcess.stages[0]?.id ?? '';
-  const endStageId = mainProcess.stages[1]?.id ?? startStageId;
-
-  return {
-    start: { stageId: startStageId, fraction: 0 },
-    end: { stageId: endStageId, fraction: 1 }
-  };
-}
-
-export function normaliseStageSpanForProcess(model: DbmModelV1, process: DbmProcessV1, stage: DbmStageV1): DbmStageV1 {
-  if (stage.stageSpan) {
+export function normaliseChildProcessRefsForStage(stage: DbmStageV1): DbmStageV1 {
+  if (stage.childProcessRefs) {
     return stage;
   }
 
   return {
     ...stage,
-    stageSpan: process.id === model.processPortfolio.mainProcessId
-      ? defaultStageSpanForMainStage(stage.id)
-      : defaultStageSpanForSubProcess(model)
+    childProcessRefs: []
   };
 }

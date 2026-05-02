@@ -66,16 +66,7 @@ function createStage(id: string): DbmStageV1 {
     stageCategory: 'work',
     stageKindId: 'security-screening',
     scope: 'back-office',
-    stageSpan: {
-      start: {
-        stageId: 'offer-accepted',
-        fraction: 0.1
-      },
-      end: {
-        stageId: 'preparation',
-        fraction: 0.9
-      }
-    },
+    childProcessRefs: [],
     actorId: 'security-team',
     formId: null,
     portalVisibility: 'hidden',
@@ -86,7 +77,7 @@ function createStage(id: string): DbmStageV1 {
     entryRuleIds: [],
     exitRuleIds: [],
     allowedOutcomeIds: []
-  };
+  } as unknown as DbmStageV1;
 }
 
 test('loads a generic matrix model and resolves the main process from processPortfolio.mainProcessId', () => {
@@ -100,20 +91,47 @@ test('loads a generic matrix model and resolves the main process from processPor
   assert.equal(document.issues.filter((issue) => issue.level === 'error').length, 0);
 });
 
-test('adds a sub-process without creating legacy model.process data', () => {
+test('adds a child process under a selected parent stage without creating legacy model.process data', () => {
   const document = loadModel(loadGenericMatrixModel());
   const result = addNode(document, {
     kind: 'process',
-    parentId: PROCESS_PORTFOLIO_PROCESSES_NODE_ID,
+    parentId: stageNodeId('onboarding-main', 'preparation'),
     index: 3,
     value: createSubProcess('background-checks', 3)
   });
   const serialized = serializeModel(result.document) as DbmModelV1 & { process?: unknown };
+  const parentStage = serialized.processPortfolio.processes
+    .find((process) => process.id === 'onboarding-main')
+    ?.stages.find((stage) => stage.id === 'preparation') as unknown as { childProcessRefs?: Array<{ processId: string; blocksParent: boolean }> };
+  const addedProcess = serialized.processPortfolio.processes.find((process) => process.id === 'background-checks');
 
   assert.equal(serialized.process, undefined);
-  assert.equal(serialized.processPortfolio.processes.at(-1)?.id, 'background-checks');
-  assert.equal(serialized.processPortfolio.processes.at(-1)?.role, 'sub-process');
+  assert.equal(serialized.processPortfolio.processes[3]?.id, 'background-checks');
+  assert.equal(addedProcess?.role, 'sub-process');
+  assert.deepEqual(parentStage?.childProcessRefs?.at(-1), {
+    id: 'spawn-background-checks',
+    processId: 'background-checks',
+    displayName: 'Background checks',
+    activationRuleId: null,
+    blocksParent: true
+  });
   assert.equal(result.affectedNodeId, processNodeId('background-checks'));
+});
+
+test('adds a grandchild process under a child process stage', () => {
+  const document = loadModel(loadGenericMatrixModel());
+  const result = addNode(document, {
+    kind: 'process',
+    parentId: stageNodeId('it-readiness', 'prepare-access'),
+    value: createSubProcess('security-screening', 4)
+  });
+  const parentStage = result.document.model.processPortfolio.processes
+    .find((process) => process.id === 'it-readiness')
+    ?.stages.find((stage) => stage.id === 'prepare-access') as unknown as { childProcessRefs?: Array<{ processId: string }> };
+
+  assert.equal(parentStage?.childProcessRefs?.at(-1)?.processId, 'security-screening');
+  assert.equal(validateDocument(result.document).some((issue) => issue.code === 'child-process-target-not-found'), false);
+  assert.equal(validateDocument(result.document).some((issue) => issue.code === 'child-process-cycle'), false);
 });
 
 test('adds a generic stage to a selected process', () => {
@@ -133,7 +151,7 @@ test('adds a generic stage to a selected process', () => {
   assert.equal(result.affectedNodeId, stageNodeId('it-readiness', 'security-screening'));
 });
 
-test('reorders stages within a selected process while preserving valid span anchors', () => {
+test('reorders stages within a selected process while preserving child process refs', () => {
   const document = loadModel(loadGenericMatrixModel());
   const result = addNode(document, {
     kind: 'stage',
@@ -148,9 +166,9 @@ test('reorders stages within a selected process while preserving valid span anch
   const process = reordered.document.model.processPortfolio.processes.find((entry) => entry.id === 'it-readiness');
 
   assert.equal(process?.stages[0]?.id, 'security-screening');
-  assert.deepEqual(process?.stages[0]?.stageSpan, createStage('security-screening').stageSpan);
-  assert.equal(reordered.issues.some((issue) => issue.code === 'stage-span-anchor-not-found'), false);
-  assert.equal(reordered.issues.some((issue) => issue.code === 'stage-span-reversed'), false);
+  assert.deepEqual((process?.stages[0] as unknown as { childProcessRefs?: unknown[] })?.childProcessRefs, []);
+  assert.equal(reordered.issues.some((issue) => issue.code === 'child-process-target-not-found'), false);
+  assert.equal(reordered.issues.some((issue) => issue.code === 'child-process-cycle'), false);
 });
 
 test('edits sub-process visibility for form and portal audiences', () => {
@@ -188,7 +206,7 @@ test('edits sub-process visibility for form and portal audiences', () => {
   ]);
 });
 
-test('validates missing or duplicate main process, invalid roles, spans, and ambiguous anchors', () => {
+test('validates missing or duplicate main process, invalid roles, and invalid child process refs', () => {
   const missingMain = loadGenericMatrixModel();
   missingMain.processPortfolio.mainProcessId = 'missing-main';
   assert.equal(validateDocument(loadModel(missingMain)).some((issue) => issue.code === 'main-process-not-found'), true);
@@ -201,15 +219,26 @@ test('validates missing or duplicate main process, invalid roles, spans, and amb
   invalidRole.processPortfolio.processes[1].role = 'supporting' as DbmProcessV1['role'];
   assert.equal(validateDocument(loadModel(invalidRole)).some((issue) => issue.code === 'sub-process-role-invalid'), true);
 
-  const invalidAnchor = loadGenericMatrixModel();
-  invalidAnchor.processPortfolio.processes[1].stages[0].stageSpan.start.stageId = 'missing-stage';
-  assert.equal(validateDocument(loadModel(invalidAnchor)).some((issue) => issue.code === 'stage-span-anchor-not-found'), true);
+  const missingChild = loadGenericMatrixModel();
+  const stage = missingChild.processPortfolio.processes[0].stages[0] as unknown as { childProcessRefs: Array<{ id: string; processId: string; displayName: string; activationRuleId: null; blocksParent: boolean }> };
+  stage.childProcessRefs.push({
+    id: 'spawn-missing',
+    processId: 'missing-process',
+    displayName: 'Missing process',
+    activationRuleId: null,
+    blocksParent: true
+  });
+  assert.equal(validateDocument(loadModel(missingChild)).some((issue) => issue.code === 'child-process-target-not-found'), true);
 
-  const invalidFraction = loadGenericMatrixModel();
-  invalidFraction.processPortfolio.processes[1].stages[0].stageSpan.end.fraction = 1.2;
-  assert.equal(validateDocument(loadModel(invalidFraction)).some((issue) => issue.code === 'stage-span-fraction-out-of-range'), true);
-
-  const ambiguousAnchor = loadGenericMatrixModel();
-  ambiguousAnchor.processPortfolio.processes[0].stages[1].id = 'offer-accepted';
-  assert.equal(validateDocument(loadModel(ambiguousAnchor)).some((issue) => issue.code === 'stage-span-anchor-ambiguous'), true);
+  const circular = loadGenericMatrixModel();
+  const grandchild = circular.processPortfolio.processes.find((process) => process.id === 'access-review');
+  const childStage = grandchild?.stages[0] as unknown as { childProcessRefs: Array<{ id: string; processId: string; displayName: string; activationRuleId: null; blocksParent: boolean }> };
+  childStage.childProcessRefs.push({
+    id: 'cycle-to-root',
+    processId: 'onboarding-main',
+    displayName: 'Cycle to root',
+    activationRuleId: null,
+    blocksParent: true
+  });
+  assert.equal(validateDocument(loadModel(circular)).some((issue) => issue.code === 'child-process-cycle'), true);
 });

@@ -48,7 +48,8 @@
           {
             "id": "draft-request",
             "displayName": "Draft Request",
-            "stageCategory": "start", "stageKindId": "start",
+            "stageCategory": "start",
+            "stageKindId": "start",
             "actorId": "requester",
             "formId": null,
             "portalVisibility": "visible",
@@ -57,18 +58,9 @@
             "exitRuleIds": [],
             "allowedOutcomeIds": [],
             "scope": "portal",
-            "stageSpan": {
-              "start": {
-                "stageId": "draft-request",
-                "fraction": 0
-              },
-              "end": {
-                "stageId": "draft-request",
-                "fraction": 1
-              }
-            },
             "statusId": "draft",
-            "portalStatusId": "draft"
+            "portalStatusId": "draft",
+            "childProcessRefs": []
           }
         ],
         "steps": [],

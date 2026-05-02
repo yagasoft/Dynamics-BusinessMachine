@@ -45,7 +45,7 @@ export function InspectorPanel({ document, selection, snapshot, onPreviewModeCha
   return (
     <aside style={panelStyle}>
       <div style={eyebrowStyle}>Inspector</div>
-      <h2 style={headingStyle}>Timeline Studio selection</h2>
+      <h2 style={headingStyle}>Hierarchy Studio selection</h2>
       {selection?.kind === 'process' ? (
         <p style={copyStyle}>Selected process: {selection.process.displayName}</p>
       ) : selection?.kind === 'stage' ? (

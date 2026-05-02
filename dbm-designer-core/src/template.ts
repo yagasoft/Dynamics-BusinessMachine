@@ -106,10 +106,7 @@ export function createBlankExistingFormTemplate(options: BlankExistingFormStarte
           stageCategory: 'start',
           stageKindId: 'data-capture',
           scope: 'shared',
-          stageSpan: {
-            start: { stageId: 'start-stage', fraction: 0 },
-            end: { stageId: 'start-stage', fraction: 1 }
-          },
+          childProcessRefs: [],
           actorId: 'requester',
           formId: options.primaryForm.id,
           portalVisibility: 'visible',
@@ -127,10 +124,7 @@ export function createBlankExistingFormTemplate(options: BlankExistingFormStarte
           stageCategory: 'end',
           stageKindId: 'complete',
           scope: 'shared',
-          stageSpan: {
-            start: { stageId: 'complete-stage', fraction: 0 },
-            end: { stageId: 'complete-stage', fraction: 1 }
-          },
+          childProcessRefs: [],
           actorId: 'platform',
           formId: null,
           portalVisibility: 'visible',

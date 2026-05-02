@@ -6,11 +6,11 @@ import employeeOnboarding from '../../dbm-contract/fixtures/valid/generic-proces
 import { GraphCanvas } from './graphCanvas';
 
 describe('GraphCanvas', () => {
-  it('renders the React Flow timeline canvas from a process portfolio document', () => {
+  it('renders the React Flow hierarchy canvas from a process portfolio document', () => {
     const document = loadModel(structuredClone(employeeOnboarding as DbmModelV1));
 
     render(<GraphCanvas document={document} onSelectionChange={vi.fn()} />);
 
-    expect(screen.getByTestId('timeline-graph-canvas')).toBeTruthy();
+    expect(screen.getByTestId('hierarchy-graph-canvas')).toBeTruthy();
   });
 });
