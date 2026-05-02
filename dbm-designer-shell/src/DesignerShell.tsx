@@ -128,6 +128,32 @@ function updateVisibilityRules(
   ];
 }
 
+function processHasPathTo(model: DbmModelV1, startProcessId: string, targetProcessId: string): boolean {
+  const processMap = new Map(model.processPortfolio.processes.map((process) => [process.id, process]));
+  const visited = new Set<string>();
+  const stack = [startProcessId];
+
+  while (stack.length > 0) {
+    const processId = stack.pop();
+    if (!processId || visited.has(processId)) {
+      continue;
+    }
+    if (processId === targetProcessId) {
+      return true;
+    }
+    visited.add(processId);
+    processMap.get(processId)?.stages.forEach((stage) => {
+      stage.childProcessRefs.forEach((ref) => stack.push(ref.processId));
+    });
+  }
+
+  return false;
+}
+
+function childRefActionLabel(action: 'Reconnect' | 'Remove', displayName: string): string {
+  return `${action} ${displayName.charAt(0).toLowerCase()}${displayName.slice(1)}`;
+}
+
 function resolveSelectedProcess(document: DesignerDocument | null, selectedProcessId: string | null): DbmProcessV1 | null {
   if (!document) {
     return null;
@@ -147,6 +173,8 @@ export function DesignerShell({ repository }: DesignerShellProps) {
   const [document, setDocument] = useState<DesignerDocument | null>(null);
   const [selectedProcessId, setSelectedProcessId] = useState<string | null>(null);
   const [selectedStageId, setSelectedStageId] = useState<string | null>(null);
+  const [attachChildProcessId, setAttachChildProcessId] = useState('');
+  const [childRefTargetById, setChildRefTargetById] = useState<Record<string, string>>({});
   const [status, setStatus] = useState('Loading packages...');
   const [busy, setBusy] = useState(true);
 
@@ -194,6 +222,28 @@ export function DesignerShell({ repository }: DesignerShellProps) {
   const selectedProcess = useMemo(() => resolveSelectedProcess(document, selectedProcessId), [document, selectedProcessId]);
   const selectedStage = useMemo(() => resolveSelectedStage(selectedProcess, selectedStageId), [selectedProcess, selectedStageId]);
   const processRules = document?.model.rules.filter((rule) => rule.scope === 'process') ?? [];
+  const childAttachCandidates = useMemo(() => {
+    if (!document || !selectedProcess || !selectedStage || !mainProcess) {
+      return [];
+    }
+    return processes.filter((process) =>
+      process.role === 'sub-process' &&
+      process.id !== mainProcess.id &&
+      process.id !== selectedProcess.id &&
+      !selectedStage.childProcessRefs.some((ref) => ref.processId === process.id) &&
+      !processHasPathTo(document.model, process.id, selectedProcess.id)
+    );
+  }, [document, mainProcess, processes, selectedProcess, selectedStage]);
+  const stageTargets = useMemo(() => {
+    return processes.flatMap((process) =>
+      process.stages.map((stage) => ({
+        value: `${process.id}:${stage.id}`,
+        label: `${process.displayName} / ${stage.displayName}`,
+        processId: process.id,
+        stageId: stage.id
+      }))
+    );
+  }, [processes]);
 
   function applyIntent(intent: DesignerGraphIntent, nextSelection?: { processId?: string | null; stageId?: string | null }) {
     if (!document) {
@@ -306,6 +356,22 @@ export function DesignerShell({ repository }: DesignerShellProps) {
     setSelectedStageId(addedStage?.id ?? null);
   }
 
+  function handleRemoveSelectedStage() {
+    if (!selectedProcess || !selectedStage) {
+      return;
+    }
+    applyIntent(
+      {
+        kind: 'remove-node',
+        nodeId: `stage:${selectedProcess.id}:${selectedStage.id}`
+      },
+      {
+        processId: selectedProcess.id,
+        stageId: selectedProcess.stages.find((stage) => stage.id !== selectedStage.id)?.id ?? null
+      }
+    );
+  }
+
   function updateProcess(value: Partial<Pick<DbmProcessV1, 'displayName' | 'processTypeId' | 'mainDisplayMode' | 'subProcessVisibility'>>) {
     if (!selectedProcess) {
       return;
@@ -360,10 +426,61 @@ export function DesignerShell({ repository }: DesignerShellProps) {
 
     applyIntent({
       kind: 'move-stage',
-      processId: selectedProcess.id,
+      sourceProcessId: selectedProcess.id,
       stageId: selectedStage.id,
+      targetProcessId: selectedProcess.id,
       targetIndex: Math.max(0, Math.min(selectedProcess.stages.length - 1, currentIndex + delta))
     });
+  }
+
+  function handleAttachExistingChildProcess() {
+    if (!selectedProcess || !selectedStage || !attachChildProcessId) {
+      return;
+    }
+    applyIntent({
+      kind: 'attach-child-process-ref',
+      parentProcessId: selectedProcess.id,
+      parentStageId: selectedStage.id,
+      childProcessId: attachChildProcessId
+    });
+    setAttachChildProcessId('');
+  }
+
+  function handleDetachChildProcessRef(refId: string) {
+    if (!selectedProcess || !selectedStage) {
+      return;
+    }
+    applyIntent({
+      kind: 'detach-child-process-ref',
+      parentProcessId: selectedProcess.id,
+      parentStageId: selectedStage.id,
+      refId
+    });
+  }
+
+  function handleMoveChildProcessRef(refId: string) {
+    if (!selectedProcess || !selectedStage) {
+      return;
+    }
+    const target = childRefTargetById[refId];
+    const [targetProcessId, targetStageId] = target?.split(':') ?? [];
+    if (!targetProcessId || !targetStageId) {
+      return;
+    }
+    applyIntent(
+      {
+        kind: 'move-child-process-ref',
+        sourceProcessId: selectedProcess.id,
+        sourceStageId: selectedStage.id,
+        refId,
+        targetProcessId,
+        targetStageId
+      },
+      {
+        processId: targetProcessId,
+        stageId: targetStageId
+      }
+    );
   }
 
   function handleGraphSelection(selectionId: string | null) {
@@ -468,7 +585,18 @@ export function DesignerShell({ repository }: DesignerShellProps) {
               </button>
             </div>
           </div>
-          <GraphCanvas document={document} onSelectionChange={handleGraphSelection} />
+          <GraphCanvas
+            document={document}
+            onGraphIntent={(intent) => {
+              const nextDocument = applyIntent(intent);
+              if (intent.kind === 'move-stage') {
+                setSelectedProcessId(intent.targetProcessId ?? intent.sourceProcessId ?? null);
+                setSelectedStageId(intent.stageId);
+              }
+              return nextDocument;
+            }}
+            onSelectionChange={handleGraphSelection}
+          />
           <div style={laneListStyle}>
             {processes.map((process) => (
               <button
@@ -600,12 +728,35 @@ export function DesignerShell({ repository }: DesignerShellProps) {
               <button type="button" style={secondaryButtonStyle} onClick={handleAddChildProcessUnderSelectedStage} disabled={!selectedStage || busy}>
                 Add child process under selected stage
               </button>
+              <button type="button" style={dangerButtonStyle} onClick={handleRemoveSelectedStage} disabled={!selectedStage || busy}>
+                Remove selected stage
+              </button>
             </div>
           </section>
 
           <section style={cardStyle}>
             <h2 style={sectionTitleStyle}>Child process links</h2>
             <p style={sectionCopyStyle}>Parent stage blocked until child process completion</p>
+            <label style={fieldStyle}>
+              <span>Attach existing child process</span>
+              <select
+                aria-label="Attach existing child process"
+                value={attachChildProcessId}
+                onChange={(event) => setAttachChildProcessId(event.target.value)}
+                style={inputStyle}
+                disabled={!selectedStage || childAttachCandidates.length === 0}
+              >
+                <option value="">Choose child process</option>
+                {childAttachCandidates.map((process) => (
+                  <option key={process.id} value={process.id}>
+                    {process.displayName}
+                  </option>
+                ))}
+              </select>
+            </label>
+            <button type="button" style={secondaryButtonStyle} onClick={handleAttachExistingChildProcess} disabled={!attachChildProcessId || busy}>
+              Attach child process
+            </button>
             {selectedStage?.childProcessRefs.length ? (
               <div style={hookListStyle}>
                 {selectedStage.childProcessRefs.map((ref) => (
@@ -613,6 +764,29 @@ export function DesignerShell({ repository }: DesignerShellProps) {
                     <strong>{ref.displayName}</strong>
                     <span>{ref.processId}</span>
                     <span>{ref.blocksParent ? 'Parent stage blocked until child process completion' : 'Parent stage can continue while child process runs'}</span>
+                    <label style={fieldStyle}>
+                      <span>{childRefActionLabel('Reconnect', ref.displayName)}</span>
+                      <select
+                        aria-label={childRefActionLabel('Reconnect', ref.displayName)}
+                        value={childRefTargetById[ref.id] ?? `${selectedProcess?.id ?? ''}:${selectedStage.id}`}
+                        onChange={(event) => setChildRefTargetById((current) => ({ ...current, [ref.id]: event.target.value }))}
+                        style={inputStyle}
+                      >
+                        {stageTargets.map((target) => (
+                          <option key={`${ref.id}:${target.value}`} value={target.value}>
+                            {target.label}
+                          </option>
+                        ))}
+                      </select>
+                    </label>
+                    <div style={buttonRowStyle}>
+                      <button type="button" style={iconButtonStyle} onClick={() => handleMoveChildProcessRef(ref.id)} disabled={busy}>
+                        {childRefActionLabel('Reconnect', ref.displayName)}
+                      </button>
+                      <button type="button" style={dangerButtonStyle} onClick={() => handleDetachChildProcessRef(ref.id)} disabled={busy}>
+                        {childRefActionLabel('Remove', ref.displayName)} from parent stage
+                      </button>
+                    </div>
                   </div>
                 ))}
               </div>
@@ -811,6 +985,16 @@ const secondaryButtonStyle: CSSProperties = {
   color: '#1d4ed8',
   borderRadius: 8,
   padding: '8px 12px',
+  fontWeight: 700,
+  cursor: 'pointer'
+};
+
+const dangerButtonStyle: CSSProperties = {
+  border: '1px solid #dc2626',
+  background: '#fff1f2',
+  color: '#991b1b',
+  borderRadius: 8,
+  padding: '7px 10px',
   fontWeight: 700,
   cursor: 'pointer'
 };

@@ -52,7 +52,7 @@ describe('DesignerShell hierarchy studio', () => {
     expect(screen.getByText('Parent stage')).toBeTruthy();
     expect(screen.getByText('Parent stage blocked until child process completion')).toBeTruthy();
     expect(screen.getByText('Onboarding timeline')).toBeTruthy();
-    expect(screen.getByText('IT readiness')).toBeTruthy();
+    expect(screen.getAllByText('IT readiness').length).toBeGreaterThan(0);
     expect(screen.getByText('Stage hooks')).toBeTruthy();
     expect(screen.getByText('JavaScript hook placeholder')).toBeTruthy();
     expect(screen.getByText('Notification WYSIWYG placeholder')).toBeTruthy();
@@ -64,7 +64,7 @@ describe('DesignerShell hierarchy studio', () => {
     const saveSpy = vi.fn();
     render(<DesignerShell repository={createRepository(createRecord(), saveSpy)} />);
 
-    await screen.findByText('Hierarchy Studio');
+    await screen.findByText('Loaded Employee Onboarding');
     await user.click(screen.getByRole('button', { name: 'Add child process' }));
     await user.click(screen.getByRole('button', { name: 'Add stage' }));
     await user.click(screen.getByRole('button', { name: 'Save package' }));
@@ -108,5 +108,35 @@ describe('DesignerShell hierarchy studio', () => {
       ruleId: 'show-it-readiness',
       visibleWhen: false
     });
+  });
+
+  it('attaches, reconnects, detaches, and removes hierarchy items from the inspector', async () => {
+    const user = userEvent.setup();
+    const saveSpy = vi.fn();
+    render(<DesignerShell repository={createRepository(createRecord(), saveSpy)} />);
+
+    await screen.findByText('Loaded Employee Onboarding');
+    await user.selectOptions(screen.getByLabelText('Selected process'), 'onboarding-main');
+    await user.selectOptions(screen.getByLabelText('Selected stage'), 'first-day');
+    await user.selectOptions(screen.getByLabelText('Attach existing child process'), 'facilities-readiness');
+    await user.click(screen.getByRole('button', { name: 'Attach child process' }));
+    await user.selectOptions(screen.getByLabelText('Reconnect facilities readiness'), 'onboarding-main:onboarding-complete');
+    await user.click(screen.getByRole('button', { name: 'Reconnect facilities readiness' }));
+    await user.click(screen.getByRole('button', { name: 'Remove facilities readiness from parent stage' }));
+    await user.selectOptions(screen.getByLabelText('Selected stage'), 'first-day');
+    await user.click(screen.getByRole('button', { name: 'Remove selected stage' }));
+    await user.click(screen.getByRole('button', { name: 'Save package' }));
+
+    await waitFor(() => expect(saveSpy).toHaveBeenCalled());
+    const saved = JSON.parse(saveSpy.mock.calls.at(-1)?.[0].modelContent) as DbmModelV1 & { process?: unknown; xyflow?: unknown };
+    const main = saved.processPortfolio.processes.find((process) => process.id === 'onboarding-main');
+
+    expect(saved.process).toBeUndefined();
+    expect(saved.xyflow).toBeUndefined();
+    expect(main?.stages.some((stage) => stage.id === 'first-day')).toBe(false);
+    expect(
+      main?.stages.some((stage) => stage.childProcessRefs.some((ref) => ref.processId === 'facilities-readiness'))
+    ).toBe(false);
+    expect(saved.processPortfolio.processes.some((process) => process.id === 'facilities-readiness')).toBe(true);
   });
 });

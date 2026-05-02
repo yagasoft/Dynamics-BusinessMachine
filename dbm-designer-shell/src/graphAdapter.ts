@@ -1,4 +1,4 @@
-import type { Edge, Node } from '@xyflow/react';
+import { MarkerType, type Edge, type Node } from '@xyflow/react';
 import type { DesignerDocument, DesignerGraphIntent } from 'dbm-designer-core';
 import { orderedProcesses, resolveMainProcess } from 'dbm-designer-core';
 
@@ -9,6 +9,11 @@ export interface DesignerGraphAdapter<TGraph, TIntent> {
 }
 
 export type HierarchyNodeKind = 'parent-process' | 'child-process' | 'parent-stage' | 'child-process-stage';
+export type StageHandleSide = 'left' | 'right' | 'child-out';
+
+export const stageNodeType = 'hierarchyStage';
+export const processNodeType = 'hierarchyProcess';
+export const stageDragHandleSelector = '.dbm-stage-drag-handle';
 
 export interface HierarchyNodeData extends Record<string, unknown> {
   kind: HierarchyNodeKind;
@@ -50,6 +55,16 @@ export type XyFlowLibraryIntent =
 const processGapY = 168;
 const stageGapX = 190;
 const stageStartX = 260;
+const stageWidth = 160;
+const stageHeight = 54;
+
+export function stageHandleId(nodeId: string, side: StageHandleSide): string {
+  return `${nodeId}:${side}`;
+}
+
+export function processHandleId(nodeId: string, role: 'parent-in'): string {
+  return `${nodeId}:${role}`;
+}
 
 function childProcessIds(document: DesignerDocument): Set<string> {
   return new Set(document.model.processPortfolio.processes.flatMap((process) =>
@@ -84,7 +99,7 @@ function buildHierarchyGraph(document: DesignerDocument): HierarchyFlowGraphDocu
 
     nodes.push({
       id: processNodeId,
-      type: 'default',
+      type: processNodeType,
       position: { x: 28 + depth * 72, y },
       data: {
         kind: isParent ? 'parent-process' : 'child-process',
@@ -111,7 +126,7 @@ function buildHierarchyGraph(document: DesignerDocument): HierarchyFlowGraphDocu
       const blocksChild = stage.childProcessRefs.some((ref) => ref.blocksParent);
       nodes.push({
         id: nodeId,
-        type: 'default',
+        type: stageNodeType,
         position: { x: 28 + depth * 72 + stageStartX + index * stageGapX, y: y + 36 },
         data: {
           kind: isParent ? 'parent-stage' : 'child-process-stage',
@@ -125,24 +140,35 @@ function buildHierarchyGraph(document: DesignerDocument): HierarchyFlowGraphDocu
           blockedByChild: blocksChild
         },
         style: {
-          width: 160,
-          minHeight: 54,
+          width: stageWidth,
+          minHeight: stageHeight,
           border: blocksChild ? '1px solid #b45309' : isParent ? '1px solid #2563eb' : '1px solid #16a34a',
           background: blocksChild ? '#fffbeb' : isParent ? '#eff6ff' : '#f0fdf4',
           borderRadius: 6,
           fontSize: 12,
           zIndex: 2
-        }
+        },
+        dragHandle: stageDragHandleSelector
       });
 
       const nextStage = process.stages[index + 1];
       if (nextStage) {
+        const targetNodeId = `stage:${process.id}:${nextStage.id}`;
         edges.push({
           id: `stage-sequence:${process.id}:${stage.id}:${nextStage.id}`,
           source: nodeId,
-          target: `stage:${process.id}:${nextStage.id}`,
+          sourceHandle: stageHandleId(nodeId, 'right'),
+          target: targetNodeId,
+          targetHandle: stageHandleId(targetNodeId, 'left'),
           type: 'step',
           zIndex: 1000,
+          markerEnd: {
+            type: MarkerType.ArrowClosed
+          },
+          style: {
+            stroke: isParent ? '#2563eb' : '#16a34a',
+            strokeWidth: 1.8
+          },
           data: {
             kind: 'stage-sequence',
             processId: process.id
@@ -160,9 +186,14 @@ function buildHierarchyGraph(document: DesignerDocument): HierarchyFlowGraphDocu
         edges.push({
           id: `child-process:${process.id}:${stage.id}:${ref.id}`,
           source: nodeId,
+          sourceHandle: stageHandleId(nodeId, 'child-out'),
           target: `hierarchy:${child.id}`,
+          targetHandle: processHandleId(`hierarchy:${child.id}`, 'parent-in'),
           type: 'step',
           zIndex: 1000,
+          markerEnd: {
+            type: MarkerType.ArrowClosed
+          },
           data: {
             kind: 'child-process-link',
             processId: process.id,

@@ -12,5 +12,6 @@ describe('GraphCanvas', () => {
     render(<GraphCanvas document={document} onSelectionChange={vi.fn()} />);
 
     expect(screen.getByTestId('hierarchy-graph-canvas')).toBeTruthy();
+    expect(screen.getAllByTestId('stage-drag-handle').length).toBeGreaterThan(0);
   });
 });

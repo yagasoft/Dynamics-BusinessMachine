@@ -30,4 +30,19 @@ describe('xyflowGraphAdapter hierarchy studio mapping', () => {
     expect(serialized.edges).toBeUndefined();
     expect('process' in serialized).toBe(false);
   });
+
+  it('maps stage sequence edges as directional side-to-side authoring connectors', () => {
+    const document = loadDocument();
+    const flowGraph = xyflowGraphAdapter.toLibraryGraph(document);
+    const sequenceEdge = flowGraph.edges.find((edge) => edge.id === 'stage-sequence:onboarding-main:offer-accepted:preparation');
+    const offerStage = flowGraph.nodes.find((node) => node.id === 'stage:onboarding-main:offer-accepted');
+
+    expect(sequenceEdge?.sourceHandle).toBe('stage:onboarding-main:offer-accepted:right');
+    expect(sequenceEdge?.targetHandle).toBe('stage:onboarding-main:preparation:left');
+    expect(sequenceEdge?.type).toBe('step');
+    expect(sequenceEdge?.zIndex).toBeGreaterThan(900);
+    expect(sequenceEdge?.markerEnd).toMatchObject({ type: 'arrowclosed' });
+    expect(offerStage?.type).toBe('hierarchyStage');
+    expect(offerStage?.dragHandle).toBe('.dbm-stage-drag-handle');
+  });
 });
