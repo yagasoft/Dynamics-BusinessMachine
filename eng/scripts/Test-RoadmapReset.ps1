@@ -102,10 +102,37 @@ foreach ($requiredConcept in @('mainProcessId', 'processes[]', 'subProcessVisibi
 Assert-Contains 'docs\roadmap\release-1-process-stage-designer-and-form-render.md' 'actual model-driven form render' 'R1 must prove actual model-driven form rendering.'
 Assert-Contains 'docs\roadmap\release-1-process-stage-designer-and-form-render.md' 'Portal is contract-only in R1' 'R1 must keep portal to a projection contract only.'
 Assert-Contains 'docs\roadmap\release-1-process-stage-designer-and-form-render.md' 'fractional main-stage span' 'R1 must support fractional main-stage spans.'
+Assert-Contains 'docs\roadmap\release-1-process-stage-designer-and-form-render.md' 'first implementation tests' 'R1 must name the first executable implementation tests after the roadmap reset.'
 Assert-Contains 'docs\roadmap\release-2-dbmscript-and-action-foundation.md' 'JavaScript first' 'R2 must define JavaScript-first DBMScript/action delivery.'
+Assert-Contains 'docs\roadmap\release-2-dbmscript-and-action-foundation.md' 'DBMScript language/runtime contract' 'R2 must define the DBMScript language/runtime contract.'
+Assert-Contains 'docs\roadmap\release-2-dbmscript-and-action-foundation.md' 'DBM Object' 'R2 must treat DBM Object as a first-class companion to DBMScript.'
+Assert-Contains 'docs\roadmap\release-2-dbmscript-and-action-foundation.md' 'browser, model-driven, plugin/server, and Dataverse/Jint execution contexts' 'R2 must name the supported execution-context planning boundary.'
+Assert-Contains 'docs\roadmap\release-2-dbmscript-and-action-foundation.md' 'version history' 'R2 must include script/object lifecycle and version history.'
+Assert-Contains 'docs\roadmap\release-2-dbmscript-and-action-foundation.md' 'query editor' 'R2 must preserve the query editor requirement from the original notes.'
+Assert-Contains 'docs\roadmap\release-2-dbmscript-and-action-foundation.md' 'test case support' 'R2 must include script and object test case support.'
 Assert-Contains 'docs\roadmap\release-3-back-office-runtime.md' 'model-driven forms' 'R3 must focus on back-office/model-driven runtime execution.'
+Assert-Contains 'docs\roadmap\release-3-back-office-runtime.md' 'process sessions' 'R3 must explicitly define process session semantics.'
+Assert-Contains 'docs\roadmap\release-3-back-office-runtime.md' 'process instance per row, user, role, or owner' 'R3 must support configured row/user/role/owner process instances.'
+Assert-Contains 'docs\roadmap\release-3-back-office-runtime.md' 'record-level and user-level process switching' 'R3 must include record-level and user-level process switching.'
+Assert-Contains 'docs\roadmap\release-3-back-office-runtime.md' 'show Next' 'R3 must distinguish manual Next progression from automatic transition.'
+Assert-Contains 'docs\roadmap\release-3-back-office-runtime.md' 'automatic transition' 'R3 must support automatic progression when conditions are met.'
+Assert-Contains 'docs\roadmap\release-3-back-office-runtime.md' 'parallel branches' 'R3 must include parallel branch semantics.'
+Assert-Contains 'docs\roadmap\release-3-back-office-runtime.md' 'FetchXML' 'R3 must include FetchXML condition support.'
+Assert-Contains 'docs\roadmap\release-3-back-office-runtime.md' 'backend condition evaluation on load and save' 'R3 must document backend condition timing.'
+Assert-Contains 'docs\roadmap\release-3-back-office-runtime.md' 'XRM/form-context helpers' 'R3 must tie form behaviour to XRM/form-context helpers.'
 Assert-Contains 'docs\roadmap\release-5-portal-runtime-and-return-path.md' 'actual portal rendering' 'R5 must own actual portal rendering and return path.'
+Assert-Contains 'docs\roadmap\release-7-platform-tooling-and-alm.md' 'auto-integration discovery' 'R7 must define auto-integration as a concrete discovery slice instead of leaving it vague.'
 Assert-Contains 'docs\roadmap\release-9-ai-assisted-platform.md' 'after the basic product is stable' 'R9 must defer AI until the basic product is stable.'
+
+foreach ($historicalRunbook in @(
+    'docs\runbooks\r1-decisions-log.md',
+    'docs\runbooks\release-performance-baseline.md',
+    'docs\runbooks\r2-process-experience-hosting.md',
+    'docs\runbooks\r3-portal-runtime-dev-proof.md',
+    'docs\runbooks\live-connected-e2e.md'
+)) {
+    Assert-Contains $historicalRunbook 'Historical/prototype reference' "Old runbook must be marked as historical/prototype reference: $historicalRunbook"
+}
 
 Assert-Contains 'docs\architecture\current-state-baseline.md' 'prototype/reference material' 'Current-state baseline must classify current implementation as prototype/reference material.'
 Assert-Contains 'docs\architecture\target-platform-architecture.md' 'process portfolio' 'Target architecture must describe the new process portfolio model.'

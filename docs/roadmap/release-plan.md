@@ -51,7 +51,8 @@ Minimum reset concepts:
 - `stageSpan`: defines where each stage appears on the main-process timeline. A span may cover a full main stage, several main stages, or fractional main-stage spans.
 - Stage feature hooks: entry/exit conditions, branching, previous-stage transitions, notifications, routing, SLA/KPI, tasks, validations, actions, status, and portal status.
 - Notifications: modelled as table row templates plus send actions, not as a separate hard-coded notification subsystem.
-- DBMScript/action vNext: JavaScript first, with TypeScript, richer transpilation, and richer editor modes deferred until the JS foundation is proven.
+- DBMScript/action vNext: JavaScript first, with DBMScript language/runtime contract, DBM Object composition, browser/model-driven/server execution planning, TypeScript, richer transpilation, and richer editor modes deferred until the JS foundation is proven.
+- Runtime vNext: process sessions, process instance per row/user/role/owner where configured, record-level and user-level switching, manual show Next transitions, automatic transition, parallel branches, condition timing, and XRM/form-context helpers are explicit roadmap concepts.
 
 ## Release summaries
 
@@ -69,13 +70,13 @@ Details: [release-1-process-stage-designer-and-form-render.md](release-1-process
 
 ### Release 2
 
-`R2` rebuilds the action foundation around DBMScript and JavaScript-first execution. It makes action definitions, trigger hooks, table row templates, WYSIWYG notification templates, dependency loading, output handling, and safe execution planning ready for later runtime work.
+`R2` rebuilds the action foundation around DBMScript, DBM Object, and JavaScript-first execution. It makes action definitions, trigger hooks, table row templates, WYSIWYG notification templates, query/rich editor hooks, dependency loading, output handling, version history, test case support, and safe execution planning ready for later runtime work.
 
 Details: [release-2-dbmscript-and-action-foundation.md](release-2-dbmscript-and-action-foundation.md)
 
 ### Release 3
 
-`R3` turns the designed process into a back-office runtime in Dataverse/model-driven forms. It owns process instances, transition evaluation, status persistence, form behaviour, action triggers, and scoped execution.
+`R3` turns the designed process into a back-office runtime in Dataverse/model-driven forms. It owns process sessions, scoped process instances, process switching, transition evaluation, status persistence, form behaviour, action triggers, and scoped execution.
 
 Details: [release-3-back-office-runtime.md](release-3-back-office-runtime.md)
 
@@ -99,7 +100,7 @@ Details: [release-6-reuse-templates-artefacts-and-documents.md](release-6-reuse-
 
 ### Release 7
 
-`R7` adds platform tooling and ALM depth: DBM Manager, source sync, XrmToolBox script playground, DBM Solution packaging, solution-aware versioning, DBM Tree, enhanced jobs, auto-integration, and on-premise automation where still relevant.
+`R7` adds platform tooling and ALM depth: DBM Manager, source sync, XrmToolBox script playground, DBM Solution packaging, solution-aware versioning, DBM Tree, enhanced jobs, auto-integration discovery, and on-premise automation where still relevant.
 
 Details: [release-7-platform-tooling-and-alm.md](release-7-platform-tooling-and-alm.md)
 

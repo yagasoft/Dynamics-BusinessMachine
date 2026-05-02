@@ -7,12 +7,16 @@ Execute designed processes inside Dataverse and model-driven forms after the R1 
 ## Feature set and deliverables
 
 - Process instance creation and persistence.
-- Row, user, role, and owner scoped execution.
+- Process sessions for row, user, role, and owner scoped execution.
+- Configured process instance per row, user, role, or owner.
+- Record-level and user-level process switching.
 - Main process and sub-process runtime state.
 - Stage entry/exit condition evaluation.
-- Branching, convergence, and previous-stage transition support.
+- Transition mode support for manual show Next progression and automatic transition when a condition is met.
+- Parallel branches, branching, convergence, and previous-stage transition support.
+- Condition types and timing for expression, FetchXML, and action-backed conditions, including backend condition evaluation on load and save.
 - Action trigger execution for stage and form events.
-- Form behaviour orchestration on model-driven forms.
+- Form behaviour orchestration on model-driven forms through XRM/form-context helpers.
 - Internal status and portal-status projection fields.
 - Runtime diagnostics for why a transition or action did or did not run.
 
@@ -27,8 +31,10 @@ Must include:
 - `ys_processinstance` binding strategy
 - row-scoped and user-scoped sessions
 - role/owner scoped instance strategy
+- process instance per row, user, role, or owner where configured
 - process switching context
 - record-level and user-level switching rules
+- flow-session access view and table-form access view
 
 ### R3.2 Transition runtime
 
@@ -38,7 +44,13 @@ Output:
 Must include:
 - entry conditions
 - exit conditions
+- expression, FetchXML, and action-backed condition evaluation
+- backend condition evaluation on load and save
+- show Next transition mode
+- automatic transition when conditions are met
 - branch selection
+- parallel branches
+- convergence after parallel branches
 - previous-stage transitions
 - action-trigger coordination
 - transition diagnostics
@@ -53,7 +65,7 @@ Must include:
 - lock/unlock controls
 - requirement changes
 - stage-specific form behaviour
-- reusable XRM helper based on the prototype/EAGiL idea
+- reusable XRM/form-context helpers based on the prototype/EAGiL idea
 
 ### R3.4 Runtime hardening
 
@@ -71,5 +83,6 @@ Must include:
 
 - A business user can progress through a process on model-driven forms.
 - DBM persists process instance state and projected status.
+- DBM can keep separate process sessions where row, user, role, or owner scoping requires it.
 - Stage transitions and actions run in the correct back-office contexts.
 - Portal runtime is still deferred to `R5`.

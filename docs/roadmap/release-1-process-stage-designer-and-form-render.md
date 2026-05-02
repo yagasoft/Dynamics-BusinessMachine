@@ -34,6 +34,7 @@ Must include:
 - whole-stage and fractional span anchors
 - stage scope for portal, back office, or shared usage
 - portal projection contract without actual portal rendering
+- first implementation tests for main process visibility, conditional sub-process visibility, whole-stage spans, fractional spans, collapsed main-process rendering, and portal projection contract output
 
 ### R1.2 Designer authoring foundation
 
@@ -74,6 +75,16 @@ Must include:
 - form-render smoke proof
 - portal projection contract tests
 - migration notes from prototype/reference assets
+
+## First implementation tests
+
+The first implementation tests after this roadmap refinement must prove the new `R1.1` contract before any designer or renderer code is treated as product baseline:
+
+- main process visibility is mandatory
+- conditional sub-process visibility is evaluated for rendered form and portal projection contexts
+- whole-stage and fractional `stageSpan` anchors validate against the main-process timeline
+- collapsed main-process rendering still preserves the business-user process status
+- portal projection contract output exists without invoking actual portal runtime
 
 ## Exit criteria
 

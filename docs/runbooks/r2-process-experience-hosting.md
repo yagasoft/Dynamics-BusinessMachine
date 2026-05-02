@@ -1,5 +1,7 @@
 # R2 Process Experience Hosting
 
+Historical/prototype reference: this runbook records the old `R2` process-experience hosting line. It is not active roadmap authority after [ADR-0016](../adr/0016-product-roadmap-reset-process-first.md); use [the current release plan](../roadmap/release-plan.md) for the process-first `R1` to `R9` roadmap.
+
 This runbook is the release-shaped operator guide for the `R2` DBM-owned process experience hosted in model-driven forms.
 
 ## Scope

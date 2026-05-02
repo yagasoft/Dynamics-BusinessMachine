@@ -11,9 +11,9 @@ This section defines how DBM releases are governed and documented.
 - [r0-close-out-0.2.0.md](r0-close-out-0.2.0.md)
   - formal R0 close-out record for the `0.2.0` line
 - [r1-close-out-0.3.0.md](r1-close-out-0.3.0.md)
-  - formal R1 close-out record for the `0.3.0` line
+  - historical/prototype reference close-out record for the old `0.3.0` line
 - [r1-release-note-0.3.0.md](r1-release-note-0.3.0.md)
-  - release-note summary for the `0.3.0` builder-platform MVP line
+  - historical/prototype reference release-note summary for the old `0.3.0` line
 
 ## Usage
 
