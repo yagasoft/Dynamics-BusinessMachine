@@ -38,7 +38,7 @@
       {
         "id": "approval-request-process",
         "displayName": "Approval Request",
-        "scenarioType": "approval-request",
+        "processTypeId": "approval-request",
         "actors": [],
         "variables": [],
         "statuses": [],
@@ -48,7 +48,7 @@
           {
             "id": "draft-request",
             "displayName": "Draft Request",
-            "stageType": "start",
+            "stageCategory": "start", "stageKindId": "start",
             "actorId": "requester",
             "formId": null,
             "portalVisibility": "visible",

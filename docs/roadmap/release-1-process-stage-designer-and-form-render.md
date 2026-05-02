@@ -15,6 +15,7 @@ Portal is contract-only in R1. Actual portal runtime and portal rendering land i
 - Conditional sub-process visibility for form and portal projection rules.
 - Main-process collapse option for a slim rendered bar.
 - Stage hook model for entry/exit conditions, branching, notifications, routing, SLA/KPI, tasks, validations, actions, status, and portal status.
+- Generic user-defined vocabulary for process types, actor roles, stage kinds, work kinds, statuses, outcomes, sub-processes, and visibility rules.
 - Designer authoring for processes, sub-processes, stages, spans, and visibility.
 - Actual model-driven form render for the business user.
 - Portal projection contract only, including visible/hidden stage rules and portal status fields.
@@ -36,7 +37,26 @@ Must include:
 - portal projection contract without actual portal rendering
 - first implementation tests for main process visibility, conditional sub-process visibility, whole-stage spans, fractional spans, collapsed main-process rendering, and portal projection contract output
 
-### R1.2 Designer authoring foundation
+### R1.2 Generic process design contract
+
+Output:
+- active contract proof that the user can define any process shape without approval/request being the canonical product model
+
+Must include:
+- user-defined process type through `processTypeId`
+- user-defined actor roles through `actorCategory` and `roleKey`
+- user-defined stage kinds through `stageCategory` and `stageKindId`
+- generic task/work definitions through `workCategory` and `workKindId`
+- user-defined statuses, outcomes, sub-processes, and visibility rules
+- no active roadmap or contract proof that treats one domain example as the default product shape
+- a generic fixture matrix as the active contract proof:
+  - linear service fulfilment for a simple portal-to-back-office-to-portal flow
+  - employee onboarding for parallel HR, IT, and facilities sub-processes spanning a main timeline
+  - case investigation for a back-office-only process with internal visibility and branching
+  - document lifecycle for draft, check, revise, publish, and previous-stage/rework transition hooks
+  - field inspection for scheduling, visit, evidence capture, closure, fractional spans, and portal-safe projection
+
+### R1.3 Designer authoring foundation
 
 Output:
 - designer support for main process and sub-process lane authoring
@@ -49,7 +69,7 @@ Must include:
 - stage feature hook placeholders for later releases
 - validation for invalid spans, missing main process, and ambiguous stage anchors
 
-### R1.3 Rendered form experience
+### R1.4 Rendered form experience
 
 Output:
 - actual model-driven form render of the process portfolio
@@ -63,7 +83,7 @@ Must include:
 - business-user-safe labels and status display
 - no portal runtime dependency
 
-### R1.4 R1 hardening
+### R1.5 R1 hardening
 
 Output:
 - release-quality R1 docs, tests, examples, and acceptance evidence

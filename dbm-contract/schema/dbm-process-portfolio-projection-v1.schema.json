@@ -141,9 +141,13 @@
           "type": "string",
           "title": "displayName"
         },
-        "stageType": {
-          "$ref": "#/definitions/DbmStageTypeV1",
-          "title": "stageType"
+        "stageCategory": {
+          "$ref": "#/definitions/DbmStageCategoryV1",
+          "title": "stageCategory"
+        },
+        "stageKindId": {
+          "type": "string",
+          "title": "stageKindId"
         },
         "scope": {
           "$ref": "#/definitions/DbmStageScopeV1",
@@ -176,19 +180,21 @@
         "portalStatusId",
         "portalVisibility",
         "scope",
+        "stageCategory",
+        "stageKindId",
         "stageSpan",
-        "stageType",
         "statusId"
       ]
     },
-    "DbmStageTypeV1": {
-      "title": "DbmStageTypeV1",
+    "DbmStageCategoryV1": {
+      "title": "DbmStageCategoryV1",
       "enum": [
-        "approval",
+        "decision",
         "end",
+        "milestone",
         "start",
         "system",
-        "task"
+        "work"
       ],
       "type": "string"
     },

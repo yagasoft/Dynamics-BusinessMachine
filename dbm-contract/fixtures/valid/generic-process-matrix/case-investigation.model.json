@@ -1,0 +1,212 @@
+{
+  "schemaVersion": "dbm.model/v1",
+  "package": {
+    "id": "dbm-case-investigation",
+    "displayName": "Case Investigation",
+    "version": "1.2.0",
+    "publisher": {
+      "name": "Dynamics Business Machine",
+      "website": "https://example.invalid/dbm",
+      "prefix": "dbm"
+    },
+    "entryProcessId": "legacy-entry-not-authoritative",
+    "supportedHosts": ["model-driven"],
+    "supportedRuntimes": ["pcf", "dataverse"],
+    "processUiSurfaces": ["model-driven"],
+    "exposesPortalState": false,
+    "ownsGeneratedDataverseArtifacts": true,
+    "compatibility": {
+      "minimumReaderSchemaVersion": "dbm.model/v1",
+      "maximumReaderSchemaVersion": "dbm.model/v1",
+      "breakingChangePolicy": "reject-newer-major"
+    },
+    "deployment": {
+      "solutionName": "DBM Case Investigation",
+      "releaseLine": "R1.2",
+      "artifactRoot": "artifacts/dbm-case-investigation"
+    }
+  },
+  "processPortfolio": {
+    "mainProcessId": "investigation-main",
+    "processes": [
+      {
+        "id": "investigation-main",
+        "displayName": "Investigation case",
+        "role": "main",
+        "processTypeId": "case-investigation",
+        "mainDisplayMode": "expanded",
+        "statusId": "triage",
+        "portalStatusId": null,
+        "actors": [
+          { "id": "case-owner", "displayName": "Case owner", "actorCategory": "person", "roleKey": "case-owner", "source": "field-binding" },
+          { "id": "investigation-team", "displayName": "Investigation team", "actorCategory": "team", "roleKey": "investigation-team", "source": "rule-derived" },
+          { "id": "platform", "displayName": "Platform", "actorCategory": "system", "roleKey": "platform", "source": "system" }
+        ],
+        "variables": [
+          { "id": "case-risk", "dataType": "choice", "scope": "process", "defaultValue": "standard", "persistence": "persisted" }
+        ],
+        "statuses": [
+          { "id": "triage", "displayName": "Triage", "audience": "internal", "kind": "progress" },
+          { "id": "investigating", "displayName": "Investigating", "audience": "internal", "kind": "progress" },
+          { "id": "decision-ready", "displayName": "Decision ready", "audience": "internal", "kind": "decision" },
+          { "id": "closed", "displayName": "Closed", "audience": "internal", "kind": "terminal" }
+        ],
+        "tasks": [
+          { "id": "triage-case-task", "displayName": "Triage case", "workCategory": "decision", "workKindId": "triage-case", "instructions": "Classify the case and choose the next path." },
+          { "id": "collect-evidence-task", "displayName": "Collect evidence", "workCategory": "work", "workKindId": "collect-evidence", "instructions": "Collect and record evidence." }
+        ],
+        "notifications": [],
+        "stages": [
+          {
+            "id": "case-triage",
+            "displayName": "Case triage",
+            "stageCategory": "start",
+            "stageKindId": "internal-triage",
+            "scope": "back-office",
+            "stageSpan": {
+              "start": { "stageId": "case-triage", "fraction": 0 },
+              "end": { "stageId": "case-triage", "fraction": 1 }
+            },
+            "actorId": "case-owner",
+            "formId": "case-form",
+            "portalVisibility": "hidden",
+            "statusId": "triage",
+            "portalStatusId": null,
+            "stepIds": ["triage-case-step"],
+            "defaultStepId": "triage-case-step",
+            "entryRuleIds": [],
+            "exitRuleIds": [],
+            "allowedOutcomeIds": ["standard-path", "deep-path"]
+          },
+          {
+            "id": "evidence-work",
+            "displayName": "Evidence work",
+            "stageCategory": "work",
+            "stageKindId": "evidence-collection",
+            "scope": "back-office",
+            "stageSpan": {
+              "start": { "stageId": "evidence-work", "fraction": 0 },
+              "end": { "stageId": "evidence-work", "fraction": 1 }
+            },
+            "actorId": "investigation-team",
+            "formId": "case-form",
+            "portalVisibility": "hidden",
+            "statusId": "investigating",
+            "portalStatusId": null,
+            "stepIds": ["collect-evidence-step"],
+            "defaultStepId": "collect-evidence-step",
+            "entryRuleIds": [],
+            "exitRuleIds": ["evidence-ready"],
+            "allowedOutcomeIds": ["prepare-decision"]
+          },
+          {
+            "id": "case-decision",
+            "displayName": "Case decision",
+            "stageCategory": "decision",
+            "stageKindId": "case-outcome",
+            "scope": "back-office",
+            "stageSpan": {
+              "start": { "stageId": "case-decision", "fraction": 0 },
+              "end": { "stageId": "case-decision", "fraction": 1 }
+            },
+            "actorId": "case-owner",
+            "formId": "case-form",
+            "portalVisibility": "hidden",
+            "statusId": "decision-ready",
+            "portalStatusId": null,
+            "stepIds": [],
+            "defaultStepId": null,
+            "entryRuleIds": [],
+            "exitRuleIds": ["decision-recorded"],
+            "allowedOutcomeIds": ["close-case"]
+          },
+          {
+            "id": "case-closed",
+            "displayName": "Case closed",
+            "stageCategory": "end",
+            "stageKindId": "internal-closure",
+            "scope": "back-office",
+            "stageSpan": {
+              "start": { "stageId": "case-closed", "fraction": 0 },
+              "end": { "stageId": "case-closed", "fraction": 1 }
+            },
+            "actorId": "platform",
+            "formId": null,
+            "portalVisibility": "hidden",
+            "statusId": "closed",
+            "portalStatusId": null,
+            "stepIds": [],
+            "defaultStepId": null,
+            "entryRuleIds": [],
+            "exitRuleIds": [],
+            "allowedOutcomeIds": []
+          }
+        ],
+        "steps": [
+          {
+            "id": "triage-case-step",
+            "stageId": "case-triage",
+            "displayName": "Triage case",
+            "workCategory": "decision",
+            "workKindId": "triage-case",
+            "ownerActorId": "case-owner",
+            "notificationId": null,
+            "taskId": "triage-case-task",
+            "internalStatusId": "triage",
+            "portalStatusId": null,
+            "formStateId": null,
+            "entryRuleIds": [],
+            "exitRuleIds": []
+          },
+          {
+            "id": "collect-evidence-step",
+            "stageId": "evidence-work",
+            "displayName": "Collect evidence",
+            "workCategory": "work",
+            "workKindId": "collect-evidence",
+            "ownerActorId": "investigation-team",
+            "notificationId": null,
+            "taskId": "collect-evidence-task",
+            "internalStatusId": "investigating",
+            "portalStatusId": null,
+            "formStateId": null,
+            "entryRuleIds": [],
+            "exitRuleIds": ["evidence-ready"]
+          }
+        ],
+        "transitions": [
+          { "id": "standard-to-decision", "fromStageId": "case-triage", "toStageId": "case-decision", "outcomeId": "standard-path", "guardRuleId": "standard-case" },
+          { "id": "deep-to-evidence", "fromStageId": "case-triage", "toStageId": "evidence-work", "outcomeId": "deep-path", "guardRuleId": "deep-case" },
+          { "id": "evidence-to-decision", "fromStageId": "evidence-work", "toStageId": "case-decision", "outcomeId": "prepare-decision", "guardRuleId": "evidence-ready" },
+          { "id": "close-case", "fromStageId": "case-decision", "toStageId": "case-closed", "outcomeId": "close-case", "guardRuleId": "decision-recorded" }
+        ],
+        "stepTransitions": [],
+        "outcomes": [
+          { "id": "standard-path", "displayName": "Standard path" },
+          { "id": "deep-path", "displayName": "Deep path" },
+          { "id": "prepare-decision", "displayName": "Prepare decision" },
+          { "id": "close-case", "displayName": "Close case" }
+        ]
+      }
+    ]
+  },
+  "forms": [],
+  "metadata": { "entities": [], "relationships": [] },
+  "rules": [
+    { "id": "standard-case", "displayName": "Standard case", "ruleType": "condition", "scope": "transition", "language": "dbm-expression-v1", "body": "true" },
+    { "id": "deep-case", "displayName": "Deep case", "ruleType": "condition", "scope": "transition", "language": "dbm-expression-v1", "body": "true" },
+    { "id": "evidence-ready", "displayName": "Evidence ready", "ruleType": "condition", "scope": "transition", "language": "dbm-expression-v1", "body": "true" },
+    { "id": "decision-recorded", "displayName": "Decision recorded", "ruleType": "condition", "scope": "transition", "language": "dbm-expression-v1", "body": "true" }
+  ],
+  "runtime": {
+    "capabilities": ["render-form"],
+    "requestContract": { "schemaVersion": "dbm.runtime.request/v1", "operations": ["load-form"] },
+    "resultContract": { "schemaVersion": "dbm.runtime.result/v1", "statuses": ["ok"] },
+    "ownership": {
+      "pcf": { "responsibilities": ["form-rendering"] },
+      "dataverse": { "responsibilities": ["authoritative-persistence"] },
+      "azure": { "responsibilities": ["support-services-only"] }
+    }
+  },
+  "artifacts": []
+}

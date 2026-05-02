@@ -20,11 +20,13 @@ export type DbmPortalRuntimeEntryFieldDataTypeV1 =
   | 'date';
 
 export type DbmActorTypeV1 = 'requester' | 'approver' | 'system';
+export type DbmActorCategoryV1 = 'person' | 'team' | 'system' | 'external';
 export type DbmActorSourceV1 = 'current-user' | 'field-binding' | 'rule-derived' | 'system';
 export type DbmVariableScopeV1 = 'process';
 export type DbmVariablePersistenceV1 = 'runtime-only' | 'persisted';
 
 export type DbmStageTypeV1 = 'start' | 'task' | 'approval' | 'system' | 'end';
+export type DbmStageCategoryV1 = 'start' | 'work' | 'decision' | 'system' | 'milestone' | 'end';
 export type DbmStagePortalVisibilityV1 = 'visible' | 'hidden';
 export type DbmProcessRoleV1 = 'main' | 'sub-process';
 export type DbmStageScopeV1 = 'portal' | 'back-office' | 'shared';
@@ -32,6 +34,7 @@ export type DbmProcessPortfolioProjectionAudienceV1 = 'form' | 'portal';
 export type DbmMainProcessDisplayModeV1 = 'expanded' | 'collapsed';
 
 export type DbmStepTypeV1 = 'data-entry' | 'review' | 'approval' | 'system';
+export type DbmWorkCategoryV1 = 'data' | 'work' | 'decision' | 'system' | 'milestone';
 
 export type DbmStatusAudienceV1 = 'internal' | 'portal' | 'shared';
 export type DbmStatusKindV1 = 'progress' | 'decision' | 'terminal';
@@ -150,7 +153,8 @@ export interface DbmPackageV1 {
 export interface DbmActorV1 {
   id: string;
   displayName: string;
-  actorType: DbmActorTypeV1;
+  actorCategory: DbmActorCategoryV1;
+  roleKey: string;
   source: DbmActorSourceV1;
 }
 
@@ -172,7 +176,8 @@ export interface DbmStatusV1 {
 export interface DbmTaskDefinitionV1 {
   id: string;
   displayName: string;
-  taskType: DbmTaskTypeV1;
+  workCategory: DbmWorkCategoryV1;
+  workKindId: string;
   instructions: string | null;
 }
 
@@ -196,7 +201,8 @@ export interface DbmStageSpanV1 {
 export interface DbmStageV1 {
   id: string;
   displayName: string;
-  stageType: DbmStageTypeV1;
+  stageCategory: DbmStageCategoryV1;
+  stageKindId: string;
   scope: DbmStageScopeV1;
   stageSpan: DbmStageSpanV1;
   actorId: string;
@@ -215,7 +221,8 @@ export interface DbmStepV1 {
   id: string;
   stageId: string;
   displayName: string;
-  stepType: DbmStepTypeV1;
+  workCategory: DbmWorkCategoryV1;
+  workKindId: string;
   ownerActorId: string;
   notificationId: string | null;
   taskId: string | null;
@@ -265,7 +272,7 @@ export interface DbmProcessV1 {
   id: string;
   displayName: string;
   role: DbmProcessRoleV1;
-  scenarioType: string;
+  processTypeId: string;
   mainDisplayMode: DbmMainProcessDisplayModeV1;
   statusId: string;
   portalStatusId: string | null;
@@ -490,7 +497,8 @@ export interface DbmProcessPortfolioProjectionContextV1 {
 export interface DbmProcessPortfolioProjectionStageV1 {
   id: string;
   displayName: string;
-  stageType: DbmStageTypeV1;
+  stageCategory: DbmStageCategoryV1;
+  stageKindId: string;
   scope: DbmStageScopeV1;
   stageSpan: DbmStageSpanV1;
   portalVisibility: DbmStagePortalVisibilityV1;
@@ -656,7 +664,8 @@ function projectProcess(
     stages: process.stages.map((stage) => ({
       id: stage.id,
       displayName: stage.displayName,
-      stageType: stage.stageType,
+      stageCategory: stage.stageCategory,
+      stageKindId: stage.stageKindId,
       scope: stage.scope,
       stageSpan: stage.stageSpan,
       portalVisibility: stage.portalVisibility,

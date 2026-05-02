@@ -33,14 +33,14 @@
         "id": "approval-main",
         "displayName": "Approval Main Process",
         "role": "main",
-        "scenarioType": "approval-request",
+        "processTypeId": "approval-request",
         "mainDisplayMode": "expanded",
         "statusId": "under-review",
         "portalStatusId": "under-review",
         "actors": [
-          { "id": "requester", "displayName": "Requester", "actorType": "requester", "source": "current-user" },
-          { "id": "manager", "displayName": "Manager", "actorType": "approver", "source": "field-binding" },
-          { "id": "platform", "displayName": "Platform", "actorType": "system", "source": "system" }
+          { "id": "requester", "displayName": "Requester", "actorCategory": "person", "roleKey": "requester", "source": "current-user" },
+          { "id": "manager", "displayName": "Manager", "actorCategory": "team", "roleKey": "approver", "source": "field-binding" },
+          { "id": "platform", "displayName": "Platform", "actorCategory": "system", "roleKey": "system", "source": "system" }
         ],
         "variables": [
           { "id": "request-status", "dataType": "choice", "scope": "process", "defaultValue": "draft", "persistence": "persisted" },
@@ -57,7 +57,7 @@
           {
             "id": "draft-request",
             "displayName": "Draft Request",
-            "stageType": "start",
+            "stageCategory": "start", "stageKindId": "start",
             "scope": "portal",
             "stageSpan": {
               "start": { "stageId": "draft-request", "fraction": 0 },
@@ -77,7 +77,7 @@
           {
             "id": "review-request",
             "displayName": "Review Request",
-            "stageType": "approval",
+            "stageCategory": "decision", "stageKindId": "approval",
             "scope": "back-office",
             "stageSpan": {
               "start": { "stageId": "review-request", "fraction": 0 },
@@ -97,7 +97,7 @@
           {
             "id": "resolution",
             "displayName": "Resolution",
-            "stageType": "end",
+            "stageCategory": "end", "stageKindId": "end",
             "scope": "shared",
             "stageSpan": {
               "start": { "stageId": "resolution", "fraction": 0 },
@@ -120,7 +120,7 @@
             "id": "capture-request",
             "stageId": "draft-request",
             "displayName": "Capture Request",
-            "stepType": "data-entry",
+            "workCategory": "data", "workKindId": "data-entry",
             "ownerActorId": "requester",
             "notificationId": null,
             "taskId": null,
@@ -134,7 +134,7 @@
             "id": "choose-decision",
             "stageId": "review-request",
             "displayName": "Choose Decision",
-            "stepType": "approval",
+            "workCategory": "decision", "workKindId": "approval",
             "ownerActorId": "manager",
             "notificationId": null,
             "taskId": null,
@@ -159,7 +159,7 @@
         "id": "internal-screening",
         "displayName": "Internal Screening",
         "role": "sub-process",
-        "scenarioType": "approval-request-screening",
+        "processTypeId": "approval-request-screening",
         "mainDisplayMode": "expanded",
         "statusId": "under-review",
         "portalStatusId": "under-review",
@@ -169,7 +169,7 @@
           { "audience": "portal", "ruleId": "show-internal-screening-on-portal", "visibleWhen": true }
         ],
         "actors": [
-          { "id": "manager", "displayName": "Manager", "actorType": "approver", "source": "field-binding" }
+          { "id": "manager", "displayName": "Manager", "actorCategory": "team", "roleKey": "approver", "source": "field-binding" }
         ],
         "variables": [],
         "statuses": [
@@ -181,7 +181,7 @@
           {
             "id": "screen-supporting-details",
             "displayName": "Screen Supporting Details",
-            "stageType": "task",
+            "stageCategory": "work", "stageKindId": "task",
             "scope": "back-office",
             "stageSpan": {
               "start": { "stageId": "draft-request", "fraction": 0.5 },
@@ -204,7 +204,7 @@
             "id": "screen-request",
             "stageId": "screen-supporting-details",
             "displayName": "Screen Request",
-            "stepType": "review",
+            "workCategory": "work", "workKindId": "review",
             "ownerActorId": "manager",
             "notificationId": null,
             "taskId": null,
@@ -223,7 +223,7 @@
         "id": "portal-follow-up",
         "displayName": "Portal Follow-up",
         "role": "sub-process",
-        "scenarioType": "approval-request-portal-follow-up",
+        "processTypeId": "approval-request-portal-follow-up",
         "mainDisplayMode": "expanded",
         "statusId": "under-review",
         "portalStatusId": "under-review",
@@ -233,7 +233,7 @@
           { "audience": "portal", "ruleId": "show-portal-follow-up-on-portal", "visibleWhen": true }
         ],
         "actors": [
-          { "id": "requester", "displayName": "Requester", "actorType": "requester", "source": "current-user" }
+          { "id": "requester", "displayName": "Requester", "actorCategory": "person", "roleKey": "requester", "source": "current-user" }
         ],
         "variables": [],
         "statuses": [
@@ -245,7 +245,7 @@
           {
             "id": "provide-portal-details",
             "displayName": "Provide Portal Details",
-            "stageType": "task",
+            "stageCategory": "work", "stageKindId": "task",
             "scope": "portal",
             "stageSpan": {
               "start": { "stageId": "review-request", "fraction": 0 },
@@ -268,7 +268,7 @@
             "id": "provide-details",
             "stageId": "provide-portal-details",
             "displayName": "Provide Details",
-            "stepType": "data-entry",
+            "workCategory": "data", "workKindId": "data-entry",
             "ownerActorId": "requester",
             "notificationId": null,
             "taskId": null,

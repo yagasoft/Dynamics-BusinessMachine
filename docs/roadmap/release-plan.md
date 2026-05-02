@@ -47,6 +47,10 @@ Minimum reset concepts:
 
 - `mainProcessId`: identifies the main process that anchors the full business cycle and is always visible on the rendered form.
 - `processes[]`: contains the main process and any number of sub-processes.
+- `processTypeId`: a user-defined process type identifier, not a built-in domain enum.
+- `actorCategory` and `roleKey`: broad actor category plus user-defined role key for the process.
+- `stageCategory` and `stageKindId`: broad stage category plus user-defined stage kind.
+- `workCategory` and `workKindId`: broad task or step category plus user-defined work kind.
 - `subProcessVisibility`: defines when a sub-process appears for the rendered form or portal projection, such as status, owner, role, or audience conditions.
 - `stageSpan`: defines where each stage appears on the main-process timeline. A span may cover a full main stage, several main stages, or fractional main-stage spans.
 - Stage feature hooks: entry/exit conditions, branching, previous-stage transitions, notifications, routing, SLA/KPI, tasks, validations, actions, status, and portal status.
@@ -64,7 +68,7 @@ Details: [release-0-engineering-foundation.md](release-0-engineering-foundation.
 
 ### Release 1
 
-`R1` starts the product again around process and stage design. It proves the main process, stacked sub-processes, stage spans, conditional visibility, collapsed main-process display, and an actual model-driven rendered form experience.
+`R1` starts the product again around process and stage design. It proves the main process, stacked sub-processes, stage spans, conditional visibility, collapsed main-process display, generic user-defined process vocabulary, and an actual model-driven rendered form experience.
 
 Details: [release-1-process-stage-designer-and-form-render.md](release-1-process-stage-designer-and-form-render.md)
 

@@ -5,7 +5,7 @@ param(
 
     [string]$RepoRoot = (Resolve-Path (Join-Path $PSScriptRoot '..\..')).Path,
 
-    [string]$ModelPath = (Join-Path (Resolve-Path (Join-Path $PSScriptRoot '..\..')).Path 'docs\architecture\examples\approval-request-v1.model.json'),
+    [string]$ModelPath = (Join-Path (Resolve-Path (Join-Path $PSScriptRoot '..\..')).Path 'dbm-contract\fixtures\valid\generic-process-matrix\linear-service-fulfilment.model.json'),
 
     [ValidateSet('Dev', 'UAT', 'Prod')]
     [string]$TargetEnvironment = 'Dev',

@@ -73,9 +73,41 @@ const validatePortalBootstrap = ajv.compile(portalBootstrapSchema);
 const validateModel = ajv.compile(modelSchema);
 const validateProcessPortfolioProjection = ajv.compile(processPortfolioProjectionSchema);
 
+const genericMatrixRoot = path.join(projectRoot, 'fixtures', 'valid', 'generic-process-matrix');
+const genericMatrixFixtureNames = [
+  'linear-service-fulfilment.model.json',
+  'employee-onboarding.model.json',
+  'case-investigation.model.json',
+  'document-lifecycle.model.json',
+  'field-inspection.model.json'
+];
+
+for (const fixtureName of genericMatrixFixtureNames) {
+  const fixturePath = path.join(genericMatrixRoot, fixtureName);
+  runPositiveValidation(validateModel, `R1.2 generic process matrix fixture ${fixtureName}`, fixturePath);
+
+  const genericModel = loadJson(fixturePath);
+  const genericIssues = validateProcessPortfolioModelV1(genericModel);
+  if (genericIssues.length > 0) {
+    throw new Error(
+      `R1.2 generic process matrix executable validation failed for ${fixtureName}:\n${JSON.stringify(genericIssues, null, 2)}`
+    );
+  }
+
+  const genericProjection = createProcessPortfolioProjectionV1(genericModel, {
+    audience: 'form',
+    ruleResults: Object.fromEntries(genericModel.rules.map((rule) => [rule.id, true]))
+  });
+  if (!validateProcessPortfolioProjection(genericProjection)) {
+    throw new Error(
+      `R1.2 generic process matrix projection validation failed for ${fixtureName}:\n${formatErrors(validateProcessPortfolioProjection.errors)}`
+    );
+  }
+}
+
 runPositiveValidation(
   validateModel,
-  'docs approval/request example model',
+  'historical approval/request reference model',
   path.join(repoRoot, 'docs', 'architecture', 'examples', 'approval-request-v1.model.json')
 );
 

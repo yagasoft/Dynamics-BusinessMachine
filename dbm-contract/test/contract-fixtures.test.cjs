@@ -7,6 +7,7 @@ const Ajv = require('ajv');
 const projectRoot = path.resolve(__dirname, '..');
 const repoRoot = path.resolve(projectRoot, '..');
 const schemaRoot = path.join(projectRoot, 'schema');
+const genericMatrixRoot = path.join(projectRoot, 'fixtures', 'valid', 'generic-process-matrix');
 const {
   createProcessPortfolioProjectionV1,
   validateProcessPortfolioModelV1
@@ -42,7 +43,79 @@ function expectInvalid(validator, payload, label, predicate) {
   );
 }
 
-test('R1.1 canonical approval request model fixture satisfies DbmModelV1', () => {
+function expectedGenericMatrixFixtureNames() {
+  return [
+    'linear-service-fulfilment.model.json',
+    'employee-onboarding.model.json',
+    'case-investigation.model.json',
+    'document-lifecycle.model.json',
+    'field-inspection.model.json'
+  ];
+}
+
+function assertNoApprovalSpecificContractKeys(value, location = '$') {
+  if (Array.isArray(value)) {
+    value.forEach((item, index) => assertNoApprovalSpecificContractKeys(item, `${location}[${index}]`));
+    return;
+  }
+
+  if (!value || typeof value !== 'object') {
+    return;
+  }
+
+  for (const [key, child] of Object.entries(value)) {
+    assert.notEqual(key, 'scenarioType', `${location}.${key} should be replaced by processTypeId`);
+    assert.notEqual(key, 'actorType', `${location}.${key} should be replaced by actorCategory and roleKey`);
+    assert.notEqual(key, 'stageType', `${location}.${key} should be replaced by stageCategory and stageKindId`);
+    assert.notEqual(key, 'taskType', `${location}.${key} should be replaced by workCategory and workKindId`);
+    assert.notEqual(key, 'stepType', `${location}.${key} should be replaced by workCategory and workKindId`);
+    assertNoApprovalSpecificContractKeys(child, `${location}.${key}`);
+  }
+}
+
+test('R1.2 generic process fixture matrix is the active DbmModelV1 proof', () => {
+  const validateModel = compileSchema('dbm-model-v1.schema.json');
+
+  for (const fixtureName of expectedGenericMatrixFixtureNames()) {
+    const fixturePath = path.join(genericMatrixRoot, fixtureName);
+    assert.equal(fs.existsSync(fixturePath), true, `generic process fixture is missing: ${fixtureName}`);
+
+    const model = loadJson(fixturePath);
+    expectValid(validateModel, model, fixtureName);
+    assert.deepEqual(validateProcessPortfolioModelV1(model), [], `${fixtureName} should satisfy executable portfolio validation`);
+    assertNoApprovalSpecificContractKeys(model);
+  }
+});
+
+test('R1.2 generic process vocabulary accepts user-defined process, role, stage, and work kind IDs', () => {
+  const model = loadJson(path.join(genericMatrixRoot, 'employee-onboarding.model.json'));
+  const mainProcess = model.processPortfolio.processes.find((process) => process.id === model.processPortfolio.mainProcessId);
+
+  assert.equal(mainProcess.processTypeId, 'employee-onboarding');
+  assert.equal(mainProcess.actors.some((actor) => actor.actorCategory === 'team' && actor.roleKey === 'people-operations'), true);
+  assert.equal(mainProcess.stages.some((stage) => stage.stageCategory === 'milestone' && stage.stageKindId === 'employment-start'), true);
+  assert.equal(mainProcess.tasks.some((task) => task.workCategory === 'work' && task.workKindId === 'prepare-workspace'), true);
+  assert.equal(mainProcess.steps.some((step) => step.workCategory === 'work' && step.workKindId === 'provision-access'), true);
+});
+
+test('R1.2 projections are domain-neutral across the generic fixture matrix', () => {
+  for (const fixtureName of expectedGenericMatrixFixtureNames()) {
+    const model = loadJson(path.join(genericMatrixRoot, fixtureName));
+    const projection = createProcessPortfolioProjectionV1(model, {
+      audience: 'form',
+      ruleResults: Object.fromEntries(model.rules.map((rule) => [rule.id, true]))
+    });
+    const projectionJson = JSON.stringify(projection).toLowerCase();
+
+    assert.equal(projection.portalRuntimeInvoked, false);
+    assert.equal(projection.processIdAuthority, 'processPortfolio.mainProcessId');
+    assert.equal(projectionJson.includes('approval'), false, `${fixtureName} projection should not depend on approval naming`);
+    assert.equal(projectionJson.includes('approver'), false, `${fixtureName} projection should not depend on approver naming`);
+    assert.equal(projectionJson.includes('requester'), false, `${fixtureName} projection should not depend on requester naming`);
+  }
+});
+
+test('R1.1 historical approval request model fixture remains reference-only compatible', () => {
   const validateModel = compileSchema('dbm-model-v1.schema.json');
   const model = loadJson(path.join(repoRoot, 'docs', 'architecture', 'examples', 'approval-request-v1.model.json'));
 

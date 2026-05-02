@@ -56,9 +56,12 @@ The reset keeps a JSON-based package envelope, but the process section becomes a
 Each process owns:
 
 - stable ID and display name
+- user-defined process type through `processTypeId`
 - process role: `main` or `sub-process`
 - display mode for the main process: `expanded` or `collapsed`
 - internal status and portal status identifiers that can be projected without invoking runtime code
+- actors with `actorCategory` and user-defined `roleKey`
+- task and step work definitions with `workCategory` and user-defined `workKindId`
 - stages
 - visibility rules if it is a sub-process
 - rendered order below the main process
@@ -77,6 +80,8 @@ The same sub-process can therefore be visible in the rendered form and hidden fr
 Each stage owns:
 
 - stable ID and display name
+- broad stage category through `stageCategory`
+- user-defined stage kind through `stageKindId`
 - scope: portal, back office, or shared
 - `stageSpan`
 - entry conditions
@@ -100,6 +105,25 @@ Each stage owns:
 - validation that a sub-process stage resolves to a visible position on the main-process timeline
 
 Each `stageSpan` anchor stores a `stageId` and numeric `fraction`. `fraction` `0` means the start of the referenced main-process stage, and `fraction` `1` means the end of that stage. Stage scope is one of `portal`, `back-office`, or `shared`.
+
+## Generic vocabulary contract
+
+`R1.2` makes genericity executable rather than a wording change. The active `DbmModelV1` contract must not require a TypeScript enum update whenever a user invents a new business domain.
+
+The controlled categories describe broad runtime behaviour:
+
+- `actorCategory`: `person`, `team`, `system`, or `external`
+- `stageCategory`: `start`, `work`, `decision`, `system`, `milestone`, or `end`
+- `workCategory`: `data`, `work`, `decision`, `system`, or `milestone`
+
+The user-defined identifiers describe the business meaning:
+
+- `processTypeId`
+- `roleKey`
+- `stageKindId`
+- `workKindId`
+
+The active proof is the generic fixture matrix in `dbm-contract/fixtures/valid/generic-process-matrix/`. It covers linear service fulfilment, employee onboarding, case investigation, document lifecycle, and field inspection so the approval/request prototype no longer acts as the product's canonical contract proof.
 
 ## Executable contract helpers
 

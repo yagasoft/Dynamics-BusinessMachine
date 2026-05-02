@@ -6,7 +6,7 @@ param(
     [string]$PackageSet = 'Full',
     [switch]$RunSolutionCheck = $true,
     [switch]$GenerateSettings = $true,
-    [string]$ModelPath = (Join-Path (Resolve-Path (Join-Path $PSScriptRoot '..\..')).Path 'docs\architecture\examples\approval-request-v1.model.json')
+    [string]$ModelPath = (Join-Path (Resolve-Path (Join-Path $PSScriptRoot '..\..')).Path 'dbm-contract\fixtures\valid\generic-process-matrix\linear-service-fulfilment.model.json')
 )
 
 $ErrorActionPreference = 'Stop'

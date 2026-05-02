@@ -40,30 +40,30 @@
       {
         "id": "approval-request-process",
         "displayName": "Approval Request",
-        "scenarioType": "approval-request",
+        "processTypeId": "approval-request",
         "actors": [
           {
             "id": "requester",
             "displayName": "Requester",
-            "actorType": "requester",
+            "actorCategory": "person", "roleKey": "requester",
             "source": "current-user"
           },
           {
             "id": "manager-approver",
             "displayName": "Manager Approver",
-            "actorType": "approver",
+            "actorCategory": "team", "roleKey": "approver",
             "source": "field-binding"
           },
           {
             "id": "finance-reviewer",
             "displayName": "Finance Reviewer",
-            "actorType": "approver",
+            "actorCategory": "team", "roleKey": "approver",
             "source": "field-binding"
           },
           {
             "id": "platform",
             "displayName": "Platform",
-            "actorType": "system",
+            "actorCategory": "system", "roleKey": "system",
             "source": "system"
           }
         ],
@@ -125,19 +125,19 @@
           {
             "id": "prepare-request",
             "displayName": "Prepare Request",
-            "taskType": "data-entry",
+            "workCategory": "data", "workKindId": "data-entry",
             "instructions": "Capture the request."
           },
           {
             "id": "perform-screening",
             "displayName": "Perform Screening",
-            "taskType": "review",
+            "workCategory": "work", "workKindId": "review",
             "instructions": "Screen the request internally."
           },
           {
             "id": "perform-review",
             "displayName": "Perform Review",
-            "taskType": "approval",
+            "workCategory": "decision", "workKindId": "approval",
             "instructions": "Review and resolve the request."
           }
         ],
@@ -159,7 +159,7 @@
           {
             "id": "draft-request",
             "displayName": "Draft Request",
-            "stageType": "start",
+            "stageCategory": "start", "stageKindId": "start",
             "actorId": "requester",
             "formId": "request-form",
             "portalVisibility": "visible",
@@ -193,7 +193,7 @@
           {
             "id": "internal-screening-stage",
             "displayName": "Internal Screening",
-            "stageType": "system",
+            "stageCategory": "system", "stageKindId": "system",
             "actorId": "finance-reviewer",
             "formId": "request-form",
             "portalVisibility": "hidden",
@@ -225,7 +225,7 @@
           {
             "id": "manager-review",
             "displayName": "Manager Review",
-            "stageType": "approval",
+            "stageCategory": "decision", "stageKindId": "approval",
             "actorId": "manager-approver",
             "formId": "review-form",
             "portalVisibility": "visible",
@@ -258,7 +258,7 @@
           {
             "id": "approved",
             "displayName": "Approved",
-            "stageType": "end",
+            "stageCategory": "end", "stageKindId": "end",
             "actorId": "platform",
             "formId": null,
             "portalVisibility": "visible",
@@ -286,7 +286,7 @@
           {
             "id": "rejected",
             "displayName": "Rejected",
-            "stageType": "end",
+            "stageCategory": "end", "stageKindId": "end",
             "actorId": "platform",
             "formId": null,
             "portalVisibility": "visible",
@@ -317,7 +317,7 @@
             "id": "capture-request",
             "stageId": "draft-request",
             "displayName": "Capture Request",
-            "stepType": "data-entry",
+            "workCategory": "data", "workKindId": "data-entry",
             "ownerActorId": "requester",
             "notificationId": null,
             "taskId": "prepare-request",
@@ -333,7 +333,7 @@
             "id": "capture-supporting-details",
             "stageId": "draft-request",
             "displayName": "Capture Supporting Details",
-            "stepType": "data-entry",
+            "workCategory": "data", "workKindId": "data-entry",
             "ownerActorId": "requester",
             "notificationId": null,
             "taskId": "prepare-request",
@@ -351,7 +351,7 @@
             "id": "screen-request",
             "stageId": "internal-screening-stage",
             "displayName": "Screen Request",
-            "stepType": "review",
+            "workCategory": "work", "workKindId": "review",
             "ownerActorId": "finance-reviewer",
             "notificationId": "notify-screening-owner",
             "taskId": "perform-screening",
@@ -367,7 +367,7 @@
             "id": "choose-decision",
             "stageId": "manager-review",
             "displayName": "Choose Decision",
-            "stepType": "approval",
+            "workCategory": "decision", "workKindId": "approval",
             "ownerActorId": "manager-approver",
             "notificationId": null,
             "taskId": "perform-review",
@@ -381,7 +381,7 @@
             "id": "record-approval",
             "stageId": "manager-review",
             "displayName": "Record Approval",
-            "stepType": "approval",
+            "workCategory": "decision", "workKindId": "approval",
             "ownerActorId": "manager-approver",
             "notificationId": "notify-requester-resolution",
             "taskId": "perform-review",
@@ -399,7 +399,7 @@
             "id": "record-rejection",
             "stageId": "manager-review",
             "displayName": "Record Rejection",
-            "stepType": "approval",
+            "workCategory": "decision", "workKindId": "approval",
             "ownerActorId": "manager-approver",
             "notificationId": "notify-requester-resolution",
             "taskId": "perform-review",

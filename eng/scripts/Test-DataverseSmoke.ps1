@@ -10,7 +10,7 @@ param(
     [string]$SolutionName,
     [string]$GeneratedMetadataSolutionName,
     [string]$ExpectedSolutionVersion,
-    [string]$ModelPath = (Join-Path (Resolve-Path (Join-Path $PSScriptRoot '..\..')).Path 'docs\architecture\examples\approval-request-v1.model.json'),
+    [string]$ModelPath = (Join-Path (Resolve-Path (Join-Path $PSScriptRoot '..\..')).Path 'dbm-contract\fixtures\valid\generic-process-matrix\linear-service-fulfilment.model.json'),
     [switch]$SkipGeneratedMetadataValidation,
     [string]$EvidenceRoot = (Join-Path (Resolve-Path (Join-Path $PSScriptRoot '..\..')).Path 'artifacts\deployment-evidence')
 )

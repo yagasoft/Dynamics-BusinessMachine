@@ -103,6 +103,13 @@ Assert-Contains 'docs\roadmap\release-1-process-stage-designer-and-form-render.m
 Assert-Contains 'docs\roadmap\release-1-process-stage-designer-and-form-render.md' 'Portal is contract-only in R1' 'R1 must keep portal to a projection contract only.'
 Assert-Contains 'docs\roadmap\release-1-process-stage-designer-and-form-render.md' 'fractional main-stage span' 'R1 must support fractional main-stage spans.'
 Assert-Contains 'docs\roadmap\release-1-process-stage-designer-and-form-render.md' 'first implementation tests' 'R1 must name the first executable implementation tests after the roadmap reset.'
+Assert-Contains 'docs\roadmap\release-1-process-stage-designer-and-form-render.md' 'R1.2 Generic process design contract' 'R1 must include a generic process design contract slice after the R1.1 portfolio foundation.'
+Assert-Contains 'docs\roadmap\release-1-process-stage-designer-and-form-render.md' 'user-defined process type' 'R1.2 must make process type user-defined rather than approval/request-led.'
+Assert-Contains 'docs\roadmap\release-1-process-stage-designer-and-form-render.md' 'generic fixture matrix' 'R1.2 must name the generic fixture matrix as active proof.'
+foreach ($genericFixture in @('linear service fulfilment', 'employee onboarding', 'case investigation', 'document lifecycle', 'field inspection')) {
+    Assert-Contains 'docs\roadmap\release-1-process-stage-designer-and-form-render.md' $genericFixture "R1.2 roadmap must include generic fixture matrix case: $genericFixture"
+}
+Assert-NotContains 'docs\roadmap\release-1-process-stage-designer-and-form-render.md' 'approval/request-led example' 'Active R1 roadmap must not treat approval/request as the canonical design.'
 Assert-Contains 'docs\roadmap\release-2-dbmscript-and-action-foundation.md' 'JavaScript first' 'R2 must define JavaScript-first DBMScript/action delivery.'
 Assert-Contains 'docs\roadmap\release-2-dbmscript-and-action-foundation.md' 'DBMScript language/runtime contract' 'R2 must define the DBMScript language/runtime contract.'
 Assert-Contains 'docs\roadmap\release-2-dbmscript-and-action-foundation.md' 'DBM Object' 'R2 must treat DBM Object as a first-class companion to DBMScript.'
@@ -137,6 +144,14 @@ foreach ($historicalRunbook in @(
 Assert-Contains 'docs\architecture\current-state-baseline.md' 'prototype/reference material' 'Current-state baseline must classify current implementation as prototype/reference material.'
 Assert-Contains 'docs\architecture\target-platform-architecture.md' 'process portfolio' 'Target architecture must describe the new process portfolio model.'
 Assert-Contains 'docs\architecture\product-principles.md' 'process-first reset' 'Product principles must record the process-first reset.'
+Assert-Contains 'docs\architecture\canonical-model-runtime-contract-v1.md' 'processTypeId' 'Canonical contract docs must replace scenario-specific process typing with processTypeId.'
+Assert-Contains 'docs\architecture\canonical-model-runtime-contract-v1.md' 'actorCategory' 'Canonical contract docs must replace approval/request actor types with generic actor categories.'
+Assert-Contains 'docs\architecture\canonical-model-runtime-contract-v1.md' 'stageKindId' 'Canonical contract docs must support user-defined stage kinds.'
+Assert-Contains 'docs\architecture\canonical-model-runtime-contract-v1.md' 'workKindId' 'Canonical contract docs must support user-defined work kinds.'
+Assert-Contains 'docs\architecture\examples\README.md' 'approval-request-v1.model.json is historical/prototype reference' 'Approval/request example must be marked as reference only where retained.'
+Assert-NotContains 'eng\scripts\Invoke-DataverseSynthesis.ps1' 'approval-request-v1.model.json' 'Active Dataverse synthesis default model path must not point at the retired approval/request example.'
+Assert-NotContains 'eng\scripts\Invoke-DataversePackaging.ps1' 'approval-request-v1.model.json' 'Active Dataverse packaging default model path must not point at the retired approval/request example.'
+Assert-NotContains 'eng\scripts\Test-DataverseSmoke.ps1' 'approval-request-v1.model.json' 'Active Dataverse smoke default model path must not point at the retired approval/request example.'
 Assert-Contains 'docs\releases\r1-close-out-0.3.0.md' 'prototype/reference evidence' 'Old R1 closeout must be reclassified as prototype/reference evidence.'
 
 Assert-RoadmapLinksResolve

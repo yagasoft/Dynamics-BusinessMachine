@@ -269,9 +269,9 @@
           "$ref": "#/definitions/DbmProcessRoleV1",
           "title": "role"
         },
-        "scenarioType": {
+        "processTypeId": {
           "type": "string",
-          "title": "scenarioType"
+          "title": "processTypeId"
         },
         "mainDisplayMode": {
           "$ref": "#/definitions/DbmMainProcessDisplayModeV1",
@@ -379,8 +379,8 @@
         "notifications",
         "outcomes",
         "portalStatusId",
+        "processTypeId",
         "role",
-        "scenarioType",
         "stages",
         "statusId",
         "statuses",
@@ -454,9 +454,13 @@
           "type": "string",
           "title": "displayName"
         },
-        "actorType": {
-          "$ref": "#/definitions/DbmActorTypeV1",
-          "title": "actorType"
+        "actorCategory": {
+          "$ref": "#/definitions/DbmActorCategoryV1",
+          "title": "actorCategory"
+        },
+        "roleKey": {
+          "type": "string",
+          "title": "roleKey"
         },
         "source": {
           "$ref": "#/definitions/DbmActorSourceV1",
@@ -465,18 +469,20 @@
       },
       "additionalProperties": false,
       "required": [
-        "actorType",
+        "actorCategory",
         "displayName",
         "id",
+        "roleKey",
         "source"
       ]
     },
-    "DbmActorTypeV1": {
-      "title": "DbmActorTypeV1",
+    "DbmActorCategoryV1": {
+      "title": "DbmActorCategoryV1",
       "enum": [
-        "approver",
-        "requester",
-        "system"
+        "external",
+        "person",
+        "system",
+        "team"
       ],
       "type": "string"
     },
@@ -617,9 +623,13 @@
           "type": "string",
           "title": "displayName"
         },
-        "taskType": {
-          "$ref": "#/definitions/DbmTaskTypeV1",
-          "title": "taskType"
+        "workCategory": {
+          "$ref": "#/definitions/DbmWorkCategoryV1",
+          "title": "workCategory"
+        },
+        "workKindId": {
+          "type": "string",
+          "title": "workKindId"
         },
         "instructions": {
           "type": [
@@ -634,16 +644,18 @@
         "displayName",
         "id",
         "instructions",
-        "taskType"
+        "workCategory",
+        "workKindId"
       ]
     },
-    "DbmTaskTypeV1": {
-      "title": "DbmTaskTypeV1",
+    "DbmWorkCategoryV1": {
+      "title": "DbmWorkCategoryV1",
       "enum": [
-        "approval",
-        "data-entry",
-        "review",
-        "system"
+        "data",
+        "decision",
+        "milestone",
+        "system",
+        "work"
       ],
       "type": "string"
     },
@@ -697,9 +709,13 @@
           "type": "string",
           "title": "displayName"
         },
-        "stageType": {
-          "$ref": "#/definitions/DbmStageTypeV1",
-          "title": "stageType"
+        "stageCategory": {
+          "$ref": "#/definitions/DbmStageCategoryV1",
+          "title": "stageCategory"
+        },
+        "stageKindId": {
+          "type": "string",
+          "title": "stageKindId"
         },
         "scope": {
           "$ref": "#/definitions/DbmStageScopeV1",
@@ -784,20 +800,22 @@
         "portalStatusId",
         "portalVisibility",
         "scope",
+        "stageCategory",
+        "stageKindId",
         "stageSpan",
-        "stageType",
         "statusId",
         "stepIds"
       ]
     },
-    "DbmStageTypeV1": {
-      "title": "DbmStageTypeV1",
+    "DbmStageCategoryV1": {
+      "title": "DbmStageCategoryV1",
       "enum": [
-        "approval",
+        "decision",
         "end",
+        "milestone",
         "start",
         "system",
-        "task"
+        "work"
       ],
       "type": "string"
     },
@@ -872,9 +890,13 @@
           "type": "string",
           "title": "displayName"
         },
-        "stepType": {
-          "$ref": "#/definitions/DbmStepTypeV1",
-          "title": "stepType"
+        "workCategory": {
+          "$ref": "#/definitions/DbmWorkCategoryV1",
+          "title": "workCategory"
+        },
+        "workKindId": {
+          "type": "string",
+          "title": "workKindId"
         },
         "ownerActorId": {
           "type": "string",
@@ -939,19 +961,10 @@
         "ownerActorId",
         "portalStatusId",
         "stageId",
-        "stepType",
-        "taskId"
+        "taskId",
+        "workCategory",
+        "workKindId"
       ]
-    },
-    "DbmStepTypeV1": {
-      "title": "DbmStepTypeV1",
-      "enum": [
-        "approval",
-        "data-entry",
-        "review",
-        "system"
-      ],
-      "type": "string"
     },
     "DbmTransitionV1": {
       "title": "DbmTransitionV1",

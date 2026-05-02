@@ -1,0 +1,185 @@
+{
+  "schemaVersion": "dbm.model/v1",
+  "package": {
+    "id": "dbm-linear-service-fulfilment",
+    "displayName": "Linear Service Fulfilment",
+    "version": "1.2.0",
+    "publisher": {
+      "name": "Dynamics Business Machine",
+      "website": "https://example.invalid/dbm",
+      "prefix": "dbm"
+    },
+    "entryProcessId": "legacy-entry-not-authoritative",
+    "supportedHosts": ["model-driven"],
+    "supportedRuntimes": ["pcf", "dataverse"],
+    "processUiSurfaces": ["model-driven"],
+    "exposesPortalState": true,
+    "ownsGeneratedDataverseArtifacts": true,
+    "compatibility": {
+      "minimumReaderSchemaVersion": "dbm.model/v1",
+      "maximumReaderSchemaVersion": "dbm.model/v1",
+      "breakingChangePolicy": "reject-newer-major"
+    },
+    "deployment": {
+      "solutionName": "DBM Linear Service Fulfilment",
+      "releaseLine": "R1.2",
+      "artifactRoot": "artifacts/dbm-linear-service-fulfilment"
+    }
+  },
+  "processPortfolio": {
+    "mainProcessId": "service-flow",
+    "processes": [
+      {
+        "id": "service-flow",
+        "displayName": "Service Fulfilment Flow",
+        "role": "main",
+        "processTypeId": "linear-service-fulfilment",
+        "mainDisplayMode": "expanded",
+        "statusId": "in-progress",
+        "portalStatusId": "being-handled",
+        "actors": [
+          { "id": "customer", "displayName": "Customer", "actorCategory": "external", "roleKey": "customer", "source": "current-user" },
+          { "id": "operations", "displayName": "Operations Team", "actorCategory": "team", "roleKey": "service-operations", "source": "field-binding" },
+          { "id": "platform", "displayName": "Platform", "actorCategory": "system", "roleKey": "platform", "source": "system" }
+        ],
+        "variables": [
+          { "id": "service-state", "dataType": "choice", "scope": "process", "defaultValue": "new", "persistence": "persisted" }
+        ],
+        "statuses": [
+          { "id": "new", "displayName": "New", "audience": "shared", "kind": "progress" },
+          { "id": "in-progress", "displayName": "In progress", "audience": "shared", "kind": "progress" },
+          { "id": "being-handled", "displayName": "Being handled", "audience": "portal", "kind": "progress" },
+          { "id": "completed", "displayName": "Completed", "audience": "shared", "kind": "terminal" }
+        ],
+        "tasks": [
+          { "id": "capture-need", "displayName": "Capture need", "workCategory": "data", "workKindId": "capture-need", "instructions": "Capture the customer's need." },
+          { "id": "fulfil-service", "displayName": "Fulfil service", "workCategory": "work", "workKindId": "fulfil-service", "instructions": "Complete the service work." }
+        ],
+        "notifications": [],
+        "stages": [
+          {
+            "id": "intake",
+            "displayName": "Intake",
+            "stageCategory": "start",
+            "stageKindId": "portal-intake",
+            "scope": "portal",
+            "stageSpan": {
+              "start": { "stageId": "intake", "fraction": 0 },
+              "end": { "stageId": "intake", "fraction": 1 }
+            },
+            "actorId": "customer",
+            "formId": "service-intake-form",
+            "portalVisibility": "visible",
+            "statusId": "new",
+            "portalStatusId": "new",
+            "stepIds": ["capture-need-step"],
+            "defaultStepId": "capture-need-step",
+            "entryRuleIds": [],
+            "exitRuleIds": ["need-captured"],
+            "allowedOutcomeIds": ["send-to-operations"]
+          },
+          {
+            "id": "fulfilment",
+            "displayName": "Fulfilment",
+            "stageCategory": "work",
+            "stageKindId": "operations-work",
+            "scope": "back-office",
+            "stageSpan": {
+              "start": { "stageId": "fulfilment", "fraction": 0 },
+              "end": { "stageId": "fulfilment", "fraction": 1 }
+            },
+            "actorId": "operations",
+            "formId": "service-work-form",
+            "portalVisibility": "hidden",
+            "statusId": "in-progress",
+            "portalStatusId": "being-handled",
+            "stepIds": ["fulfil-service-step"],
+            "defaultStepId": "fulfil-service-step",
+            "entryRuleIds": [],
+            "exitRuleIds": ["work-complete"],
+            "allowedOutcomeIds": ["complete"]
+          },
+          {
+            "id": "customer-close",
+            "displayName": "Customer close",
+            "stageCategory": "end",
+            "stageKindId": "portal-close",
+            "scope": "portal",
+            "stageSpan": {
+              "start": { "stageId": "customer-close", "fraction": 0 },
+              "end": { "stageId": "customer-close", "fraction": 1 }
+            },
+            "actorId": "platform",
+            "formId": null,
+            "portalVisibility": "visible",
+            "statusId": "completed",
+            "portalStatusId": "completed",
+            "stepIds": [],
+            "defaultStepId": null,
+            "entryRuleIds": [],
+            "exitRuleIds": [],
+            "allowedOutcomeIds": []
+          }
+        ],
+        "steps": [
+          {
+            "id": "capture-need-step",
+            "stageId": "intake",
+            "displayName": "Capture need",
+            "workCategory": "data",
+            "workKindId": "capture-need",
+            "ownerActorId": "customer",
+            "notificationId": null,
+            "taskId": "capture-need",
+            "internalStatusId": "new",
+            "portalStatusId": "new",
+            "formStateId": null,
+            "entryRuleIds": [],
+            "exitRuleIds": ["need-captured"]
+          },
+          {
+            "id": "fulfil-service-step",
+            "stageId": "fulfilment",
+            "displayName": "Fulfil service",
+            "workCategory": "work",
+            "workKindId": "fulfil-service",
+            "ownerActorId": "operations",
+            "notificationId": null,
+            "taskId": "fulfil-service",
+            "internalStatusId": "in-progress",
+            "portalStatusId": "being-handled",
+            "formStateId": null,
+            "entryRuleIds": [],
+            "exitRuleIds": ["work-complete"]
+          }
+        ],
+        "transitions": [
+          { "id": "send-to-operations", "fromStageId": "intake", "toStageId": "fulfilment", "outcomeId": "send-to-operations", "guardRuleId": "need-captured" },
+          { "id": "complete-service", "fromStageId": "fulfilment", "toStageId": "customer-close", "outcomeId": "complete", "guardRuleId": "work-complete" }
+        ],
+        "stepTransitions": [],
+        "outcomes": [
+          { "id": "send-to-operations", "displayName": "Send to operations" },
+          { "id": "complete", "displayName": "Complete" }
+        ]
+      }
+    ]
+  },
+  "forms": [],
+  "metadata": { "entities": [], "relationships": [] },
+  "rules": [
+    { "id": "need-captured", "displayName": "Need captured", "ruleType": "condition", "scope": "transition", "language": "dbm-expression-v1", "body": "true" },
+    { "id": "work-complete", "displayName": "Work complete", "ruleType": "condition", "scope": "transition", "language": "dbm-expression-v1", "body": "true" }
+  ],
+  "runtime": {
+    "capabilities": ["render-form"],
+    "requestContract": { "schemaVersion": "dbm.runtime.request/v1", "operations": ["load-form"] },
+    "resultContract": { "schemaVersion": "dbm.runtime.result/v1", "statuses": ["ok"] },
+    "ownership": {
+      "pcf": { "responsibilities": ["form-rendering"] },
+      "dataverse": { "responsibilities": ["authoritative-persistence"] },
+      "azure": { "responsibilities": ["support-services-only"] }
+    }
+  },
+  "artifacts": []
+}

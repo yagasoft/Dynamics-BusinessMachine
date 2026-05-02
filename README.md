@@ -19,6 +19,7 @@ DBM currently contains prototype/reference implementation assets. The active roa
 The reset product direction includes:
 
 -   Process portfolio designer: Define a main process and any number of sub-processes.
+-   Generic process contract: Use user-defined process types, actor roles, stage kinds, work kinds, statuses, outcomes, and visibility rules.
 -   Stage spans: Align sub-process stages to full or fractional spans of the main-process timeline.
 -   Rendered form experience: Show the process to business users on actual model-driven forms.
 -   DBMScript actions: Define JavaScript-first actions for stage, form, field, backend, and button triggers.
