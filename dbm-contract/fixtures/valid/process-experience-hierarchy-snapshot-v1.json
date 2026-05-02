@@ -76,7 +76,7 @@
   "activeProcess": {
     "id": "it-readiness",
     "displayName": "IT readiness",
-    "role": "child",
+    "role": "sub-process",
     "stages": [
       {
         "id": "prepare-access",
@@ -144,7 +144,7 @@
       {
         "id": "it-readiness",
         "displayName": "IT readiness",
-        "role": "child",
+        "role": "sub-process",
         "displayMode": "expanded",
         "stages": [
           {
@@ -168,7 +168,7 @@
       {
         "id": "access-review",
         "displayName": "Access review",
-        "role": "child",
+        "role": "sub-process",
         "displayMode": "expanded",
         "stages": [
           {
