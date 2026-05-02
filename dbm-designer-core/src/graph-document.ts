@@ -471,6 +471,121 @@ function buildTransitionTargetLabel(target: DesignerGraphConnectionTarget): stri
   return target.outcomeId;
 }
 
+function findStage(model: DbmModelV1, processId: string, stageId: string): { process: DbmProcessV1; stage: DbmStageV1 } {
+  const process = findProcess(model, processId);
+  const stage = process?.stages.find((entry) => entry.id === stageId);
+  if (!process || !stage) {
+    throw new Error(`Stage '${stageId}' was not found in process '${processId}'.`);
+  }
+  return { process, stage };
+}
+
+function processHasPathTo(model: DbmModelV1, startProcessId: string, targetProcessId: string): boolean {
+  const processes = new Map(model.processPortfolio.processes.map((process) => [process.id, process]));
+  const visited = new Set<string>();
+  const stack = [startProcessId];
+
+  while (stack.length > 0) {
+    const processId = stack.pop();
+    if (!processId || visited.has(processId)) {
+      continue;
+    }
+    if (processId === targetProcessId) {
+      return true;
+    }
+    visited.add(processId);
+    const process = processes.get(processId);
+    process?.stages.forEach((stage) => {
+      stage.childProcessRefs.forEach((ref) => stack.push(ref.processId));
+    });
+  }
+
+  return false;
+}
+
+function assertCanAttachChildProcess(model: DbmModelV1, parentProcessId: string, childProcessId: string): DbmProcessV1 {
+  const childProcess = findProcess(model, childProcessId);
+  if (!childProcess) {
+    throw new Error(`Cannot attach child process '${childProcessId}'. The process was not found.`);
+  }
+  if (parentProcessId === childProcessId) {
+    throw new Error(`Cannot attach child process '${childProcessId}' to itself.`);
+  }
+  if (processHasPathTo(model, childProcessId, parentProcessId)) {
+    throw new Error(`Attaching child process '${childProcessId}' to process '${parentProcessId}' would create a circular process hierarchy.`);
+  }
+  return childProcess;
+}
+
+function attachChildProcessRefCommands(document: DesignerDocument, parentProcessId: string, parentStageId: string, childProcessId: string): DesignerCommand[] {
+  const { stage } = findStage(document.model, parentProcessId, parentStageId);
+  const childProcess = assertCanAttachChildProcess(document.model, parentProcessId, childProcessId);
+  if (stage.childProcessRefs.some((ref) => ref.processId === childProcess.id)) {
+    return [];
+  }
+
+  return [{
+    nodeId: stageNodeId(parentProcessId, parentStageId),
+    value: {
+      childProcessRefs: [
+        ...stage.childProcessRefs,
+        {
+          id: uniqueId(stage.childProcessRefs.map((ref) => ref.id), `spawn-${childProcess.id}`),
+          processId: childProcess.id,
+          displayName: childProcess.displayName,
+          activationRuleId: null,
+          blocksParent: true
+        }
+      ]
+    }
+  }];
+}
+
+function detachChildProcessRefCommands(document: DesignerDocument, parentProcessId: string, parentStageId: string, refId: string): DesignerCommand[] {
+  const { stage } = findStage(document.model, parentProcessId, parentStageId);
+  return [{
+    nodeId: stageNodeId(parentProcessId, parentStageId),
+    value: {
+      childProcessRefs: stage.childProcessRefs.filter((ref) => ref.id !== refId)
+    }
+  }];
+}
+
+function moveChildProcessRefCommands(
+  document: DesignerDocument,
+  sourceProcessId: string,
+  sourceStageId: string,
+  refId: string,
+  targetProcessId: string,
+  targetStageId: string
+): DesignerCommand[] {
+  const source = findStage(document.model, sourceProcessId, sourceStageId);
+  const target = findStage(document.model, targetProcessId, targetStageId);
+  const ref = source.stage.childProcessRefs.find((entry) => entry.id === refId);
+  if (!ref) {
+    return [];
+  }
+  assertCanAttachChildProcess(document.model, target.process.id, ref.processId);
+  if (target.stage.childProcessRefs.some((entry) => entry.processId === ref.processId && entry.id !== ref.id)) {
+    throw new Error(`Stage '${targetStageId}' already references child process '${ref.processId}'.`);
+  }
+
+  return [
+    {
+      nodeId: stageNodeId(sourceProcessId, sourceStageId),
+      value: {
+        childProcessRefs: source.stage.childProcessRefs.filter((entry) => entry.id !== ref.id)
+      }
+    },
+    {
+      nodeId: stageNodeId(targetProcessId, targetStageId),
+      value: {
+        childProcessRefs: [...target.stage.childProcessRefs, structuredClone(ref)]
+      }
+    }
+  ];
+}
+
 function buildCopyDisplayName(label: string): string {
   return label.endsWith(' Copy') ? `${label} 2` : `${label} Copy`;
 }
@@ -615,7 +730,17 @@ export function translateGraphIntentToCommands(intent: DesignerGraphIntent, docu
     case 'move-process':
       return [{ nodeId: `process:${intent.processId}`, targetIndex: intent.targetIndex }];
     case 'move-stage':
-      return [{ nodeId: stageNodeId(intent.processId, intent.stageId), targetIndex: intent.targetIndex }];
+      return [{
+        nodeId: stageNodeId(intent.sourceProcessId ?? intent.processId ?? '', intent.stageId),
+        targetIndex: intent.targetIndex,
+        targetParentId: processStagesNodeId(intent.targetProcessId ?? intent.sourceProcessId ?? intent.processId ?? '')
+      }];
+    case 'attach-child-process-ref':
+      return attachChildProcessRefCommands(document, intent.parentProcessId, intent.parentStageId, intent.childProcessId);
+    case 'detach-child-process-ref':
+      return detachChildProcessRefCommands(document, intent.parentProcessId, intent.parentStageId, intent.refId);
+    case 'move-child-process-ref':
+      return moveChildProcessRefCommands(document, intent.sourceProcessId, intent.sourceStageId, intent.refId, intent.targetProcessId, intent.targetStageId);
     case 'move-step':
       return [{ nodeId: stepNodeId(intent.processId, intent.stepId), targetIndex: intent.targetIndex, targetParentId: stageStepsNodeId(intent.processId, intent.targetStageId) }];
     case 'create-stage-transition': {

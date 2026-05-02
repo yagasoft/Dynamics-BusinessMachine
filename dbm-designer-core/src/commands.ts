@@ -320,6 +320,61 @@ function attachStepToStage(stage: DbmStageV1, stepId: string, index?: number): v
   }
 }
 
+function primaryActorId(process: DbmProcessV1): string {
+  return process.actors[0]?.id ?? '';
+}
+
+function internalStatusId(process: DbmProcessV1): string {
+  return process.statuses.find((status) => status.audience !== 'portal')?.id ?? process.statuses[0]?.id ?? '';
+}
+
+function portalStatusId(process: DbmProcessV1): string | null {
+  return process.statuses.find((status) => status.audience !== 'internal')?.id ?? null;
+}
+
+function rebindStageForProcess(process: DbmProcessV1, stage: DbmStageV1, steps: DbmStepV1[]): void {
+  const outcomeIds = new Set(process.outcomes.map((outcome) => outcome.id));
+  stage.allowedOutcomeIds = stage.allowedOutcomeIds.filter((outcomeId) => outcomeIds.has(outcomeId));
+  if (!process.actors.some((actor) => actor.id === stage.actorId)) {
+    stage.actorId = primaryActorId(process);
+  }
+  if (!process.statuses.some((status) => status.id === stage.statusId)) {
+    stage.statusId = internalStatusId(process);
+  }
+  if (stage.portalStatusId && !process.statuses.some((status) => status.id === stage.portalStatusId)) {
+    stage.portalStatusId = portalStatusId(process);
+  }
+
+  steps.forEach((step) => {
+    step.stageId = stage.id;
+    if (!process.actors.some((actor) => actor.id === step.ownerActorId)) {
+      step.ownerActorId = stage.actorId || primaryActorId(process);
+    }
+    if (!process.statuses.some((status) => status.id === step.internalStatusId)) {
+      step.internalStatusId = internalStatusId(process);
+    }
+    if (step.portalStatusId && !process.statuses.some((status) => status.id === step.portalStatusId)) {
+      step.portalStatusId = portalStatusId(process);
+    }
+  });
+}
+
+function removeInvalidReferencesToStage(process: DbmProcessV1, stage: DbmStageV1, stepIds: Set<string>): void {
+  process.transitions = process.transitions.filter((transition) => transition.fromStageId !== stage.id && transition.toStageId !== stage.id);
+  process.stepTransitions = process.stepTransitions.filter((transition) => {
+    if (stepIds.has(transition.fromStepId)) {
+      return false;
+    }
+    if ('stepId' in transition.target && stepIds.has(transition.target.stepId)) {
+      return false;
+    }
+    if ('stageId' in transition.target && transition.target.stageId === stage.id) {
+      return false;
+    }
+    return true;
+  });
+}
+
 function attachChildProcessToStage(model: DesignerDocument['model'], stage: DbmStageV1, process: DbmProcessV1): void {
   stage.childProcessRefs ??= [];
   if (stage.childProcessRefs.some((ref) => ref.processId === process.id)) {
@@ -777,7 +832,31 @@ export function moveNode(document: DesignerDocument, command: MoveNodeCommand): 
     if (moveById(process.statuses, command.nodeId, command.targetIndex, (id) => statusNodeId(process.id, id))) return rebuild(document, model, processStatusesNodeId(process.id));
     if (moveById(process.tasks, command.nodeId, command.targetIndex, (id) => taskNodeId(process.id, id))) return rebuild(document, model, processTasksNodeId(process.id));
     if (moveById(process.notifications, command.nodeId, command.targetIndex, (id) => notificationNodeId(process.id, id))) return rebuild(document, model, processNotificationsNodeId(process.id));
-    if (moveById(process.stages, command.nodeId, command.targetIndex, (id) => stageNodeId(process.id, id))) return rebuild(document, model, processStagesNodeId(process.id));
+    const stageSelection = parseProcessScopedNodeId(command.nodeId, 'stage');
+    if (stageSelection?.processId === process.id) {
+      const currentIndex = process.stages.findIndex((stage) => stage.id === stageSelection.id);
+      if (currentIndex >= 0) {
+        const targetProcess = command.targetParentId ? processFromParentId(model, command.targetParentId) : process;
+        if (!targetProcess || targetProcess.id === process.id) {
+          moveWithin(process.stages, currentIndex, command.targetIndex);
+          return rebuild(document, model, processStagesNodeId(process.id));
+        }
+
+        const [stage] = process.stages.splice(currentIndex, 1);
+        const movingStepIds = new Set([
+          ...stage.stepIds,
+          ...process.steps.filter((step) => step.stageId === stage.id).map((step) => step.id)
+        ]);
+        const movingSteps = process.steps.filter((step) => movingStepIds.has(step.id));
+        process.steps = process.steps.filter((step) => !movingStepIds.has(step.id));
+        removeInvalidReferencesToStage(process, stage, movingStepIds);
+        rebindStageForProcess(targetProcess, stage, movingSteps);
+        insertAt(targetProcess.stages, stage, command.targetIndex);
+        targetProcess.steps.push(...movingSteps);
+        return rebuild(document, model, processStagesNodeId(targetProcess.id));
+      }
+    }
+
     if (moveById(process.transitions, command.nodeId, command.targetIndex, (id) => transitionNodeId(process.id, id))) return rebuild(document, model, processTransitionsNodeId(process.id));
     if (moveById(process.stepTransitions, command.nodeId, command.targetIndex, (id) => stepTransitionNodeId(process.id, id))) return rebuild(document, model, processStepTransitionsNodeId(process.id));
     if (moveById(process.outcomes, command.nodeId, command.targetIndex, (id) => outcomeNodeId(process.id, id))) return rebuild(document, model, processOutcomesNodeId(process.id));

@@ -245,9 +245,31 @@ export type DesignerGraphIntent =
     }
   | {
       kind: 'move-stage';
-      processId: string;
+      processId?: string;
+      sourceProcessId?: string;
       stageId: string;
+      targetProcessId?: string;
       targetIndex: number;
+    }
+  | {
+      kind: 'attach-child-process-ref';
+      parentProcessId: string;
+      parentStageId: string;
+      childProcessId: string;
+    }
+  | {
+      kind: 'detach-child-process-ref';
+      parentProcessId: string;
+      parentStageId: string;
+      refId: string;
+    }
+  | {
+      kind: 'move-child-process-ref';
+      sourceProcessId: string;
+      sourceStageId: string;
+      refId: string;
+      targetProcessId: string;
+      targetStageId: string;
     }
   | {
       kind: 'move-step';
