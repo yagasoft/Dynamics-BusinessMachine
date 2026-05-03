@@ -80,6 +80,8 @@ Assert-Contains 'docs\adr\0017-collaborative-authoring-and-code-apps-designer.md
 Assert-Contains 'docs\adr\README.md' '0017-collaborative-authoring-and-code-apps-designer.md' 'ADR index must reference ADR-0017.'
 Assert-Contains 'docs\roadmap\progress-tracker.md' 'Active planning' 'Roadmap progress tracker must show active planning status.'
 Assert-Contains 'docs\roadmap\progress-tracker.md' 'R2.1 DBMScript contract and collaborative authoring foundation' 'Roadmap progress tracker must name the active R2.1 slice.'
+Assert-Contains 'docs\roadmap\progress-tracker.md' 'R2.1 implementation proof has started' 'Roadmap progress tracker must show that the R2.1 implementation proof has started.'
+Assert-Contains 'docs\roadmap\progress-tracker.md' 'contract/schema/fixture and synthesis-plan proof' 'Roadmap progress tracker must name the R2.1 proof boundary.'
 Assert-Contains 'docs\roadmap\progress-tracker.md' 'Historical/reference' 'Roadmap progress tracker must classify old R1 to R3.1 work as historical/reference.'
 Assert-Contains 'docs\roadmap\README.md' 'progress-tracker.md' 'Roadmap README must link to the human-readable progress tracker.'
 Assert-Contains 'docs\README.md' 'Roadmap progress tracker' 'Docs reading order must include the roadmap progress tracker.'
