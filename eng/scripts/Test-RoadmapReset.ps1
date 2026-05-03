@@ -73,6 +73,9 @@ $releasePlan = 'docs\roadmap\release-plan.md'
 Assert-Contains 'docs\adr\0016-product-roadmap-reset-process-first.md' 'Status: Accepted' 'ADR-0016 must accept the product roadmap reset.'
 Assert-Contains 'docs\adr\0016-product-roadmap-reset-process-first.md' 'prototype/reference' 'ADR-0016 must reclassify the current implementation as prototype/reference material.'
 Assert-Contains 'docs\adr\0016-product-roadmap-reset-process-first.md' 'new product R1' 'ADR-0016 must state that the product roadmap restarts at a new R1.'
+Assert-Contains 'docs\adr\0017-collaborative-authoring-and-code-apps-designer.md' 'Dataverse-normalised authoring rows' 'ADR-0017 must lock Dataverse-normalised authoring rows as the collaborative authoring source.'
+Assert-Contains 'docs\adr\0017-collaborative-authoring-and-code-apps-designer.md' 'Power Apps Code Apps' 'ADR-0017 must record the Code Apps designer host direction.'
+Assert-Contains 'docs\adr\README.md' '0017-collaborative-authoring-and-code-apps-designer.md' 'ADR index must reference ADR-0017.'
 
 $expectedReleaseRows = @(
     '| `R0` | Engineering foundation and governance |',
@@ -118,6 +121,11 @@ Assert-Contains 'docs\roadmap\release-2-dbmscript-and-action-foundation.md' 'bro
 Assert-Contains 'docs\roadmap\release-2-dbmscript-and-action-foundation.md' 'version history' 'R2 must include script/object lifecycle and version history.'
 Assert-Contains 'docs\roadmap\release-2-dbmscript-and-action-foundation.md' 'query editor' 'R2 must preserve the query editor requirement from the original notes.'
 Assert-Contains 'docs\roadmap\release-2-dbmscript-and-action-foundation.md' 'test case support' 'R2 must include script and object test case support.'
+Assert-Contains 'docs\roadmap\release-2-dbmscript-and-action-foundation.md' 'granular edit leases' 'R2 must include granular edit leases before meaningful non-mergeable edits begin.'
+Assert-Contains 'docs\roadmap\release-2-dbmscript-and-action-foundation.md' 'private Dataverse-backed drafts' 'R2 must create private Dataverse-backed drafts when editing starts.'
+Assert-Contains 'docs\roadmap\release-2-dbmscript-and-action-foundation.md' 'optimistic concurrency/ETags as final consistency guards' 'R2 must use optimistic concurrency and ETags as final consistency guards, not the primary long-edit UX.'
+Assert-Contains 'docs\roadmap\release-2-dbmscript-and-action-foundation.md' 'Power Apps Code Apps proof slice' 'R2 must include a Power Apps Code Apps proof slice before selecting Code Apps as the designer host.'
+Assert-Contains 'docs\roadmap\release-2-dbmscript-and-action-foundation.md' 'Process JSON remains a compiled published/export/import/runtime snapshot' 'R2 must preserve process JSON as a compiled snapshot rather than the collaborative authoring row.'
 Assert-Contains 'docs\roadmap\release-3-back-office-runtime.md' 'model-driven forms' 'R3 must focus on back-office/model-driven runtime execution.'
 Assert-Contains 'docs\roadmap\release-3-back-office-runtime.md' 'process sessions' 'R3 must explicitly define process session semantics.'
 Assert-Contains 'docs\roadmap\release-3-back-office-runtime.md' 'process instance per row, user, role, or owner' 'R3 must support configured row/user/role/owner process instances.'
@@ -128,8 +136,15 @@ Assert-Contains 'docs\roadmap\release-3-back-office-runtime.md' 'parallel branch
 Assert-Contains 'docs\roadmap\release-3-back-office-runtime.md' 'FetchXML' 'R3 must include FetchXML condition support.'
 Assert-Contains 'docs\roadmap\release-3-back-office-runtime.md' 'backend condition evaluation on load and save' 'R3 must document backend condition timing.'
 Assert-Contains 'docs\roadmap\release-3-back-office-runtime.md' 'XRM/form-context helpers' 'R3 must tie form behaviour to XRM/form-context helpers.'
+Assert-Contains 'docs\roadmap\release-3-back-office-runtime.md' 'published snapshots/definitions only' 'R3 runtime must consume published snapshots and definitions only.'
+Assert-Contains 'docs\roadmap\release-3-back-office-runtime.md' 'never executes drafts' 'R3 runtime must explicitly reject draft execution.'
+Assert-Contains 'docs\roadmap\release-4-back-office-operations.md' 'first-class Dataverse authoring rows' 'R4 operations must model routing, SLA, notifications, validations, and operational config as first-class authoring rows.'
+Assert-Contains 'docs\roadmap\release-4-back-office-operations.md' 'own lock/draft/version lifecycle' 'R4 operational config rows must have their own lock, draft, and version lifecycle.'
 Assert-Contains 'docs\roadmap\release-5-portal-runtime-and-return-path.md' 'actual portal rendering' 'R5 must own actual portal rendering and return path.'
 Assert-Contains 'docs\roadmap\release-7-platform-tooling-and-alm.md' 'auto-integration discovery' 'R7 must define auto-integration as a concrete discovery slice instead of leaving it vague.'
+Assert-Contains 'docs\roadmap\release-7-platform-tooling-and-alm.md' 'compiled published snapshots' 'R7 ALM must export and import compiled published snapshots.'
+Assert-Contains 'docs\roadmap\release-7-platform-tooling-and-alm.md' 'source-normalised artefacts' 'R7 ALM must optionally handle source-normalised authoring artefacts.'
+Assert-Contains 'docs\roadmap\release-7-platform-tooling-and-alm.md' 'conflict reporting' 'R7 source sync must report conflicts instead of silently overwriting changed rows.'
 Assert-Contains 'docs\roadmap\release-9-ai-assisted-platform.md' 'after the basic product is stable' 'R9 must defer AI until the basic product is stable.'
 
 foreach ($historicalRunbook in @(
@@ -144,11 +159,16 @@ foreach ($historicalRunbook in @(
 
 Assert-Contains 'docs\architecture\current-state-baseline.md' 'prototype/reference material' 'Current-state baseline must classify current implementation as prototype/reference material.'
 Assert-Contains 'docs\architecture\target-platform-architecture.md' 'process portfolio' 'Target architecture must describe the new process portfolio model.'
+Assert-Contains 'docs\architecture\target-platform-architecture.md' 'Dataverse-normalised authoring rows' 'Target architecture must define Dataverse-normalised collaborative authoring rows.'
+Assert-Contains 'docs\architecture\target-platform-architecture.md' 'Power Apps Code Apps' 'Target architecture must capture the R2+ Code Apps designer host direction.'
 Assert-Contains 'docs\architecture\product-principles.md' 'process-first reset' 'Product principles must record the process-first reset.'
+Assert-Contains 'docs\architecture\product-principles.md' 'Acquire the granular edit lease before meaningful edits begin' 'Product principles must prevent long non-mergeable edits from waiting until save to discover conflicts.'
 Assert-Contains 'docs\architecture\canonical-model-runtime-contract-v1.md' 'processTypeId' 'Canonical contract docs must replace scenario-specific process typing with processTypeId.'
 Assert-Contains 'docs\architecture\canonical-model-runtime-contract-v1.md' 'actorCategory' 'Canonical contract docs must replace approval/request actor types with generic actor categories.'
 Assert-Contains 'docs\architecture\canonical-model-runtime-contract-v1.md' 'stageKindId' 'Canonical contract docs must support user-defined stage kinds.'
 Assert-Contains 'docs\architecture\canonical-model-runtime-contract-v1.md' 'workKindId' 'Canonical contract docs must support user-defined work kinds.'
+Assert-Contains 'docs\architecture\canonical-model-runtime-contract-v1.md' 'compiled published/export/import/runtime snapshot' 'Canonical contract docs must state that process JSON is a compiled snapshot.'
+Assert-Contains 'docs\architecture\canonical-model-runtime-contract-v1.md' 'dbm_editlock' 'Canonical contract docs must define the edit-lock public contract.'
 foreach ($activeHierarchyDoc in @(
     'docs\roadmap\release-1-process-stage-designer-and-form-render.md',
     'docs\roadmap\release-plan.md',

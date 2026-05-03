@@ -46,6 +46,8 @@ The reset keeps a JSON-based package envelope, but the process section becomes a
 }
 ```
 
+After R2, this JSON envelope is a compiled published/export/import/runtime snapshot. It is not the collaborative authoring source for multi-user editing. The snapshot resolves published Dataverse-normalised authoring rows and excludes private drafts, edit locks, autosave state, and designer-only lock metadata.
+
 ## Process portfolio contract
 
 `processPortfolio` owns:
@@ -210,6 +212,27 @@ The contract must leave stable references for:
 - DBM Object references for maps, scoped composition, and generated object inputs
 - browser, model-driven, plugin/server, and Dataverse/Jint execution contexts
 - script/object version history and test case support
+
+## Collaborative authoring contract
+
+R2 introduces Dataverse-normalised authoring rows for editable units. The minimum lockable authoring units are process, stage, child process link, DBMScript, DBM Object, action, notification template, routing policy, SLA policy, validation rule, and stage-local configuration.
+
+Each authoring unit needs:
+
+- stable authoring unit ID
+- unit type
+- parent process or stage reference where applicable
+- current published version
+- current published rowversion/ETag expectation
+- draft/published lifecycle state
+- source-normalised export ID where ALM sync needs one
+- compiled snapshot inclusion rules
+
+Private authoring drafts are Dataverse-backed autosave rows. A draft stores target type/id, owner, base published version, base ETag/rowversion, autosave payload, validation state, and recoverability state. Drafts preserve user work after failed publish, expired locks, browser close, or ETag conflicts.
+
+`dbm_editlock` is the edit-lock public contract. It records target type/id, owner, owner display, expiry, heartbeat timestamp, reason, status, acquired source, and force-release audit fields. Lock custom APIs or plugins must support acquire, renew, release, force-release, stale-lock cleanup, autosave draft, publish draft, reject save without a valid lock, and reject publish when unresolved drafts or rowversion conflicts remain.
+
+Optimistic concurrency and ETags are final consistency guards. Editable surfaces must acquire a granular edit lease before meaningful non-mergeable edits begin, either explicitly or automatically on first edit.
 
 ## Runtime implications
 

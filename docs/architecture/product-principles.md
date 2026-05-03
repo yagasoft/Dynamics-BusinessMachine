@@ -16,6 +16,8 @@ These principles are standing constraints for the process-first DBM reset.
 - Process-first reset.
 - The designer is the primary authoring surface.
 - The rendered form is the business-user surface and is not the designer.
+- Power Apps Code Apps are the preferred R2+ rich designer host only after a proof slice confirms DBM's governance, embedding, Dataverse, and ALM needs.
+- Keep the rendered form process surface PCF/model-driven unless a later concrete blocker proves Code Apps is better for that business-user form surface.
 - The product is about parent processes, child processes, and stages.
 - The root process is always visible on the rendered form and portal projection.
 - Child processes sit under the stage that owns them and may be conditional.
@@ -29,6 +31,11 @@ These principles are standing constraints for the process-first DBM reset.
 
 - Secrets never enter Git.
 - Dataverse is the near-term default for runtime authority, operational configuration, and platform-owned secrets.
+- Dataverse-normalised authoring rows are the source for collaborative editing; process JSON is a compiled published/export/import/runtime snapshot.
+- Acquire the granular edit lease before meaningful edits begin for non-mergeable or high-risk authoring units.
+- Autosave user work into private Dataverse-backed drafts so failed publish, expired locks, browser close, or ETag conflicts do not lose work.
+- Use optimistic concurrency and ETags as final consistency guards, not as the primary long-edit conflict UX.
+- Reserve whole-process locks for publish, destructive structural edits, root process changes, migrations, and bulk reorder.
 - No release bypasses `Dev` and `UAT`.
 - CI/CD is part of the product.
 - Operational support is a first-class capability.

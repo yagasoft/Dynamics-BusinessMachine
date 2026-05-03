@@ -14,6 +14,7 @@ $requiredDocs = @(
     'docs\adr\0012-generic-existing-form-authoring-required-for-r2-closeout.md',
     'docs\adr\0015-dataverse-first-roadmap-and-azure-deferral.md',
     'docs\adr\0016-product-roadmap-reset-process-first.md',
+    'docs\adr\0017-collaborative-authoring-and-code-apps-designer.md',
     'docs\architecture\canonical-model-runtime-contract-v1.md',
     'docs\architecture\examples\approval-request-v1.model.json',
     'docs\architecture\examples\generic-existing-form-v1.model.json',
@@ -158,6 +159,21 @@ $contentChecks = @(
         Path = 'docs\roadmap\release-plan.md'
         Pattern = 'ADR-0016'
         Description = 'Release plan must reference ADR-0016 for the process-first reset.'
+    },
+    @{
+        Path = 'docs\roadmap\release-plan.md'
+        Pattern = 'ADR-0017'
+        Description = 'Release plan must reference ADR-0017 for collaborative authoring.'
+    },
+    @{
+        Path = 'docs\adr\README.md'
+        Pattern = '0017-collaborative-authoring-and-code-apps-designer.md'
+        Description = 'ADR index must reference ADR-0017.'
+    },
+    @{
+        Path = 'docs\adr\0017-collaborative-authoring-and-code-apps-designer.md'
+        Pattern = 'Dataverse-normalised authoring rows'
+        Description = 'ADR-0017 must record Dataverse-normalised authoring rows.'
     },
     @{
         Path = 'docs\roadmap\release-3-back-office-runtime.md'

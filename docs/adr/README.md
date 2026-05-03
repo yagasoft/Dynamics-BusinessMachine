@@ -29,3 +29,4 @@ ADRs capture durable product and delivery decisions that are important enough to
 - [0014-local-spa-proof-and-dataverse-runtime-authority.md](0014-local-spa-proof-and-dataverse-runtime-authority.md) - superseded history only; replaced by ADR-0016
 - [0015-dataverse-first-roadmap-and-azure-deferral.md](0015-dataverse-first-roadmap-and-azure-deferral.md) - superseded history only; replaced by ADR-0016
 - [0016-product-roadmap-reset-process-first.md](0016-product-roadmap-reset-process-first.md) - current authority for the process-first product roadmap reset
+- [0017-collaborative-authoring-and-code-apps-designer.md](0017-collaborative-authoring-and-code-apps-designer.md) - current authority for collaborative authoring rows, edit leases, drafts, snapshots, and Code Apps designer direction

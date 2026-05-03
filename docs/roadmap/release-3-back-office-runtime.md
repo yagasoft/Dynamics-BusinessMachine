@@ -4,6 +4,8 @@
 
 Execute designed processes inside Dataverse and model-driven forms after the R1 designer/rendering and R2 action foundation are stable.
 
+R3 runtime consumes published snapshots/definitions only. It never executes drafts, edit-lock records, autosave payloads, or half-edited authoring rows.
+
 ## Feature set and deliverables
 
 - Process instance creation and persistence.
@@ -19,6 +21,8 @@ Execute designed processes inside Dataverse and model-driven forms after the R1 
 - Form behaviour orchestration on model-driven forms through XRM/form-context helpers.
 - Internal status and portal-status projection fields.
 - Runtime diagnostics for why a transition or action did or did not run.
+- Published snapshot and definition loading from the R2 compile/publish boundary.
+- Explicit rejection of draft, lock, and autosave metadata as runtime inputs.
 
 ## Stages
 
@@ -29,6 +33,8 @@ Output:
 
 Must include:
 - `ys_processinstance` binding strategy
+- published snapshot/definition lookup strategy
+- guard that runtime reads published snapshots/definitions only
 - row-scoped and user-scoped sessions
 - role/owner scoped instance strategy
 - process instance per row, user, role, or owner where configured
@@ -53,6 +59,7 @@ Must include:
 - convergence after parallel branches
 - previous-stage transitions
 - action-trigger coordination
+- condition and action execution against published definitions only
 - transition diagnostics
 
 ### R3.3 Form behaviour runtime
@@ -75,6 +82,8 @@ Output:
 Must include:
 - model-driven runtime tests
 - plugin/server runtime tests
+- tests proving runtime never executes drafts or lock metadata
+- tests proving compiled snapshots exclude draft and lock data
 - deterministic transition scenarios
 - performance baseline for process load and save
 - failure and recovery diagnostics
@@ -85,4 +94,5 @@ Must include:
 - DBM persists process instance state and projected status.
 - DBM can keep separate process sessions where row, user, role, or owner scoping requires it.
 - Stage transitions and actions run in the correct back-office contexts.
+- Runtime loads published snapshots/definitions only and never executes drafts, edit locks, or autosave payloads.
 - Portal runtime is still deferred to `R5`.
