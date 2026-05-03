@@ -63,6 +63,8 @@ const snapshotSchema = loadJson(path.join(schemaRoot, 'dbm-process-experience-sn
 const requestSchema = loadJson(path.join(schemaRoot, 'dbm-runtime-request-v1.schema.json'));
 const resultSchema = loadJson(path.join(schemaRoot, 'dbm-runtime-result-v1.schema.json'));
 const portalBootstrapSchema = loadJson(path.join(schemaRoot, 'dbm-portal-runtime-bootstrap-v1.schema.json'));
+const authoringContractSchema = loadJson(path.join(schemaRoot, 'dbm-authoring-contract-v1.schema.json'));
+const compiledProcessSnapshotSchema = loadJson(path.join(schemaRoot, 'dbm-compiled-process-snapshot-v1.schema.json'));
 
 const validateWorkspace = ajv.compile(workspaceSchema);
 const validateGraphDocument = ajv.compile(graphDocumentSchema);
@@ -70,6 +72,8 @@ const validateSnapshot = ajv.compile(snapshotSchema);
 const validateRequest = ajv.compile(requestSchema);
 const validateResult = ajv.compile(resultSchema);
 const validatePortalBootstrap = ajv.compile(portalBootstrapSchema);
+const validateAuthoringContract = ajv.compile(authoringContractSchema);
+const validateCompiledProcessSnapshot = ajv.compile(compiledProcessSnapshotSchema);
 const validateModel = ajv.compile(modelSchema);
 const validateProcessPortfolioProjection = ajv.compile(processPortfolioProjectionSchema);
 
@@ -191,6 +195,18 @@ runPositiveValidation(
   path.join(projectRoot, 'fixtures', 'valid', 'portal-runtime-bootstrap-v1.json')
 );
 
+runPositiveValidation(
+  validateAuthoringContract,
+  'valid R2.1 authoring contract fixture',
+  path.join(projectRoot, 'fixtures', 'valid', 'r2-1-authoring-contract-v1.json')
+);
+
+runPositiveValidation(
+  validateCompiledProcessSnapshot,
+  'valid R2.1 compiled process snapshot fixture',
+  path.join(projectRoot, 'fixtures', 'valid', 'r2-1-compiled-process-snapshot-v1.json')
+);
+
 runExpectedFailureValidation(
   validateModel,
   'invalid model fixture',
@@ -210,4 +226,14 @@ runExpectedFailureValidation(
   'invalid designer graph document fixture with library leakage',
   path.join(projectRoot, 'fixtures', 'invalid', 'designer-graph-document-library-leakage-v1.json'),
   (error) => error.keyword === 'additionalProperties' && error.params && error.params.additionalProperty === 'selected'
+);
+
+runExpectedFailureValidation(
+  validateCompiledProcessSnapshot,
+  'invalid compiled process snapshot fixture with authoring leakage',
+  path.join(projectRoot, 'fixtures', 'invalid', 'r2-1-compiled-snapshot-authoring-leakage-v1.json'),
+  (error) =>
+    error.keyword === 'additionalProperties' &&
+    error.params &&
+    ['drafts', 'editLocks', 'designerSessions', 'autosaveState'].includes(error.params.additionalProperty)
 );

@@ -1,0 +1,1016 @@
+{
+  "$ref": "#/definitions/DbmCompiledProcessSnapshotV1",
+  "definitions": {
+    "DbmCompiledProcessSnapshotV1": {
+      "title": "DbmCompiledProcessSnapshotV1",
+      "type": "object",
+      "properties": {
+        "schemaVersion": {
+          "type": "string",
+          "const": "dbm.compiled-process-snapshot/v1",
+          "title": "schemaVersion"
+        },
+        "packageId": {
+          "type": "string",
+          "title": "packageId"
+        },
+        "packageVersion": {
+          "type": "string",
+          "title": "packageVersion"
+        },
+        "generatedFromPublishedUtc": {
+          "type": "string",
+          "title": "generatedFromPublishedUtc"
+        },
+        "processPortfolio": {
+          "$ref": "#/definitions/DbmProcessPortfolioV1",
+          "title": "processPortfolio"
+        },
+        "publishedDefinitions": {
+          "type": "array",
+          "items": {
+            "$ref": "#/definitions/DbmCompiledPublishedDefinitionReferenceV1"
+          },
+          "title": "publishedDefinitions"
+        }
+      },
+      "additionalProperties": false,
+      "required": [
+        "generatedFromPublishedUtc",
+        "packageId",
+        "packageVersion",
+        "processPortfolio",
+        "publishedDefinitions",
+        "schemaVersion"
+      ]
+    },
+    "DbmProcessPortfolioV1": {
+      "title": "DbmProcessPortfolioV1",
+      "type": "object",
+      "properties": {
+        "mainProcessId": {
+          "type": "string",
+          "title": "mainProcessId"
+        },
+        "processes": {
+          "type": "array",
+          "items": {
+            "$ref": "#/definitions/DbmProcessV1"
+          },
+          "title": "processes"
+        }
+      },
+      "additionalProperties": false,
+      "required": [
+        "mainProcessId",
+        "processes"
+      ]
+    },
+    "DbmProcessV1": {
+      "title": "DbmProcessV1",
+      "type": "object",
+      "properties": {
+        "id": {
+          "type": "string",
+          "title": "id"
+        },
+        "displayName": {
+          "type": "string",
+          "title": "displayName"
+        },
+        "role": {
+          "$ref": "#/definitions/DbmProcessRoleV1",
+          "title": "role"
+        },
+        "processTypeId": {
+          "type": "string",
+          "title": "processTypeId"
+        },
+        "mainDisplayMode": {
+          "$ref": "#/definitions/DbmMainProcessDisplayModeV1",
+          "title": "mainDisplayMode"
+        },
+        "statusId": {
+          "type": "string",
+          "title": "statusId"
+        },
+        "portalStatusId": {
+          "type": [
+            "null",
+            "string"
+          ],
+          "title": "portalStatusId"
+        },
+        "renderOrder": {
+          "type": "number",
+          "title": "renderOrder"
+        },
+        "subProcessVisibility": {
+          "type": "array",
+          "items": {
+            "$ref": "#/definitions/DbmSubProcessVisibilityRuleV1"
+          },
+          "title": "subProcessVisibility"
+        },
+        "actors": {
+          "type": "array",
+          "items": {
+            "$ref": "#/definitions/DbmActorV1"
+          },
+          "title": "actors"
+        },
+        "variables": {
+          "type": "array",
+          "items": {
+            "$ref": "#/definitions/DbmVariableV1"
+          },
+          "title": "variables"
+        },
+        "statuses": {
+          "type": "array",
+          "items": {
+            "$ref": "#/definitions/DbmStatusV1"
+          },
+          "title": "statuses"
+        },
+        "tasks": {
+          "type": "array",
+          "items": {
+            "$ref": "#/definitions/DbmTaskDefinitionV1"
+          },
+          "title": "tasks"
+        },
+        "notifications": {
+          "type": "array",
+          "items": {
+            "$ref": "#/definitions/DbmNotificationDefinitionV1"
+          },
+          "title": "notifications"
+        },
+        "stages": {
+          "type": "array",
+          "items": {
+            "$ref": "#/definitions/DbmStageV1"
+          },
+          "title": "stages"
+        },
+        "steps": {
+          "type": "array",
+          "items": {
+            "$ref": "#/definitions/DbmStepV1"
+          },
+          "title": "steps"
+        },
+        "transitions": {
+          "type": "array",
+          "items": {
+            "$ref": "#/definitions/DbmTransitionV1"
+          },
+          "title": "transitions"
+        },
+        "stepTransitions": {
+          "type": "array",
+          "items": {
+            "$ref": "#/definitions/DbmStepTransitionV1"
+          },
+          "title": "stepTransitions"
+        },
+        "outcomes": {
+          "type": "array",
+          "items": {
+            "$ref": "#/definitions/DbmOutcomeV1"
+          },
+          "title": "outcomes"
+        }
+      },
+      "additionalProperties": false,
+      "required": [
+        "actors",
+        "displayName",
+        "id",
+        "mainDisplayMode",
+        "notifications",
+        "outcomes",
+        "portalStatusId",
+        "processTypeId",
+        "role",
+        "stages",
+        "statusId",
+        "statuses",
+        "stepTransitions",
+        "steps",
+        "tasks",
+        "transitions",
+        "variables"
+      ]
+    },
+    "DbmProcessRoleV1": {
+      "title": "DbmProcessRoleV1",
+      "enum": [
+        "main",
+        "sub-process"
+      ],
+      "type": "string"
+    },
+    "DbmMainProcessDisplayModeV1": {
+      "title": "DbmMainProcessDisplayModeV1",
+      "enum": [
+        "collapsed",
+        "expanded"
+      ],
+      "type": "string"
+    },
+    "DbmSubProcessVisibilityRuleV1": {
+      "title": "DbmSubProcessVisibilityRuleV1",
+      "type": "object",
+      "properties": {
+        "audience": {
+          "$ref": "#/definitions/DbmProcessPortfolioProjectionAudienceV1",
+          "title": "audience"
+        },
+        "ruleId": {
+          "type": [
+            "null",
+            "string"
+          ],
+          "title": "ruleId"
+        },
+        "visibleWhen": {
+          "type": "boolean",
+          "title": "visibleWhen"
+        }
+      },
+      "additionalProperties": false,
+      "required": [
+        "audience",
+        "ruleId",
+        "visibleWhen"
+      ]
+    },
+    "DbmProcessPortfolioProjectionAudienceV1": {
+      "title": "DbmProcessPortfolioProjectionAudienceV1",
+      "enum": [
+        "form",
+        "portal"
+      ],
+      "type": "string"
+    },
+    "DbmActorV1": {
+      "title": "DbmActorV1",
+      "type": "object",
+      "properties": {
+        "id": {
+          "type": "string",
+          "title": "id"
+        },
+        "displayName": {
+          "type": "string",
+          "title": "displayName"
+        },
+        "actorCategory": {
+          "$ref": "#/definitions/DbmActorCategoryV1",
+          "title": "actorCategory"
+        },
+        "roleKey": {
+          "type": "string",
+          "title": "roleKey"
+        },
+        "source": {
+          "$ref": "#/definitions/DbmActorSourceV1",
+          "title": "source"
+        }
+      },
+      "additionalProperties": false,
+      "required": [
+        "actorCategory",
+        "displayName",
+        "id",
+        "roleKey",
+        "source"
+      ]
+    },
+    "DbmActorCategoryV1": {
+      "title": "DbmActorCategoryV1",
+      "enum": [
+        "external",
+        "person",
+        "system",
+        "team"
+      ],
+      "type": "string"
+    },
+    "DbmActorSourceV1": {
+      "title": "DbmActorSourceV1",
+      "enum": [
+        "current-user",
+        "field-binding",
+        "rule-derived",
+        "system"
+      ],
+      "type": "string"
+    },
+    "DbmVariableV1": {
+      "title": "DbmVariableV1",
+      "type": "object",
+      "properties": {
+        "id": {
+          "type": "string",
+          "title": "id"
+        },
+        "dataType": {
+          "$ref": "#/definitions/DbmFieldDataTypeV1",
+          "title": "dataType"
+        },
+        "scope": {
+          "type": "string",
+          "const": "process",
+          "title": "scope"
+        },
+        "defaultValue": {
+          "$ref": "#/definitions/DbmScalarValueV1",
+          "title": "defaultValue"
+        },
+        "persistence": {
+          "$ref": "#/definitions/DbmVariablePersistenceV1",
+          "title": "persistence"
+        }
+      },
+      "additionalProperties": false,
+      "required": [
+        "dataType",
+        "defaultValue",
+        "id",
+        "persistence",
+        "scope"
+      ]
+    },
+    "DbmFieldDataTypeV1": {
+      "title": "DbmFieldDataTypeV1",
+      "enum": [
+        "boolean",
+        "choice",
+        "currency",
+        "date",
+        "datetime",
+        "decimal",
+        "integer",
+        "lookup",
+        "multiline-string",
+        "string"
+      ],
+      "type": "string"
+    },
+    "DbmScalarValueV1": {
+      "title": "DbmScalarValueV1",
+      "type": [
+        "null",
+        "string",
+        "number",
+        "boolean"
+      ]
+    },
+    "DbmVariablePersistenceV1": {
+      "title": "DbmVariablePersistenceV1",
+      "enum": [
+        "persisted",
+        "runtime-only"
+      ],
+      "type": "string"
+    },
+    "DbmStatusV1": {
+      "title": "DbmStatusV1",
+      "type": "object",
+      "properties": {
+        "id": {
+          "type": "string",
+          "title": "id"
+        },
+        "displayName": {
+          "type": "string",
+          "title": "displayName"
+        },
+        "audience": {
+          "$ref": "#/definitions/DbmStatusAudienceV1",
+          "title": "audience"
+        },
+        "kind": {
+          "$ref": "#/definitions/DbmStatusKindV1",
+          "title": "kind"
+        }
+      },
+      "additionalProperties": false,
+      "required": [
+        "audience",
+        "displayName",
+        "id",
+        "kind"
+      ]
+    },
+    "DbmStatusAudienceV1": {
+      "title": "DbmStatusAudienceV1",
+      "enum": [
+        "internal",
+        "portal",
+        "shared"
+      ],
+      "type": "string"
+    },
+    "DbmStatusKindV1": {
+      "title": "DbmStatusKindV1",
+      "enum": [
+        "decision",
+        "progress",
+        "terminal"
+      ],
+      "type": "string"
+    },
+    "DbmTaskDefinitionV1": {
+      "title": "DbmTaskDefinitionV1",
+      "type": "object",
+      "properties": {
+        "id": {
+          "type": "string",
+          "title": "id"
+        },
+        "displayName": {
+          "type": "string",
+          "title": "displayName"
+        },
+        "workCategory": {
+          "$ref": "#/definitions/DbmWorkCategoryV1",
+          "title": "workCategory"
+        },
+        "workKindId": {
+          "type": "string",
+          "title": "workKindId"
+        },
+        "instructions": {
+          "type": [
+            "null",
+            "string"
+          ],
+          "title": "instructions"
+        }
+      },
+      "additionalProperties": false,
+      "required": [
+        "displayName",
+        "id",
+        "instructions",
+        "workCategory",
+        "workKindId"
+      ]
+    },
+    "DbmWorkCategoryV1": {
+      "title": "DbmWorkCategoryV1",
+      "enum": [
+        "data",
+        "decision",
+        "milestone",
+        "system",
+        "work"
+      ],
+      "type": "string"
+    },
+    "DbmNotificationDefinitionV1": {
+      "title": "DbmNotificationDefinitionV1",
+      "type": "object",
+      "properties": {
+        "id": {
+          "type": "string",
+          "title": "id"
+        },
+        "displayName": {
+          "type": "string",
+          "title": "displayName"
+        },
+        "channel": {
+          "$ref": "#/definitions/DbmNotificationChannelV1",
+          "title": "channel"
+        },
+        "templateRef": {
+          "type": "string",
+          "title": "templateRef"
+        }
+      },
+      "additionalProperties": false,
+      "required": [
+        "channel",
+        "displayName",
+        "id",
+        "templateRef"
+      ]
+    },
+    "DbmNotificationChannelV1": {
+      "title": "DbmNotificationChannelV1",
+      "enum": [
+        "both",
+        "email",
+        "in-app"
+      ],
+      "type": "string"
+    },
+    "DbmStageV1": {
+      "title": "DbmStageV1",
+      "type": "object",
+      "properties": {
+        "id": {
+          "type": "string",
+          "title": "id"
+        },
+        "displayName": {
+          "type": "string",
+          "title": "displayName"
+        },
+        "stageCategory": {
+          "$ref": "#/definitions/DbmStageCategoryV1",
+          "title": "stageCategory"
+        },
+        "stageKindId": {
+          "type": "string",
+          "title": "stageKindId"
+        },
+        "scope": {
+          "$ref": "#/definitions/DbmStageScopeV1",
+          "title": "scope"
+        },
+        "childProcessRefs": {
+          "type": "array",
+          "items": {
+            "$ref": "#/definitions/DbmChildProcessRefV1"
+          },
+          "title": "childProcessRefs"
+        },
+        "actorId": {
+          "type": "string",
+          "title": "actorId"
+        },
+        "formId": {
+          "type": [
+            "null",
+            "string"
+          ],
+          "title": "formId"
+        },
+        "portalVisibility": {
+          "$ref": "#/definitions/DbmStagePortalVisibilityV1",
+          "title": "portalVisibility"
+        },
+        "statusId": {
+          "type": "string",
+          "title": "statusId"
+        },
+        "portalStatusId": {
+          "type": [
+            "null",
+            "string"
+          ],
+          "title": "portalStatusId"
+        },
+        "stepIds": {
+          "type": "array",
+          "items": {
+            "type": "string"
+          },
+          "title": "stepIds"
+        },
+        "defaultStepId": {
+          "type": [
+            "null",
+            "string"
+          ],
+          "title": "defaultStepId"
+        },
+        "entryRuleIds": {
+          "type": "array",
+          "items": {
+            "type": "string"
+          },
+          "title": "entryRuleIds"
+        },
+        "exitRuleIds": {
+          "type": "array",
+          "items": {
+            "type": "string"
+          },
+          "title": "exitRuleIds"
+        },
+        "allowedOutcomeIds": {
+          "type": "array",
+          "items": {
+            "type": "string"
+          },
+          "title": "allowedOutcomeIds"
+        }
+      },
+      "additionalProperties": false,
+      "required": [
+        "actorId",
+        "allowedOutcomeIds",
+        "childProcessRefs",
+        "defaultStepId",
+        "displayName",
+        "entryRuleIds",
+        "exitRuleIds",
+        "formId",
+        "id",
+        "portalStatusId",
+        "portalVisibility",
+        "scope",
+        "stageCategory",
+        "stageKindId",
+        "statusId",
+        "stepIds"
+      ]
+    },
+    "DbmStageCategoryV1": {
+      "title": "DbmStageCategoryV1",
+      "enum": [
+        "decision",
+        "end",
+        "milestone",
+        "start",
+        "system",
+        "work"
+      ],
+      "type": "string"
+    },
+    "DbmStageScopeV1": {
+      "title": "DbmStageScopeV1",
+      "enum": [
+        "back-office",
+        "portal",
+        "shared"
+      ],
+      "type": "string"
+    },
+    "DbmChildProcessRefV1": {
+      "title": "DbmChildProcessRefV1",
+      "type": "object",
+      "properties": {
+        "id": {
+          "type": "string",
+          "title": "id"
+        },
+        "processId": {
+          "type": "string",
+          "title": "processId"
+        },
+        "displayName": {
+          "type": "string",
+          "title": "displayName"
+        },
+        "activationRuleId": {
+          "type": [
+            "null",
+            "string"
+          ],
+          "title": "activationRuleId"
+        },
+        "blocksParent": {
+          "type": "boolean",
+          "title": "blocksParent"
+        }
+      },
+      "additionalProperties": false,
+      "required": [
+        "activationRuleId",
+        "blocksParent",
+        "displayName",
+        "id",
+        "processId"
+      ]
+    },
+    "DbmStagePortalVisibilityV1": {
+      "title": "DbmStagePortalVisibilityV1",
+      "enum": [
+        "hidden",
+        "visible"
+      ],
+      "type": "string"
+    },
+    "DbmStepV1": {
+      "title": "DbmStepV1",
+      "type": "object",
+      "properties": {
+        "id": {
+          "type": "string",
+          "title": "id"
+        },
+        "stageId": {
+          "type": "string",
+          "title": "stageId"
+        },
+        "displayName": {
+          "type": "string",
+          "title": "displayName"
+        },
+        "workCategory": {
+          "$ref": "#/definitions/DbmWorkCategoryV1",
+          "title": "workCategory"
+        },
+        "workKindId": {
+          "type": "string",
+          "title": "workKindId"
+        },
+        "ownerActorId": {
+          "type": "string",
+          "title": "ownerActorId"
+        },
+        "notificationId": {
+          "type": [
+            "null",
+            "string"
+          ],
+          "title": "notificationId"
+        },
+        "taskId": {
+          "type": [
+            "null",
+            "string"
+          ],
+          "title": "taskId"
+        },
+        "internalStatusId": {
+          "type": "string",
+          "title": "internalStatusId"
+        },
+        "portalStatusId": {
+          "type": [
+            "null",
+            "string"
+          ],
+          "title": "portalStatusId"
+        },
+        "formStateId": {
+          "type": [
+            "null",
+            "string"
+          ],
+          "title": "formStateId"
+        },
+        "entryRuleIds": {
+          "type": "array",
+          "items": {
+            "type": "string"
+          },
+          "title": "entryRuleIds"
+        },
+        "exitRuleIds": {
+          "type": "array",
+          "items": {
+            "type": "string"
+          },
+          "title": "exitRuleIds"
+        }
+      },
+      "additionalProperties": false,
+      "required": [
+        "displayName",
+        "entryRuleIds",
+        "exitRuleIds",
+        "formStateId",
+        "id",
+        "internalStatusId",
+        "notificationId",
+        "ownerActorId",
+        "portalStatusId",
+        "stageId",
+        "taskId",
+        "workCategory",
+        "workKindId"
+      ]
+    },
+    "DbmTransitionV1": {
+      "title": "DbmTransitionV1",
+      "type": "object",
+      "properties": {
+        "id": {
+          "type": "string",
+          "title": "id"
+        },
+        "fromStageId": {
+          "type": "string",
+          "title": "fromStageId"
+        },
+        "toStageId": {
+          "type": "string",
+          "title": "toStageId"
+        },
+        "outcomeId": {
+          "type": "string",
+          "title": "outcomeId"
+        },
+        "guardRuleId": {
+          "type": "string",
+          "title": "guardRuleId"
+        },
+        "subjectHandoff": {
+          "anyOf": [
+            {
+              "$ref": "#/definitions/DbmSubjectHandoffV1"
+            },
+            {
+              "type": "null"
+            }
+          ],
+          "title": "subjectHandoff"
+        }
+      },
+      "additionalProperties": false,
+      "required": [
+        "fromStageId",
+        "guardRuleId",
+        "id",
+        "outcomeId",
+        "toStageId"
+      ]
+    },
+    "DbmSubjectHandoffV1": {
+      "title": "DbmSubjectHandoffV1",
+      "type": "object",
+      "properties": {
+        "strategy": {
+          "$ref": "#/definitions/DbmSubjectResolutionStrategyV1",
+          "title": "strategy"
+        },
+        "relationshipId": {
+          "type": [
+            "null",
+            "string"
+          ],
+          "title": "relationshipId"
+        }
+      },
+      "additionalProperties": false,
+      "required": [
+        "relationshipId",
+        "strategy"
+      ]
+    },
+    "DbmSubjectResolutionStrategyV1": {
+      "title": "DbmSubjectResolutionStrategyV1",
+      "enum": [
+        "create-related",
+        "reuse-current-primary",
+        "select-existing-related"
+      ],
+      "type": "string"
+    },
+    "DbmStepTransitionV1": {
+      "title": "DbmStepTransitionV1",
+      "type": "object",
+      "properties": {
+        "id": {
+          "type": "string",
+          "title": "id"
+        },
+        "fromStepId": {
+          "type": "string",
+          "title": "fromStepId"
+        },
+        "guardRuleId": {
+          "type": "string",
+          "title": "guardRuleId"
+        },
+        "target": {
+          "$ref": "#/definitions/DbmStepTransitionTargetV1",
+          "title": "target"
+        },
+        "subjectHandoff": {
+          "anyOf": [
+            {
+              "$ref": "#/definitions/DbmSubjectHandoffV1"
+            },
+            {
+              "type": "null"
+            }
+          ],
+          "title": "subjectHandoff"
+        }
+      },
+      "additionalProperties": false,
+      "required": [
+        "fromStepId",
+        "guardRuleId",
+        "id",
+        "target"
+      ]
+    },
+    "DbmStepTransitionTargetV1": {
+      "title": "DbmStepTransitionTargetV1",
+      "anyOf": [
+        {
+          "type": "object",
+          "properties": {
+            "stepId": {
+              "type": "string",
+              "title": "stepId"
+            }
+          },
+          "additionalProperties": false,
+          "required": [
+            "stepId"
+          ]
+        },
+        {
+          "type": "object",
+          "properties": {
+            "stageId": {
+              "type": "string",
+              "title": "stageId"
+            }
+          },
+          "additionalProperties": false,
+          "required": [
+            "stageId"
+          ]
+        },
+        {
+          "type": "object",
+          "properties": {
+            "outcomeId": {
+              "type": "string",
+              "title": "outcomeId"
+            }
+          },
+          "additionalProperties": false,
+          "required": [
+            "outcomeId"
+          ]
+        }
+      ]
+    },
+    "DbmOutcomeV1": {
+      "title": "DbmOutcomeV1",
+      "type": "object",
+      "properties": {
+        "id": {
+          "type": "string",
+          "title": "id"
+        },
+        "displayName": {
+          "type": "string",
+          "title": "displayName"
+        }
+      },
+      "additionalProperties": false,
+      "required": [
+        "displayName",
+        "id"
+      ]
+    },
+    "DbmCompiledPublishedDefinitionReferenceV1": {
+      "title": "DbmCompiledPublishedDefinitionReferenceV1",
+      "type": "object",
+      "properties": {
+        "unitType": {
+          "$ref": "#/definitions/DbmAuthoringUnitTypeV1",
+          "title": "unitType"
+        },
+        "unitId": {
+          "type": "string",
+          "title": "unitId"
+        },
+        "publishedVersion": {
+          "type": "number",
+          "title": "publishedVersion"
+        },
+        "rowVersion": {
+          "type": "string",
+          "title": "rowVersion"
+        },
+        "etag": {
+          "type": "string",
+          "title": "etag"
+        }
+      },
+      "additionalProperties": false,
+      "required": [
+        "etag",
+        "publishedVersion",
+        "rowVersion",
+        "unitId",
+        "unitType"
+      ]
+    },
+    "DbmAuthoringUnitTypeV1": {
+      "title": "DbmAuthoringUnitTypeV1",
+      "enum": [
+        "action",
+        "child-process-link",
+        "dbm-object",
+        "dbmscript",
+        "notification-template",
+        "process",
+        "routing-policy",
+        "sla-policy",
+        "stage",
+        "stage-local-config",
+        "validation-rule"
+      ],
+      "type": "string"
+    }
+  },
+  "$schema": "http://json-schema.org/draft-07/schema#"
+}

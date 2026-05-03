@@ -1,0 +1,48 @@
+{
+  "schemaVersion": "dbm.compiled-process-snapshot/v1",
+  "packageId": "dbm-r2-1-proof",
+  "packageVersion": "0.4.0-r2.1",
+  "generatedFromPublishedUtc": "2026-05-03T09:10:00.000Z",
+  "processPortfolio": {
+    "mainProcessId": "process-main",
+    "processes": [
+      {
+        "id": "process-main",
+        "displayName": "Main process",
+        "role": "main",
+        "processTypeId": "contract-proof",
+        "mainDisplayMode": "expanded",
+        "statusId": "draft",
+        "portalStatusId": "draft",
+        "renderOrder": 1,
+        "subProcessVisibility": [],
+        "actors": [],
+        "variables": [],
+        "statuses": [],
+        "tasks": [],
+        "notifications": [],
+        "stages": [],
+        "steps": [],
+        "transitions": [],
+        "stepTransitions": [],
+        "outcomes": []
+      }
+    ]
+  },
+  "publishedDefinitions": [
+    {
+      "unitType": "process",
+      "unitId": "process-main",
+      "publishedVersion": 3,
+      "rowVersion": "row-process-main-3",
+      "etag": "etag-process-main-3"
+    },
+    {
+      "unitType": "dbmscript",
+      "unitId": "script-credit-check",
+      "publishedVersion": 1,
+      "rowVersion": "row-script-credit-check-1",
+      "etag": "etag-script-credit-check-1"
+    }
+  ]
+}

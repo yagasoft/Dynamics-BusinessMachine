@@ -317,6 +317,84 @@ test('R2.1 graph document rejects library-native selection leakage', () => {
   );
 });
 
+test('R2.1 authoring contract validates lockable units, drafts, sessions, and operations', () => {
+  const validateAuthoringContract = compileSchema('dbm-authoring-contract-v1.schema.json');
+  const contract = loadJson(path.join(projectRoot, 'fixtures', 'valid', 'r2-1-authoring-contract-v1.json'));
+
+  expectValid(validateAuthoringContract, contract, 'R2.1 authoring contract');
+  assert.deepEqual(contract.authoringUnits.map((unit) => unit.unitType), [
+    'process',
+    'stage',
+    'child-process-link',
+    'dbmscript',
+    'dbm-object',
+    'action',
+    'notification-template',
+    'routing-policy',
+    'sla-policy',
+    'validation-rule',
+    'stage-local-config'
+  ]);
+  assert.equal(contract.designerSessions.filter((session) => session.owner.id === 'user-a').length, 2);
+  assert.equal(contract.editLocks.some((lock) => lock.target.unitType === 'dbmscript' && lock.status === 'active'), true);
+  assert.deepEqual(contract.compiledSnapshotBoundary.excludedMetadata, [
+    'private-drafts',
+    'edit-locks',
+    'autosave-state',
+    'designer-sessions'
+  ]);
+  assert.deepEqual(contract.operations.map((operation) => operation.name), [
+    'acquire-lock',
+    'renew-lock',
+    'release-lock',
+    'force-release-lock',
+    'cleanup-stale-locks',
+    'autosave-draft',
+    'publish-draft',
+    'reject-save',
+    'reject-publish'
+  ]);
+});
+
+test('R2.1 edit locks are authority and designer sessions are awareness only', () => {
+  const { resolveAuthoringEditAuthorityV1 } = require(path.join(projectRoot, 'dist', 'index.js'));
+  const contract = loadJson(path.join(projectRoot, 'fixtures', 'valid', 'r2-1-authoring-contract-v1.json'));
+
+  assert.deepEqual(resolveAuthoringEditAuthorityV1(contract, {
+    target: { unitType: 'dbmscript', unitId: 'script-credit-check' },
+    userId: 'user-b',
+    nowUtc: '2026-05-03T09:05:00.000Z'
+  }), {
+    canEdit: false,
+    authority: 'locked-by-other-user',
+    lockId: 'lock-script-credit-check',
+    ownerDisplayName: 'Aisha Khan',
+    activeDesignerSessionIds: ['session-a-1', 'session-a-2', 'session-b-1']
+  });
+
+  assert.equal(resolveAuthoringEditAuthorityV1(contract, {
+    target: { unitType: 'stage', unitId: 'stage-manager-review' },
+    userId: 'user-b',
+    nowUtc: '2026-05-03T09:05:00.000Z'
+  }).authority, 'unlocked');
+});
+
+test('R2.1 compiled process snapshot validates published references and rejects authoring leakage', () => {
+  const validateSnapshot = compileSchema('dbm-compiled-process-snapshot-v1.schema.json');
+  const snapshot = loadJson(path.join(projectRoot, 'fixtures', 'valid', 'r2-1-compiled-process-snapshot-v1.json'));
+  const leakingSnapshot = loadJson(path.join(projectRoot, 'fixtures', 'invalid', 'r2-1-compiled-snapshot-authoring-leakage-v1.json'));
+
+  expectValid(validateSnapshot, snapshot, 'R2.1 compiled process snapshot');
+  assert.equal(validateSnapshot(leakingSnapshot), false);
+  assert.equal(
+    (validateSnapshot.errors || []).some((error) =>
+      error.keyword === 'additionalProperties' &&
+      ['drafts', 'editLocks', 'designerSessions', 'autosaveState'].includes(error.params?.additionalProperty)
+    ),
+    true
+  );
+});
+
 test('R3.1 portal bootstrap fixture keeps local SPA proof contract explicit', () => {
   const validatePortalBootstrap = compileSchema('dbm-portal-runtime-bootstrap-v1.schema.json');
   const bootstrap = loadJson(path.join(projectRoot, 'fixtures', 'valid', 'portal-runtime-bootstrap-v1.json'));

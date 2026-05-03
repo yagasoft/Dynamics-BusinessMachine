@@ -1,0 +1,415 @@
+{
+  "schemaVersion": "dbm.authoring.contract/v1",
+  "packageId": "dbm-r2-1-proof",
+  "packageVersion": "0.4.0-r2.1",
+  "authoringUnits": [
+    {
+      "id": "process-main",
+      "unitType": "process",
+      "displayName": "Main process",
+      "parentProcessId": null,
+      "parentStageId": null,
+      "currentPublishedVersion": 3,
+      "currentPublishedRowVersion": "row-process-main-3",
+      "currentPublishedEtag": "etag-process-main-3",
+      "lifecycleState": "published",
+      "sourceExportId": "src-process-main",
+      "compiledSnapshotInclusion": "published-inline"
+    },
+    {
+      "id": "stage-manager-review",
+      "unitType": "stage",
+      "displayName": "Manager review",
+      "parentProcessId": "process-main",
+      "parentStageId": null,
+      "currentPublishedVersion": 2,
+      "currentPublishedRowVersion": "row-stage-manager-review-2",
+      "currentPublishedEtag": "etag-stage-manager-review-2",
+      "lifecycleState": "published",
+      "sourceExportId": "src-stage-manager-review",
+      "compiledSnapshotInclusion": "published-inline"
+    },
+    {
+      "id": "child-link-risk-check",
+      "unitType": "child-process-link",
+      "displayName": "Risk check link",
+      "parentProcessId": "process-main",
+      "parentStageId": "stage-manager-review",
+      "currentPublishedVersion": 1,
+      "currentPublishedRowVersion": "row-child-link-risk-check-1",
+      "currentPublishedEtag": "etag-child-link-risk-check-1",
+      "lifecycleState": "published",
+      "sourceExportId": "src-child-link-risk-check",
+      "compiledSnapshotInclusion": "published-reference"
+    },
+    {
+      "id": "script-credit-check",
+      "unitType": "dbmscript",
+      "displayName": "Credit check script",
+      "parentProcessId": "process-main",
+      "parentStageId": "stage-manager-review",
+      "currentPublishedVersion": 1,
+      "currentPublishedRowVersion": "row-script-credit-check-1",
+      "currentPublishedEtag": "etag-script-credit-check-1",
+      "lifecycleState": "editing",
+      "sourceExportId": "src-script-credit-check",
+      "compiledSnapshotInclusion": "published-reference"
+    },
+    {
+      "id": "object-credit-map",
+      "unitType": "dbm-object",
+      "displayName": "Credit map object",
+      "parentProcessId": "process-main",
+      "parentStageId": "stage-manager-review",
+      "currentPublishedVersion": 1,
+      "currentPublishedRowVersion": "row-object-credit-map-1",
+      "currentPublishedEtag": "etag-object-credit-map-1",
+      "lifecycleState": "published",
+      "sourceExportId": "src-object-credit-map",
+      "compiledSnapshotInclusion": "published-reference"
+    },
+    {
+      "id": "action-run-credit-check",
+      "unitType": "action",
+      "displayName": "Run credit check",
+      "parentProcessId": "process-main",
+      "parentStageId": "stage-manager-review",
+      "currentPublishedVersion": 1,
+      "currentPublishedRowVersion": "row-action-run-credit-check-1",
+      "currentPublishedEtag": "etag-action-run-credit-check-1",
+      "lifecycleState": "published",
+      "sourceExportId": "src-action-run-credit-check",
+      "compiledSnapshotInclusion": "published-reference"
+    },
+    {
+      "id": "template-review-notice",
+      "unitType": "notification-template",
+      "displayName": "Review notice template",
+      "parentProcessId": "process-main",
+      "parentStageId": "stage-manager-review",
+      "currentPublishedVersion": 1,
+      "currentPublishedRowVersion": "row-template-review-notice-1",
+      "currentPublishedEtag": "etag-template-review-notice-1",
+      "lifecycleState": "draft",
+      "sourceExportId": "src-template-review-notice",
+      "compiledSnapshotInclusion": "published-reference"
+    },
+    {
+      "id": "routing-policy-review",
+      "unitType": "routing-policy",
+      "displayName": "Review routing policy",
+      "parentProcessId": "process-main",
+      "parentStageId": "stage-manager-review",
+      "currentPublishedVersion": 1,
+      "currentPublishedRowVersion": "row-routing-policy-review-1",
+      "currentPublishedEtag": "etag-routing-policy-review-1",
+      "lifecycleState": "draft",
+      "sourceExportId": "src-routing-policy-review",
+      "compiledSnapshotInclusion": "excluded"
+    },
+    {
+      "id": "sla-policy-review",
+      "unitType": "sla-policy",
+      "displayName": "Review SLA policy",
+      "parentProcessId": "process-main",
+      "parentStageId": "stage-manager-review",
+      "currentPublishedVersion": 1,
+      "currentPublishedRowVersion": "row-sla-policy-review-1",
+      "currentPublishedEtag": "etag-sla-policy-review-1",
+      "lifecycleState": "draft",
+      "sourceExportId": "src-sla-policy-review",
+      "compiledSnapshotInclusion": "excluded"
+    },
+    {
+      "id": "validation-rule-credit-threshold",
+      "unitType": "validation-rule",
+      "displayName": "Credit threshold validation",
+      "parentProcessId": "process-main",
+      "parentStageId": "stage-manager-review",
+      "currentPublishedVersion": 1,
+      "currentPublishedRowVersion": "row-validation-rule-credit-threshold-1",
+      "currentPublishedEtag": "etag-validation-rule-credit-threshold-1",
+      "lifecycleState": "draft",
+      "sourceExportId": "src-validation-rule-credit-threshold",
+      "compiledSnapshotInclusion": "excluded"
+    },
+    {
+      "id": "stage-local-config-review",
+      "unitType": "stage-local-config",
+      "displayName": "Review stage local config",
+      "parentProcessId": "process-main",
+      "parentStageId": "stage-manager-review",
+      "currentPublishedVersion": 1,
+      "currentPublishedRowVersion": "row-stage-local-config-review-1",
+      "currentPublishedEtag": "etag-stage-local-config-review-1",
+      "lifecycleState": "draft",
+      "sourceExportId": "src-stage-local-config-review",
+      "compiledSnapshotInclusion": "excluded"
+    }
+  ],
+  "drafts": [
+    {
+      "id": "draft-script-credit-check",
+      "target": {
+        "unitType": "dbmscript",
+        "unitId": "script-credit-check"
+      },
+      "owner": {
+        "id": "user-a",
+        "displayName": "Aisha Khan"
+      },
+      "basePublishedVersion": 1,
+      "baseRowVersion": "row-script-credit-check-1",
+      "baseEtag": "etag-script-credit-check-1",
+      "autosavePayload": {
+        "bodyLength": 42,
+        "hasErrors": false,
+        "lastEditedSection": "script-body"
+      },
+      "validationState": "valid",
+      "recoverabilityState": "recoverable",
+      "updatedUtc": "2026-05-03T09:04:00.000Z"
+    }
+  ],
+  "publishedVersions": [
+    {
+      "id": "published-script-credit-check-v1",
+      "target": {
+        "unitType": "dbmscript",
+        "unitId": "script-credit-check"
+      },
+      "version": 1,
+      "rowVersion": "row-script-credit-check-1",
+      "etag": "etag-script-credit-check-1",
+      "status": "published",
+      "publishedUtc": "2026-05-03T08:00:00.000Z",
+      "publishedBy": {
+        "id": "user-a",
+        "displayName": "Aisha Khan"
+      }
+    }
+  ],
+  "editLocks": [
+    {
+      "id": "lock-script-credit-check",
+      "target": {
+        "unitType": "dbmscript",
+        "unitId": "script-credit-check"
+      },
+      "owner": {
+        "id": "user-a",
+        "displayName": "Aisha Khan"
+      },
+      "expiryUtc": "2026-05-03T09:30:00.000Z",
+      "heartbeatUtc": "2026-05-03T09:04:30.000Z",
+      "reason": "editing",
+      "status": "active",
+      "acquiredSource": "first-edit",
+      "forceReleaseAudit": {
+        "forcedBy": null,
+        "forcedUtc": null,
+        "reason": null
+      }
+    }
+  ],
+  "designerSessions": [
+    {
+      "id": "session-a-1",
+      "processId": "process-main",
+      "owner": {
+        "id": "user-a",
+        "displayName": "Aisha Khan"
+      },
+      "currentTarget": {
+        "unitType": "dbmscript",
+        "unitId": "script-credit-check"
+      },
+      "openedUtc": "2026-05-03T08:55:00.000Z",
+      "heartbeatUtc": "2026-05-03T09:04:00.000Z",
+      "expiryUtc": "2026-05-03T09:30:00.000Z",
+      "status": "active",
+      "host": "model-driven",
+      "source": "designer-tab"
+    },
+    {
+      "id": "session-a-2",
+      "processId": "process-main",
+      "owner": {
+        "id": "user-a",
+        "displayName": "Aisha Khan"
+      },
+      "currentTarget": {
+        "unitType": "dbmscript",
+        "unitId": "script-credit-check"
+      },
+      "openedUtc": "2026-05-03T09:00:00.000Z",
+      "heartbeatUtc": "2026-05-03T09:04:10.000Z",
+      "expiryUtc": "2026-05-03T09:30:00.000Z",
+      "status": "active",
+      "host": "model-driven",
+      "source": "second-designer-tab"
+    },
+    {
+      "id": "session-b-1",
+      "processId": "process-main",
+      "owner": {
+        "id": "user-b",
+        "displayName": "Ben Carter"
+      },
+      "currentTarget": {
+        "unitType": "dbmscript",
+        "unitId": "script-credit-check"
+      },
+      "openedUtc": "2026-05-03T09:01:00.000Z",
+      "heartbeatUtc": "2026-05-03T09:04:15.000Z",
+      "expiryUtc": "2026-05-03T09:30:00.000Z",
+      "status": "active",
+      "host": "model-driven",
+      "source": "designer-tab"
+    }
+  ],
+  "scripts": [
+    {
+      "id": "script-credit-check",
+      "authoringUnitId": "script-credit-check",
+      "displayName": "Credit check script",
+      "description": "Calculates credit-check readiness for the manager review stage.",
+      "authoringMode": "javascript",
+      "storage": {
+        "mode": "compressed",
+        "compressedBody": "eJyrVkrLz1eyUkpKLFKqBQA8UQYJ",
+        "webResourceName": null
+      },
+      "dependencies": [
+        {
+          "id": "dep-xrm-context",
+          "sourceRef": "xrm-context",
+          "required": true
+        }
+      ],
+      "outputs": [
+        {
+          "name": "creditDecision",
+          "dataType": "string"
+        }
+      ],
+      "status": "draft",
+      "currentVersion": 1
+    }
+  ],
+  "dbmObjects": [
+    {
+      "id": "object-credit-map",
+      "authoringUnitId": "object-credit-map",
+      "displayName": "Credit map object",
+      "scope": "stage",
+      "scratchpad": {
+        "threshold": 5000,
+        "requiresManagerReview": true
+      },
+      "orderedScriptComponents": [
+        {
+          "scriptId": "script-credit-check",
+          "order": 1
+        }
+      ],
+      "duplicatePropertyBehavior": "reject-duplicate"
+    }
+  ],
+  "actions": [
+    {
+      "id": "action-run-credit-check",
+      "authoringUnitId": "action-run-credit-check",
+      "displayName": "Run credit check",
+      "triggerType": "on-entry",
+      "boundTarget": {
+        "unitType": "stage",
+        "unitId": "stage-manager-review"
+      },
+      "scriptId": "script-credit-check"
+    }
+  ],
+  "operations": [
+    {
+      "name": "acquire-lock",
+      "authority": "dataverse-custom-api-or-plugin",
+      "targetUnitTypes": ["process", "stage", "child-process-link", "dbmscript", "dbm-object", "action", "notification-template", "routing-policy", "sla-policy", "validation-rule", "stage-local-config"],
+      "requiresActiveLock": false,
+      "auditRequired": true,
+      "rejectionCode": "lock-conflict"
+    },
+    {
+      "name": "renew-lock",
+      "authority": "dataverse-custom-api-or-plugin",
+      "targetUnitTypes": ["process", "stage", "child-process-link", "dbmscript", "dbm-object", "action", "notification-template", "routing-policy", "sla-policy", "validation-rule", "stage-local-config"],
+      "requiresActiveLock": true,
+      "auditRequired": false,
+      "rejectionCode": "lock-not-owned"
+    },
+    {
+      "name": "release-lock",
+      "authority": "dataverse-custom-api-or-plugin",
+      "targetUnitTypes": ["process", "stage", "child-process-link", "dbmscript", "dbm-object", "action", "notification-template", "routing-policy", "sla-policy", "validation-rule", "stage-local-config"],
+      "requiresActiveLock": true,
+      "auditRequired": false,
+      "rejectionCode": "lock-not-owned"
+    },
+    {
+      "name": "force-release-lock",
+      "authority": "dataverse-custom-api-or-plugin",
+      "targetUnitTypes": ["process", "stage", "child-process-link", "dbmscript", "dbm-object", "action", "notification-template", "routing-policy", "sla-policy", "validation-rule", "stage-local-config"],
+      "requiresActiveLock": false,
+      "auditRequired": true,
+      "rejectionCode": "force-release-denied"
+    },
+    {
+      "name": "cleanup-stale-locks",
+      "authority": "dataverse-custom-api-or-plugin",
+      "targetUnitTypes": ["process", "stage", "child-process-link", "dbmscript", "dbm-object", "action", "notification-template", "routing-policy", "sla-policy", "validation-rule", "stage-local-config"],
+      "requiresActiveLock": false,
+      "auditRequired": true,
+      "rejectionCode": null
+    },
+    {
+      "name": "autosave-draft",
+      "authority": "dataverse-custom-api-or-plugin",
+      "targetUnitTypes": ["process", "stage", "child-process-link", "dbmscript", "dbm-object", "action", "notification-template", "routing-policy", "sla-policy", "validation-rule", "stage-local-config"],
+      "requiresActiveLock": true,
+      "auditRequired": false,
+      "rejectionCode": "lock-required"
+    },
+    {
+      "name": "publish-draft",
+      "authority": "dataverse-custom-api-or-plugin",
+      "targetUnitTypes": ["process", "stage", "child-process-link", "dbmscript", "dbm-object", "action", "notification-template", "routing-policy", "sla-policy", "validation-rule", "stage-local-config"],
+      "requiresActiveLock": true,
+      "auditRequired": true,
+      "rejectionCode": "publish-conflict"
+    },
+    {
+      "name": "reject-save",
+      "authority": "dataverse-custom-api-or-plugin",
+      "targetUnitTypes": ["process", "stage", "child-process-link", "dbmscript", "dbm-object", "action", "notification-template", "routing-policy", "sla-policy", "validation-rule", "stage-local-config"],
+      "requiresActiveLock": false,
+      "auditRequired": true,
+      "rejectionCode": "save-without-valid-lock"
+    },
+    {
+      "name": "reject-publish",
+      "authority": "dataverse-custom-api-or-plugin",
+      "targetUnitTypes": ["process", "stage", "child-process-link", "dbmscript", "dbm-object", "action", "notification-template", "routing-policy", "sla-policy", "validation-rule", "stage-local-config"],
+      "requiresActiveLock": false,
+      "auditRequired": true,
+      "rejectionCode": "unresolved-draft-or-rowversion-conflict"
+    }
+  ],
+  "compiledSnapshotBoundary": {
+    "processJsonIsCompiledSnapshot": true,
+    "excludedMetadata": [
+      "private-drafts",
+      "edit-locks",
+      "autosave-state",
+      "designer-sessions"
+    ]
+  }
+}

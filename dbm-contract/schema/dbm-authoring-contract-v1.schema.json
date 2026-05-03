@@ -1,0 +1,1007 @@
+{
+  "$ref": "#/definitions/DbmAuthoringContractV1",
+  "definitions": {
+    "DbmAuthoringContractV1": {
+      "title": "DbmAuthoringContractV1",
+      "type": "object",
+      "properties": {
+        "schemaVersion": {
+          "type": "string",
+          "const": "dbm.authoring.contract/v1",
+          "title": "schemaVersion"
+        },
+        "packageId": {
+          "type": "string",
+          "title": "packageId"
+        },
+        "packageVersion": {
+          "type": "string",
+          "title": "packageVersion"
+        },
+        "authoringUnits": {
+          "type": "array",
+          "items": {
+            "$ref": "#/definitions/DbmAuthoringUnitV1"
+          },
+          "title": "authoringUnits"
+        },
+        "drafts": {
+          "type": "array",
+          "items": {
+            "$ref": "#/definitions/DbmAuthoringDraftV1"
+          },
+          "title": "drafts"
+        },
+        "publishedVersions": {
+          "type": "array",
+          "items": {
+            "$ref": "#/definitions/DbmPublishedVersionV1"
+          },
+          "title": "publishedVersions"
+        },
+        "editLocks": {
+          "type": "array",
+          "items": {
+            "$ref": "#/definitions/DbmEditLockV1"
+          },
+          "title": "editLocks"
+        },
+        "designerSessions": {
+          "type": "array",
+          "items": {
+            "$ref": "#/definitions/DbmDesignerSessionV1"
+          },
+          "title": "designerSessions"
+        },
+        "scripts": {
+          "type": "array",
+          "items": {
+            "$ref": "#/definitions/DbmDbmScriptV1"
+          },
+          "title": "scripts"
+        },
+        "dbmObjects": {
+          "type": "array",
+          "items": {
+            "$ref": "#/definitions/DbmDbmObjectV1"
+          },
+          "title": "dbmObjects"
+        },
+        "actions": {
+          "type": "array",
+          "items": {
+            "$ref": "#/definitions/DbmActionDefinitionV1"
+          },
+          "title": "actions"
+        },
+        "operations": {
+          "type": "array",
+          "items": {
+            "$ref": "#/definitions/DbmAuthoringOperationContractV1"
+          },
+          "title": "operations"
+        },
+        "compiledSnapshotBoundary": {
+          "$ref": "#/definitions/DbmCompiledSnapshotBoundaryV1",
+          "title": "compiledSnapshotBoundary"
+        }
+      },
+      "additionalProperties": false,
+      "required": [
+        "actions",
+        "authoringUnits",
+        "compiledSnapshotBoundary",
+        "dbmObjects",
+        "designerSessions",
+        "drafts",
+        "editLocks",
+        "operations",
+        "packageId",
+        "packageVersion",
+        "publishedVersions",
+        "schemaVersion",
+        "scripts"
+      ]
+    },
+    "DbmAuthoringUnitV1": {
+      "title": "DbmAuthoringUnitV1",
+      "type": "object",
+      "properties": {
+        "id": {
+          "type": "string",
+          "title": "id"
+        },
+        "unitType": {
+          "$ref": "#/definitions/DbmAuthoringUnitTypeV1",
+          "title": "unitType"
+        },
+        "displayName": {
+          "type": "string",
+          "title": "displayName"
+        },
+        "parentProcessId": {
+          "type": [
+            "null",
+            "string"
+          ],
+          "title": "parentProcessId"
+        },
+        "parentStageId": {
+          "type": [
+            "null",
+            "string"
+          ],
+          "title": "parentStageId"
+        },
+        "currentPublishedVersion": {
+          "type": "number",
+          "title": "currentPublishedVersion"
+        },
+        "currentPublishedRowVersion": {
+          "type": "string",
+          "title": "currentPublishedRowVersion"
+        },
+        "currentPublishedEtag": {
+          "type": "string",
+          "title": "currentPublishedEtag"
+        },
+        "lifecycleState": {
+          "$ref": "#/definitions/DbmAuthoringLifecycleStateV1",
+          "title": "lifecycleState"
+        },
+        "sourceExportId": {
+          "type": [
+            "null",
+            "string"
+          ],
+          "title": "sourceExportId"
+        },
+        "compiledSnapshotInclusion": {
+          "$ref": "#/definitions/DbmAuthoringSnapshotInclusionV1",
+          "title": "compiledSnapshotInclusion"
+        }
+      },
+      "additionalProperties": false,
+      "required": [
+        "compiledSnapshotInclusion",
+        "currentPublishedEtag",
+        "currentPublishedRowVersion",
+        "currentPublishedVersion",
+        "displayName",
+        "id",
+        "lifecycleState",
+        "parentProcessId",
+        "parentStageId",
+        "sourceExportId",
+        "unitType"
+      ]
+    },
+    "DbmAuthoringUnitTypeV1": {
+      "title": "DbmAuthoringUnitTypeV1",
+      "enum": [
+        "action",
+        "child-process-link",
+        "dbm-object",
+        "dbmscript",
+        "notification-template",
+        "process",
+        "routing-policy",
+        "sla-policy",
+        "stage",
+        "stage-local-config",
+        "validation-rule"
+      ],
+      "type": "string"
+    },
+    "DbmAuthoringLifecycleStateV1": {
+      "title": "DbmAuthoringLifecycleStateV1",
+      "enum": [
+        "draft",
+        "editing",
+        "published"
+      ],
+      "type": "string"
+    },
+    "DbmAuthoringSnapshotInclusionV1": {
+      "title": "DbmAuthoringSnapshotInclusionV1",
+      "enum": [
+        "excluded",
+        "published-inline",
+        "published-reference"
+      ],
+      "type": "string"
+    },
+    "DbmAuthoringDraftV1": {
+      "title": "DbmAuthoringDraftV1",
+      "type": "object",
+      "properties": {
+        "id": {
+          "type": "string",
+          "title": "id"
+        },
+        "target": {
+          "$ref": "#/definitions/DbmAuthoringTargetV1",
+          "title": "target"
+        },
+        "owner": {
+          "$ref": "#/definitions/DbmAuthoringOwnerV1",
+          "title": "owner"
+        },
+        "basePublishedVersion": {
+          "type": "number",
+          "title": "basePublishedVersion"
+        },
+        "baseRowVersion": {
+          "type": "string",
+          "title": "baseRowVersion"
+        },
+        "baseEtag": {
+          "type": "string",
+          "title": "baseEtag"
+        },
+        "autosavePayload": {
+          "$ref": "#/definitions/Record%3Cstring%2CDbmScalarValueV1%3E",
+          "title": "autosavePayload"
+        },
+        "validationState": {
+          "$ref": "#/definitions/DbmAuthoringDraftValidationStateV1",
+          "title": "validationState"
+        },
+        "recoverabilityState": {
+          "$ref": "#/definitions/DbmAuthoringDraftRecoverabilityStateV1",
+          "title": "recoverabilityState"
+        },
+        "updatedUtc": {
+          "type": "string",
+          "title": "updatedUtc"
+        }
+      },
+      "additionalProperties": false,
+      "required": [
+        "autosavePayload",
+        "baseEtag",
+        "basePublishedVersion",
+        "baseRowVersion",
+        "id",
+        "owner",
+        "recoverabilityState",
+        "target",
+        "updatedUtc",
+        "validationState"
+      ]
+    },
+    "DbmAuthoringTargetV1": {
+      "title": "DbmAuthoringTargetV1",
+      "type": "object",
+      "properties": {
+        "unitType": {
+          "$ref": "#/definitions/DbmAuthoringUnitTypeV1",
+          "title": "unitType"
+        },
+        "unitId": {
+          "type": "string",
+          "title": "unitId"
+        }
+      },
+      "additionalProperties": false,
+      "required": [
+        "unitId",
+        "unitType"
+      ]
+    },
+    "DbmAuthoringOwnerV1": {
+      "title": "DbmAuthoringOwnerV1",
+      "type": "object",
+      "properties": {
+        "id": {
+          "type": "string",
+          "title": "id"
+        },
+        "displayName": {
+          "type": "string",
+          "title": "displayName"
+        }
+      },
+      "additionalProperties": false,
+      "required": [
+        "displayName",
+        "id"
+      ]
+    },
+    "Record<string,DbmScalarValueV1>": {
+      "title": "Record<string,DbmScalarValueV1>",
+      "type": "object",
+      "additionalProperties": {
+        "type": [
+          "string",
+          "number",
+          "boolean",
+          "null"
+        ]
+      }
+    },
+    "DbmAuthoringDraftValidationStateV1": {
+      "title": "DbmAuthoringDraftValidationStateV1",
+      "enum": [
+        "error",
+        "not-validated",
+        "valid",
+        "warning"
+      ],
+      "type": "string"
+    },
+    "DbmAuthoringDraftRecoverabilityStateV1": {
+      "title": "DbmAuthoringDraftRecoverabilityStateV1",
+      "enum": [
+        "etag-conflict",
+        "expired-lock",
+        "publish-failed",
+        "recoverable"
+      ],
+      "type": "string"
+    },
+    "DbmPublishedVersionV1": {
+      "title": "DbmPublishedVersionV1",
+      "type": "object",
+      "properties": {
+        "id": {
+          "type": "string",
+          "title": "id"
+        },
+        "target": {
+          "$ref": "#/definitions/DbmAuthoringTargetV1",
+          "title": "target"
+        },
+        "version": {
+          "type": "number",
+          "title": "version"
+        },
+        "rowVersion": {
+          "type": "string",
+          "title": "rowVersion"
+        },
+        "etag": {
+          "type": "string",
+          "title": "etag"
+        },
+        "status": {
+          "$ref": "#/definitions/DbmPublishedVersionStatusV1",
+          "title": "status"
+        },
+        "publishedUtc": {
+          "type": "string",
+          "title": "publishedUtc"
+        },
+        "publishedBy": {
+          "$ref": "#/definitions/DbmAuthoringOwnerV1",
+          "title": "publishedBy"
+        }
+      },
+      "additionalProperties": false,
+      "required": [
+        "etag",
+        "id",
+        "publishedBy",
+        "publishedUtc",
+        "rowVersion",
+        "status",
+        "target",
+        "version"
+      ]
+    },
+    "DbmPublishedVersionStatusV1": {
+      "title": "DbmPublishedVersionStatusV1",
+      "enum": [
+        "published",
+        "superseded"
+      ],
+      "type": "string"
+    },
+    "DbmEditLockV1": {
+      "title": "DbmEditLockV1",
+      "type": "object",
+      "properties": {
+        "id": {
+          "type": "string",
+          "title": "id"
+        },
+        "target": {
+          "$ref": "#/definitions/DbmAuthoringTargetV1",
+          "title": "target"
+        },
+        "owner": {
+          "$ref": "#/definitions/DbmAuthoringOwnerV1",
+          "title": "owner"
+        },
+        "expiryUtc": {
+          "type": "string",
+          "title": "expiryUtc"
+        },
+        "heartbeatUtc": {
+          "type": "string",
+          "title": "heartbeatUtc"
+        },
+        "reason": {
+          "type": "string",
+          "title": "reason"
+        },
+        "status": {
+          "$ref": "#/definitions/DbmEditLockStatusV1",
+          "title": "status"
+        },
+        "acquiredSource": {
+          "$ref": "#/definitions/DbmEditLockAcquiredSourceV1",
+          "title": "acquiredSource"
+        },
+        "forceReleaseAudit": {
+          "$ref": "#/definitions/DbmEditLockForceReleaseAuditV1",
+          "title": "forceReleaseAudit"
+        }
+      },
+      "additionalProperties": false,
+      "required": [
+        "acquiredSource",
+        "expiryUtc",
+        "forceReleaseAudit",
+        "heartbeatUtc",
+        "id",
+        "owner",
+        "reason",
+        "status",
+        "target"
+      ]
+    },
+    "DbmEditLockStatusV1": {
+      "title": "DbmEditLockStatusV1",
+      "enum": [
+        "active",
+        "expired",
+        "force-released",
+        "released"
+      ],
+      "type": "string"
+    },
+    "DbmEditLockAcquiredSourceV1": {
+      "title": "DbmEditLockAcquiredSourceV1",
+      "enum": [
+        "bulk-reorder",
+        "explicit",
+        "first-edit",
+        "migration",
+        "publish"
+      ],
+      "type": "string"
+    },
+    "DbmEditLockForceReleaseAuditV1": {
+      "title": "DbmEditLockForceReleaseAuditV1",
+      "type": "object",
+      "properties": {
+        "forcedBy": {
+          "anyOf": [
+            {
+              "$ref": "#/definitions/DbmAuthoringOwnerV1"
+            },
+            {
+              "type": "null"
+            }
+          ],
+          "title": "forcedBy"
+        },
+        "forcedUtc": {
+          "type": [
+            "null",
+            "string"
+          ],
+          "title": "forcedUtc"
+        },
+        "reason": {
+          "type": [
+            "null",
+            "string"
+          ],
+          "title": "reason"
+        }
+      },
+      "additionalProperties": false,
+      "required": [
+        "forcedBy",
+        "forcedUtc",
+        "reason"
+      ]
+    },
+    "DbmDesignerSessionV1": {
+      "title": "DbmDesignerSessionV1",
+      "type": "object",
+      "properties": {
+        "id": {
+          "type": "string",
+          "title": "id"
+        },
+        "processId": {
+          "type": "string",
+          "title": "processId"
+        },
+        "owner": {
+          "$ref": "#/definitions/DbmAuthoringOwnerV1",
+          "title": "owner"
+        },
+        "currentTarget": {
+          "anyOf": [
+            {
+              "$ref": "#/definitions/DbmAuthoringTargetV1"
+            },
+            {
+              "type": "null"
+            }
+          ],
+          "title": "currentTarget"
+        },
+        "openedUtc": {
+          "type": "string",
+          "title": "openedUtc"
+        },
+        "heartbeatUtc": {
+          "type": "string",
+          "title": "heartbeatUtc"
+        },
+        "expiryUtc": {
+          "type": "string",
+          "title": "expiryUtc"
+        },
+        "status": {
+          "$ref": "#/definitions/DbmDesignerSessionStatusV1",
+          "title": "status"
+        },
+        "host": {
+          "$ref": "#/definitions/DbmDesignerSessionHostV1",
+          "title": "host"
+        },
+        "source": {
+          "type": "string",
+          "title": "source"
+        }
+      },
+      "additionalProperties": false,
+      "required": [
+        "currentTarget",
+        "expiryUtc",
+        "heartbeatUtc",
+        "host",
+        "id",
+        "openedUtc",
+        "owner",
+        "processId",
+        "source",
+        "status"
+      ]
+    },
+    "DbmDesignerSessionStatusV1": {
+      "title": "DbmDesignerSessionStatusV1",
+      "enum": [
+        "active",
+        "closed",
+        "stale"
+      ],
+      "type": "string"
+    },
+    "DbmDesignerSessionHostV1": {
+      "title": "DbmDesignerSessionHostV1",
+      "enum": [
+        "external-runtime",
+        "model-driven",
+        "power-apps-code-app",
+        "xrmtoolbox"
+      ],
+      "type": "string"
+    },
+    "DbmDbmScriptV1": {
+      "title": "DbmDbmScriptV1",
+      "type": "object",
+      "properties": {
+        "id": {
+          "type": "string",
+          "title": "id"
+        },
+        "authoringUnitId": {
+          "type": "string",
+          "title": "authoringUnitId"
+        },
+        "displayName": {
+          "type": "string",
+          "title": "displayName"
+        },
+        "description": {
+          "type": [
+            "null",
+            "string"
+          ],
+          "title": "description"
+        },
+        "authoringMode": {
+          "$ref": "#/definitions/DbmScriptAuthoringModeV1",
+          "title": "authoringMode"
+        },
+        "storage": {
+          "$ref": "#/definitions/DbmDbmScriptStorageV1",
+          "title": "storage"
+        },
+        "dependencies": {
+          "type": "array",
+          "items": {
+            "$ref": "#/definitions/DbmDbmScriptDependencyV1"
+          },
+          "title": "dependencies"
+        },
+        "outputs": {
+          "type": "array",
+          "items": {
+            "$ref": "#/definitions/DbmDbmScriptOutputV1"
+          },
+          "title": "outputs"
+        },
+        "status": {
+          "$ref": "#/definitions/DbmDbmScriptStatusV1",
+          "title": "status"
+        },
+        "currentVersion": {
+          "type": "number",
+          "title": "currentVersion"
+        }
+      },
+      "additionalProperties": false,
+      "required": [
+        "authoringMode",
+        "authoringUnitId",
+        "currentVersion",
+        "dependencies",
+        "description",
+        "displayName",
+        "id",
+        "outputs",
+        "status",
+        "storage"
+      ]
+    },
+    "DbmScriptAuthoringModeV1": {
+      "title": "DbmScriptAuthoringModeV1",
+      "enum": [
+        "javascript",
+        "template"
+      ],
+      "type": "string"
+    },
+    "DbmDbmScriptStorageV1": {
+      "title": "DbmDbmScriptStorageV1",
+      "type": "object",
+      "properties": {
+        "mode": {
+          "$ref": "#/definitions/DbmDbmScriptStorageModeV1",
+          "title": "mode"
+        },
+        "compressedBody": {
+          "type": [
+            "null",
+            "string"
+          ],
+          "title": "compressedBody"
+        },
+        "webResourceName": {
+          "type": [
+            "null",
+            "string"
+          ],
+          "title": "webResourceName"
+        }
+      },
+      "additionalProperties": false,
+      "required": [
+        "compressedBody",
+        "mode",
+        "webResourceName"
+      ]
+    },
+    "DbmDbmScriptStorageModeV1": {
+      "title": "DbmDbmScriptStorageModeV1",
+      "enum": [
+        "compressed",
+        "web-resource-fallback"
+      ],
+      "type": "string"
+    },
+    "DbmDbmScriptDependencyV1": {
+      "title": "DbmDbmScriptDependencyV1",
+      "type": "object",
+      "properties": {
+        "id": {
+          "type": "string",
+          "title": "id"
+        },
+        "sourceRef": {
+          "type": "string",
+          "title": "sourceRef"
+        },
+        "required": {
+          "type": "boolean",
+          "title": "required"
+        }
+      },
+      "additionalProperties": false,
+      "required": [
+        "id",
+        "required",
+        "sourceRef"
+      ]
+    },
+    "DbmDbmScriptOutputV1": {
+      "title": "DbmDbmScriptOutputV1",
+      "type": "object",
+      "properties": {
+        "name": {
+          "type": "string",
+          "title": "name"
+        },
+        "dataType": {
+          "$ref": "#/definitions/DbmFieldDataTypeV1",
+          "title": "dataType"
+        }
+      },
+      "additionalProperties": false,
+      "required": [
+        "dataType",
+        "name"
+      ]
+    },
+    "DbmFieldDataTypeV1": {
+      "title": "DbmFieldDataTypeV1",
+      "enum": [
+        "boolean",
+        "choice",
+        "currency",
+        "date",
+        "datetime",
+        "decimal",
+        "integer",
+        "lookup",
+        "multiline-string",
+        "string"
+      ],
+      "type": "string"
+    },
+    "DbmDbmScriptStatusV1": {
+      "title": "DbmDbmScriptStatusV1",
+      "enum": [
+        "deprecated",
+        "draft",
+        "published"
+      ],
+      "type": "string"
+    },
+    "DbmDbmObjectV1": {
+      "title": "DbmDbmObjectV1",
+      "type": "object",
+      "properties": {
+        "id": {
+          "type": "string",
+          "title": "id"
+        },
+        "authoringUnitId": {
+          "type": "string",
+          "title": "authoringUnitId"
+        },
+        "displayName": {
+          "type": "string",
+          "title": "displayName"
+        },
+        "scope": {
+          "$ref": "#/definitions/DbmDbmObjectScopeV1",
+          "title": "scope"
+        },
+        "scratchpad": {
+          "$ref": "#/definitions/Record%3Cstring%2CDbmScalarValueV1%3E",
+          "title": "scratchpad"
+        },
+        "orderedScriptComponents": {
+          "type": "array",
+          "items": {
+            "$ref": "#/definitions/DbmDbmObjectScriptComponentV1"
+          },
+          "title": "orderedScriptComponents"
+        },
+        "duplicatePropertyBehavior": {
+          "$ref": "#/definitions/DbmDbmObjectDuplicatePropertyBehaviorV1",
+          "title": "duplicatePropertyBehavior"
+        }
+      },
+      "additionalProperties": false,
+      "required": [
+        "authoringUnitId",
+        "displayName",
+        "duplicatePropertyBehavior",
+        "id",
+        "orderedScriptComponents",
+        "scope",
+        "scratchpad"
+      ]
+    },
+    "DbmDbmObjectScopeV1": {
+      "title": "DbmDbmObjectScopeV1",
+      "enum": [
+        "action",
+        "process",
+        "stage"
+      ],
+      "type": "string"
+    },
+    "DbmDbmObjectScriptComponentV1": {
+      "title": "DbmDbmObjectScriptComponentV1",
+      "type": "object",
+      "properties": {
+        "scriptId": {
+          "type": "string",
+          "title": "scriptId"
+        },
+        "order": {
+          "type": "number",
+          "title": "order"
+        }
+      },
+      "additionalProperties": false,
+      "required": [
+        "order",
+        "scriptId"
+      ]
+    },
+    "DbmDbmObjectDuplicatePropertyBehaviorV1": {
+      "title": "DbmDbmObjectDuplicatePropertyBehaviorV1",
+      "enum": [
+        "last-writer-wins",
+        "reject-duplicate"
+      ],
+      "type": "string"
+    },
+    "DbmActionDefinitionV1": {
+      "title": "DbmActionDefinitionV1",
+      "type": "object",
+      "properties": {
+        "id": {
+          "type": "string",
+          "title": "id"
+        },
+        "authoringUnitId": {
+          "type": "string",
+          "title": "authoringUnitId"
+        },
+        "displayName": {
+          "type": "string",
+          "title": "displayName"
+        },
+        "triggerType": {
+          "$ref": "#/definitions/DbmActionTriggerTypeV1",
+          "title": "triggerType"
+        },
+        "boundTarget": {
+          "$ref": "#/definitions/DbmAuthoringTargetV1",
+          "title": "boundTarget"
+        },
+        "scriptId": {
+          "type": "string",
+          "title": "scriptId"
+        }
+      },
+      "additionalProperties": false,
+      "required": [
+        "authoringUnitId",
+        "boundTarget",
+        "displayName",
+        "id",
+        "scriptId",
+        "triggerType"
+      ]
+    },
+    "DbmActionTriggerTypeV1": {
+      "title": "DbmActionTriggerTypeV1",
+      "enum": [
+        "backend-server-change",
+        "column-value-change",
+        "dynamic-button",
+        "on-entry",
+        "on-exit"
+      ],
+      "type": "string"
+    },
+    "DbmAuthoringOperationContractV1": {
+      "title": "DbmAuthoringOperationContractV1",
+      "type": "object",
+      "properties": {
+        "name": {
+          "$ref": "#/definitions/DbmAuthoringOperationNameV1",
+          "title": "name"
+        },
+        "authority": {
+          "type": "string",
+          "const": "dataverse-custom-api-or-plugin",
+          "title": "authority"
+        },
+        "targetUnitTypes": {
+          "type": "array",
+          "items": {
+            "$ref": "#/definitions/DbmAuthoringUnitTypeV1"
+          },
+          "title": "targetUnitTypes"
+        },
+        "requiresActiveLock": {
+          "type": "boolean",
+          "title": "requiresActiveLock"
+        },
+        "auditRequired": {
+          "type": "boolean",
+          "title": "auditRequired"
+        },
+        "rejectionCode": {
+          "type": [
+            "null",
+            "string"
+          ],
+          "title": "rejectionCode"
+        }
+      },
+      "additionalProperties": false,
+      "required": [
+        "auditRequired",
+        "authority",
+        "name",
+        "rejectionCode",
+        "requiresActiveLock",
+        "targetUnitTypes"
+      ]
+    },
+    "DbmAuthoringOperationNameV1": {
+      "title": "DbmAuthoringOperationNameV1",
+      "enum": [
+        "acquire-lock",
+        "autosave-draft",
+        "cleanup-stale-locks",
+        "force-release-lock",
+        "publish-draft",
+        "reject-publish",
+        "reject-save",
+        "release-lock",
+        "renew-lock"
+      ],
+      "type": "string"
+    },
+    "DbmCompiledSnapshotBoundaryV1": {
+      "title": "DbmCompiledSnapshotBoundaryV1",
+      "type": "object",
+      "properties": {
+        "processJsonIsCompiledSnapshot": {
+          "type": "boolean",
+          "title": "processJsonIsCompiledSnapshot"
+        },
+        "excludedMetadata": {
+          "type": "array",
+          "items": {
+            "$ref": "#/definitions/DbmCompiledSnapshotExcludedMetadataV1"
+          },
+          "title": "excludedMetadata"
+        }
+      },
+      "additionalProperties": false,
+      "required": [
+        "excludedMetadata",
+        "processJsonIsCompiledSnapshot"
+      ]
+    },
+    "DbmCompiledSnapshotExcludedMetadataV1": {
+      "title": "DbmCompiledSnapshotExcludedMetadataV1",
+      "enum": [
+        "autosave-state",
+        "designer-sessions",
+        "edit-locks",
+        "private-drafts"
+      ],
+      "type": "string"
+    }
+  },
+  "$schema": "http://json-schema.org/draft-07/schema#"
+}

@@ -6,6 +6,8 @@ export type DbmProcessPortfolioProjectionSchemaVersionV1 = 'dbm.process-portfoli
 export type DbmRuntimeRequestSchemaVersionV1 = 'dbm.runtime.request/v1';
 export type DbmRuntimeResultSchemaVersionV1 = 'dbm.runtime.result/v1';
 export type DbmPortalRuntimeBootstrapSchemaVersionV1 = 'dbm.portal-runtime.bootstrap/v1';
+export type DbmAuthoringContractSchemaVersionV1 = 'dbm.authoring.contract/v1';
+export type DbmCompiledProcessSnapshotSchemaVersionV1 = 'dbm.compiled-process-snapshot/v1';
 
 export type DbmSupportedHostV1 = 'model-driven' | 'xrmtoolbox' | 'external-runtime';
 export type DbmRuntimeEngineV1 = 'pcf' | 'dataverse' | 'azure';
@@ -116,6 +118,61 @@ export type DbmSubjectRecordRoleV1 = 'primary' | 'related';
 export type DbmSubjectResolutionStrategyV1 = 'reuse-current-primary' | 'select-existing-related' | 'create-related';
 
 export type DbmScalarValueV1 = string | number | boolean | null;
+
+export type DbmAuthoringUnitTypeV1 =
+  | 'process'
+  | 'stage'
+  | 'child-process-link'
+  | 'dbmscript'
+  | 'dbm-object'
+  | 'action'
+  | 'notification-template'
+  | 'routing-policy'
+  | 'sla-policy'
+  | 'validation-rule'
+  | 'stage-local-config';
+
+export type DbmAuthoringLifecycleStateV1 = 'draft' | 'editing' | 'published';
+export type DbmAuthoringSnapshotInclusionV1 = 'published-inline' | 'published-reference' | 'excluded';
+export type DbmAuthoringDraftValidationStateV1 = 'valid' | 'warning' | 'error' | 'not-validated';
+export type DbmAuthoringDraftRecoverabilityStateV1 =
+  | 'recoverable'
+  | 'publish-failed'
+  | 'expired-lock'
+  | 'etag-conflict';
+export type DbmPublishedVersionStatusV1 = 'published' | 'superseded';
+export type DbmEditLockStatusV1 = 'active' | 'released' | 'expired' | 'force-released';
+export type DbmEditLockAcquiredSourceV1 = 'explicit' | 'first-edit' | 'publish' | 'migration' | 'bulk-reorder';
+export type DbmDesignerSessionStatusV1 = 'active' | 'stale' | 'closed';
+export type DbmDesignerSessionHostV1 = 'model-driven' | 'xrmtoolbox' | 'power-apps-code-app' | 'external-runtime';
+export type DbmScriptAuthoringModeV1 = 'javascript' | 'template';
+export type DbmDbmScriptStorageModeV1 = 'compressed' | 'web-resource-fallback';
+export type DbmDbmScriptStatusV1 = 'draft' | 'published' | 'deprecated';
+export type DbmDbmObjectScopeV1 = 'process' | 'stage' | 'action';
+export type DbmDbmObjectDuplicatePropertyBehaviorV1 = 'last-writer-wins' | 'reject-duplicate';
+export type DbmActionTriggerTypeV1 =
+  | 'on-entry'
+  | 'on-exit'
+  | 'column-value-change'
+  | 'backend-server-change'
+  | 'dynamic-button';
+export type DbmAuthoringOperationNameV1 =
+  | 'acquire-lock'
+  | 'renew-lock'
+  | 'release-lock'
+  | 'force-release-lock'
+  | 'cleanup-stale-locks'
+  | 'autosave-draft'
+  | 'publish-draft'
+  | 'reject-save'
+  | 'reject-publish';
+export type DbmAuthoringOperationAuthorityV1 = 'dataverse-custom-api-or-plugin';
+export type DbmCompiledSnapshotExcludedMetadataV1 =
+  | 'private-drafts'
+  | 'edit-locks'
+  | 'autosave-state'
+  | 'designer-sessions';
+export type DbmAuthoringEditAuthorityV1 = 'unlocked' | 'owned-lock' | 'locked-by-other-user';
 
 export interface DbmPublisherV1 {
   name: string;
@@ -526,6 +583,200 @@ export interface DbmProcessPortfolioProjectionV1 {
   subProcesses: DbmProcessPortfolioProjectionProcessV1[];
 }
 
+export interface DbmAuthoringOwnerV1 {
+  id: string;
+  displayName: string;
+}
+
+export interface DbmAuthoringTargetV1 {
+  unitType: DbmAuthoringUnitTypeV1;
+  unitId: string;
+}
+
+export interface DbmAuthoringUnitV1 {
+  id: string;
+  unitType: DbmAuthoringUnitTypeV1;
+  displayName: string;
+  parentProcessId: string | null;
+  parentStageId: string | null;
+  currentPublishedVersion: number;
+  currentPublishedRowVersion: string;
+  currentPublishedEtag: string;
+  lifecycleState: DbmAuthoringLifecycleStateV1;
+  sourceExportId: string | null;
+  compiledSnapshotInclusion: DbmAuthoringSnapshotInclusionV1;
+}
+
+export interface DbmAuthoringDraftV1 {
+  id: string;
+  target: DbmAuthoringTargetV1;
+  owner: DbmAuthoringOwnerV1;
+  basePublishedVersion: number;
+  baseRowVersion: string;
+  baseEtag: string;
+  autosavePayload: Record<string, DbmScalarValueV1>;
+  validationState: DbmAuthoringDraftValidationStateV1;
+  recoverabilityState: DbmAuthoringDraftRecoverabilityStateV1;
+  updatedUtc: string;
+}
+
+export interface DbmPublishedVersionV1 {
+  id: string;
+  target: DbmAuthoringTargetV1;
+  version: number;
+  rowVersion: string;
+  etag: string;
+  status: DbmPublishedVersionStatusV1;
+  publishedUtc: string;
+  publishedBy: DbmAuthoringOwnerV1;
+}
+
+export interface DbmEditLockForceReleaseAuditV1 {
+  forcedBy: DbmAuthoringOwnerV1 | null;
+  forcedUtc: string | null;
+  reason: string | null;
+}
+
+export interface DbmEditLockV1 {
+  id: string;
+  target: DbmAuthoringTargetV1;
+  owner: DbmAuthoringOwnerV1;
+  expiryUtc: string;
+  heartbeatUtc: string;
+  reason: string;
+  status: DbmEditLockStatusV1;
+  acquiredSource: DbmEditLockAcquiredSourceV1;
+  forceReleaseAudit: DbmEditLockForceReleaseAuditV1;
+}
+
+export interface DbmDesignerSessionV1 {
+  id: string;
+  processId: string;
+  owner: DbmAuthoringOwnerV1;
+  currentTarget: DbmAuthoringTargetV1 | null;
+  openedUtc: string;
+  heartbeatUtc: string;
+  expiryUtc: string;
+  status: DbmDesignerSessionStatusV1;
+  host: DbmDesignerSessionHostV1;
+  source: string;
+}
+
+export interface DbmDbmScriptDependencyV1 {
+  id: string;
+  sourceRef: string;
+  required: boolean;
+}
+
+export interface DbmDbmScriptOutputV1 {
+  name: string;
+  dataType: DbmFieldDataTypeV1;
+}
+
+export interface DbmDbmScriptStorageV1 {
+  mode: DbmDbmScriptStorageModeV1;
+  compressedBody: string | null;
+  webResourceName: string | null;
+}
+
+export interface DbmDbmScriptV1 {
+  id: string;
+  authoringUnitId: string;
+  displayName: string;
+  description: string | null;
+  authoringMode: DbmScriptAuthoringModeV1;
+  storage: DbmDbmScriptStorageV1;
+  dependencies: DbmDbmScriptDependencyV1[];
+  outputs: DbmDbmScriptOutputV1[];
+  status: DbmDbmScriptStatusV1;
+  currentVersion: number;
+}
+
+export interface DbmDbmObjectScriptComponentV1 {
+  scriptId: string;
+  order: number;
+}
+
+export interface DbmDbmObjectV1 {
+  id: string;
+  authoringUnitId: string;
+  displayName: string;
+  scope: DbmDbmObjectScopeV1;
+  scratchpad: Record<string, DbmScalarValueV1>;
+  orderedScriptComponents: DbmDbmObjectScriptComponentV1[];
+  duplicatePropertyBehavior: DbmDbmObjectDuplicatePropertyBehaviorV1;
+}
+
+export interface DbmActionDefinitionV1 {
+  id: string;
+  authoringUnitId: string;
+  displayName: string;
+  triggerType: DbmActionTriggerTypeV1;
+  boundTarget: DbmAuthoringTargetV1;
+  scriptId: string;
+}
+
+export interface DbmAuthoringOperationContractV1 {
+  name: DbmAuthoringOperationNameV1;
+  authority: DbmAuthoringOperationAuthorityV1;
+  targetUnitTypes: DbmAuthoringUnitTypeV1[];
+  requiresActiveLock: boolean;
+  auditRequired: boolean;
+  rejectionCode: string | null;
+}
+
+export interface DbmCompiledSnapshotBoundaryV1 {
+  processJsonIsCompiledSnapshot: boolean;
+  excludedMetadata: DbmCompiledSnapshotExcludedMetadataV1[];
+}
+
+export interface DbmAuthoringContractV1 {
+  schemaVersion: DbmAuthoringContractSchemaVersionV1;
+  packageId: string;
+  packageVersion: string;
+  authoringUnits: DbmAuthoringUnitV1[];
+  drafts: DbmAuthoringDraftV1[];
+  publishedVersions: DbmPublishedVersionV1[];
+  editLocks: DbmEditLockV1[];
+  designerSessions: DbmDesignerSessionV1[];
+  scripts: DbmDbmScriptV1[];
+  dbmObjects: DbmDbmObjectV1[];
+  actions: DbmActionDefinitionV1[];
+  operations: DbmAuthoringOperationContractV1[];
+  compiledSnapshotBoundary: DbmCompiledSnapshotBoundaryV1;
+}
+
+export interface DbmCompiledPublishedDefinitionReferenceV1 {
+  unitType: DbmAuthoringUnitTypeV1;
+  unitId: string;
+  publishedVersion: number;
+  rowVersion: string;
+  etag: string;
+}
+
+export interface DbmCompiledProcessSnapshotV1 {
+  schemaVersion: DbmCompiledProcessSnapshotSchemaVersionV1;
+  packageId: string;
+  packageVersion: string;
+  generatedFromPublishedUtc: string;
+  processPortfolio: DbmProcessPortfolioV1;
+  publishedDefinitions: DbmCompiledPublishedDefinitionReferenceV1[];
+}
+
+export interface DbmAuthoringEditAuthorityRequestV1 {
+  target: DbmAuthoringTargetV1;
+  userId: string;
+  nowUtc: string;
+}
+
+export interface DbmAuthoringEditAuthorityResultV1 {
+  canEdit: boolean;
+  authority: DbmAuthoringEditAuthorityV1;
+  lockId: string | null;
+  ownerDisplayName: string | null;
+  activeDesignerSessionIds: string[];
+}
+
 function createValidationIssue(
   code: DbmProcessPortfolioValidationIssueCodeV1,
   path: string,
@@ -727,6 +978,59 @@ export function createProcessPortfolioProjectionV1(
     portalRuntimeInvoked: false,
     mainProcess: projectProcess(mainProcess, displayMode),
     subProcesses: visibleSubProcesses.map((process) => projectProcess(process, process.mainDisplayMode))
+  };
+}
+
+function isSameAuthoringTarget(left: DbmAuthoringTargetV1 | null, right: DbmAuthoringTargetV1): boolean {
+  return left !== null && left.unitType === right.unitType && left.unitId === right.unitId;
+}
+
+function isActiveAt(status: 'active' | string, expiryUtc: string, nowUtc: string): boolean {
+  return status === 'active' && Date.parse(expiryUtc) > Date.parse(nowUtc);
+}
+
+export function resolveAuthoringEditAuthorityV1(
+  contract: DbmAuthoringContractV1,
+  request: DbmAuthoringEditAuthorityRequestV1
+): DbmAuthoringEditAuthorityResultV1 {
+  const activeDesignerSessionIds = contract.designerSessions
+    .filter((session) =>
+      isSameAuthoringTarget(session.currentTarget, request.target) &&
+      isActiveAt(session.status, session.expiryUtc, request.nowUtc)
+    )
+    .map((session) => session.id);
+
+  const activeLock = contract.editLocks.find((lock) =>
+    isSameAuthoringTarget(lock.target, request.target) &&
+    isActiveAt(lock.status, lock.expiryUtc, request.nowUtc)
+  );
+
+  if (!activeLock) {
+    return {
+      canEdit: true,
+      authority: 'unlocked',
+      lockId: null,
+      ownerDisplayName: null,
+      activeDesignerSessionIds
+    };
+  }
+
+  if (activeLock.owner.id === request.userId) {
+    return {
+      canEdit: true,
+      authority: 'owned-lock',
+      lockId: activeLock.id,
+      ownerDisplayName: activeLock.owner.displayName,
+      activeDesignerSessionIds
+    };
+  }
+
+  return {
+    canEdit: false,
+    authority: 'locked-by-other-user',
+    lockId: activeLock.id,
+    ownerDisplayName: activeLock.owner.displayName,
+    activeDesignerSessionIds
   };
 }
 
