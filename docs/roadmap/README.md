@@ -4,6 +4,8 @@ This section holds the active high-level release ladder and per-release plans fo
 
 ## Files
 
+- [progress-tracker.md](progress-tracker.md)
+  - the human-readable roadmap progress and current active slice tracker
 - [release-plan.md](release-plan.md)
   - the active `R0` to `R9` release ladder
 - [capability-map.md](capability-map.md)
@@ -36,4 +38,5 @@ The old release files are retained only as historical pointers. They are not the
 - Every release must produce something valuable, demonstrable, and testable.
 - The active roadmap starts at the new product `R1`; old `R1` to `R3.1` material is prototype/reference evidence.
 - The roadmap may evolve, but it must not drift silently from accepted ADRs.
+- `progress-tracker.md` is the human-readable status entry point.
 - `capability-map.md` is the cross-release source of truth for capability placement.

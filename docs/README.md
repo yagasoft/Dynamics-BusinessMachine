@@ -35,10 +35,11 @@ Do not use this area for temporary execution notes, scratch work, or private pla
 6. [Product roadmap reset ADR](adr/0016-product-roadmap-reset-process-first.md)
 7. [Release plan](roadmap/release-plan.md)
 8. [Capability map](roadmap/capability-map.md)
-9. [Release 1 process/stage designer and actual form render](roadmap/release-1-process-stage-designer-and-form-render.md)
-10. [Release 2 DBMScript and action foundation](roadmap/release-2-dbmscript-and-action-foundation.md)
-11. [Release governance](releases/release-governance.md)
-12. [Runbook index](runbooks/README.md)
+9. [Roadmap progress tracker](roadmap/progress-tracker.md)
+10. [Release 1 process/stage designer and actual form render](roadmap/release-1-process-stage-designer-and-form-render.md)
+11. [Release 2 DBMScript and action foundation](roadmap/release-2-dbmscript-and-action-foundation.md)
+12. [Release governance](releases/release-governance.md)
+13. [Runbook index](runbooks/README.md)
 
 ## Working rules
 

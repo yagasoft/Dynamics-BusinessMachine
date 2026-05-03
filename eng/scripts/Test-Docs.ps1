@@ -27,6 +27,7 @@ $requiredDocs = @(
     'docs\runbooks\r2-generic-existing-form-dev-proof.md',
     'docs\runbooks\live-connected-e2e.md',
     'docs\runbooks\codex-dataverse-metadata-synthesis-skill-handoff.md',
+    'docs\roadmap\progress-tracker.md',
     'docs\roadmap\completed-roadmap-tdd-matrix.md'
 )
 
