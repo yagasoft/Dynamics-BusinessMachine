@@ -7,6 +7,9 @@ export { normalizeReadbackEntity, readbackDataverseMetadata } from './readback';
 export type {
   DataverseApplyAction,
   DataverseApplyReport,
+  DataverseAuthoringColumnPlan,
+  DataverseAuthoringOperationPlan,
+  DataverseAuthoringTablePlan,
   DataverseBehaviorPlan,
   DataverseColumnPlan,
   DataverseDriftDifference,

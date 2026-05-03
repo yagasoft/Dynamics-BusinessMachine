@@ -1,4 +1,7 @@
 import type {
+  DbmAuthoringOperationAuthorityV1,
+  DbmAuthoringOperationNameV1,
+  DbmAuthoringUnitTypeV1,
   DbmPortalRuntimeBootstrapV1,
   DbmElementTypeV1,
   DbmFieldDataTypeV1,
@@ -28,6 +31,7 @@ export type DataverseApplyActionState = 'created' | 'updated' | 'skipped' | 'fai
 export type DataverseFormKind = 'main';
 export type DataverseFormFolder = 'main';
 export type DataverseBehaviorKind = 'shared-runtime' | 'form-config' | 'process-renderer' | 'process-host-page';
+export type DataverseAuthoringImplementationBoundary = 'contract-only';
 
 export interface DataverseSynthesisDiagnostic {
   code: string;
@@ -303,12 +307,47 @@ export interface DataversePortalRuntimePlan {
   hostPackageName: string;
 }
 
+export interface DataverseAuthoringColumnPlan {
+  logicalName: string;
+  schemaName: string;
+  displayName: string;
+  attributeType: DataverseAttributeType | 'Uniqueidentifier';
+  required: boolean;
+  readOnly: boolean;
+  contractRole: string;
+}
+
+export interface DataverseAuthoringTablePlan {
+  id: string;
+  displayName: string;
+  logicalName: string;
+  schemaName: string;
+  logicalCollectionName: string;
+  collectionSchemaName: string;
+  primaryIdLogicalName: string;
+  primaryNameAttributeLogicalName: string;
+  columns: DataverseAuthoringColumnPlan[];
+  implementationBoundary: DataverseAuthoringImplementationBoundary;
+}
+
+export interface DataverseAuthoringOperationPlan {
+  name: DbmAuthoringOperationNameV1;
+  authority: DbmAuthoringOperationAuthorityV1;
+  targetUnitTypes: DbmAuthoringUnitTypeV1[];
+  requiresActiveLock: boolean;
+  auditRequired: boolean;
+  rejectionCode: string | null;
+  implementationBoundary: DataverseAuthoringImplementationBoundary;
+}
+
 export interface DataverseSynthesisPlanSummary {
   supportedEntities: number;
   supportedColumns: number;
   supportedRelationships: number;
   supportedForms: number;
   supportedBehaviors: number;
+  authoringTables: number;
+  authoringOperations: number;
   blockingDiagnostics: number;
 }
 
@@ -323,6 +362,8 @@ export interface DataverseSynthesisPlan {
   relationships: DataverseRelationshipPlan[];
   forms: DataverseFormPlan[];
   behaviors: DataverseBehaviorPlan[];
+  authoringTables: DataverseAuthoringTablePlan[];
+  authoringOperations: DataverseAuthoringOperationPlan[];
   portalRuntime: DataversePortalRuntimePlan | null;
   diagnostics: DataverseSynthesisDiagnostic[];
   summary: DataverseSynthesisPlanSummary;

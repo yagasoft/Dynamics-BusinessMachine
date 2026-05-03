@@ -1,4 +1,7 @@
 import type {
+  DbmAuthoringOperationAuthorityV1,
+  DbmAuthoringOperationNameV1,
+  DbmAuthoringUnitTypeV1,
   DbmEntityV1,
   DbmFieldV1,
   DbmModelV1,
@@ -25,6 +28,10 @@ import {
   getStageType
 } from './process-portfolio';
 import type {
+  DataverseAttributeType,
+  DataverseAuthoringColumnPlan,
+  DataverseAuthoringOperationPlan,
+  DataverseAuthoringTablePlan,
   DataverseChoiceOptionPlan,
   DataverseColumnPlan,
   DataverseEntityPlan,
@@ -650,6 +657,171 @@ function planRelationship(
   };
 }
 
+const R21_AUTHORING_UNIT_TYPES: DbmAuthoringUnitTypeV1[] = [
+  'process',
+  'stage',
+  'child-process-link',
+  'dbmscript',
+  'dbm-object',
+  'action',
+  'notification-template',
+  'routing-policy',
+  'sla-policy',
+  'validation-rule',
+  'stage-local-config'
+];
+
+const R21_AUTHORING_OPERATION_AUTHORITY: DbmAuthoringOperationAuthorityV1 = 'dataverse-custom-api-or-plugin';
+
+function createAuthoringColumn(
+  logicalName: string,
+  displayName: string,
+  attributeType: DataverseAttributeType | 'Uniqueidentifier',
+  contractRole: string,
+  required = false,
+  readOnly = false
+): DataverseAuthoringColumnPlan {
+  return {
+    logicalName,
+    schemaName: toSchemaName(logicalName),
+    displayName,
+    attributeType,
+    required,
+    readOnly,
+    contractRole
+  };
+}
+
+function createAuthoringTable(
+  logicalName: string,
+  displayName: string,
+  columns: DataverseAuthoringColumnPlan[]
+): DataverseAuthoringTablePlan {
+  return {
+    id: logicalName,
+    displayName,
+    logicalName,
+    schemaName: toSchemaName(logicalName),
+    logicalCollectionName: toLogicalCollectionName(logicalName),
+    collectionSchemaName: toCollectionSchemaName(toSchemaName(logicalName)),
+    primaryIdLogicalName: `${logicalName}id`,
+    primaryNameAttributeLogicalName: 'dbm_name',
+    columns,
+    implementationBoundary: 'contract-only'
+  };
+}
+
+function buildR21AuthoringTables(): DataverseAuthoringTablePlan[] {
+  return [
+    createAuthoringTable('dbm_authoringunit', 'DBM authoring unit', [
+      createAuthoringColumn('dbm_authoringunitid', 'Authoring unit', 'Uniqueidentifier', 'primary-id', true, true),
+      createAuthoringColumn('dbm_name', 'Name', 'String', 'primary-name', true),
+      createAuthoringColumn('dbm_unittype', 'Unit type', 'String', 'target-type', true),
+      createAuthoringColumn('dbm_unitid', 'Unit id', 'String', 'target-id', true),
+      createAuthoringColumn('dbm_parentprocessid', 'Parent process id', 'String', 'parent-process'),
+      createAuthoringColumn('dbm_parentstageid', 'Parent stage id', 'String', 'parent-stage'),
+      createAuthoringColumn('dbm_currentpublishedversion', 'Current published version', 'Integer', 'published-version', true, true),
+      createAuthoringColumn('dbm_currentpublishedrowversion', 'Current published rowversion', 'String', 'rowversion-guard', true, true),
+      createAuthoringColumn('dbm_currentpublishedetag', 'Current published ETag', 'String', 'etag-guard', true, true),
+      createAuthoringColumn('dbm_lifecyclestate', 'Lifecycle state', 'String', 'lifecycle-state', true),
+      createAuthoringColumn('dbm_sourceexportid', 'Source export id', 'String', 'source-sync'),
+      createAuthoringColumn('dbm_compiledsnapshotinclusion', 'Compiled snapshot inclusion', 'String', 'compiled-snapshot-boundary', true)
+    ]),
+    createAuthoringTable('dbm_authoringdraft', 'DBM authoring draft', [
+      createAuthoringColumn('dbm_authoringdraftid', 'Authoring draft', 'Uniqueidentifier', 'primary-id', true, true),
+      createAuthoringColumn('dbm_name', 'Name', 'String', 'primary-name', true),
+      createAuthoringColumn('dbm_targettype', 'Target type', 'String', 'target-type', true),
+      createAuthoringColumn('dbm_targetid', 'Target id', 'String', 'target-id', true),
+      createAuthoringColumn('dbm_ownerid', 'Owner id', 'String', 'owner-id', true),
+      createAuthoringColumn('dbm_ownerdisplayname', 'Owner display name', 'String', 'owner-display', true),
+      createAuthoringColumn('dbm_basepublishedversion', 'Base published version', 'Integer', 'published-version', true, true),
+      createAuthoringColumn('dbm_baserowversion', 'Base rowversion', 'String', 'rowversion-guard', true, true),
+      createAuthoringColumn('dbm_baseetag', 'Base ETag', 'String', 'etag-guard', true, true),
+      createAuthoringColumn('dbm_autosavepayload', 'Autosave payload', 'Memo', 'autosave-payload', true),
+      createAuthoringColumn('dbm_validationstate', 'Validation state', 'String', 'validation-state', true),
+      createAuthoringColumn('dbm_recoverabilitystate', 'Recoverability state', 'String', 'recoverability-state', true),
+      createAuthoringColumn('dbm_updatedutc', 'Updated UTC', 'DateTime', 'updated-timestamp', true)
+    ]),
+    createAuthoringTable('dbm_publishedversion', 'DBM published version', [
+      createAuthoringColumn('dbm_publishedversionid', 'Published version', 'Uniqueidentifier', 'primary-id', true, true),
+      createAuthoringColumn('dbm_name', 'Name', 'String', 'primary-name', true),
+      createAuthoringColumn('dbm_targettype', 'Target type', 'String', 'target-type', true),
+      createAuthoringColumn('dbm_targetid', 'Target id', 'String', 'target-id', true),
+      createAuthoringColumn('dbm_version', 'Version', 'Integer', 'published-version', true, true),
+      createAuthoringColumn('dbm_rowversion', 'Rowversion', 'String', 'rowversion-guard', true, true),
+      createAuthoringColumn('dbm_etag', 'ETag', 'String', 'etag-guard', true, true),
+      createAuthoringColumn('dbm_status', 'Status', 'String', 'published-status', true),
+      createAuthoringColumn('dbm_publishedutc', 'Published UTC', 'DateTime', 'published-timestamp', true, true),
+      createAuthoringColumn('dbm_publishedbyid', 'Published by id', 'String', 'published-by-id', true, true),
+      createAuthoringColumn('dbm_publishedbydisplayname', 'Published by display name', 'String', 'published-by-display', true, true)
+    ]),
+    createAuthoringTable('dbm_editlock', 'DBM edit lock', [
+      createAuthoringColumn('dbm_editlockid', 'Edit lock', 'Uniqueidentifier', 'primary-id', true, true),
+      createAuthoringColumn('dbm_name', 'Name', 'String', 'primary-name', true),
+      createAuthoringColumn('dbm_targettype', 'Target type', 'String', 'target-type', true),
+      createAuthoringColumn('dbm_targetid', 'Target id', 'String', 'target-id', true),
+      createAuthoringColumn('dbm_ownerid', 'Owner id', 'String', 'owner-id', true),
+      createAuthoringColumn('dbm_ownerdisplayname', 'Owner display name', 'String', 'owner-display', true),
+      createAuthoringColumn('dbm_expiryutc', 'Expiry UTC', 'DateTime', 'expiry-timestamp', true),
+      createAuthoringColumn('dbm_heartbeatutc', 'Heartbeat UTC', 'DateTime', 'heartbeat-timestamp', true),
+      createAuthoringColumn('dbm_reason', 'Reason', 'String', 'lock-reason', true),
+      createAuthoringColumn('dbm_status', 'Status', 'String', 'lock-status', true),
+      createAuthoringColumn('dbm_acquiredsource', 'Acquired source', 'String', 'acquired-source', true),
+      createAuthoringColumn('dbm_forcereleasedbyid', 'Force released by id', 'String', 'force-release-owner'),
+      createAuthoringColumn('dbm_forcereleasedbydisplayname', 'Force released by display name', 'String', 'force-release-owner-display'),
+      createAuthoringColumn('dbm_forcereleaseutc', 'Force release UTC', 'DateTime', 'force-release-timestamp'),
+      createAuthoringColumn('dbm_forcereleasereason', 'Force release reason', 'String', 'force-release-reason')
+    ]),
+    createAuthoringTable('dbm_designersession', 'DBM designer session', [
+      createAuthoringColumn('dbm_designersessionid', 'Designer session', 'Uniqueidentifier', 'primary-id', true, true),
+      createAuthoringColumn('dbm_name', 'Name', 'String', 'primary-name', true),
+      createAuthoringColumn('dbm_sessionid', 'Session id', 'String', 'session-id', true),
+      createAuthoringColumn('dbm_processid', 'Process id', 'String', 'process-id', true),
+      createAuthoringColumn('dbm_ownerid', 'Owner id', 'String', 'owner-id', true),
+      createAuthoringColumn('dbm_ownerdisplayname', 'Owner display name', 'String', 'owner-display', true),
+      createAuthoringColumn('dbm_currenttargettype', 'Current target type', 'String', 'current-target-type'),
+      createAuthoringColumn('dbm_currenttargetid', 'Current target id', 'String', 'current-target-id'),
+      createAuthoringColumn('dbm_openedutc', 'Opened UTC', 'DateTime', 'opened-timestamp', true),
+      createAuthoringColumn('dbm_heartbeatutc', 'Heartbeat UTC', 'DateTime', 'heartbeat-timestamp', true),
+      createAuthoringColumn('dbm_expiryutc', 'Expiry UTC', 'DateTime', 'expiry-timestamp', true),
+      createAuthoringColumn('dbm_status', 'Status', 'String', 'session-status', true),
+      createAuthoringColumn('dbm_host', 'Host', 'String', 'session-host', true),
+      createAuthoringColumn('dbm_source', 'Source', 'String', 'session-source', true)
+    ])
+  ];
+}
+
+function createAuthoringOperation(
+  name: DbmAuthoringOperationNameV1,
+  requiresActiveLock: boolean,
+  auditRequired: boolean,
+  rejectionCode: string | null
+): DataverseAuthoringOperationPlan {
+  return {
+    name,
+    authority: R21_AUTHORING_OPERATION_AUTHORITY,
+    targetUnitTypes: R21_AUTHORING_UNIT_TYPES,
+    requiresActiveLock,
+    auditRequired,
+    rejectionCode,
+    implementationBoundary: 'contract-only'
+  };
+}
+
+function buildR21AuthoringOperations(): DataverseAuthoringOperationPlan[] {
+  return [
+    createAuthoringOperation('acquire-lock', false, true, 'lock-conflict'),
+    createAuthoringOperation('renew-lock', true, false, 'lock-not-owned'),
+    createAuthoringOperation('release-lock', true, false, 'lock-not-owned'),
+    createAuthoringOperation('force-release-lock', false, true, 'force-release-denied'),
+    createAuthoringOperation('cleanup-stale-locks', false, true, null),
+    createAuthoringOperation('autosave-draft', true, false, 'lock-required'),
+    createAuthoringOperation('publish-draft', true, true, 'publish-conflict'),
+    createAuthoringOperation('reject-save', false, true, 'save-without-valid-lock'),
+    createAuthoringOperation('reject-publish', false, true, 'unresolved-draft-or-rowversion-conflict')
+  ];
+}
+
 export function planDataverseSynthesis(model: DbmModelV1): DataverseSynthesisPlan {
   const diagnostics: DataverseSynthesisDiagnostic[] = [];
   const entities: DataverseEntityPlan[] = [];
@@ -719,6 +891,8 @@ export function planDataverseSynthesis(model: DbmModelV1): DataverseSynthesisPla
 
   const existingFormArtifacts = planExistingDataverseForms(model, entityPlans, diagnostics);
   const portalRuntime = buildPortalRuntimePlan(model, entityPlans, runtimeOwnerEntityId, diagnostics);
+  const authoringTables = buildR21AuthoringTables();
+  const authoringOperations = buildR21AuthoringOperations();
 
   return {
     generatedUtc: new Date().toISOString(),
@@ -731,6 +905,8 @@ export function planDataverseSynthesis(model: DbmModelV1): DataverseSynthesisPla
     relationships,
     forms: existingFormArtifacts.forms,
     behaviors: existingFormArtifacts.behaviors,
+    authoringTables,
+    authoringOperations,
     portalRuntime,
     diagnostics,
     summary: {
@@ -739,6 +915,8 @@ export function planDataverseSynthesis(model: DbmModelV1): DataverseSynthesisPla
       supportedRelationships: relationships.filter((relationship) => relationship.supported).length,
       supportedForms: existingFormArtifacts.forms.filter((form) => form.supported).length,
       supportedBehaviors: existingFormArtifacts.behaviors.filter((behavior) => behavior.supported).length,
+      authoringTables: authoringTables.length,
+      authoringOperations: authoringOperations.length,
       blockingDiagnostics: diagnostics.filter((entry) => entry.severity === 'error').length
     }
   };

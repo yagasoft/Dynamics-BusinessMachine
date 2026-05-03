@@ -502,6 +502,152 @@ test('planDataverseSynthesis accepts a generic matrix model without legacy model
   assert.equal(plan.diagnostics.some((diagnostic) => /model\.process/i.test(diagnostic.message)), false);
 });
 
+test('planDataverseSynthesis exposes R2.1 authoring table contracts', () => {
+  const plan = planDataverseSynthesis(approvalRequestModel as DbmModelV1);
+
+  assert.deepEqual(
+    plan.authoringTables.map((table) => table.logicalName),
+    [
+      'dbm_authoringunit',
+      'dbm_authoringdraft',
+      'dbm_publishedversion',
+      'dbm_editlock',
+      'dbm_designersession'
+    ]
+  );
+  assert.equal(plan.summary.authoringTables, 5);
+
+  const columnsByTable = new Map(
+    plan.authoringTables.map((table) => [
+      table.logicalName,
+      table.columns.map((column) => column.logicalName)
+    ])
+  );
+
+  assert.deepEqual(
+    columnsByTable.get('dbm_authoringunit'),
+    [
+      'dbm_authoringunitid',
+      'dbm_name',
+      'dbm_unittype',
+      'dbm_unitid',
+      'dbm_parentprocessid',
+      'dbm_parentstageid',
+      'dbm_currentpublishedversion',
+      'dbm_currentpublishedrowversion',
+      'dbm_currentpublishedetag',
+      'dbm_lifecyclestate',
+      'dbm_sourceexportid',
+      'dbm_compiledsnapshotinclusion'
+    ]
+  );
+  assert.deepEqual(
+    columnsByTable.get('dbm_authoringdraft'),
+    [
+      'dbm_authoringdraftid',
+      'dbm_name',
+      'dbm_targettype',
+      'dbm_targetid',
+      'dbm_ownerid',
+      'dbm_ownerdisplayname',
+      'dbm_basepublishedversion',
+      'dbm_baserowversion',
+      'dbm_baseetag',
+      'dbm_autosavepayload',
+      'dbm_validationstate',
+      'dbm_recoverabilitystate',
+      'dbm_updatedutc'
+    ]
+  );
+  assert.deepEqual(
+    columnsByTable.get('dbm_editlock'),
+    [
+      'dbm_editlockid',
+      'dbm_name',
+      'dbm_targettype',
+      'dbm_targetid',
+      'dbm_ownerid',
+      'dbm_ownerdisplayname',
+      'dbm_expiryutc',
+      'dbm_heartbeatutc',
+      'dbm_reason',
+      'dbm_status',
+      'dbm_acquiredsource',
+      'dbm_forcereleasedbyid',
+      'dbm_forcereleasedbydisplayname',
+      'dbm_forcereleaseutc',
+      'dbm_forcereleasereason'
+    ]
+  );
+  assert.deepEqual(
+    columnsByTable.get('dbm_designersession'),
+    [
+      'dbm_designersessionid',
+      'dbm_name',
+      'dbm_sessionid',
+      'dbm_processid',
+      'dbm_ownerid',
+      'dbm_ownerdisplayname',
+      'dbm_currenttargettype',
+      'dbm_currenttargetid',
+      'dbm_openedutc',
+      'dbm_heartbeatutc',
+      'dbm_expiryutc',
+      'dbm_status',
+      'dbm_host',
+      'dbm_source'
+    ]
+  );
+});
+
+test('planDataverseSynthesis exposes R2.1 authoring operation contracts', () => {
+  const plan = planDataverseSynthesis(approvalRequestModel as DbmModelV1);
+
+  assert.deepEqual(
+    plan.authoringOperations.map((operation) => operation.name),
+    [
+      'acquire-lock',
+      'renew-lock',
+      'release-lock',
+      'force-release-lock',
+      'cleanup-stale-locks',
+      'autosave-draft',
+      'publish-draft',
+      'reject-save',
+      'reject-publish'
+    ]
+  );
+  assert.equal(plan.summary.authoringOperations, 9);
+  assert.equal(
+    plan.authoringOperations.every((operation) => operation.authority === 'dataverse-custom-api-or-plugin'),
+    true
+  );
+  assert.deepEqual(
+    plan.authoringOperations.find((operation) => operation.name === 'autosave-draft'),
+    {
+      name: 'autosave-draft',
+      authority: 'dataverse-custom-api-or-plugin',
+      targetUnitTypes: [
+        'process',
+        'stage',
+        'child-process-link',
+        'dbmscript',
+        'dbm-object',
+        'action',
+        'notification-template',
+        'routing-policy',
+        'sla-policy',
+        'validation-rule',
+        'stage-local-config'
+      ],
+      requiresActiveLock: true,
+      auditRequired: false,
+      rejectionCode: 'lock-required',
+      implementationBoundary: 'contract-only'
+    }
+  );
+});
+
 test('normalizeReadbackEntity captures lookup targets and picklist values', () => {
   const entity = normalizeReadbackEntity(
     {
