@@ -74,6 +74,13 @@
           },
           "title": "actions"
         },
+        "testCases": {
+          "type": "array",
+          "items": {
+            "$ref": "#/definitions/DbmAuthoringTestCaseV1"
+          },
+          "title": "testCases"
+        },
         "operations": {
           "type": "array",
           "items": {
@@ -100,7 +107,8 @@
         "packageVersion",
         "publishedVersions",
         "schemaVersion",
-        "scripts"
+        "scripts",
+        "testCases"
       ]
     },
     "DbmAuthoringUnitV1": {
@@ -159,6 +167,10 @@
         "compiledSnapshotInclusion": {
           "$ref": "#/definitions/DbmAuthoringSnapshotInclusionV1",
           "title": "compiledSnapshotInclusion"
+        },
+        "solutionMetadata": {
+          "$ref": "#/definitions/DbmAuthoringSolutionMetadataV1",
+          "title": "solutionMetadata"
         }
       },
       "additionalProperties": false,
@@ -172,6 +184,7 @@
         "lifecycleState",
         "parentProcessId",
         "parentStageId",
+        "solutionMetadata",
         "sourceExportId",
         "unitType"
       ]
@@ -210,6 +223,35 @@
         "published-reference"
       ],
       "type": "string"
+    },
+    "DbmAuthoringSolutionMetadataV1": {
+      "title": "DbmAuthoringSolutionMetadataV1",
+      "type": "object",
+      "properties": {
+        "solutionName": {
+          "type": "string",
+          "title": "solutionName"
+        },
+        "componentLogicalName": {
+          "type": "string",
+          "title": "componentLogicalName"
+        },
+        "componentSchemaName": {
+          "type": "string",
+          "title": "componentSchemaName"
+        },
+        "publisherPrefix": {
+          "type": "string",
+          "title": "publisherPrefix"
+        }
+      },
+      "additionalProperties": false,
+      "required": [
+        "componentLogicalName",
+        "componentSchemaName",
+        "publisherPrefix",
+        "solutionName"
+      ]
     },
     "DbmAuthoringDraftV1": {
       "title": "DbmAuthoringDraftV1",
@@ -375,15 +417,30 @@
         "publishedBy": {
           "$ref": "#/definitions/DbmAuthoringOwnerV1",
           "title": "publishedBy"
+        },
+        "definitionHash": {
+          "type": "string",
+          "title": "definitionHash"
+        },
+        "restoreSource": {
+          "$ref": "#/definitions/DbmPublishedVersionRestoreSourceV1",
+          "title": "restoreSource"
+        },
+        "solutionMetadata": {
+          "$ref": "#/definitions/DbmAuthoringSolutionMetadataV1",
+          "title": "solutionMetadata"
         }
       },
       "additionalProperties": false,
       "required": [
+        "definitionHash",
         "etag",
         "id",
         "publishedBy",
         "publishedUtc",
+        "restoreSource",
         "rowVersion",
+        "solutionMetadata",
         "status",
         "target",
         "version"
@@ -396,6 +453,31 @@
         "superseded"
       ],
       "type": "string"
+    },
+    "DbmPublishedVersionRestoreSourceV1": {
+      "title": "DbmPublishedVersionRestoreSourceV1",
+      "type": "object",
+      "properties": {
+        "restoredFromVersion": {
+          "type": [
+            "null",
+            "number"
+          ],
+          "title": "restoredFromVersion"
+        },
+        "restoredByDraftId": {
+          "type": [
+            "null",
+            "string"
+          ],
+          "title": "restoredByDraftId"
+        }
+      },
+      "additionalProperties": false,
+      "required": [
+        "restoredByDraftId",
+        "restoredFromVersion"
+      ]
     },
     "DbmEditLockV1": {
       "title": "DbmEditLockV1",
@@ -646,6 +728,10 @@
         "currentVersion": {
           "type": "number",
           "title": "currentVersion"
+        },
+        "solutionMetadata": {
+          "$ref": "#/definitions/DbmAuthoringSolutionMetadataV1",
+          "title": "solutionMetadata"
         }
       },
       "additionalProperties": false,
@@ -658,6 +744,7 @@
         "displayName",
         "id",
         "outputs",
+        "solutionMetadata",
         "status",
         "storage"
       ]
@@ -672,41 +759,54 @@
     },
     "DbmDbmScriptStorageV1": {
       "title": "DbmDbmScriptStorageV1",
+      "anyOf": [
+        {
+          "$ref": "#/definitions/DbmCompressedDbmScriptStorageV1"
+        },
+        {
+          "$ref": "#/definitions/DbmWebResourceFallbackDbmScriptStorageV1"
+        }
+      ]
+    },
+    "DbmCompressedDbmScriptStorageV1": {
+      "title": "DbmCompressedDbmScriptStorageV1",
       "type": "object",
       "properties": {
         "mode": {
-          "$ref": "#/definitions/DbmDbmScriptStorageModeV1",
+          "type": "string",
+          "const": "compressed",
           "title": "mode"
         },
         "compressedBody": {
-          "type": [
-            "null",
-            "string"
-          ],
+          "type": "string",
           "title": "compressedBody"
-        },
-        "webResourceName": {
-          "type": [
-            "null",
-            "string"
-          ],
-          "title": "webResourceName"
         }
       },
       "additionalProperties": false,
       "required": [
         "compressedBody",
+        "mode"
+      ]
+    },
+    "DbmWebResourceFallbackDbmScriptStorageV1": {
+      "title": "DbmWebResourceFallbackDbmScriptStorageV1",
+      "type": "object",
+      "properties": {
+        "mode": {
+          "type": "string",
+          "const": "web-resource-fallback",
+          "title": "mode"
+        },
+        "webResourceName": {
+          "type": "string",
+          "title": "webResourceName"
+        }
+      },
+      "additionalProperties": false,
+      "required": [
         "mode",
         "webResourceName"
       ]
-    },
-    "DbmDbmScriptStorageModeV1": {
-      "title": "DbmDbmScriptStorageModeV1",
-      "enum": [
-        "compressed",
-        "web-resource-fallback"
-      ],
-      "type": "string"
     },
     "DbmDbmScriptDependencyV1": {
       "title": "DbmDbmScriptDependencyV1",
@@ -716,6 +816,10 @@
           "type": "string",
           "title": "id"
         },
+        "kind": {
+          "$ref": "#/definitions/DbmDbmScriptDependencyKindV1",
+          "title": "kind"
+        },
         "sourceRef": {
           "type": "string",
           "title": "sourceRef"
@@ -723,14 +827,38 @@
         "required": {
           "type": "boolean",
           "title": "required"
+        },
+        "loadOrder": {
+          "type": "number",
+          "title": "loadOrder"
+        },
+        "minimumVersion": {
+          "type": [
+            "null",
+            "string"
+          ],
+          "title": "minimumVersion"
         }
       },
       "additionalProperties": false,
       "required": [
         "id",
+        "kind",
+        "loadOrder",
+        "minimumVersion",
         "required",
         "sourceRef"
       ]
+    },
+    "DbmDbmScriptDependencyKindV1": {
+      "title": "DbmDbmScriptDependencyKindV1",
+      "enum": [
+        "dbm-object",
+        "dbmscript",
+        "platform-api",
+        "web-resource"
+      ],
+      "type": "string"
     },
     "DbmDbmScriptOutputV1": {
       "title": "DbmDbmScriptOutputV1",
@@ -810,6 +938,10 @@
         "duplicatePropertyBehavior": {
           "$ref": "#/definitions/DbmDbmObjectDuplicatePropertyBehaviorV1",
           "title": "duplicatePropertyBehavior"
+        },
+        "solutionMetadata": {
+          "$ref": "#/definitions/DbmAuthoringSolutionMetadataV1",
+          "title": "solutionMetadata"
         }
       },
       "additionalProperties": false,
@@ -820,7 +952,8 @@
         "id",
         "orderedScriptComponents",
         "scope",
-        "scratchpad"
+        "scratchpad",
+        "solutionMetadata"
       ]
     },
     "DbmDbmObjectScopeV1": {
@@ -886,6 +1019,10 @@
         "scriptId": {
           "type": "string",
           "title": "scriptId"
+        },
+        "solutionMetadata": {
+          "$ref": "#/definitions/DbmAuthoringSolutionMetadataV1",
+          "title": "solutionMetadata"
         }
       },
       "additionalProperties": false,
@@ -895,6 +1032,7 @@
         "displayName",
         "id",
         "scriptId",
+        "solutionMetadata",
         "triggerType"
       ]
     },
@@ -908,6 +1046,45 @@
         "on-exit"
       ],
       "type": "string"
+    },
+    "DbmAuthoringTestCaseV1": {
+      "title": "DbmAuthoringTestCaseV1",
+      "type": "object",
+      "properties": {
+        "id": {
+          "type": "string",
+          "title": "id"
+        },
+        "displayName": {
+          "type": "string",
+          "title": "displayName"
+        },
+        "target": {
+          "$ref": "#/definitions/DbmAuthoringTargetV1",
+          "title": "target"
+        },
+        "inputs": {
+          "$ref": "#/definitions/Record%3Cstring%2CDbmScalarValueV1%3E",
+          "title": "inputs"
+        },
+        "expectedOutputs": {
+          "$ref": "#/definitions/Record%3Cstring%2CDbmScalarValueV1%3E",
+          "title": "expectedOutputs"
+        },
+        "solutionMetadata": {
+          "$ref": "#/definitions/DbmAuthoringSolutionMetadataV1",
+          "title": "solutionMetadata"
+        }
+      },
+      "additionalProperties": false,
+      "required": [
+        "displayName",
+        "expectedOutputs",
+        "id",
+        "inputs",
+        "solutionMetadata",
+        "target"
+      ]
     },
     "DbmAuthoringOperationContractV1": {
       "title": "DbmAuthoringOperationContractV1",
@@ -966,7 +1143,8 @@
         "reject-publish",
         "reject-save",
         "release-lock",
-        "renew-lock"
+        "renew-lock",
+        "restore-to-draft"
       ],
       "type": "string"
     },

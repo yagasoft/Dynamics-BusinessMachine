@@ -237,3 +237,13 @@ runExpectedFailureValidation(
     error.params &&
     ['drafts', 'editLocks', 'designerSessions', 'autosaveState'].includes(error.params.additionalProperty)
 );
+
+runExpectedFailureValidation(
+  validateAuthoringContract,
+  'invalid R2.1 DBMScript mixed storage fixture',
+  path.join(projectRoot, 'fixtures', 'invalid', 'r2-1-dbmscript-mixed-storage-v1.json'),
+  (error) =>
+    error.keyword === 'additionalProperties' &&
+    error.params &&
+    error.params.additionalProperty === 'webResourceName'
+);

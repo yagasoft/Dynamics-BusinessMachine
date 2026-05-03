@@ -322,7 +322,7 @@ test('R2.1 authoring contract validates lockable units, drafts, sessions, and op
   const contract = loadJson(path.join(projectRoot, 'fixtures', 'valid', 'r2-1-authoring-contract-v1.json'));
 
   expectValid(validateAuthoringContract, contract, 'R2.1 authoring contract');
-  assert.deepEqual(contract.authoringUnits.map((unit) => unit.unitType), [
+  assert.deepEqual([...new Set(contract.authoringUnits.map((unit) => unit.unitType))], [
     'process',
     'stage',
     'child-process-link',
@@ -351,9 +351,66 @@ test('R2.1 authoring contract validates lockable units, drafts, sessions, and op
     'cleanup-stale-locks',
     'autosave-draft',
     'publish-draft',
+    'restore-to-draft',
     'reject-save',
     'reject-publish'
   ]);
+});
+
+test('R2.1 DBMScript storage, dependencies, test cases, and solution metadata are contract-visible', () => {
+  const validateAuthoringContract = compileSchema('dbm-authoring-contract-v1.schema.json');
+  const contract = loadJson(path.join(projectRoot, 'fixtures', 'valid', 'r2-1-authoring-contract-v1.json'));
+
+  expectValid(validateAuthoringContract, contract, 'R2.1 authoring contract closeout surface');
+
+  assert.equal(contract.authoringUnits.every((unit) => unit.solutionMetadata?.solutionName === 'DynamicsBusinessMachine'), true);
+  assert.equal(contract.publishedVersions[0].definitionHash, 'sha256-script-credit-check-v1');
+  assert.deepEqual(contract.publishedVersions[0].restoreSource, {
+    restoredFromVersion: null,
+    restoredByDraftId: null
+  });
+
+  const compressedScript = contract.scripts.find((script) => script.id === 'script-credit-check');
+  assert.deepEqual(compressedScript.storage, {
+    mode: 'compressed',
+    compressedBody: 'eJyrVkrLz1eyUkpKLFKqBQA8UQYJ'
+  });
+  assert.deepEqual(compressedScript.dependencies, [
+    {
+      id: 'dep-xrm-context',
+      kind: 'platform-api',
+      sourceRef: 'xrm-context',
+      required: true,
+      loadOrder: 1,
+      minimumVersion: null
+    }
+  ]);
+  assert.deepEqual(compressedScript.solutionMetadata, {
+    solutionName: 'DynamicsBusinessMachine',
+    componentLogicalName: 'dbm_dbmscript',
+    componentSchemaName: 'dbm_DBMScript',
+    publisherPrefix: 'dbm'
+  });
+
+  const fallbackScript = contract.scripts.find((script) => script.id === 'script-score-normaliser');
+  assert.deepEqual(fallbackScript.storage, {
+    mode: 'web-resource-fallback',
+    webResourceName: 'dbm_/scripts/score-normaliser.js'
+  });
+
+  assert.deepEqual(contract.testCases.map((testCase) => testCase.target.unitType), ['dbmscript', 'dbm-object', 'action']);
+});
+
+test('R2.1 DBMScript storage rejects mixed compressed and web-resource payloads', () => {
+  const validateAuthoringContract = compileSchema('dbm-authoring-contract-v1.schema.json');
+  const mixedStorageContract = loadJson(path.join(projectRoot, 'fixtures', 'invalid', 'r2-1-dbmscript-mixed-storage-v1.json'));
+
+  expectInvalid(
+    validateAuthoringContract,
+    mixedStorageContract,
+    'mixed DBMScript storage contract',
+    (error) => error.keyword === 'additionalProperties' && error.params?.additionalProperty === 'webResourceName'
+  );
 });
 
 test('R2.1 edit locks are authority and designer sessions are awareness only', () => {

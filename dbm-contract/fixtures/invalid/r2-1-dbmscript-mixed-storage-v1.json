@@ -373,7 +373,8 @@
       "authoringMode": "javascript",
       "storage": {
         "mode": "compressed",
-        "compressedBody": "eJyrVkrLz1eyUkpKLFKqBQA8UQYJ"
+        "compressedBody": "eJyrVkrLz1eyUkpKLFKqBQA8UQYJ",
+        "webResourceName": "dbm_/scripts/should-not-coexist.js"
       },
       "dependencies": [
         {
@@ -421,10 +422,10 @@
         }
       ],
       "outputs": [
-      {
-        "name": "normalisedScore",
-        "dataType": "decimal"
-      }
+        {
+          "name": "normalisedScore",
+          "dataType": "decimal"
+        }
       ],
       "status": "published",
       "currentVersion": 1,

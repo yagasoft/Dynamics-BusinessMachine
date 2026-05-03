@@ -146,7 +146,7 @@ export type DbmEditLockAcquiredSourceV1 = 'explicit' | 'first-edit' | 'publish' 
 export type DbmDesignerSessionStatusV1 = 'active' | 'stale' | 'closed';
 export type DbmDesignerSessionHostV1 = 'model-driven' | 'xrmtoolbox' | 'power-apps-code-app' | 'external-runtime';
 export type DbmScriptAuthoringModeV1 = 'javascript' | 'template';
-export type DbmDbmScriptStorageModeV1 = 'compressed' | 'web-resource-fallback';
+export type DbmDbmScriptDependencyKindV1 = 'platform-api' | 'dbmscript' | 'web-resource' | 'dbm-object';
 export type DbmDbmScriptStatusV1 = 'draft' | 'published' | 'deprecated';
 export type DbmDbmObjectScopeV1 = 'process' | 'stage' | 'action';
 export type DbmDbmObjectDuplicatePropertyBehaviorV1 = 'last-writer-wins' | 'reject-duplicate';
@@ -164,6 +164,7 @@ export type DbmAuthoringOperationNameV1 =
   | 'cleanup-stale-locks'
   | 'autosave-draft'
   | 'publish-draft'
+  | 'restore-to-draft'
   | 'reject-save'
   | 'reject-publish';
 export type DbmAuthoringOperationAuthorityV1 = 'dataverse-custom-api-or-plugin';
@@ -593,6 +594,13 @@ export interface DbmAuthoringTargetV1 {
   unitId: string;
 }
 
+export interface DbmAuthoringSolutionMetadataV1 {
+  solutionName: string;
+  componentLogicalName: string;
+  componentSchemaName: string;
+  publisherPrefix: string;
+}
+
 export interface DbmAuthoringUnitV1 {
   id: string;
   unitType: DbmAuthoringUnitTypeV1;
@@ -605,6 +613,7 @@ export interface DbmAuthoringUnitV1 {
   lifecycleState: DbmAuthoringLifecycleStateV1;
   sourceExportId: string | null;
   compiledSnapshotInclusion: DbmAuthoringSnapshotInclusionV1;
+  solutionMetadata: DbmAuthoringSolutionMetadataV1;
 }
 
 export interface DbmAuthoringDraftV1 {
@@ -629,6 +638,14 @@ export interface DbmPublishedVersionV1 {
   status: DbmPublishedVersionStatusV1;
   publishedUtc: string;
   publishedBy: DbmAuthoringOwnerV1;
+  definitionHash: string;
+  restoreSource: DbmPublishedVersionRestoreSourceV1;
+  solutionMetadata: DbmAuthoringSolutionMetadataV1;
+}
+
+export interface DbmPublishedVersionRestoreSourceV1 {
+  restoredFromVersion: number | null;
+  restoredByDraftId: string | null;
 }
 
 export interface DbmEditLockForceReleaseAuditV1 {
@@ -664,8 +681,11 @@ export interface DbmDesignerSessionV1 {
 
 export interface DbmDbmScriptDependencyV1 {
   id: string;
+  kind: DbmDbmScriptDependencyKindV1;
   sourceRef: string;
   required: boolean;
+  loadOrder: number;
+  minimumVersion: string | null;
 }
 
 export interface DbmDbmScriptOutputV1 {
@@ -673,11 +693,17 @@ export interface DbmDbmScriptOutputV1 {
   dataType: DbmFieldDataTypeV1;
 }
 
-export interface DbmDbmScriptStorageV1 {
-  mode: DbmDbmScriptStorageModeV1;
-  compressedBody: string | null;
-  webResourceName: string | null;
+export interface DbmCompressedDbmScriptStorageV1 {
+  mode: 'compressed';
+  compressedBody: string;
 }
+
+export interface DbmWebResourceFallbackDbmScriptStorageV1 {
+  mode: 'web-resource-fallback';
+  webResourceName: string;
+}
+
+export type DbmDbmScriptStorageV1 = DbmCompressedDbmScriptStorageV1 | DbmWebResourceFallbackDbmScriptStorageV1;
 
 export interface DbmDbmScriptV1 {
   id: string;
@@ -690,6 +716,7 @@ export interface DbmDbmScriptV1 {
   outputs: DbmDbmScriptOutputV1[];
   status: DbmDbmScriptStatusV1;
   currentVersion: number;
+  solutionMetadata: DbmAuthoringSolutionMetadataV1;
 }
 
 export interface DbmDbmObjectScriptComponentV1 {
@@ -705,6 +732,7 @@ export interface DbmDbmObjectV1 {
   scratchpad: Record<string, DbmScalarValueV1>;
   orderedScriptComponents: DbmDbmObjectScriptComponentV1[];
   duplicatePropertyBehavior: DbmDbmObjectDuplicatePropertyBehaviorV1;
+  solutionMetadata: DbmAuthoringSolutionMetadataV1;
 }
 
 export interface DbmActionDefinitionV1 {
@@ -714,6 +742,16 @@ export interface DbmActionDefinitionV1 {
   triggerType: DbmActionTriggerTypeV1;
   boundTarget: DbmAuthoringTargetV1;
   scriptId: string;
+  solutionMetadata: DbmAuthoringSolutionMetadataV1;
+}
+
+export interface DbmAuthoringTestCaseV1 {
+  id: string;
+  displayName: string;
+  target: DbmAuthoringTargetV1;
+  inputs: Record<string, DbmScalarValueV1>;
+  expectedOutputs: Record<string, DbmScalarValueV1>;
+  solutionMetadata: DbmAuthoringSolutionMetadataV1;
 }
 
 export interface DbmAuthoringOperationContractV1 {
@@ -742,6 +780,7 @@ export interface DbmAuthoringContractV1 {
   scripts: DbmDbmScriptV1[];
   dbmObjects: DbmDbmObjectV1[];
   actions: DbmActionDefinitionV1[];
+  testCases: DbmAuthoringTestCaseV1[];
   operations: DbmAuthoringOperationContractV1[];
   compiledSnapshotBoundary: DbmCompiledSnapshotBoundaryV1;
 }
