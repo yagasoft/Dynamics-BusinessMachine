@@ -176,6 +176,16 @@ $contentChecks = @(
         Description = 'ADR-0017 must record Dataverse-normalised authoring rows.'
     },
     @{
+        Path = 'docs\adr\0017-collaborative-authoring-and-code-apps-designer.md'
+        Pattern = 'dbm_designersession'
+        Description = 'ADR-0017 must record designer-session presence.'
+    },
+    @{
+        Path = 'docs\architecture\canonical-model-runtime-contract-v1.md'
+        Pattern = 'Presence sessions never grant or deny edits'
+        Description = 'Canonical model contract must keep designer sessions separate from edit authority.'
+    },
+    @{
         Path = 'docs\roadmap\release-3-back-office-runtime.md'
         Pattern = 'Back-office runtime'
         Description = 'Release 3 plan must define the back-office runtime release.'

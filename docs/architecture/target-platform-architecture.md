@@ -15,6 +15,7 @@ The product is centred on a process portfolio:
 - a portal-safe projection for portal users
 - JavaScript-first action logic through DBMScript
 - Dataverse-normalised authoring rows with private drafts and granular edit leases
+- designer-session presence for who has the process or component open
 - Dataverse/model-driven back-office runtime before portal runtime
 
 ## Core boundaries
@@ -29,7 +30,9 @@ The designer core owns validation, editing behaviour, serialization, and model c
 
 ### 3. Collaborative authoring
 
-Dataverse-normalised authoring rows are the collaborative authoring source for process, stage, child process link, DBMScript, DBM Object, action, notification template, routing policy, SLA policy, validation rule, and stage-local configuration. The authoring layer creates private Dataverse-backed drafts when editing starts, acquires granular edit leases before meaningful non-mergeable edits, autosaves draft work, and uses optimistic concurrency/ETags as final consistency guards.
+Dataverse-normalised authoring rows are the collaborative authoring source for process, stage, child process link, DBMScript, DBM Object, action, notification template, routing policy, SLA policy, validation rule, and stage-local configuration. The authoring layer creates private Dataverse-backed drafts when editing starts, shows designer-session presence for process-level and component-level awareness, acquires granular edit leases before meaningful non-mergeable edits, autosaves draft work, and uses optimistic concurrency/ETags as final consistency guards.
+
+Designer-session presence is an awareness contract, not edit authority. It records one active session per open designer tab or host instance, including repeated same-user sessions and the current component focus. Edit leases remain the only authoring gate for meaningful non-mergeable edits.
 
 Process JSON remains a compiled published/export/import/runtime snapshot. The snapshot resolves published definitions and excludes draft and lock metadata.
 
@@ -71,7 +74,7 @@ Simulation, replay, explainability, governance, drift control, observability, an
 flowchart TB
     A["User"] --> B["Designer"]
     B --> C["Dataverse-normalised authoring rows"]
-    C --> D["Private drafts and edit leases"]
+    C --> D["Private drafts, designer sessions, and edit leases"]
     C --> E["Compiled published snapshot"]
     E --> F["Rendered model-driven form"]
     E --> G["Portal projection contract"]
@@ -91,7 +94,7 @@ flowchart TB
 
 - `R0` keeps engineering and governance foundations.
 - `R1` proves the process portfolio designer and actual model-driven rendered form.
-- `R2` proves DBMScript, JavaScript-first actions, collaborative authoring primitives, and the Power Apps Code Apps designer host proof.
+- `R2` proves DBMScript, JavaScript-first actions, collaborative authoring primitives, designer-session awareness, and the Power Apps Code Apps designer host proof.
 - `R3` proves back-office runtime from published snapshots/definitions only.
 - `R4` adds operations as first-class locked/drafted authoring rows.
 - `R5` adds portal runtime and return path.
@@ -105,6 +108,7 @@ flowchart TB
 - The designer remains the primary authoring surface.
 - The rendered form is not the designer.
 - Dataverse-normalised authoring rows are the collaborative authoring source.
+- Designer-session presence shows who has a process or component open without granting edit authority.
 - Process JSON is a compiled published/export/import/runtime snapshot.
 - Long non-mergeable edits must acquire a granular edit lease before meaningful edits begin and autosave into a private Dataverse-backed draft.
 - Optimistic concurrency and ETags are final consistency guards.

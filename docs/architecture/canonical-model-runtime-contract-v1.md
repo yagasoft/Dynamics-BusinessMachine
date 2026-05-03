@@ -232,6 +232,12 @@ Private authoring drafts are Dataverse-backed autosave rows. A draft stores targ
 
 `dbm_editlock` is the edit-lock public contract. It records target type/id, owner, owner display, expiry, heartbeat timestamp, reason, status, acquired source, and force-release audit fields. Lock custom APIs or plugins must support acquire, renew, release, force-release, stale-lock cleanup, autosave draft, publish draft, reject save without a valid lock, and reject publish when unresolved drafts or rowversion conflicts remain.
 
+`dbm_designersession` is the designer-session public contract. It records one active session per open designer tab or host instance, including session id, process id, owner, owner display, current component target type/id, opened timestamp, heartbeat timestamp, expiry, status, and host/source. The current component target type/id may reference stage, child process link, DBMScript, DBM Object, action, notification template, routing policy, SLA policy, validation rule, or stage-local configuration.
+
+Designer-session presence supports process-level awareness and component-level current focus. Sessions are not aggregated by user: repeated display names are expected when the same user has multiple open tabs or designer host instances. The current user's sessions are visible by default, with the current tab labelled distinctly in the user experience.
+
+Presence sessions never grant or deny edits. They are awareness leases only. `dbm_editlock` remains the authority for meaningful edit access, while private drafts remain the recoverable work store.
+
 Optimistic concurrency and ETags are final consistency guards. Editable surfaces must acquire a granular edit lease before meaningful non-mergeable edits begin, either explicitly or automatically on first edit.
 
 ## Runtime implications

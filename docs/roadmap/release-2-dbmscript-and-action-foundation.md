@@ -12,6 +12,7 @@ This release also establishes the collaborative authoring foundation for R2+ so 
 - Dataverse-normalised authoring rows for process, stage, child process link, DBMScript, DBM Object, action, notification template, routing policy, SLA policy, validation rule, and stage-local config.
 - Private Dataverse-backed drafts created when editing starts, with autosave so user work is not lost after failed publish, expired locks, browser close, or ETag conflict.
 - Granular edit leases acquired before meaningful non-mergeable edits begin, either explicitly through Acquire lock or automatically on first edit.
+- Active designer sessions for process-level and component-level authoring awareness, stored separately from edit locks.
 - Optimistic concurrency/ETags as final consistency guards, not the primary long-edit conflict UX.
 - Process JSON remains a compiled published/export/import/runtime snapshot, not the collaborative authoring row.
 - DBMScript language/runtime contract for code-first and template-mode authoring.
@@ -39,6 +40,8 @@ Must include:
 - draft/published lifecycle across lockable authoring units
 - private Dataverse-backed drafts with owner, base published version, base rowversion/ETag, autosave payload, validation state, and recoverability state
 - lockable unit metadata and `dbm_editlock` public contract with target type/id, owner, owner display, expiry, heartbeat timestamp, reason, status, acquired source, and force-release audit fields
+- `dbm_designersession` public contract with one active session per open designer tab or host instance, process id, owner, owner display, current component target type/id, opened timestamp, heartbeat timestamp, expiry, status, and host/source
+- process-level and component-level active designer sessions shown in the editor, including same-user sessions that are not aggregated by user
 - acquire, renew heartbeat, release, force-release, stale-lock cleanup, autosave draft, publish draft, reject-save, and reject-publish API/plugin contracts
 - optimistic concurrency/ETags as final consistency guards
 - compiled snapshot boundary where Process JSON remains a compiled published/export/import/runtime snapshot and excludes draft/lock metadata
@@ -135,6 +138,7 @@ Output:
 
 Must include:
 - collaborative authoring tests for lock acquisition, lock denial, stale-lock recovery, autosave survival, admin force-release audit, and publish conflict behaviour
+- designer-session tests for process-level presence, component-level focus, duplicate same-user sessions, current-tab labelling, and stale-session expiry
 - compiled snapshot tests proving Process JSON contains resolved published definitions/references and excludes draft/lock metadata
 - Code Apps proof evidence for Dataverse, embedding, CSP, ALM, environment, and source-sync limits
 - unit tests for VM behaviour
@@ -151,6 +155,7 @@ Must include:
 - Actions can be bound to the triggers required by later stage execution.
 - Notifications are represented through table row templates and send actions.
 - Editable DBMScript, DBM Object, action, template, and stage-local config surfaces acquire granular locks before meaningful edits and autosave into private drafts.
+- The designer shows active designer sessions at process level and component level, repeats the same user's display name for separate sessions, and keeps those sessions separate from edit authority.
 - Two users can edit different units under the same process, while two users cannot edit the same non-mergeable unit concurrently.
 - A user's autosaved draft survives failed publish, expired lock, browser close, and ETag conflict.
 - Stale locks can expire and be reacquired; admin force-release is audited.

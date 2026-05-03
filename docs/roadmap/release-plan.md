@@ -37,6 +37,7 @@ This document defines the active DBM release ladder after the process-first prod
 - Actual portal runtime is out of scope until `R5`; `R1` defines only the portal projection contract.
 - DBM owns the rendered process experience. Native Dataverse BPF may be generated later as an optional downstream integration, never as the source of truth.
 - Dataverse-normalised authoring rows are the collaborative authoring source for editable process artefacts; process JSON is a compiled published/export/import/runtime snapshot.
+- Designer-session presence is separate from edit authority: active designer sessions show who has a process or component open, while `dbm_editlock` remains the edit lease.
 - Long non-mergeable edits must not wait until save to discover conflicts. Editable surfaces acquire granular edit leases before meaningful edits begin and autosave into private Dataverse-backed drafts.
 - Optimistic concurrency and ETags are mandatory final consistency guards, not the primary long-edit UX.
 - Whole-process locks are reserved for publish, destructive structural edits, root process changes, migrations, and bulk reorder.
@@ -62,6 +63,7 @@ Minimum reset concepts:
 - `childProcessRefs[]`: defines stage-owned child process links, including the target process definition, activation rule, and whether the parent stage waits for child completion.
 - Authoring unit IDs: stable identities for process, stage, child process link, DBMScript, DBM Object, action, notification template, routing policy, SLA policy, validation rule, and stage-local configuration.
 - Private drafts: Dataverse-backed autosave rows created when editing starts, tied to the target authoring unit, owner, base published version, and base rowversion/ETag.
+- Designer sessions: Dataverse-backed presence leases created per open designer tab or host instance, tied to the process, current component target, owner, heartbeat, expiry, and host/source.
 - Edit locks: Dataverse-native leases for non-mergeable authoring units, including target type/id, owner, expiry, heartbeat, reason, status, and admin force-release audit.
 - Published snapshots: compiled definitions that resolve published rows and exclude draft/lock metadata.
 - Stage feature hooks: entry/exit conditions, branching, previous-stage transitions, notifications, routing, SLA/KPI, tasks, validations, actions, status, and portal status.
@@ -85,7 +87,7 @@ Details: [release-1-process-stage-designer-and-form-render.md](release-1-process
 
 ### Release 2
 
-`R2` rebuilds the action foundation around DBMScript, DBM Object, and JavaScript-first execution. It also establishes collaborative authoring primitives: authoring unit IDs, private drafts, granular edit leases, rowversion/ETag expectations, lockable metadata, and compiled snapshot boundaries. It makes action definitions, trigger hooks, table row templates, WYSIWYG notification templates, query/rich editor hooks, dependency loading, output handling, version history, test case support, and safe execution planning ready for later runtime work.
+`R2` rebuilds the action foundation around DBMScript, DBM Object, and JavaScript-first execution. It also establishes collaborative authoring primitives: authoring unit IDs, private drafts, granular edit leases, designer-session presence, rowversion/ETag expectations, lockable metadata, and compiled snapshot boundaries. It makes action definitions, trigger hooks, table row templates, WYSIWYG notification templates, query/rich editor hooks, dependency loading, output handling, version history, test case support, and safe execution planning ready for later runtime work.
 
 Details: [release-2-dbmscript-and-action-foundation.md](release-2-dbmscript-and-action-foundation.md)
 
@@ -135,7 +137,7 @@ Details: [release-9-ai-assisted-platform.md](release-9-ai-assisted-platform.md)
 
 - `R0`: repo governance, docs, branch policy, delivery posture, and verification remain enforceable.
 - `R1`: a user can define a process portfolio with a visible root process, nested child process definitions, stage-owned child process links, collapsed main-process display, and actual model-driven form rendering. Portal behaviour is defined only as a projection contract.
-- `R2`: a user can define JavaScript-first DBMScript actions, trigger hooks, templates, dependencies, and outputs that can be tested without relying on the later runtime; non-mergeable editor work uses granular locks, private drafts, autosave, and final ETag consistency checks.
+- `R2`: a user can define JavaScript-first DBMScript actions, trigger hooks, templates, dependencies, and outputs that can be tested without relying on the later runtime; non-mergeable editor work uses granular locks, private drafts, autosave, visible designer sessions, and final ETag consistency checks.
 - `R3`: a business user can move through a back-office process on model-driven forms, with process state, stage transitions, statuses, form behaviour, and action triggers persisted by DBM from published snapshots/definitions only.
 - `R4`: operators can route work, manage tasks, use notifications, track SLA/KPI behaviour, inspect history, and support running instances; operational policies and templates are first-class authoring rows with granular locks.
 - `R5`: a portal user can start or continue the portal leg, see a portal-safe process projection, and receive the correct return-path status without internal leakage.

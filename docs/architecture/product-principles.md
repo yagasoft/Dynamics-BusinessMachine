@@ -32,6 +32,7 @@ These principles are standing constraints for the process-first DBM reset.
 - Secrets never enter Git.
 - Dataverse is the near-term default for runtime authority, operational configuration, and platform-owned secrets.
 - Dataverse-normalised authoring rows are the source for collaborative editing; process JSON is a compiled published/export/import/runtime snapshot.
+- Show designer-session presence separately from edit authority so users can see who has a process or component open without treating viewers as lock owners.
 - Acquire the granular edit lease before meaningful edits begin for non-mergeable or high-risk authoring units.
 - Autosave user work into private Dataverse-backed drafts so failed publish, expired locks, browser close, or ETag conflicts do not lose work.
 - Use optimistic concurrency and ETags as final consistency guards, not as the primary long-edit conflict UX.

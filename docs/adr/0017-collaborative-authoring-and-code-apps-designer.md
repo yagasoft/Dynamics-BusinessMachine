@@ -41,12 +41,20 @@ The lock model is Dataverse-native:
 - Whole-process locks are reserved for publish, destructive structural edits, root process changes, migrations, and bulk reorder.
 - No Azure service is introduced for lock authority.
 
+Designer presence is also Dataverse-native, but separate from edit ownership:
+
+- `dbm_designersession` records one active designer session per open tab or host instance, including session id, process id, owner, owner display, current component target type/id, opened timestamp, heartbeat timestamp, expiry, status, and host/source.
+- The designer shows process-level active sessions and component-level current focus for stage, child process link, DBMScript, DBM Object, action, notification template, routing policy, SLA policy, validation rule, and stage-local configuration surfaces.
+- Repeated display names are expected when the same user has multiple active designer sessions.
+- The current user's own sessions are visible by default, with the current tab labelled distinctly.
+- Designer sessions provide awareness only. They never grant or deny edits; `dbm_editlock` remains the edit-authority contract.
+
 Power Apps Code Apps become the preferred R2+ rich designer host after a proof slice confirms Dataverse access, lock/draft API usage, embedding/navigation, CSP/admin requirements, solution ALM, environment support, and source-sync limitations. The rendered form process surface stays PCF/model-driven unless a later concrete blocker proves Code Apps is better for that business-user form surface.
 
 ## Consequences
 
 - `R2.1` expands from DBMScript storage into collaborative authoring primitives: authoring unit IDs, draft/published versions, rowversion/ETag expectations, lockable metadata, and compiled snapshot boundaries.
-- R2 editor slices must respect lock ownership before saving scripts, actions, templates, DBM Objects, and stage-local configs.
+- R2 editor slices must show designer-session awareness, then respect lock ownership before saving scripts, actions, templates, DBM Objects, and stage-local configs.
 - R3 runtime consumes published snapshots/definitions only and never executes drafts, locks, or half-edited configs.
 - R4 routing, SLA, notifications, validations, and operations become first-class authoring rows with their own lock/draft/version lifecycle.
 - R7 source sync exports/imports compiled published snapshots and may also export/import source-normalised artefacts with conflict reporting.

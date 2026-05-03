@@ -75,6 +75,8 @@ Assert-Contains 'docs\adr\0016-product-roadmap-reset-process-first.md' 'prototyp
 Assert-Contains 'docs\adr\0016-product-roadmap-reset-process-first.md' 'new product R1' 'ADR-0016 must state that the product roadmap restarts at a new R1.'
 Assert-Contains 'docs\adr\0017-collaborative-authoring-and-code-apps-designer.md' 'Dataverse-normalised authoring rows' 'ADR-0017 must lock Dataverse-normalised authoring rows as the collaborative authoring source.'
 Assert-Contains 'docs\adr\0017-collaborative-authoring-and-code-apps-designer.md' 'Power Apps Code Apps' 'ADR-0017 must record the Code Apps designer host direction.'
+Assert-Contains 'docs\adr\0017-collaborative-authoring-and-code-apps-designer.md' 'dbm_designersession' 'ADR-0017 must define designer-session presence separately from edit locks.'
+Assert-Contains 'docs\adr\0017-collaborative-authoring-and-code-apps-designer.md' 'Repeated display names are expected' 'ADR-0017 must preserve duplicate same-user designer sessions.'
 Assert-Contains 'docs\adr\README.md' '0017-collaborative-authoring-and-code-apps-designer.md' 'ADR index must reference ADR-0017.'
 
 $expectedReleaseRows = @(
@@ -123,6 +125,8 @@ Assert-Contains 'docs\roadmap\release-2-dbmscript-and-action-foundation.md' 'que
 Assert-Contains 'docs\roadmap\release-2-dbmscript-and-action-foundation.md' 'test case support' 'R2 must include script and object test case support.'
 Assert-Contains 'docs\roadmap\release-2-dbmscript-and-action-foundation.md' 'granular edit leases' 'R2 must include granular edit leases before meaningful non-mergeable edits begin.'
 Assert-Contains 'docs\roadmap\release-2-dbmscript-and-action-foundation.md' 'private Dataverse-backed drafts' 'R2 must create private Dataverse-backed drafts when editing starts.'
+Assert-Contains 'docs\roadmap\release-2-dbmscript-and-action-foundation.md' 'active designer sessions' 'R2 must show active designer sessions for process-level and component-level authoring awareness.'
+Assert-Contains 'docs\roadmap\release-2-dbmscript-and-action-foundation.md' 'not aggregated by user' 'R2 must keep same-user duplicate designer sessions visible.'
 Assert-Contains 'docs\roadmap\release-2-dbmscript-and-action-foundation.md' 'optimistic concurrency/ETags as final consistency guards' 'R2 must use optimistic concurrency and ETags as final consistency guards, not the primary long-edit UX.'
 Assert-Contains 'docs\roadmap\release-2-dbmscript-and-action-foundation.md' 'Power Apps Code Apps proof slice' 'R2 must include a Power Apps Code Apps proof slice before selecting Code Apps as the designer host.'
 Assert-Contains 'docs\roadmap\release-2-dbmscript-and-action-foundation.md' 'Process JSON remains a compiled published/export/import/runtime snapshot' 'R2 must preserve process JSON as a compiled snapshot rather than the collaborative authoring row.'
@@ -169,6 +173,8 @@ Assert-Contains 'docs\architecture\canonical-model-runtime-contract-v1.md' 'stag
 Assert-Contains 'docs\architecture\canonical-model-runtime-contract-v1.md' 'workKindId' 'Canonical contract docs must support user-defined work kinds.'
 Assert-Contains 'docs\architecture\canonical-model-runtime-contract-v1.md' 'compiled published/export/import/runtime snapshot' 'Canonical contract docs must state that process JSON is a compiled snapshot.'
 Assert-Contains 'docs\architecture\canonical-model-runtime-contract-v1.md' 'dbm_editlock' 'Canonical contract docs must define the edit-lock public contract.'
+Assert-Contains 'docs\architecture\canonical-model-runtime-contract-v1.md' 'dbm_designersession' 'Canonical contract docs must define the designer-session public contract.'
+Assert-Contains 'docs\architecture\canonical-model-runtime-contract-v1.md' 'Presence sessions never grant or deny edits' 'Canonical contract docs must keep designer-session awareness separate from edit authority.'
 foreach ($activeHierarchyDoc in @(
     'docs\roadmap\release-1-process-stage-designer-and-form-render.md',
     'docs\roadmap\release-plan.md',
