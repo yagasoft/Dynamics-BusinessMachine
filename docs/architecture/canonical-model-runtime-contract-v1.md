@@ -227,12 +227,15 @@ Each authoring unit needs:
 - draft/published lifecycle state
 - source-normalised export ID where ALM sync needs one
 - compiled snapshot inclusion rules
+- solution-aware metadata: solution name, component logical name, component schema name, and publisher prefix
 
 Private authoring drafts are Dataverse-backed autosave rows. A draft stores target type/id, owner, base published version, base ETag/rowversion, autosave payload, validation state, and recoverability state. Drafts preserve user work after failed publish, expired locks, browser close, or ETag conflicts.
 
-`dbm_editlock` is the edit-lock public contract. It records target type/id, owner, owner display, expiry, heartbeat timestamp, reason, status, acquired source, and force-release audit fields. Lock custom APIs or plugins must support acquire, renew, release, force-release, stale-lock cleanup, autosave draft, publish draft, reject save without a valid lock, and reject publish when unresolved drafts or rowversion conflicts remain.
+`dbm_editlock` is the edit-lock public contract. It records target type/id, owner, owner display, expiry, heartbeat timestamp, reason, status, acquired source, and force-release audit fields. Lock custom APIs or plugins must support acquire, renew, release, force-release, stale-lock cleanup, autosave draft, publish draft, restore-to-draft, reject save without a valid lock, and reject publish when unresolved drafts or rowversion conflicts remain.
 
 `dbm_designersession` is the designer-session public contract. It records one active session per open designer tab or host instance, including session id, process id, owner, owner display, current component target type/id, opened timestamp, heartbeat timestamp, expiry, status, and host/source. The current component target type/id may reference stage, child process link, DBMScript, DBM Object, action, notification template, routing policy, SLA policy, validation rule, or stage-local configuration.
+
+DBMScript storage is discriminated by storage mode: compressed script rows carry a compressed body, while web-resource fallback rows carry a web resource name. Dependency declarations record dependency kind, source reference, required flag, load order, and optional minimum version. Published versions carry a definition hash and restore-to-draft source metadata. Script, DBM Object, and action test cases are contract-only authoring artefacts in R2.1; execution remains later R2/R3 work.
 
 Designer-session presence supports process-level awareness and component-level current focus. Sessions are not aggregated by user: repeated display names are expected when the same user has multiple open tabs or designer host instances. The current user's sessions are visible by default, with the current tab labelled distinctly in the user experience.
 

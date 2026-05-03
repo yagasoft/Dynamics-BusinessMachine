@@ -182,9 +182,34 @@ $contentChecks = @(
         Description = 'ADR-0017 must record designer-session presence.'
     },
     @{
+        Path = 'docs\roadmap\progress-tracker.md'
+        Pattern = 'R2.1 contract/storage proof is complete'
+        Description = 'Roadmap progress tracker must mark the R2.1 contract/storage proof complete.'
+    },
+    @{
+        Path = 'docs\roadmap\progress-tracker.md'
+        Pattern = 'R2.2 Power Apps Code Apps designer host proof'
+        Description = 'Roadmap progress tracker must identify R2.2 as the next planned slice.'
+    },
+    @{
+        Path = 'docs\roadmap\progress-tracker.md'
+        Pattern = 'R2.2 is the next planned slice and has not started'
+        Description = 'Roadmap progress tracker must not imply that R2.2 implementation has started.'
+    },
+    @{
         Path = 'docs\architecture\canonical-model-runtime-contract-v1.md'
         Pattern = 'Presence sessions never grant or deny edits'
         Description = 'Canonical model contract must keep designer sessions separate from edit authority.'
+    },
+    @{
+        Path = 'docs\architecture\canonical-model-runtime-contract-v1.md'
+        Pattern = 'restore-to-draft'
+        Description = 'Canonical model contract must record the R2.1 restore-to-draft contract operation.'
+    },
+    @{
+        Path = 'docs\architecture\canonical-model-runtime-contract-v1.md'
+        Pattern = 'DBMScript storage is discriminated by storage mode'
+        Description = 'Canonical model contract must record discriminated DBMScript storage.'
     },
     @{
         Path = 'docs\roadmap\release-3-back-office-runtime.md'
