@@ -512,10 +512,16 @@ test('planDataverseSynthesis exposes R2.1 authoring table contracts', () => {
       'dbm_authoringdraft',
       'dbm_publishedversion',
       'dbm_editlock',
-      'dbm_designersession'
+      'dbm_designersession',
+      'dbm_dbmscript',
+      'dbm_dbmobject',
+      'dbm_actiondefinition',
+      'dbm_scriptdependency',
+      'dbm_authoringtestcase',
+      'dbm_authoringversionhistory'
     ]
   );
-  assert.equal(plan.summary.authoringTables, 5);
+  assert.equal(plan.summary.authoringTables, 11);
 
   const columnsByTable = new Map(
     plan.authoringTables.map((table) => [
@@ -538,7 +544,11 @@ test('planDataverseSynthesis exposes R2.1 authoring table contracts', () => {
       'dbm_currentpublishedetag',
       'dbm_lifecyclestate',
       'dbm_sourceexportid',
-      'dbm_compiledsnapshotinclusion'
+      'dbm_compiledsnapshotinclusion',
+      'dbm_solutionname',
+      'dbm_componentlogicalname',
+      'dbm_componentschemaname',
+      'dbm_publisherprefix'
     ]
   );
   assert.deepEqual(
@@ -600,6 +610,104 @@ test('planDataverseSynthesis exposes R2.1 authoring table contracts', () => {
   );
 });
 
+test('planDataverseSynthesis exposes R2.1 DBMScript storage and versioning table contracts', () => {
+  const plan = planDataverseSynthesis(approvalRequestModel as DbmModelV1);
+  const columnsByTable = new Map(
+    plan.authoringTables.map((table) => [
+      table.logicalName,
+      table.columns.map((column) => column.logicalName)
+    ])
+  );
+
+  assert.deepEqual(
+    columnsByTable.get('dbm_publishedversion'),
+    [
+      'dbm_publishedversionid',
+      'dbm_name',
+      'dbm_targettype',
+      'dbm_targetid',
+      'dbm_version',
+      'dbm_rowversion',
+      'dbm_etag',
+      'dbm_status',
+      'dbm_publishedutc',
+      'dbm_publishedbyid',
+      'dbm_publishedbydisplayname',
+      'dbm_definitionhash',
+      'dbm_restoredfromversion',
+      'dbm_restoredbydraftid',
+      'dbm_solutionname',
+      'dbm_componentlogicalname',
+      'dbm_componentschemaname',
+      'dbm_publisherprefix'
+    ]
+  );
+  assert.deepEqual(
+    columnsByTable.get('dbm_dbmscript'),
+    [
+      'dbm_dbmscriptid',
+      'dbm_name',
+      'dbm_authoringunitid',
+      'dbm_description',
+      'dbm_authoringmode',
+      'dbm_storagemode',
+      'dbm_compressedbody',
+      'dbm_webresourcename',
+      'dbm_status',
+      'dbm_currentversion',
+      'dbm_solutionname',
+      'dbm_componentlogicalname',
+      'dbm_componentschemaname',
+      'dbm_publisherprefix'
+    ]
+  );
+  assert.deepEqual(
+    columnsByTable.get('dbm_scriptdependency'),
+    [
+      'dbm_scriptdependencyid',
+      'dbm_name',
+      'dbm_scriptid',
+      'dbm_dependencykind',
+      'dbm_sourceref',
+      'dbm_required',
+      'dbm_loadorder',
+      'dbm_minimumversion'
+    ]
+  );
+  assert.deepEqual(
+    columnsByTable.get('dbm_authoringtestcase'),
+    [
+      'dbm_authoringtestcaseid',
+      'dbm_name',
+      'dbm_targettype',
+      'dbm_targetid',
+      'dbm_inputpayload',
+      'dbm_expectedoutputpayload',
+      'dbm_solutionname',
+      'dbm_componentlogicalname',
+      'dbm_componentschemaname',
+      'dbm_publisherprefix'
+    ]
+  );
+  assert.deepEqual(
+    columnsByTable.get('dbm_authoringversionhistory'),
+    [
+      'dbm_authoringversionhistoryid',
+      'dbm_name',
+      'dbm_targettype',
+      'dbm_targetid',
+      'dbm_version',
+      'dbm_definitionhash',
+      'dbm_restoredfromversion',
+      'dbm_restoredbydraftid',
+      'dbm_solutionname',
+      'dbm_componentlogicalname',
+      'dbm_componentschemaname',
+      'dbm_publisherprefix'
+    ]
+  );
+});
+
 test('planDataverseSynthesis exposes R2.1 authoring operation contracts', () => {
   const plan = planDataverseSynthesis(approvalRequestModel as DbmModelV1);
 
@@ -613,11 +721,12 @@ test('planDataverseSynthesis exposes R2.1 authoring operation contracts', () => 
       'cleanup-stale-locks',
       'autosave-draft',
       'publish-draft',
+      'restore-to-draft',
       'reject-save',
       'reject-publish'
     ]
   );
-  assert.equal(plan.summary.authoringOperations, 9);
+  assert.equal(plan.summary.authoringOperations, 10);
   assert.equal(
     plan.authoringOperations.every((operation) => operation.authority === 'dataverse-custom-api-or-plugin'),
     true
@@ -643,6 +752,30 @@ test('planDataverseSynthesis exposes R2.1 authoring operation contracts', () => 
       requiresActiveLock: true,
       auditRequired: false,
       rejectionCode: 'lock-required',
+      implementationBoundary: 'contract-only'
+    }
+  );
+  assert.deepEqual(
+    plan.authoringOperations.find((operation) => operation.name === 'restore-to-draft'),
+    {
+      name: 'restore-to-draft',
+      authority: 'dataverse-custom-api-or-plugin',
+      targetUnitTypes: [
+        'process',
+        'stage',
+        'child-process-link',
+        'dbmscript',
+        'dbm-object',
+        'action',
+        'notification-template',
+        'routing-policy',
+        'sla-policy',
+        'validation-rule',
+        'stage-local-config'
+      ],
+      requiresActiveLock: true,
+      auditRequired: true,
+      rejectionCode: 'restore-conflict',
       implementationBoundary: 'contract-only'
     }
   );

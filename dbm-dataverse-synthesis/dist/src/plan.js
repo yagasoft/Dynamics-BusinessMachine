@@ -465,6 +465,14 @@ function createAuthoringTable(logicalName, displayName, columns) {
         implementationBoundary: 'contract-only'
     };
 }
+function createSolutionMetadataColumns() {
+    return [
+        createAuthoringColumn('dbm_solutionname', 'Solution name', 'String', 'solution-name', true, true),
+        createAuthoringColumn('dbm_componentlogicalname', 'Component logical name', 'String', 'solution-component-logical-name', true, true),
+        createAuthoringColumn('dbm_componentschemaname', 'Component schema name', 'String', 'solution-component-schema-name', true, true),
+        createAuthoringColumn('dbm_publisherprefix', 'Publisher prefix', 'String', 'solution-publisher-prefix', true, true)
+    ];
+}
 function buildR21AuthoringTables() {
     return [
         createAuthoringTable('dbm_authoringunit', 'DBM authoring unit', [
@@ -479,7 +487,8 @@ function buildR21AuthoringTables() {
             createAuthoringColumn('dbm_currentpublishedetag', 'Current published ETag', 'String', 'etag-guard', true, true),
             createAuthoringColumn('dbm_lifecyclestate', 'Lifecycle state', 'String', 'lifecycle-state', true),
             createAuthoringColumn('dbm_sourceexportid', 'Source export id', 'String', 'source-sync'),
-            createAuthoringColumn('dbm_compiledsnapshotinclusion', 'Compiled snapshot inclusion', 'String', 'compiled-snapshot-boundary', true)
+            createAuthoringColumn('dbm_compiledsnapshotinclusion', 'Compiled snapshot inclusion', 'String', 'compiled-snapshot-boundary', true),
+            ...createSolutionMetadataColumns()
         ]),
         createAuthoringTable('dbm_authoringdraft', 'DBM authoring draft', [
             createAuthoringColumn('dbm_authoringdraftid', 'Authoring draft', 'Uniqueidentifier', 'primary-id', true, true),
@@ -507,7 +516,11 @@ function buildR21AuthoringTables() {
             createAuthoringColumn('dbm_status', 'Status', 'String', 'published-status', true),
             createAuthoringColumn('dbm_publishedutc', 'Published UTC', 'DateTime', 'published-timestamp', true, true),
             createAuthoringColumn('dbm_publishedbyid', 'Published by id', 'String', 'published-by-id', true, true),
-            createAuthoringColumn('dbm_publishedbydisplayname', 'Published by display name', 'String', 'published-by-display', true, true)
+            createAuthoringColumn('dbm_publishedbydisplayname', 'Published by display name', 'String', 'published-by-display', true, true),
+            createAuthoringColumn('dbm_definitionhash', 'Definition hash', 'String', 'definition-hash', true, true),
+            createAuthoringColumn('dbm_restoredfromversion', 'Restored from version', 'Integer', 'restore-source-version'),
+            createAuthoringColumn('dbm_restoredbydraftid', 'Restored by draft id', 'String', 'restore-draft-id'),
+            ...createSolutionMetadataColumns()
         ]),
         createAuthoringTable('dbm_editlock', 'DBM edit lock', [
             createAuthoringColumn('dbm_editlockid', 'Edit lock', 'Uniqueidentifier', 'primary-id', true, true),
@@ -541,6 +554,68 @@ function buildR21AuthoringTables() {
             createAuthoringColumn('dbm_status', 'Status', 'String', 'session-status', true),
             createAuthoringColumn('dbm_host', 'Host', 'String', 'session-host', true),
             createAuthoringColumn('dbm_source', 'Source', 'String', 'session-source', true)
+        ]),
+        createAuthoringTable('dbm_dbmscript', 'DBMScript', [
+            createAuthoringColumn('dbm_dbmscriptid', 'DBMScript', 'Uniqueidentifier', 'primary-id', true, true),
+            createAuthoringColumn('dbm_name', 'Name', 'String', 'primary-name', true),
+            createAuthoringColumn('dbm_authoringunitid', 'Authoring unit id', 'String', 'authoring-unit-id', true, true),
+            createAuthoringColumn('dbm_description', 'Description', 'Memo', 'description'),
+            createAuthoringColumn('dbm_authoringmode', 'Authoring mode', 'String', 'script-authoring-mode', true),
+            createAuthoringColumn('dbm_storagemode', 'Storage mode', 'String', 'script-storage-mode', true),
+            createAuthoringColumn('dbm_compressedbody', 'Compressed body', 'Memo', 'compressed-script-body'),
+            createAuthoringColumn('dbm_webresourcename', 'Web resource name', 'String', 'web-resource-fallback'),
+            createAuthoringColumn('dbm_status', 'Status', 'String', 'script-status', true),
+            createAuthoringColumn('dbm_currentversion', 'Current version', 'Integer', 'published-version', true, true),
+            ...createSolutionMetadataColumns()
+        ]),
+        createAuthoringTable('dbm_dbmobject', 'DBM Object', [
+            createAuthoringColumn('dbm_dbmobjectid', 'DBM Object', 'Uniqueidentifier', 'primary-id', true, true),
+            createAuthoringColumn('dbm_name', 'Name', 'String', 'primary-name', true),
+            createAuthoringColumn('dbm_authoringunitid', 'Authoring unit id', 'String', 'authoring-unit-id', true, true),
+            createAuthoringColumn('dbm_scope', 'Scope', 'String', 'dbm-object-scope', true),
+            createAuthoringColumn('dbm_scratchpad', 'Scratchpad', 'Memo', 'dbm-object-scratchpad', true),
+            createAuthoringColumn('dbm_duplicatepropertybehavior', 'Duplicate property behaviour', 'String', 'duplicate-property-behaviour', true),
+            ...createSolutionMetadataColumns()
+        ]),
+        createAuthoringTable('dbm_actiondefinition', 'DBM action definition', [
+            createAuthoringColumn('dbm_actiondefinitionid', 'Action definition', 'Uniqueidentifier', 'primary-id', true, true),
+            createAuthoringColumn('dbm_name', 'Name', 'String', 'primary-name', true),
+            createAuthoringColumn('dbm_authoringunitid', 'Authoring unit id', 'String', 'authoring-unit-id', true, true),
+            createAuthoringColumn('dbm_triggertype', 'Trigger type', 'String', 'action-trigger-type', true),
+            createAuthoringColumn('dbm_boundtargettype', 'Bound target type', 'String', 'target-type', true),
+            createAuthoringColumn('dbm_boundtargetid', 'Bound target id', 'String', 'target-id', true),
+            createAuthoringColumn('dbm_scriptid', 'Script id', 'String', 'script-id', true),
+            ...createSolutionMetadataColumns()
+        ]),
+        createAuthoringTable('dbm_scriptdependency', 'DBMScript dependency', [
+            createAuthoringColumn('dbm_scriptdependencyid', 'Script dependency', 'Uniqueidentifier', 'primary-id', true, true),
+            createAuthoringColumn('dbm_name', 'Name', 'String', 'primary-name', true),
+            createAuthoringColumn('dbm_scriptid', 'Script id', 'String', 'script-id', true),
+            createAuthoringColumn('dbm_dependencykind', 'Dependency kind', 'String', 'dependency-kind', true),
+            createAuthoringColumn('dbm_sourceref', 'Source reference', 'String', 'dependency-source-reference', true),
+            createAuthoringColumn('dbm_required', 'Required', 'Boolean', 'dependency-required', true),
+            createAuthoringColumn('dbm_loadorder', 'Load order', 'Integer', 'dependency-load-order', true),
+            createAuthoringColumn('dbm_minimumversion', 'Minimum version', 'String', 'dependency-minimum-version')
+        ]),
+        createAuthoringTable('dbm_authoringtestcase', 'DBM authoring test case', [
+            createAuthoringColumn('dbm_authoringtestcaseid', 'Authoring test case', 'Uniqueidentifier', 'primary-id', true, true),
+            createAuthoringColumn('dbm_name', 'Name', 'String', 'primary-name', true),
+            createAuthoringColumn('dbm_targettype', 'Target type', 'String', 'target-type', true),
+            createAuthoringColumn('dbm_targetid', 'Target id', 'String', 'target-id', true),
+            createAuthoringColumn('dbm_inputpayload', 'Input payload', 'Memo', 'test-input-payload', true),
+            createAuthoringColumn('dbm_expectedoutputpayload', 'Expected output payload', 'Memo', 'test-expected-output-payload', true),
+            ...createSolutionMetadataColumns()
+        ]),
+        createAuthoringTable('dbm_authoringversionhistory', 'DBM authoring version history', [
+            createAuthoringColumn('dbm_authoringversionhistoryid', 'Authoring version history', 'Uniqueidentifier', 'primary-id', true, true),
+            createAuthoringColumn('dbm_name', 'Name', 'String', 'primary-name', true),
+            createAuthoringColumn('dbm_targettype', 'Target type', 'String', 'target-type', true),
+            createAuthoringColumn('dbm_targetid', 'Target id', 'String', 'target-id', true),
+            createAuthoringColumn('dbm_version', 'Version', 'Integer', 'published-version', true, true),
+            createAuthoringColumn('dbm_definitionhash', 'Definition hash', 'String', 'definition-hash', true, true),
+            createAuthoringColumn('dbm_restoredfromversion', 'Restored from version', 'Integer', 'restore-source-version'),
+            createAuthoringColumn('dbm_restoredbydraftid', 'Restored by draft id', 'String', 'restore-draft-id'),
+            ...createSolutionMetadataColumns()
         ])
     ];
 }
@@ -564,6 +639,7 @@ function buildR21AuthoringOperations() {
         createAuthoringOperation('cleanup-stale-locks', false, true, null),
         createAuthoringOperation('autosave-draft', true, false, 'lock-required'),
         createAuthoringOperation('publish-draft', true, true, 'publish-conflict'),
+        createAuthoringOperation('restore-to-draft', true, true, 'restore-conflict'),
         createAuthoringOperation('reject-save', false, true, 'save-without-valid-lock'),
         createAuthoringOperation('reject-publish', false, true, 'unresolved-draft-or-rowversion-conflict')
     ];

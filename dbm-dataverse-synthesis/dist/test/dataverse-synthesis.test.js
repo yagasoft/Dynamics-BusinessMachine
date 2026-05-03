@@ -390,9 +390,15 @@ async function createRuntimeHarness(formId) {
         'dbm_authoringdraft',
         'dbm_publishedversion',
         'dbm_editlock',
-        'dbm_designersession'
+        'dbm_designersession',
+        'dbm_dbmscript',
+        'dbm_dbmobject',
+        'dbm_actiondefinition',
+        'dbm_scriptdependency',
+        'dbm_authoringtestcase',
+        'dbm_authoringversionhistory'
     ]);
-    strict_1.default.equal(plan.summary.authoringTables, 5);
+    strict_1.default.equal(plan.summary.authoringTables, 11);
     const columnsByTable = new Map(plan.authoringTables.map((table) => [
         table.logicalName,
         table.columns.map((column) => column.logicalName)
@@ -409,7 +415,11 @@ async function createRuntimeHarness(formId) {
         'dbm_currentpublishedetag',
         'dbm_lifecyclestate',
         'dbm_sourceexportid',
-        'dbm_compiledsnapshotinclusion'
+        'dbm_compiledsnapshotinclusion',
+        'dbm_solutionname',
+        'dbm_componentlogicalname',
+        'dbm_componentschemaname',
+        'dbm_publisherprefix'
     ]);
     strict_1.default.deepEqual(columnsByTable.get('dbm_authoringdraft'), [
         'dbm_authoringdraftid',
@@ -460,6 +470,85 @@ async function createRuntimeHarness(formId) {
         'dbm_source'
     ]);
 });
+(0, node_test_1.default)('planDataverseSynthesis exposes R2.1 DBMScript storage and versioning table contracts', () => {
+    const plan = (0, index_1.planDataverseSynthesis)(approval_request_v1_model_json_1.default);
+    const columnsByTable = new Map(plan.authoringTables.map((table) => [
+        table.logicalName,
+        table.columns.map((column) => column.logicalName)
+    ]));
+    strict_1.default.deepEqual(columnsByTable.get('dbm_publishedversion'), [
+        'dbm_publishedversionid',
+        'dbm_name',
+        'dbm_targettype',
+        'dbm_targetid',
+        'dbm_version',
+        'dbm_rowversion',
+        'dbm_etag',
+        'dbm_status',
+        'dbm_publishedutc',
+        'dbm_publishedbyid',
+        'dbm_publishedbydisplayname',
+        'dbm_definitionhash',
+        'dbm_restoredfromversion',
+        'dbm_restoredbydraftid',
+        'dbm_solutionname',
+        'dbm_componentlogicalname',
+        'dbm_componentschemaname',
+        'dbm_publisherprefix'
+    ]);
+    strict_1.default.deepEqual(columnsByTable.get('dbm_dbmscript'), [
+        'dbm_dbmscriptid',
+        'dbm_name',
+        'dbm_authoringunitid',
+        'dbm_description',
+        'dbm_authoringmode',
+        'dbm_storagemode',
+        'dbm_compressedbody',
+        'dbm_webresourcename',
+        'dbm_status',
+        'dbm_currentversion',
+        'dbm_solutionname',
+        'dbm_componentlogicalname',
+        'dbm_componentschemaname',
+        'dbm_publisherprefix'
+    ]);
+    strict_1.default.deepEqual(columnsByTable.get('dbm_scriptdependency'), [
+        'dbm_scriptdependencyid',
+        'dbm_name',
+        'dbm_scriptid',
+        'dbm_dependencykind',
+        'dbm_sourceref',
+        'dbm_required',
+        'dbm_loadorder',
+        'dbm_minimumversion'
+    ]);
+    strict_1.default.deepEqual(columnsByTable.get('dbm_authoringtestcase'), [
+        'dbm_authoringtestcaseid',
+        'dbm_name',
+        'dbm_targettype',
+        'dbm_targetid',
+        'dbm_inputpayload',
+        'dbm_expectedoutputpayload',
+        'dbm_solutionname',
+        'dbm_componentlogicalname',
+        'dbm_componentschemaname',
+        'dbm_publisherprefix'
+    ]);
+    strict_1.default.deepEqual(columnsByTable.get('dbm_authoringversionhistory'), [
+        'dbm_authoringversionhistoryid',
+        'dbm_name',
+        'dbm_targettype',
+        'dbm_targetid',
+        'dbm_version',
+        'dbm_definitionhash',
+        'dbm_restoredfromversion',
+        'dbm_restoredbydraftid',
+        'dbm_solutionname',
+        'dbm_componentlogicalname',
+        'dbm_componentschemaname',
+        'dbm_publisherprefix'
+    ]);
+});
 (0, node_test_1.default)('planDataverseSynthesis exposes R2.1 authoring operation contracts', () => {
     const plan = (0, index_1.planDataverseSynthesis)(approval_request_v1_model_json_1.default);
     strict_1.default.deepEqual(plan.authoringOperations.map((operation) => operation.name), [
@@ -470,10 +559,11 @@ async function createRuntimeHarness(formId) {
         'cleanup-stale-locks',
         'autosave-draft',
         'publish-draft',
+        'restore-to-draft',
         'reject-save',
         'reject-publish'
     ]);
-    strict_1.default.equal(plan.summary.authoringOperations, 9);
+    strict_1.default.equal(plan.summary.authoringOperations, 10);
     strict_1.default.equal(plan.authoringOperations.every((operation) => operation.authority === 'dataverse-custom-api-or-plugin'), true);
     strict_1.default.deepEqual(plan.authoringOperations.find((operation) => operation.name === 'autosave-draft'), {
         name: 'autosave-draft',
@@ -494,6 +584,27 @@ async function createRuntimeHarness(formId) {
         requiresActiveLock: true,
         auditRequired: false,
         rejectionCode: 'lock-required',
+        implementationBoundary: 'contract-only'
+    });
+    strict_1.default.deepEqual(plan.authoringOperations.find((operation) => operation.name === 'restore-to-draft'), {
+        name: 'restore-to-draft',
+        authority: 'dataverse-custom-api-or-plugin',
+        targetUnitTypes: [
+            'process',
+            'stage',
+            'child-process-link',
+            'dbmscript',
+            'dbm-object',
+            'action',
+            'notification-template',
+            'routing-policy',
+            'sla-policy',
+            'validation-rule',
+            'stage-local-config'
+        ],
+        requiresActiveLock: true,
+        auditRequired: true,
+        rejectionCode: 'restore-conflict',
         implementationBoundary: 'contract-only'
     });
 });
